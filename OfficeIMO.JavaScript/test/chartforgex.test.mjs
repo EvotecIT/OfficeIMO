@@ -67,6 +67,35 @@ test("capture values are validated once before writing", async () => {
   assert.deepEqual([cells.get("A3").value, cells.get("A3").format], [46027.270833333336, "yyyy-mm-dd hh:mm"]);
 });
 
+test("long sheets preserve repeated missing categories, per-series units and conflicting x captions", async () => {
+  const series = [
+    { id: "a", name: "First", unit: "s", points: [{ x: null, y: 2 }, { x: null, y: 3 }, { x: "A", xCaption: "Alpha", y: 4 }] },
+    { id: "b", name: "Second", points: [{ x: "A", xCaption: "Region A", y: 500 }] }
+  ];
+  const input = capture(series, { kind: "category" }, { y: { title: "Duration", unit: "ms" } });
+  const { cells } = await sheet(await exportChartForgeX(input, "xlsx"));
+  const row = index => ["B", "C", "D", "E", "F"].map(column => cells.get(column + index).value);
+  assert.deepEqual([2, 3, 4, 5, 6].map(row), [
+    ["Series ID", "X", "X (display)", "Duration", "Unit"],
+    ["a", null, null, 2, "s"], ["a", null, null, 3, "s"], ["a", "A", "Alpha", 4, "s"], ["b", "A", "Region A", 500, "ms"]
+  ]);
+  await assert.rejects(exportChartForgeX(input, "xlsx", { layout: "wide" }), /unique x values/);
+  const conflictOnly = { ...input, series: [{ ...series[0], points: series[0].points.slice(2) }, series[1]] };
+  await assert.rejects(exportChartForgeX(conflictOnly, "xlsx", { layout: "wide" }), /consistent x captions/);
+  const singleUnit = await sheet(await exportChartForgeX({ ...input, series: [series[0]] }, "xlsx"));
+  assert.equal(singleUnit.cells.get("E2").value, "Duration (s)");
+  assert.equal(singleUnit.cells.has("F2"), false);
+});
+
+test("XLSX row limits reject a sparse wide projection before writing", async () => {
+  const series = Array.from({ length: 100 }, (_, index) =>
+    ({ id: String(index), name: "Series " + index, points: [{ x: index, y: index }] }));
+  const limits = { maxRows: 2 };
+  const input = capture(series, { kind: "number" });
+  await assert.rejects(exportChartForgeX(input, "xlsx", { limits }), { code: "RESOURCE_LIMIT", message: /maxRows exceeded \(3 > 2\)/ });
+  await assert.rejects(exportChartForgeX(input, "xlsx", { layout: "long", limits }), { code: "RESOURCE_LIMIT", message: /maxRows exceeded \(100 > 2\)/ });
+});
+
 const chartSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 800 400">
   <defs><clipPath id="plot" clipPathUnits="userSpaceOnUse"><rect x="40" y="20" width="720" height="340"/></clipPath>
     <linearGradient id="fade"><stop offset="0" style="stop-color: rgb(42, 120, 214); stop-opacity: 1"/></linearGradient></defs>
@@ -100,8 +129,8 @@ test("chart SVG becomes a vector drawing in points with clips, curves, turned te
   assert.deepEqual(label, { kind: "text", text: "Week -1 ? 2", x: 150, y: 146.25, font: "regular", fontSize: 9, color: "4D525B", anchor: "middle" });
   assert.deepEqual([axis.text, axis.font, axis.rotation, axis.anchor, axis.x, axis.y, axis.color], ["Sign-ins", "bold", -90, "middle", 7.5, 75, "1A1A1A"]);
   assert.deepEqual([first.text, first.y, second.text, second.y], ["First", 15, "Second", 24]);
-  assert.deepEqual(diagnostics, ["GRADIENT_FLATTENED", "OPACITY_FLATTENED", "TEXT_SUBSTITUTED", "IMAGE_SKIPPED"]);
-  assert.throws(() => chartForgeXDrawing(chartSvg, { unsupported: "reject" }), /GRADIENT_FLATTENED/);
+  assert.deepEqual(diagnostics, ["STYLESHEET_IGNORED", "GRADIENT_FLATTENED", "OPACITY_FLATTENED", "TEXT_SUBSTITUTED", "IMAGE_SKIPPED"]);
+  assert.throws(() => chartForgeXDrawing(chartSvg, { unsupported: "reject" }), /STYLESHEET_IGNORED/);
 });
 
 test("path data, transforms and markup edge cases parse like SVG renderers", () => {
@@ -110,6 +139,8 @@ test("path data, transforms and markup edge cases parse like SVG renderers", () 
   const [arc] = draw(`<path d="M0 0a10 10 0 011 1" stroke="black"/>`);
   assert.equal(arc.commands.at(-1).op, "cubic");
   assert.deepEqual([arc.commands.at(-1).x, arc.commands.at(-1).y], [.75, .75]);
+  const [truncated] = draw(`<path d="M10 10 L20 20 Z l5 0 D0 0" stroke="black"/>`);
+  assert.deepEqual(truncated.commands.slice(-2), [{ op: "move", x: 7.5, y: 7.5 }, { op: "line", x: 11.25, y: 7.5 }]);
   const [scaled] = draw(`<g transform="matrix(2 0 0 2 10 0) scale(.5)"><rect x="0" y="0" width="10" height="10" rx="2" fill="#000"/></g>`);
   assert.deepEqual(scaled.commands[0], { op: "move", x: 9, y: 0 });
   assert.equal(scaled.commands.filter(c => c.op === "cubic").length, 4);
@@ -120,18 +151,70 @@ test("path data, transforms and markup edge cases parse like SVG renderers", () 
   assert.throws(() => chartForgeXDrawing(`<!DOCTYPE svg [<!ENTITY x "y">]><svg width="1" height="1"/>`), /internal DTD/);
 });
 
+test("SVG conversion preserves symbol viewports, resolved paint and painter order", () => {
+  const diagnostics = [];
+  const result = chartForgeXDrawing(`<?export x > y?><svg width="100" height="100">
+    <defs><symbol id="mark" viewBox="0 0 10 10"><rect width="100%" height="100%"/></symbol></defs>
+    <use href="#mark" width="20" height="20" transform="translate(10)" style="transform: translate(20px)"/>
+    <rect width="25" height="25" x="5" fill="white" stroke="black"/>
+    <rect width="25" height="25" x="15" fill="white" stroke="black"/>
+    <rect width="10" height="10" opacity="50%" style="fill: red !important; fill: green"/>
+    <rect width="10" height="10" fill="rgb(255 0 0 / none)"/>
+    <switch><text y="40">A<tspan visibility="hidden">Hidden</tspan><tspan>B</tspan></text><text y="40">Extra</text></switch>
+    <text x="0" y="70">A<tspan x="20" font-weight="bold">B</tspan>C</text>
+  </svg>`, { onDiagnostic: d => diagnostics.push(d.code) });
+  assert.equal(result.elements.length, 7);
+  assert.deepEqual(result.elements[0].commands[2], { op: "line", x: 30, y: 15 });
+  assert.deepEqual(result.elements.slice(1, 3).map(path => [path.commands[0].x, path.fill, path.stroke]),
+    [[3.75, "FFFFFF", "000000"], [11.25, "FFFFFF", "000000"]]);
+  assert.equal(result.elements[3].fill, "FF8080");
+  assert.equal(result.elements[4].text, "AB");
+  assert.deepEqual(diagnostics, ["OPACITY_FLATTENED", "TEXT_STYLE_MERGED"]);
+});
+
+test("SVG percentages use the active viewBox for geometry, clips and labels", () => {
+  const drawing = chartForgeXDrawing(`<svg width="200" height="100" viewBox="0 0 100 50">
+    <defs><clipPath id="half"><rect width="50%" height="50%"/></clipPath></defs>
+    <g clip-path="url(#half)"><rect width="50%" height="50%"/></g>
+    <circle cx="25%" cy="50%" r="10%" fill="blue"/>
+    <svg x="50%" y="50%" width="50%" height="50%" viewBox="0 0 40 20">
+      <text x="50%" y="50%">Label</text>
+    </svg>
+  </svg>`);
+  const [group, circle, label] = drawing.elements;
+  assert.deepEqual(group.clip, { x: 0, y: 0, width: 75, height: 37.5 });
+  assert.deepEqual(group.elements[0].commands[2], { op: "line", x: 75, y: 37.5 });
+  assert.ok(Math.abs(circle.commands[0].x - (37.5 + Math.hypot(100, 50) / Math.SQRT2 * .15)) < 1e-9);
+  assert.deepEqual([label.x, label.y], [112.5, 56.25]);
+});
+
+test("SVG conversion applies drawing ceilings during reference expansion", async () => {
+  const marks = `<svg width="40" height="40">
+    <defs><circle id="mark" r="2"/></defs><use href="#mark"/><use href="#mark" x="10"/>
+  </svg>`;
+  const input = capture(weekly, undefined, { svg: marks });
+  await assert.rejects(exportChartForgeX(input, "pdf", { pdf: { limits: { maxVectorCommands: 6 } } }),
+    { code: "RESOURCE_LIMIT", message: /maxVectorCommands/ });
+  assert.equal(chartForgeXDrawing(marks, { limits: { maxDrawingElements: 1, maxVectorCommands: 12 } }).elements.length, 1);
+
+  const refs = Array.from({ length: 12 }, (_, i) => `<g id="r${i + 1}"><use href="#r${i}"/><use href="#r${i}"/></g>`).join("");
+  const emptyExpansion = `<svg width="40" height="40"><defs><g id="r0"/>${refs}</defs><use href="#r12"/></svg>`;
+  assert.throws(() => chartForgeXDrawing(emptyExpansion, { limits: { maxDrawingElements: 1, maxVectorCommands: 12 } }),
+    { code: "RESOURCE_LIMIT", message: /conversion work limit/ });
+});
+
 test("a ChartForgeX PDF carries the title, description and the chart as vector paths and text", async () => {
   const diagnostics = [];
-  const pdf = await inspectPdf(await exportChartForgeX(capture(weekly, undefined, { svg: chartSvg, description: "Weekly sign-ins − by method." }), "pdf",
+  const pdf = await inspectPdf(await exportChartForgeX(capture(weekly, undefined, { svg: chartSvg, title: "Sign-ins → Weekly", description: "Weekly sign-ins − by method." }), "pdf",
     { pdf: { compression: false, tagged: { language: "en-US" } }, onDiagnostic: diagnostic => diagnostics.push(diagnostic.code) }));
   assert.equal(pdf.pages.length, 1);
   const content = pdf.pages[0].content;
-  assert.match(pdf.text, /^Sign-ins\nWeekly sign-ins - by method\./);
+  assert.match(pdf.text, /^Sign-ins \? Weekly\nWeekly sign-ins - by method\./);
   assert.match(pdf.text, /Week -1 \? 2/);
   assert.match(content, / c\n/); assert.match(content, / re W n\n/); assert.match(content, /\[1\.5 0\.75\] 0 d\n/);
   assert.match(content, /0 -1 -1 0 [\d.]+ [\d.]+ Tm/, "The y axis title stays vertical");
   assert.ok(!/\/XObject|\/Image/.test([...pdf.objects.values()].map(o => o.body).join("\n")), "The chart is vector, not an embedded image");
-  assert.match([...pdf.objects.values()].map(o => o.body).join("\n"), /\/Title <feff/);
+  assert.match([...pdf.objects.values()].map(o => o.body).join("\n"), /\/Title <feff005300690067006e002d0069006e0073002021920020005700650065006b006c0079>/);
   assert.match([...pdf.objects.values()].map(o => o.body).join("\n"), /\/Alt <feff/);
   assert.ok(diagnostics.includes("TEXT_SUBSTITUTED") && diagnostics.includes("IMAGE_SKIPPED"));
 });

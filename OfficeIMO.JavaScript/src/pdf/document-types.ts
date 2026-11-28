@@ -11,6 +11,8 @@ export interface PdfDocumentOptions extends Omit<PdfOptions<never>, "columns" | 
   "headerPresentation" | "footerPresentation" | "alternateRowColor" | "columnWidths" | "wideTable" | "formatValue" | "formatRuns"> {
   /** Named paragraph appearance and keep rules, copied before the block source is consumed. No style inheritance. */
   readonly paragraphStyles?: Readonly<Record<string, PdfParagraphStyle>>;
+  /** PDF document information title when it differs from the visible title. */
+  readonly metadataTitle?: string;
 }
 /** A table's own columns, repeated headings, presentation and numeric totals. */
 export type PdfTableOptions<T = never> = Pick<PdfOptions<T>, "columns" | "includeHeader" | "headerRows" | "footer" |

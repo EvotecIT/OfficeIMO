@@ -20,9 +20,9 @@ export interface PdfDrawingPath {
   readonly fillRule?: "nonzero" | "evenodd";
   readonly lineCap?: "butt" | "round" | "square";
   readonly lineJoin?: "miter" | "round" | "bevel";
-  /** Stroke dash lengths in points: 1 through 16 nonnegative values, at least one positive. */
+  /** 1 through 16 stroke dash lengths from 0 through 14,400 points. At least one must survive rounding to 0.001 pt. */
   readonly dash?: readonly number[];
-  /** Dash phase in points; requires dash. */
+  /** Dash phase from -1,000,000 through 1,000,000 points; requires dash. */
   readonly dashOffset?: number;
 }
 /** A face explicitly supplied in the PDF document's embedded static TrueType family. */

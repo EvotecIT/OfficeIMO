@@ -54,11 +54,13 @@ export interface ChartForgeXSvgOptions {
   readonly fonts?: readonly PdfDrawingFont[];
   /** Map text to the standard fonts' WinAnsi repertoire, substituting other characters. Default true. */
   readonly winAnsi?: boolean;
+  /** Override the PDF drawing ceilings used while converting SVG. */
+  readonly limits?: Pick<NonNullable<PdfDocumentOptions["limits"]>, "maxDrawingElements" | "maxVectorCommands">;
   readonly onDiagnostic?: (diagnostic: ChartForgeXDiagnostic) => void;
 }
 export interface ChartForgeXWriteOptions {
   /** `wide`: one row per x value and a column per series. `long`: one row per point. `auto` (default) picks wide unless
-   * a series repeats an x value or a date/number point has no x. */
+   * a series repeats an x value, a date/number point has no x, or series captions disagree for a shared x. */
   readonly layout?: "auto" | "wide" | "long";
   readonly signal?: AbortSignal;
   readonly limits?: ExportLimits;

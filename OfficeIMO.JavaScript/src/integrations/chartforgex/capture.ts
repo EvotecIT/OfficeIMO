@@ -55,14 +55,14 @@ export function prepareChart(input: ChartForgeXCapture, maxPoints = 1048575): Pr
   const yAxis = capture.y === undefined ? {} : record(capture.y, "y");
   if (!Array.isArray(capture.series)) throw new TypeError("Chart capture series must be an array.");
   let count = 0;
-  const series = (capture.series as unknown[]).slice().map((entry, index): PreparedSeries => {
+  const series = Array.from(capture.series as unknown[], (entry, index): PreparedSeries => {
     const value = record(entry, "series[" + index + "]"), points = value.points;
     if (!Array.isArray(points)) throw new TypeError("Chart capture series[" + index + "].points must be an array.");
     if ((count += points.length) > maxPoints) throw new RangeError("Chart capture has more than " + maxPoints + " points.");
     return {
       id: text(value.id, "series[" + index + "].id", true)!, name: text(value.name, "series[" + index + "].name", true)!,
       unit: text(value.unit, "series unit"), format: text(value.format, "series format"),
-      points: (points as unknown[]).slice().map((raw, point): PreparedPoint => {
+      points: Array.from(points as unknown[], (raw, point): PreparedPoint => {
         const item = record(raw, "point"), where = "series[" + index + "].points[" + point + "]";
         const y = item.y;
         if (y !== null && y !== undefined && (typeof y !== "number" || !Number.isFinite(y))) throw new TypeError(where + ".y must be a finite number or null.");
@@ -70,7 +70,11 @@ export function prepareChart(input: ChartForgeXCapture, maxPoints = 1048575): Pr
         const source = item.x;
         if (source !== null && source !== undefined) {
           if (kind === "date") {
-            const time = source instanceof Date ? source.getTime() : typeof source === "string" && isoDate.test(source.trim()) ? Date.parse(isoInstant(source.trim())) : NaN;
+            let time = NaN;
+            if (typeof source === "string" && isoDate.test(source.trim())) time = Date.parse(isoInstant(source.trim()));
+            if (typeof source === "object") {
+              try { time = Date.prototype.getTime.call(source); } catch { /* Not a Date. */ }
+            }
             if (!Number.isFinite(time)) throw new TypeError(where + ".x must be an ISO 8601 date string or a valid Date.");
             x = new Date(time); key = time;
           } else if (kind === "number") {
@@ -86,14 +90,12 @@ export function prepareChart(input: ChartForgeXCapture, maxPoints = 1048575): Pr
     };
   });
   const svg = capture.svg;
-  let markup: string | undefined;
-  if (typeof svg === "string") markup = svg;
-  else if (svg && typeof svg === "object" && typeof (svg as { outerHTML?: unknown }).outerHTML === "string") markup = (svg as { outerHTML: string }).outerHTML;
-  else if (svg !== undefined && svg !== null) throw new TypeError("Chart capture svg must be markup or an element.");
+  const markup = svg && typeof svg === "object" ? (svg as { outerHTML?: unknown }).outerHTML : svg;
+  if (svg != null && typeof markup !== "string") throw new TypeError("Chart capture svg must be markup or an element.");
   return {
     title: text(capture.title, "title"), description: text(capture.description, "description"), kind,
     xTitle: text(axis.title, "x.title") || "X", xFormat: text(axis.format, "x.format"),
     yTitle: text(yAxis.title, "y.title") || "Value", yUnit: text(yAxis.unit, "y.unit"), yFormat: text(yAxis.format, "y.format"),
-    series, svg: markup
+    series, svg: typeof markup === "string" ? markup : undefined
   };
 }

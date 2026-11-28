@@ -43,7 +43,12 @@ export function parseSvgMarkup(markup: string, maxDepth = 256): SvgNode {
       if (end < 0) throw new TypeError("Chart SVG has an unterminated CDATA section.");
       text(markup.slice(open + 9, end)); index = end + 3; continue;
     }
-    if (markup[open + 1] === "?" || markup[open + 1] === "!") {
+    if (markup[open + 1] === "?") {
+      const end = markup.indexOf("?>", open + 2);
+      if (end < 0) throw new TypeError("Chart SVG has an unterminated processing instruction.");
+      index = end + 2; continue;
+    }
+    if (markup[open + 1] === "!") {
       if (/^<!DOCTYPE[^>]*\[/i.test(markup.slice(open, open + 1024))) throw new NotSupportedError("Chart SVG with an internal DTD subset is not supported.");
       const end = markup.indexOf(">", open + 2);
       if (end < 0) throw new TypeError("Chart SVG has an unterminated declaration.");

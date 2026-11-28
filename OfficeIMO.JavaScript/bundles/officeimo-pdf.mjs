@@ -830,12 +830,14 @@ const sizes = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+const pdfDrawingLimits = Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
@@ -946,7 +948,7 @@ function settings(input, document = false) {
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
@@ -974,7 +976,7 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    for (const key of ["title", "messageTop", "messageBottom"])
+    for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
     for (const key of ["pageHeader", "pageFooter"])
@@ -1010,7 +1012,7 @@ function settings(input, document = false) {
         repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m16.positive, color: _m16.color, presentation: _m16.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
+const _exports = Object.freeze({ positive: _m16.positive, color: _m16.color, presentation: _m16.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, pdfDrawingLimits: pdfDrawingLimits, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
 return _exports;
 })();
 
@@ -2528,7 +2530,7 @@ class PdfFontResources {
         this.fontBytes += bytes;
         this.registered.add(font);
     }
-    select(bold = false, italic = false, explicit) {
+    select(bold = false, italic = false, explicit, standardForMissingFace = false) {
         if (explicit)
             this.registerFont(explicit);
         let selections = this.selections;
@@ -2538,10 +2540,13 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+        const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+            this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+            selectFont(fallback ? undefined : this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
         const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
@@ -5056,7 +5061,8 @@ class PdfWriteSession {
             await this.structure.finish();
         await this.outlines.finish();
         await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        const title = options.metadataTitle ?? options.title;
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
 }
@@ -5939,9 +5945,16 @@ function dashPattern(value, offset) {
             throw new TypeError("Drawing dashOffset requires dash.");
         return "";
     }
-    if (!Array.isArray(value) || !value.length || value.length > 16 || value.some(item => typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400) || !value.some(item => item > 0))
+    if (!Array.isArray(value) || !value.length || value.length > 16)
         throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
-    return "[" + value.map(n).join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+    const lengths = Array.from(value, item => {
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+            throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+        return n(item);
+    });
+    if (lengths.every(length => length === "0"))
+        throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+    return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
 }
 async function cooperate(settings) {
     if (taskYieldDue())
@@ -5952,7 +5965,8 @@ async function cooperate(settings) {
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
     const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
-    if (root.standardFonts !== undefined && typeof root.standardFonts !== "boolean")
+    const standardFonts = root.standardFonts;
+    if (standardFonts !== undefined && typeof standardFonts !== "boolean")
         throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
@@ -6079,7 +6093,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: root.standardFonts === true };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -6089,8 +6103,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         const existing = drawingFonts.get(slot);
         if (existing)
             return existing;
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        // standardFonts admits the standard Helvetica face for a slot the document supplies no TrueType face for.
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
         if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);

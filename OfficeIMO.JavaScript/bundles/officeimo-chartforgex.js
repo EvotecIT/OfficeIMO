@@ -1181,7 +1181,7 @@ _modules.set("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307",
 return _exports;
 })();
 
-const _m16 = _modules.get("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38") ?? (() => {
+const _m16 = _modules.get("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportBudget } = _m9;
@@ -1208,12 +1208,14 @@ const sizes = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+const pdfDrawingLimits = Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
@@ -1324,7 +1326,7 @@ function settings(input, document = false) {
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
@@ -1352,7 +1354,7 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    for (const key of ["title", "messageTop", "messageBottom"])
+    for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
     for (const key of ["pageHeader", "pageFooter"])
@@ -1388,8 +1390,8 @@ function settings(input, document = false) {
         repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m19.positive, color: _m19.color, presentation: _m19.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
-_modules.set("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38", _exports);
+const _exports = Object.freeze({ positive: _m19.positive, color: _m19.color, presentation: _m19.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, pdfDrawingLimits: pdfDrawingLimits, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
+_modules.set("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607", _exports);
 return _exports;
 })();
 
@@ -1416,7 +1418,7 @@ _modules.set("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96",
 return _exports;
 })();
 
-const _m14 = _modules.get("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224") ?? (() => {
+const _m14 = _modules.get("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08") ?? (() => {
 const { captureFields } = _m10;
 
 const { ExportBudget } = _m9;
@@ -1457,7 +1459,7 @@ function capturePdfOptions(input = {}) {
     return { ...options, ...(options.limits === undefined ? {} : { limits: capturePdfLimits(options.limits) }) };
 }
 const _exports = Object.freeze({ captureCommonLimits: captureCommonLimits, mergeAdapterLimits: mergeAdapterLimits, captureXlsxOptions: captureXlsxOptions, captureCsvOptions: captureCsvOptions, capturePdfOptions: capturePdfOptions });
-_modules.set("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224", _exports);
+_modules.set("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08", _exports);
 return _exports;
 })();
 
@@ -7224,7 +7226,7 @@ _modules.set("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070",
 return _exports;
 })();
 
-const _m61 = _modules.get("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3") ?? (() => {
+const _m61 = _modules.get("7825c87ba92a9992baf6b5c8a5e146948268985c31584ef9c8bf395359942e4f") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { fontProgram } = _m62;
@@ -7425,7 +7427,7 @@ class PdfFontResources {
         this.fontBytes += bytes;
         this.registered.add(font);
     }
-    select(bold = false, italic = false, explicit) {
+    select(bold = false, italic = false, explicit, standardForMissingFace = false) {
         if (explicit)
             this.registerFont(explicit);
         let selections = this.selections;
@@ -7435,10 +7437,13 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+        const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+            this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+            selectFont(fallback ? undefined : this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
         const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
@@ -7452,7 +7457,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3", _exports);
+_modules.set("7825c87ba92a9992baf6b5c8a5e146948268985c31584ef9c8bf395359942e4f", _exports);
 return _exports;
 })();
 
@@ -7781,7 +7786,7 @@ _modules.set("8be3fb029e08d100ce8ffcf50916d5ba7f7bc00d62156cc33815fd58554a9ed6",
 return _exports;
 })();
 
-const _m70 = _modules.get("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47") ?? (() => {
+const _m70 = _modules.get("0d9e7c831976c697e4f1e146f90a6b5aaa94bfbf7cfab3565d7d02743af7e4d5") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
@@ -7973,11 +7978,11 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
     return lines;
 }
 const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wrapPdfText });
-_modules.set("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47", _exports);
+_modules.set("0d9e7c831976c697e4f1e146f90a6b5aaa94bfbf7cfab3565d7d02743af7e4d5", _exports);
 return _exports;
 })();
 
-const _m72 = _modules.get("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea") ?? (() => {
+const _m72 = _modules.get("e6abc92661c2eb46828d2fd2d1aa37c88919895fcb65a1cdfe2d81f09377b442") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { wrapPdfText } = _m70;
@@ -8072,11 +8077,11 @@ function alignBandBlocks(bands, settings) {
         cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
 }
 const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
-_modules.set("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea", _exports);
+_modules.set("e6abc92661c2eb46828d2fd2d1aa37c88919895fcb65a1cdfe2d81f09377b442", _exports);
 return _exports;
 })();
 
-const _m68 = _modules.get("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874") ?? (() => {
+const _m68 = _modules.get("69303166f161ee4db99eb49296e0a8c7342ecf7665686fcfa737e1b854b292b7") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8307,7 +8312,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874", _exports);
+_modules.set("69303166f161ee4db99eb49296e0a8c7342ecf7665686fcfa737e1b854b292b7", _exports);
 return _exports;
 })();
 
@@ -8663,7 +8668,7 @@ _modules.set("c68d18d668366fb9b96d1b53c79dc6305f84cb83c05e4942fcf1cdf96ed1a73f",
 return _exports;
 })();
 
-const _m78 = _modules.get("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052") ?? (() => {
+const _m78 = _modules.get("0d185836afce83a207ef2682b7b3855eb0f7db75634e4596283422db5f874372") ?? (() => {
 const { settings } = _m16;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -8678,11 +8683,11 @@ function sectionSettings(base, section) {
     return { ...base, page: derived.page, margins: derived.margins, options };
 }
 const _exports = Object.freeze({ sectionSettings: sectionSettings });
-_modules.set("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052", _exports);
+_modules.set("0d185836afce83a207ef2682b7b3855eb0f7db75634e4596283422db5f874372", _exports);
 return _exports;
 })();
 
-const _m73 = _modules.get("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9") ?? (() => {
+const _m73 = _modules.get("544e650f47f754bd7f817837a1d272f95b769cc4b570ab61dbbb21e9b8139c7d") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -9420,7 +9425,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9", _exports);
+_modules.set("544e650f47f754bd7f817837a1d272f95b769cc4b570ab61dbbb21e9b8139c7d", _exports);
 return _exports;
 })();
 
@@ -9863,7 +9868,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m58 = _modules.get("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273") ?? (() => {
+const _m58 = _modules.get("1595abd6d2fa030cfa4f72a8b248991f88e5bf3e31577b4300480ee4c18921c9") ?? (() => {
 const { PdfObjects, unicodeHex } = _m59;
 
 const { PdfFontResources } = _m61;
@@ -9921,16 +9926,17 @@ class PdfWriteSession {
             await this.structure.finish();
         await this.outlines.finish();
         await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        const title = options.metadataTitle ?? options.title;
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273", _exports);
+_modules.set("1595abd6d2fa030cfa4f72a8b248991f88e5bf3e31577b4300480ee4c18921c9", _exports);
 return _exports;
 })();
 
-const _m57 = _modules.get("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f") ?? (() => {
+const _m57 = _modules.get("a6403581394f80da769b440fdb8f8085df3eafc88215888c15467e0c6eaa0c00") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9995,7 +10001,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f", _exports);
+_modules.set("a6403581394f80da769b440fdb8f8085df3eafc88215888c15467e0c6eaa0c00", _exports);
 return _exports;
 })();
 
@@ -10401,7 +10407,7 @@ _modules.set("7dca2d9ca5c43893abdaf86df5b1bcb1f3de3d5d33532d082fdfe04711999d21",
 return _exports;
 })();
 
-const _m86 = _modules.get("3290c84fdf80725af802f497d947bc088aa8d93d9db0a33f6f829f9153aa6fd6") ?? (() => {
+const _m86 = _modules.get("e7363aff8b91f67bb0ef8f866b1d053abe10eca41a46e8f1bb1e71ae2532f8c5") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -10484,11 +10490,11 @@ async function vectorCommands(block, settings, used) {
             commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
 }
 const _exports = Object.freeze({ vectorCommands: vectorCommands });
-_modules.set("3290c84fdf80725af802f497d947bc088aa8d93d9db0a33f6f829f9153aa6fd6", _exports);
+_modules.set("e7363aff8b91f67bb0ef8f866b1d053abe10eca41a46e8f1bb1e71ae2532f8c5", _exports);
 return _exports;
 })();
 
-const _m87 = _modules.get("bed2241f4f045219e54fe2a470dadcf5ee5cdaa9d31d88959d6766b73f4ef46a") ?? (() => {
+const _m87 = _modules.get("63693ecc5ee50587de491d99a6e8538091e67413309b66ea3b2111991693ace6") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -10522,9 +10528,16 @@ function dashPattern(value, offset) {
             throw new TypeError("Drawing dashOffset requires dash.");
         return "";
     }
-    if (!Array.isArray(value) || !value.length || value.length > 16 || value.some(item => typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400) || !value.some(item => item > 0))
+    if (!Array.isArray(value) || !value.length || value.length > 16)
         throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
-    return "[" + value.map(n).join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+    const lengths = Array.from(value, item => {
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+            throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+        return n(item);
+    });
+    if (lengths.every(length => length === "0"))
+        throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+    return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
 }
 async function cooperate(settings) {
     if (taskYieldDue())
@@ -10535,7 +10548,8 @@ async function cooperate(settings) {
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
     const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
-    if (root.standardFonts !== undefined && typeof root.standardFonts !== "boolean")
+    const standardFonts = root.standardFonts;
+    if (standardFonts !== undefined && typeof standardFonts !== "boolean")
         throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
@@ -10662,7 +10676,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: root.standardFonts === true };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -10672,8 +10686,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         const existing = drawingFonts.get(slot);
         if (existing)
             return existing;
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        // standardFonts admits the standard Helvetica face for a slot the document supplies no TrueType face for.
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
         if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
@@ -10762,11 +10775,11 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("bed2241f4f045219e54fe2a470dadcf5ee5cdaa9d31d88959d6766b73f4ef46a", _exports);
+_modules.set("63693ecc5ee50587de491d99a6e8538091e67413309b66ea3b2111991693ace6", _exports);
 return _exports;
 })();
 
-const _m88 = _modules.get("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88") ?? (() => {
+const _m88 = _modules.get("0034f8c578b1c5c23dd42b2f08619b081853f3ed769aa50558e5e904a2726d30") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { capturePdfText, wrapPdfText } = _m70;
@@ -10846,11 +10859,11 @@ function paragraphStartHeight(paragraphs) {
     return required;
 }
 const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCaption: captureCaption, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
-_modules.set("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88", _exports);
+_modules.set("0034f8c578b1c5c23dd42b2f08619b081853f3ed769aa50558e5e904a2726d30", _exports);
 return _exports;
 })();
 
-const _m89 = _modules.get("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7") ?? (() => {
+const _m89 = _modules.get("b619bf4d2ea53152f27eda3e5ead04e5f37d353a5cf66619f82e5097536f6164") ?? (() => {
 const { capturePdfText, wrapPdfText } = _m70;
 
 const { captureParagraph, prepareParagraph } = _m88;
@@ -10904,11 +10917,11 @@ async function prepareListItem(item, index, options, settings, fonts) {
             height: paragraph.height + lineHeight - first.lineHeight, firstHeight: paragraph.spaceBefore + lineHeight } };
 }
 const _exports = Object.freeze({ captureListOptions: captureListOptions, prepareListItem: prepareListItem });
-_modules.set("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7", _exports);
+_modules.set("b619bf4d2ea53152f27eda3e5ead04e5f37d353a5cf66619f82e5097536f6164", _exports);
 return _exports;
 })();
 
-const _m91 = _modules.get("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343") ?? (() => {
+const _m91 = _modules.get("c8419e484bba2717a4e3899eff340c9a2a58d69710bb12b55f6d3a2ae3425fb0") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -10954,11 +10967,11 @@ function captureGroupedPdfTableOptions(configuration) {
         ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });
 }
 const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, groupedPdfTableFields: groupedPdfTableFields, pdfGroupedTable: pdfGroupedTable, captureGroupedPdfTableOptions: captureGroupedPdfTableOptions });
-_modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343", _exports);
+_modules.set("c8419e484bba2717a4e3899eff340c9a2a58d69710bb12b55f6d3a2ae3425fb0", _exports);
 return _exports;
 })();
 
-const _m90 = _modules.get("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0") ?? (() => {
+const _m90 = _modules.get("f9946e2354e061768f54012738699c14a4aeed5ebc08536a16327ffce8834cad") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -11212,11 +11225,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0", _exports);
+_modules.set("f9946e2354e061768f54012738699c14a4aeed5ebc08536a16327ffce8834cad", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("2d5c8a3496ba7ce433e9aecc48e72b05dcd3b0eac864c4868e0d55f826d505e2") ?? (() => {
+const _m83 = _modules.get("fac9114aa801b024f8d87ed2b8061a2dcbfc9f9a92bfb3428ca95c74612763f8") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11506,11 +11519,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("2d5c8a3496ba7ce433e9aecc48e72b05dcd3b0eac864c4868e0d55f826d505e2", _exports);
+_modules.set("fac9114aa801b024f8d87ed2b8061a2dcbfc9f9a92bfb3428ca95c74612763f8", _exports);
 return _exports;
 })();
 
-const _m82 = _modules.get("cfd1a0bacfe0eecadd17fbc8c79d13e6555928bb30e420e923edc93cac748e85") ?? (() => {
+const _m82 = _modules.get("c4111733b22e5b704d69ea630acc025c811aeea5e63765e2a63a062c4f168d9c") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11556,7 +11569,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("cfd1a0bacfe0eecadd17fbc8c79d13e6555928bb30e420e923edc93cac748e85", _exports);
+_modules.set("c4111733b22e5b704d69ea630acc025c811aeea5e63765e2a63a062c4f168d9c", _exports);
 return _exports;
 })();
 
@@ -11600,14 +11613,14 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m56 = _modules.get("bbb019862a212ac3b4996c03bf119e717e6fd32e60ab9a45cc87732b720b7fbf") ?? (() => {
+const _m56 = _modules.get("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m57.writePdf, writePdfTo: _m57.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("bbb019862a212ac3b4996c03bf119e717e6fd32e60ab9a45cc87732b720b7fbf", _exports);
+_modules.set("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d", _exports);
 return _exports;
 })();
 
-const _m93 = _modules.get("80e1b8e8278435846bd3462d65fb10370570233ec36ff6129a8d88bd9affb61c") ?? (() => {
+const _m93 = _modules.get("f640338d6e4189d0a14238a569941537ae1dde42d798cd2ec69a9174174da08f") ?? (() => {
 const { NotSupportedError } = _m2;
 
 function record(value, name) {
@@ -11643,7 +11656,7 @@ function prepareChart(input, maxPoints = 1048575) {
     if (!Array.isArray(capture.series))
         throw new TypeError("Chart capture series must be an array.");
     let count = 0;
-    const series = capture.series.slice().map((entry, index) => {
+    const series = Array.from(capture.series, (entry, index) => {
         const value = record(entry, "series[" + index + "]"), points = value.points;
         if (!Array.isArray(points))
             throw new TypeError("Chart capture series[" + index + "].points must be an array.");
@@ -11652,7 +11665,7 @@ function prepareChart(input, maxPoints = 1048575) {
         return {
             id: text(value.id, "series[" + index + "].id", true), name: text(value.name, "series[" + index + "].name", true),
             unit: text(value.unit, "series unit"), format: text(value.format, "series format"),
-            points: points.slice().map((raw, point) => {
+            points: Array.from(points, (raw, point) => {
                 const item = record(raw, "point"), where = "series[" + index + "].points[" + point + "]";
                 const y = item.y;
                 if (y !== null && y !== undefined && (typeof y !== "number" || !Number.isFinite(y)))
@@ -11661,7 +11674,15 @@ function prepareChart(input, maxPoints = 1048575) {
                 const source = item.x;
                 if (source !== null && source !== undefined) {
                     if (kind === "date") {
-                        const time = source instanceof Date ? source.getTime() : typeof source === "string" && isoDate.test(source.trim()) ? Date.parse(isoInstant(source.trim())) : NaN;
+                        let time = NaN;
+                        if (typeof source === "string" && isoDate.test(source.trim()))
+                            time = Date.parse(isoInstant(source.trim()));
+                        if (typeof source === "object") {
+                            try {
+                                time = Date.prototype.getTime.call(source);
+                            }
+                            catch { /* Not a Date. */ }
+                        }
                         if (!Number.isFinite(time))
                             throw new TypeError(where + ".x must be an ISO 8601 date string or a valid Date.");
                         x = new Date(time);
@@ -11683,26 +11704,22 @@ function prepareChart(input, maxPoints = 1048575) {
         };
     });
     const svg = capture.svg;
-    let markup;
-    if (typeof svg === "string")
-        markup = svg;
-    else if (svg && typeof svg === "object" && typeof svg.outerHTML === "string")
-        markup = svg.outerHTML;
-    else if (svg !== undefined && svg !== null)
+    const markup = svg && typeof svg === "object" ? svg.outerHTML : svg;
+    if (svg != null && typeof markup !== "string")
         throw new TypeError("Chart capture svg must be markup or an element.");
     return {
         title: text(capture.title, "title"), description: text(capture.description, "description"), kind,
         xTitle: text(axis.title, "x.title") || "X", xFormat: text(axis.format, "x.format"),
         yTitle: text(yAxis.title, "y.title") || "Value", yUnit: text(yAxis.unit, "y.unit"), yFormat: text(yAxis.format, "y.format"),
-        series, svg: markup
+        series, svg: typeof markup === "string" ? markup : undefined
     };
 }
 const _exports = Object.freeze({ prepareChart: prepareChart });
-_modules.set("80e1b8e8278435846bd3462d65fb10370570233ec36ff6129a8d88bd9affb61c", _exports);
+_modules.set("f640338d6e4189d0a14238a569941537ae1dde42d798cd2ec69a9174174da08f", _exports);
 return _exports;
 })();
 
-const _m95 = _modules.get("b780c6cd16a822ea1a1baac6dc09eff7d5a29f9a250cfb0cbc332d05165c22c6") ?? (() => {
+const _m95 = _modules.get("5dab75a1e2b113e5358c4e759fad101ac6fe31a376053e16a415e66ff02f7ff7") ?? (() => {
 const { NotSupportedError } = _m2;
 
 const attributePattern = /([A-Za-z_][\w.:-]*)\s*=\s*("([^"]*)"|'([^']*)')/y;
@@ -11748,7 +11765,14 @@ function parseSvgMarkup(markup, maxDepth = 256) {
             index = end + 3;
             continue;
         }
-        if (markup[open + 1] === "?" || markup[open + 1] === "!") {
+        if (markup[open + 1] === "?") {
+            const end = markup.indexOf("?>", open + 2);
+            if (end < 0)
+                throw new TypeError("Chart SVG has an unterminated processing instruction.");
+            index = end + 2;
+            continue;
+        }
+        if (markup[open + 1] === "!") {
             if (/^<!DOCTYPE[^>]*\[/i.test(markup.slice(open, open + 1024)))
                 throw new NotSupportedError("Chart SVG with an internal DTD subset is not supported.");
             const end = markup.indexOf(">", open + 2);
@@ -11822,11 +11846,11 @@ function parseSvgMarkup(markup, maxDepth = 256) {
     return root;
 }
 const _exports = Object.freeze({ parseSvgMarkup: parseSvgMarkup });
-_modules.set("b780c6cd16a822ea1a1baac6dc09eff7d5a29f9a250cfb0cbc332d05165c22c6", _exports);
+_modules.set("5dab75a1e2b113e5358c4e759fad101ac6fe31a376053e16a415e66ff02f7ff7", _exports);
 return _exports;
 })();
 
-const _m96 = _modules.get("15e535bfbd3a3fbc01f75efd5602da4d4aceda28520f06dc754ab5d090244919") ?? (() => {
+const _m96 = _modules.get("837a549ded36925bbafec6fd927a7b9ef5ed881272d7367d64081d8f3ddeae42") ?? (() => {
 const identity = [1, 0, 0, 1, 0, 0];
 function multiply(m, n) {
     return [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
@@ -11910,17 +11934,26 @@ function arc(out, x1, y1, rx, ry, rotation, large, sweep, x2, y2) {
 function parsePathData(d) {
     const out = [], tokens = /([MmLlHhVvCcSsQqTtAaZz])|([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([\s,]+)|(.)/g;
     const list = [];
+    let malformed = false;
     for (const match of d.matchAll(tokens)) {
-        if (match[4] !== undefined)
-            return { commands: out, malformed: true };
+        if (match[4] !== undefined) {
+            malformed = true;
+            break;
+        }
         if (match[1] !== undefined || match[2] !== undefined)
             list.push(match[1] ?? match[2]);
     }
     let i = 0, x = 0, y = 0, startX = 0, startY = 0, command = "", lastControl, lastQuad;
     let open = false;
     const isCommand = (value) => value !== undefined && /^[A-Za-z]$/.test(value);
-    const take = () => { const value = list[i]; if (value === undefined || isCommand(value))
-        return undefined; i++; return Number(value); };
+    const take = () => {
+        const value = list[i];
+        if (value === undefined || isCommand(value))
+            return undefined;
+        i++;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : undefined;
+    };
     // Arc flags may be written without separators ("a1 1 0 011 1"): split compact digit runs.
     const flag = () => {
         const raw = list[i];
@@ -11945,6 +11978,8 @@ function parsePathData(d) {
         else if (!command || command === "Z" || command === "z")
             return { commands: out, malformed: true };
         const relative = command === command.toLowerCase(), base = command.toUpperCase();
+        if (!out.length && base !== "M")
+            return { commands: out, malformed: true };
         const ox = relative ? x : 0, oy = relative ? y : 0;
         if (base === "Z") {
             if (open)
@@ -11977,18 +12012,14 @@ function parsePathData(d) {
             const a = take();
             if (a === undefined)
                 return { commands: out, malformed: true };
-            if (base === "L") {
-                const b = take();
-                if (b === undefined)
-                    return { commands: out, malformed: true };
-                x = ox + a;
-                y = oy + b;
-            }
-            else if (base === "H")
-                x = ox + a;
-            else
-                y = oy + a;
+            const b = base === "L" ? take() : undefined;
+            if (base === "L" && b === undefined)
+                return { commands: out, malformed: true };
             ensure();
+            if (base !== "V")
+                x = ox + a;
+            if (base !== "H")
+                y = oy + (b ?? a);
             out.push({ op: "line", x, y });
             lastControl = lastQuad = undefined;
             continue;
@@ -12043,7 +12074,7 @@ function parsePathData(d) {
         }
         return { commands: out, malformed: true };
     }
-    return { commands: out, malformed: false };
+    return { commands: out, malformed };
 }
 const kappa = 0.5522847498307936;
 /** Closed ellipse as four cubic quarters, starting at the rightmost point. */
@@ -12087,11 +12118,11 @@ function transformCommands(commands, m) {
     });
 }
 const _exports = Object.freeze({ identity: identity, multiply: multiply, apply: apply, scaleOf: scaleOf, numbers: numbers, parseTransform: parseTransform, parsePathData: parsePathData, ellipse: ellipse, rectangle: rectangle, polyline: polyline, transformCommands: transformCommands });
-_modules.set("15e535bfbd3a3fbc01f75efd5602da4d4aceda28520f06dc754ab5d090244919", _exports);
+_modules.set("837a549ded36925bbafec6fd927a7b9ef5ed881272d7367d64081d8f3ddeae42", _exports);
 return _exports;
 })();
 
-const _m97 = _modules.get("b7876fc566970e6914d0aa0bad0967d0ca0a048073583985569c3c877fcdc8b5") ?? (() => {
+const _m97 = _modules.get("311549b738ddd837e9100fede19f95b48bd5337dc83ab78897815d7577da691d") ?? (() => {
 const named = {
     black: "000000", white: "ffffff", red: "ff0000", green: "008000", blue: "0000ff", yellow: "ffff00", orange: "ffa500", purple: "800080",
     gray: "808080", grey: "808080", silver: "c0c0c0", maroon: "800000", navy: "000080", teal: "008080", olive: "808000", lime: "00ff00",
@@ -12107,9 +12138,13 @@ function channel(text, scale) {
     return text.trim().endsWith("%") ? value / 100 * scale : value;
 }
 function alpha(text) {
-    if (text === undefined || text === "")
+    if (text === undefined)
         return 1;
-    return clamp(text.trim().endsWith("%") ? parseFloat(text) / 100 : parseFloat(text), 0, 1);
+    if (text.trim() === "none")
+        return 0;
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%?$/i.test(text.trim()))
+        return undefined;
+    return clamp(channel(text, 1), 0, 1);
 }
 function functionArguments(body, legacyAlpha) {
     const [main, slash] = body.split("/");
@@ -12162,25 +12197,30 @@ function parseColor(input) {
         if (name !== "color")
             return undefined;
     }
+    const a = alpha(opacity);
+    if (a === undefined)
+        return undefined;
     const v = values.map(value => value === "none" ? "0" : value);
     if ((name === "rgb" || name === "rgba") && v.length === 3)
-        return { r: clamp(channel(v[0], 255), 0, 255), g: clamp(channel(v[1], 255), 0, 255), b: clamp(channel(v[2], 255), 0, 255), a: alpha(opacity) };
+        return { r: clamp(channel(v[0], 255), 0, 255), g: clamp(channel(v[1], 255), 0, 255), b: clamp(channel(v[2], 255), 0, 255), a };
     if ((name === "hsl" || name === "hsla") && v.length === 3) {
         const h = ((hue(v[0]) % 360) + 360) % 360 / 360, s = clamp(parseFloat(v[1]) / 100, 0, 1), l = clamp(parseFloat(v[2]) / 100, 0, 1);
         const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
         const tone = (t) => { t = (t + 1) % 1; return 255 * (t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p); };
-        return { r: tone(h + 1 / 3), g: tone(h), b: tone(h - 1 / 3), a: alpha(opacity) };
+        return { r: tone(h + 1 / 3), g: tone(h), b: tone(h - 1 / 3), a };
     }
     if (name === "oklab" && v.length === 3)
-        return fromOklab(channel(v[0], 1), channel(v[1], .4), channel(v[2], .4), alpha(opacity));
+        return fromOklab(channel(v[0], 1), channel(v[1], .4), channel(v[2], .4), a);
     if (name === "oklch" && v.length === 3) {
         const l = channel(v[0], 1), c = channel(v[1], .4), h = hue(v[2]) * Math.PI / 180;
-        return fromOklab(l, c * Math.cos(h), c * Math.sin(h), alpha(opacity));
+        return fromOklab(l, c * Math.cos(h), c * Math.sin(h), a);
     }
     if (name === "color" && v.length === 4 && (v[0] === "srgb" || v[0] === "srgb-linear")) {
         const parts = v.slice(1).map(value => channel(value, 1));
         const convert = v[0] === "srgb" ? (x) => clamp(x, 0, 1) * 255 : linearToSrgb;
-        return { r: convert(parts[0]), g: convert(parts[1]), b: convert(parts[2]), a: alpha(opacity) };
+        if (!parts.every(Number.isFinite))
+            return undefined;
+        return { r: convert(parts[0]), g: convert(parts[1]), b: convert(parts[2]), a };
     }
     return undefined;
 }
@@ -12197,13 +12237,19 @@ function parseStyle(text) {
     const result = new Map();
     if (!text)
         return result;
+    const important = new Set();
     for (const declaration of text.split(";")) {
         const colon = declaration.indexOf(":");
         if (colon < 0)
             continue;
-        const name = declaration.slice(0, colon).trim().toLowerCase(), value = declaration.slice(colon + 1).replace(/!important\s*$/i, "").trim();
-        if (name && value)
-            result.set(name, value);
+        const name = declaration.slice(0, colon).trim().toLowerCase(), raw = declaration.slice(colon + 1);
+        const priority = /!\s*important\s*$/i;
+        const value = raw.replace(priority, "").trim(), takesPriority = priority.test(raw);
+        if (!name || !value || important.has(name) && !takesPriority)
+            continue;
+        if (takesPriority)
+            important.add(name);
+        result.set(name, value);
     }
     return result;
 }
@@ -12220,8 +12266,8 @@ function length(text, fontSize, reference = 0) {
     const result = value * factor;
     return Number.isFinite(result) ? result : undefined;
 }
-const _exports = Object.freeze({ parseColor: parseColor, flatten: flatten, parseStyle: parseStyle, length: length });
-_modules.set("b7876fc566970e6914d0aa0bad0967d0ca0a048073583985569c3c877fcdc8b5", _exports);
+const _exports = Object.freeze({ alpha: alpha, parseColor: parseColor, flatten: flatten, parseStyle: parseStyle, length: length });
+_modules.set("311549b738ddd837e9100fede19f95b48bd5337dc83ab78897815d7577da691d", _exports);
 return _exports;
 })();
 
@@ -12256,14 +12302,20 @@ _modules.set("a6d8a465077446f9b9d504eb94b63dac6ddd87b859001ac81f90ab9c05695577",
 return _exports;
 })();
 
-const _m94 = _modules.get("73be4535e8315d4fa3a97a1e81a674bb0fc716b4383631ddc6910d1f039e0c3a") ?? (() => {
-const { NotSupportedError } = _m2;
+const _m94 = _modules.get("c85cca91c9a4cd8a4a2a5cf2d631c7fa44e56e5c01f2f4a52da16867590177fd") ?? (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
+
+const { checkAbort } = _m4;
+
+const { pdfNumber } = _m59;
+
+const { capturePdfLimits, pdfDrawingLimits } = _m16;
 
 const { parseSvgMarkup } = _m95;
 
 const { apply, ellipse, identity, multiply, numbers, parsePathData, parseTransform, polyline, rectangle, scaleOf, transformCommands } = _m96;
 
-const { flatten, length, parseColor, parseStyle } = _m97;
+const { alpha, flatten, length, parseColor, parseStyle } = _m97;
 
 const { winAnsiText } = _m98;
 
@@ -12271,15 +12323,39 @@ const inherited = new Set(["fill", "fill-opacity", "fill-rule", "stroke", "strok
     "stroke-dasharray", "stroke-dashoffset", "font-size", "font-weight", "font-style", "text-anchor", "dominant-baseline", "alignment-baseline",
     "color", "visibility", "white-space"]);
 const own = ["opacity", "display", "clip-path", "mask", "filter", "marker-start", "marker-mid", "marker-end", "vector-effect", "transform"];
-const skipped = new Set(["defs", "clipPath", "mask", "marker", "pattern", "linearGradient", "radialGradient", "symbol", "style", "script", "title", "desc",
+const skipped = new Set(["defs", "clipPath", "mask", "marker", "pattern", "linearGradient", "radialGradient", "symbol", "script", "title", "desc",
     "metadata", "filter", "stop", "font", "font-face"]);
 const shapes = new Set(["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"]);
 const initial = new Map([["fill", "black"], ["stroke", "none"], ["stroke-width", "1"], ["font-size", "16"], ["color", "black"]]);
+const nonUniform = (m) => {
+    const tolerance = 1e-6, xScale = Math.hypot(m[0], m[1]), yScale = Math.hypot(m[2], m[3]);
+    return Math.abs(xScale - yScale) > tolerance * Math.max(xScale, yScale) ||
+        Math.abs(m[0] * m[2] + m[1] * m[3]) > tolerance * xScale * yScale;
+};
 /** Convert a resolved chart SVG into the PDF writer's portable drawing. Lengths become points (96 px = 72 pt). */
-function svgToPdfDrawing(svg, options = {}) {
+function svgToPdfDrawing(svg, options = {}, signal) {
+    const limits = options.limits === undefined ? undefined : capturePdfLimits(options.limits);
+    const maxElements = limits?.maxDrawingElements ?? pdfDrawingLimits.maxDrawingElements;
+    const maxCommands = limits?.maxVectorCommands ?? pdfDrawingLimits.maxVectorCommands;
+    const maxWork = Math.max(4096, 16 * Math.max(maxElements, maxCommands));
+    let elementCount = 0, commandCount = 0, work = 0;
+    const charge = (amount = 1) => {
+        checkAbort(signal);
+        work += amount;
+        if (work > maxWork)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Chart SVG conversion work limit exceeded.");
+    };
+    const addElement = (target, element) => {
+        if (++elementCount > maxElements)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+        target.push(element);
+    };
+    if (typeof svg === "string")
+        charge(Math.ceil(svg.length / 16));
     const root = parseSvgMarkup(svg), ids = new Map(), reported = new Set();
     const fonts = new Set(options.fonts ?? ["regular", "bold", "italic", "boldItalic"]), winAnsi = options.winAnsi !== false;
     const index = (node) => {
+        charge();
         const id = node.attributes.get("id");
         if (id !== undefined && !ids.has(id))
             ids.set(id, node);
@@ -12299,12 +12375,13 @@ function svgToPdfDrawing(svg, options = {}) {
         options.onDiagnostic?.(diagnostic);
     };
     const attribute = (node, name) => node.attributes.get(name);
-    const viewport = (node, fontSize, fallbackWidth, fallbackHeight) => {
+    const viewport = (node, fontSize, fallbackWidth, fallbackHeight, nested = false, size) => {
         const box = numbers(attribute(node, "viewBox") ?? ""), hasBox = box.length === 4 && box[2] > 0 && box[3] > 0;
-        const w = length(attribute(node, "width"), fontSize, fallbackWidth), h = length(attribute(node, "height"), fontSize, fallbackHeight);
-        const width = w !== undefined && w > 0 ? w : hasBox ? box[2] : fallbackWidth, height = h !== undefined && h > 0 ? h : hasBox ? box[3] : fallbackHeight;
+        const referenceWidth = nested || !hasBox ? fallbackWidth : box[2], referenceHeight = nested || !hasBox ? fallbackHeight : box[3];
+        const width = size?.width ?? length(attribute(node, "width"), fontSize, referenceWidth) ?? referenceWidth;
+        const height = size?.height ?? length(attribute(node, "height"), fontSize, referenceHeight) ?? referenceHeight;
         if (!hasBox)
-            return { width, height, matrix: identity };
+            return { width, height, userWidth: width, userHeight: height, matrix: identity };
         const aspect = (attribute(node, "preserveAspectRatio") ?? "xMidYMid meet").trim().split(/\s+/);
         let sx = width / box[2], sy = height / box[3], tx = 0, ty = 0;
         if (aspect[0] !== "none") {
@@ -12313,7 +12390,8 @@ function svgToPdfDrawing(svg, options = {}) {
             ty = (height - box[3] * scale) * (align.includes("YMid") ? .5 : align.includes("YMax") ? 1 : 0);
             sx = sy = scale;
         }
-        return { width, height, matrix: [sx, 0, 0, sy, tx - box[0] * sx, ty - box[1] * sy] };
+        const matrix = [sx, 0, 0, sy, tx - box[0] * sx, ty - box[1] * sy];
+        return { width, height, userWidth: box[2], userHeight: box[3], matrix };
     };
     const outer = viewport(root, 16, 0, 0);
     if (!(outer.width > 0 && outer.height > 0))
@@ -12322,12 +12400,15 @@ function svgToPdfDrawing(svg, options = {}) {
     const unit = Math.min(.75, 14400 / outer.width, 14400 / outer.height);
     const elements = [];
     function cascade(node, parent) {
-        const declared = parseStyle(attribute(node, "style")), values = new Map();
+        const inline = attribute(node, "style");
+        if (inline)
+            charge(Math.ceil(inline.length / 16));
+        const declared = parseStyle(inline), values = new Map();
         let style = parent.style, changed = false;
         const read = (name) => declared.get(name) ?? attribute(node, name);
         for (const name of inherited) {
             const value = read(name);
-            if (value === undefined || value === "inherit")
+            if (value === undefined || value === "inherit" || value === parent.style.get(name))
                 continue;
             if (!changed) {
                 style = new Map(parent.style);
@@ -12336,20 +12417,21 @@ function svgToPdfDrawing(svg, options = {}) {
             style.set(name, value);
         }
         for (const name of own) {
-            const value = name === "transform" ? attribute(node, name) ?? declared.get(name) : read(name);
+            const value = read(name);
             if (value !== undefined)
                 values.set(name, value);
         }
         if (values.get("display") === "none")
             return undefined;
-        const fontSize = changed && style.get("font-size") !== parent.style.get("font-size") ? fontSizeOf(style.get("font-size"), parent.fontSize) : parent.fontSize;
+        const size = read("font-size");
+        const fontSize = size !== undefined && size !== "inherit" ? fontSizeOf(size, parent.fontSize) : parent.fontSize;
         const transform = parseTransform(values.get("transform"));
         if (!transform)
             diagnose("TRANSFORM_UNSUPPORTED", node.local);
-        const opacity = values.has("opacity") ? Math.min(1, Math.max(0, parseFloat(values.get("opacity")) || 0)) : 1;
+        const opacity = alpha(values.get("opacity")) ?? 1;
         if (opacity < 1 && opacity > 0)
             diagnose("OPACITY_FLATTENED", node.local);
-        return { context: { matrix: multiply(parent.matrix, transform ?? identity), style, fontSize, opacity: parent.opacity * opacity }, own: values };
+        return { context: { ...parent, matrix: multiply(parent.matrix, transform ?? identity), style, fontSize, opacity: parent.opacity * opacity }, own: values };
     }
     function fontSizeOf(value, parent) {
         const keywords = { "xx-small": 9, "x-small": 10, small: 13, medium: 16, large: 18, "x-large": 24, "xx-large": 32 };
@@ -12364,7 +12446,7 @@ function svgToPdfDrawing(svg, options = {}) {
         if (reference) {
             const target = ids.get(reference[1]), fallback = reference[2].trim();
             if (target && (target.local === "linearGradient" || target.local === "radialGradient")) {
-                color = gradientColor(target, new Set());
+                color = gradientColor(target);
                 diagnose("GRADIENT_FLATTENED", element);
             }
             else if (fallback && fallback !== "none")
@@ -12382,23 +12464,29 @@ function svgToPdfDrawing(svg, options = {}) {
             diagnose("COLOR_UNSUPPORTED", element);
             return undefined;
         }
-        const opacity = Math.min(1, Math.max(0, parseFloat(context.style.get(opacityName) ?? "1")));
-        const effective = (Number.isFinite(opacity) ? opacity : 1) * context.opacity;
+        const effective = (alpha(context.style.get(opacityName)) ?? 1) * context.opacity;
         if (color.a * effective < 1 && color.a * effective >= .002)
             diagnose("OPACITY_FLATTENED", element);
         return flatten(color, effective);
     }
-    function gradientColor(node, seen) {
-        seen.add(node);
-        for (const child of node.children) {
-            if (typeof child === "string" || child.local !== "stop")
-                continue;
-            const declared = parseStyle(attribute(child, "style")), color = parseColor(declared.get("stop-color") ?? attribute(child, "stop-color") ?? "black");
-            const opacity = parseFloat(declared.get("stop-opacity") ?? attribute(child, "stop-opacity") ?? "1");
-            return color && { ...color, a: color.a * (Number.isFinite(opacity) ? opacity : 1) };
+    function gradientColor(node) {
+        const seen = new Set();
+        let current = node;
+        while (current && !seen.has(current)) {
+            charge();
+            seen.add(current);
+            for (const child of current.children) {
+                charge();
+                if (typeof child === "string" || child.local !== "stop")
+                    continue;
+                const declared = parseStyle(attribute(child, "style")), color = parseColor(declared.get("stop-color") ?? attribute(child, "stop-color") ?? "black");
+                const opacity = alpha(declared.get("stop-opacity") ?? attribute(child, "stop-opacity")) ?? 1;
+                return color && { ...color, a: color.a * opacity };
+            }
+            const href = (attribute(current, "href") ?? attribute(current, "xlink:href"))?.replace(/^#/, "");
+            current = href === undefined ? undefined : ids.get(href);
         }
-        const href = (attribute(node, "href") ?? attribute(node, "xlink:href"))?.replace(/^#/, ""), next = href === undefined ? undefined : ids.get(href);
-        return next && !seen.has(next) ? gradientColor(next, seen) : undefined;
+        return undefined;
     }
     // Consecutive paths with identical paint merge into one element, which keeps dense scatter and bar charts within drawing
     // budgets. Only strokes and simple shapes of one winding merge, so a nonzero fill never gains a hole.
@@ -12411,45 +12499,52 @@ function svgToPdfDrawing(svg, options = {}) {
         }
         if (key !== undefined)
             mergeKeys.set(path, key);
-        target.push(path);
+        addElement(target, path);
     }
     function shape(node, context, target, values) {
+        const { userWidth, userHeight } = context;
+        const diagonal = Math.hypot(userWidth, userHeight) / Math.SQRT2;
         const a = (name, reference = 0) => length(attribute(node, name), context.fontSize, reference) ?? 0;
         let commands;
         switch (node.local) {
             case "rect": {
-                const width = a("width", outer.width), height = a("height", outer.height);
+                const width = a("width", userWidth), height = a("height", userHeight);
                 if (!(width > 0 && height > 0))
                     return;
                 const rxValue = attribute(node, "rx"), ryValue = attribute(node, "ry");
-                const rx = rxValue === undefined || rxValue === "auto" ? (ryValue === undefined ? 0 : a("ry")) : a("rx");
-                const ry = ryValue === undefined || ryValue === "auto" ? rx : a("ry");
-                commands = rectangle(a("x", outer.width), a("y", outer.height), width, height, rx, ry);
+                const rx = rxValue === undefined || rxValue === "auto" ? a("ry", userHeight) : a("rx", userWidth);
+                const ry = ryValue === undefined || ryValue === "auto" ? rx : a("ry", userHeight);
+                commands = rectangle(a("x", userWidth), a("y", userHeight), width, height, rx, ry);
                 break;
             }
             case "circle": {
-                const r = a("r");
+                const r = a("r", diagonal);
                 if (!(r > 0))
                     return;
-                commands = ellipse(a("cx", outer.width), a("cy", outer.height), r, r);
+                commands = ellipse(a("cx", userWidth), a("cy", userHeight), r, r);
                 break;
             }
             case "ellipse": {
-                const rx = a("rx"), ry = a("ry");
+                const rx = a("rx", userWidth), ry = a("ry", userHeight);
                 if (!(rx > 0 && ry > 0))
                     return;
-                commands = ellipse(a("cx", outer.width), a("cy", outer.height), rx, ry);
+                commands = ellipse(a("cx", userWidth), a("cy", userHeight), rx, ry);
                 break;
             }
             case "line":
-                commands = [{ op: "move", x: a("x1", outer.width), y: a("y1", outer.height) }, { op: "line", x: a("x2", outer.width), y: a("y2", outer.height) }];
+                commands = [{ op: "move", x: a("x1", userWidth), y: a("y1", userHeight) }, { op: "line", x: a("x2", userWidth), y: a("y2", userHeight) }];
                 break;
             case "polyline":
-            case "polygon":
-                commands = polyline(numbers(attribute(node, "points") ?? ""), node.local === "polygon");
+            case "polygon": {
+                const points = attribute(node, "points") ?? "";
+                charge(Math.ceil(points.length / 4));
+                commands = polyline(numbers(points), node.local === "polygon");
                 break;
+            }
             default: {
-                const parsed = parsePathData(attribute(node, "d") ?? "");
+                const data = attribute(node, "d") ?? "";
+                charge(Math.ceil(data.length / 4));
+                const parsed = parsePathData(data);
                 if (parsed.malformed)
                     diagnose("PATH_DATA_TRUNCATED", "path");
                 commands = parsed.commands;
@@ -12464,10 +12559,14 @@ function svgToPdfDrawing(svg, options = {}) {
         const stroke = paint(context.style.get("stroke"), context, "stroke-opacity", node.local);
         if (fill === undefined && stroke === undefined)
             return;
-        const scale = values.get("vector-effect") === "non-scaling-stroke" ? unit : scaleOf(context.matrix);
-        const width = (length(context.style.get("stroke-width"), context.fontSize, outer.width) ?? 1) * scale;
+        const fixedStroke = values.get("vector-effect") === "non-scaling-stroke";
+        const scale = fixedStroke ? unit : scaleOf(context.matrix);
+        const width = (length(context.style.get("stroke-width"), context.fontSize, diagonal) ?? 1) * scale;
         if (stroke !== undefined && !(width > 0) && fill === undefined)
             return;
+        commandCount += commands.length;
+        if (commandCount > maxCommands)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
         const path = { kind: "path", commands: transformCommands(commands, context.matrix) };
         if (fill !== undefined) {
             path.fill = fill;
@@ -12475,6 +12574,8 @@ function svgToPdfDrawing(svg, options = {}) {
                 path.fillRule = "evenodd";
         }
         if (stroke !== undefined && width > 0) {
+            if (!fixedStroke && nonUniform(context.matrix))
+                diagnose("STROKE_DISTORTED", node.local);
             path.stroke = stroke;
             path.strokeWidth = width;
             const cap = context.style.get("stroke-linecap"), join = context.style.get("stroke-linejoin");
@@ -12484,23 +12585,26 @@ function svgToPdfDrawing(svg, options = {}) {
                 path.lineJoin = join;
             const dash = (context.style.get("stroke-dasharray") ?? "none").trim();
             if (dash !== "none" && dash) {
-                const parts = dash.split(/[\s,]+/).map(part => length(part, context.fontSize, outer.width));
+                const parts = dash.split(/[\s,]+/).map(part => length(part, context.fontSize, diagonal));
                 if (parts.every(part => part !== undefined && part >= 0) && parts.some(part => part > 0)) {
-                    const list = (parts.length % 2 ? [...parts, ...parts] : parts);
-                    if (list.length <= 16) {
-                        path.dash = list.map(part => part * scale);
-                        const offset = length(context.style.get("stroke-dashoffset"), context.fontSize, outer.width) ?? 0;
+                    const list = (parts.length % 2 ? [...parts, ...parts] : parts).map(part => part * scale);
+                    const offset = (length(context.style.get("stroke-dashoffset"), context.fontSize, diagonal) ?? 0) * scale;
+                    if (list.length <= 16 && list.every(part => part <= 14400) && list.some(part => pdfNumber(part) !== "0") && Math.abs(offset) <= 1000000) {
+                        path.dash = list;
                         if (offset)
-                            path.dashOffset = offset * scale;
+                            path.dashOffset = offset;
                     }
                     else
                         diagnose("DASH_UNSUPPORTED", node.local);
                 }
+                else if (parts.some(part => part === undefined || part < 0))
+                    diagnose("DASH_UNSUPPORTED", node.local);
             }
         }
         if (path.fill === undefined && path.stroke === undefined)
             return;
-        const mergeable = path.fill === undefined || path.fillRule === undefined && ["rect", "circle", "ellipse"].includes(node.local);
+        const mergeable = path.fill === undefined ||
+            (path.stroke === undefined || path.stroke === path.fill) && path.fillRule === undefined && ["rect", "circle", "ellipse"].includes(node.local);
         const det = context.matrix[0] * context.matrix[3] - context.matrix[1] * context.matrix[2];
         pushPath(target, path, mergeable ? JSON.stringify([path.fill, det < 0, path.stroke, path.strokeWidth, path.lineCap, path.lineJoin, path.dash, path.dashOffset]) : undefined);
     }
@@ -12508,9 +12612,10 @@ function svgToPdfDrawing(svg, options = {}) {
         const runs = [];
         let x = 0, y = 0, current;
         const walk = (element, at, first) => {
+            charge();
             const list = (name, reference) => (attribute(element, name) ?? "").trim().split(/[\s,]+/).filter(Boolean)
                 .map(item => length(item, at.fontSize, reference)).filter((item) => item !== undefined);
-            const xs = list("x", outer.width), ys = list("y", outer.height), dxs = list("dx", outer.width), dys = list("dy", outer.height);
+            const xs = list("x", at.userWidth), ys = list("y", at.userHeight), dxs = list("dx", at.userWidth), dys = list("dy", at.userHeight);
             if (xs.length > 1 || ys.length > 1 || dxs.length > 1 || dys.length > 1 || attribute(element, "rotate") !== undefined)
                 diagnose("TEXT_POSITIONS_SIMPLIFIED", element.local);
             const positioned = first || xs.length > 0 || ys.length > 0 || dxs.length > 0 || dys.length > 0;
@@ -12527,12 +12632,15 @@ function svgToPdfDrawing(svg, options = {}) {
                 current = { x, y, text: "", context: at };
                 runs.push(current);
             }
-            else if (current && current.context !== at && /\S/.test(textOf(element)))
-                diagnose("TEXT_STYLE_MERGED", element.local);
             for (const child of element.children) {
                 if (typeof child === "string") {
-                    if (current)
-                        current.text += child;
+                    charge(1 + Math.ceil(child.length / 16));
+                    if (at.style.get("visibility") === "hidden" || at.style.get("visibility") === "collapse" || at.opacity <= 0 || !current)
+                        continue;
+                    const from = current.context;
+                    if ((from.style !== at.style || from.fontSize !== at.fontSize || from.opacity !== at.opacity) && /\S/.test(child))
+                        diagnose("TEXT_STYLE_MERGED", element.local);
+                    current.text += child;
                     continue;
                 }
                 if (child.local !== "tspan" && child.local !== "a") {
@@ -12565,7 +12673,7 @@ function svgToPdfDrawing(svg, options = {}) {
             if ((style.get("stroke") ?? "none") !== "none")
                 diagnose("TEXT_STROKE_IGNORED", "text");
             const m = run.context.matrix, scale = scaleOf(m);
-            if (Math.abs(Math.hypot(m[0], m[1]) - Math.hypot(m[2], m[3])) > 1e-6 * scale || Math.abs(m[0] * m[2] + m[1] * m[3]) > 1e-6 * scale * scale)
+            if (nonUniform(m))
                 diagnose("TEXT_DISTORTED", "text");
             const size = run.context.fontSize * scale;
             if (!(size > 0))
@@ -12588,16 +12696,31 @@ function svgToPdfDrawing(svg, options = {}) {
                 element.anchor = anchor;
             if (Math.abs(rotation) > 1e-6)
                 element.rotation = Math.round(rotation * 1e6) / 1e6;
-            target.push(element);
+            addElement(target, element);
         }
     }
-    function textOf(node) { return node.children.map(child => typeof child === "string" ? child : textOf(child)).join(""); }
+    function hasText(node) {
+        return node.children.some(child => {
+            charge(typeof child === "string" ? 1 + Math.ceil(child.length / 16) : 1);
+            return typeof child === "string" ? /\S/.test(child) : hasText(child);
+        });
+    }
     function clipFor(value, context, element) {
         if (value === undefined || value === "none")
             return undefined;
         const id = /^url\(\s*["']?#([^"')]+)["']?\s*\)$/.exec(value.trim())?.[1], clip = id === undefined ? undefined : ids.get(id);
-        const children = clip?.local === "clipPath" ? clip.children.filter((child) => typeof child !== "string") : [];
-        const rect = children.length === 1 && children[0].local === "rect" ? children[0] : undefined;
+        let rect;
+        if (clip?.local === "clipPath")
+            for (const child of clip.children) {
+                charge();
+                if (typeof child === "string")
+                    continue;
+                if (rect || child.local !== "rect") {
+                    rect = undefined;
+                    break;
+                }
+                rect = child;
+            }
         const m = multiply(context.matrix, parseTransform(clip?.attributes.get("transform")) ?? identity);
         if (!rect || clip.attributes.get("clipPathUnits") === "objectBoundingBox" || Math.abs(m[1]) > 1e-9 || Math.abs(m[2]) > 1e-9) {
             diagnose("CLIP_IGNORED", element);
@@ -12608,13 +12731,15 @@ function svgToPdfDrawing(svg, options = {}) {
             diagnose("CLIP_IGNORED", element);
             return null;
         }
-        const a = (name) => length(rect.attributes.get(name), context.fontSize, 0) ?? 0;
-        const [x1, y1] = apply(r, a("x"), a("y")), [x2, y2] = apply(r, a("x") + a("width"), a("y") + a("height"));
+        const a = (name, reference) => length(rect.attributes.get(name), context.fontSize, reference) ?? 0;
+        const x = a("x", context.userWidth), y = a("y", context.userHeight);
+        const [x1, y1] = apply(r, x, y), [x2, y2] = apply(r, x + a("width", context.userWidth), y + a("height", context.userHeight));
         return { x: Math.min(x1, x2), y: Math.min(y1, y2), width: Math.max(Math.abs(x2 - x1), 1e-3), height: Math.max(Math.abs(y2 - y1), 1e-3) };
     }
     const active = new Set();
-    function render(node, parent, target, depth) {
-        if (skipped.has(node.local))
+    function render(node, parent, target, depth, useSize) {
+        charge();
+        if (skipped.has(node.local) && !(node.local === "symbol" && useSize))
             return;
         if (depth > 512)
             throw new NotSupportedError("Chart SVG nesting is too deep.");
@@ -12626,6 +12751,11 @@ function svgToPdfDrawing(svg, options = {}) {
             diagnose("FOREIGN_OBJECT_SKIPPED", "foreignObject");
             return;
         }
+        if (node.local === "style") {
+            if (hasText(node))
+                diagnose("STYLESHEET_IGNORED", "style");
+            return;
+        }
         const cascaded = cascade(node, parent);
         if (!cascaded || cascaded.context.opacity <= 0)
             return;
@@ -12635,16 +12765,18 @@ function svgToPdfDrawing(svg, options = {}) {
             diagnose("MASK_IGNORED", node.local);
         if (values.get("filter") && values.get("filter") !== "none")
             diagnose("FILTER_IGNORED", node.local);
-        if (node.local === "svg" && node !== root) {
-            const nested = viewport(node, context.fontSize, outer.width, outer.height);
-            const x = length(attribute(node, "x"), context.fontSize, outer.width) ?? 0, y = length(attribute(node, "y"), context.fontSize, outer.height) ?? 0;
-            context = { ...context, matrix: multiply(context.matrix, multiply([1, 0, 0, 1, x, y], nested.matrix)) };
+        if ((node.local === "svg" || node.local === "symbol") && node !== root) {
+            const nested = viewport(node, context.fontSize, context.userWidth, context.userHeight, true, useSize);
+            if (!(nested.width > 0 && nested.height > 0))
+                return;
+            const x = length(attribute(node, "x"), context.fontSize, context.userWidth) ?? 0, y = length(attribute(node, "y"), context.fontSize, context.userHeight) ?? 0;
+            context = { ...context, userWidth: nested.userWidth, userHeight: nested.userHeight, matrix: multiply(context.matrix, multiply([1, 0, 0, 1, x, y], nested.matrix)) };
         }
         const clip = clipFor(values.get("clip-path"), context, node.local);
         let output = target;
         if (clip) {
             const children = [];
-            target.push({ kind: "group", clip, elements: children });
+            addElement(target, { kind: "group", clip, elements: children });
             output = children;
         }
         const visible = context.style.get("visibility") !== "hidden" && context.style.get("visibility") !== "collapse";
@@ -12656,42 +12788,59 @@ function svgToPdfDrawing(svg, options = {}) {
             textRuns(node, context, output);
         else if (node.local === "use") {
             const href = (attribute(node, "href") ?? attribute(node, "xlink:href"))?.replace(/^#/, ""), referenced = href === undefined ? undefined : ids.get(href);
-            if (!referenced || active.has(referenced)) {
+            if (!referenced || active.has(referenced))
                 diagnose("USE_UNRESOLVED", "use");
-                return;
+            else {
+                const x = length(attribute(node, "x"), context.fontSize, context.userWidth) ?? 0, y = length(attribute(node, "y"), context.fontSize, context.userHeight) ?? 0;
+                const placed = { ...context, matrix: multiply(context.matrix, [1, 0, 0, 1, x, y]) };
+                active.add(referenced);
+                const useSize = { width: length(attribute(node, "width"), context.fontSize, context.userWidth),
+                    height: length(attribute(node, "height"), context.fontSize, context.userHeight) };
+                render(referenced, placed, output, depth + 1, useSize);
+                active.delete(referenced);
             }
-            const x = length(attribute(node, "x"), context.fontSize, outer.width) ?? 0, y = length(attribute(node, "y"), context.fontSize, outer.height) ?? 0;
-            const placed = { ...context, matrix: multiply(context.matrix, [1, 0, 0, 1, x, y]) };
-            active.add(referenced);
-            if (referenced.local === "symbol")
-                for (const child of referenced.children) {
-                    if (typeof child !== "string")
-                        render(child, placed, output, depth + 1);
-                }
-            else
-                render(referenced, placed, output, depth + 1);
-            active.delete(referenced);
         }
-        else if (["svg", "g", "a", "switch"].includes(node.local)) {
-            for (const child of node.children)
-                if (typeof child !== "string")
+        else if (node.local === "switch") {
+            for (const child of node.children) {
+                charge();
+                if (typeof child === "string")
+                    continue;
+                if (["systemLanguage", "requiredExtensions", "requiredFeatures"].some(name => child.attributes.has(name))) {
+                    diagnose("SWITCH_CONDITION_IGNORED", child.local);
+                    continue;
+                }
+                render(child, context, output, depth + 1);
+                break;
+            }
+        }
+        else if (["svg", "symbol", "g", "a"].includes(node.local)) {
+            for (const child of node.children) {
+                if (typeof child === "string")
+                    charge();
+                else
                     render(child, context, output, depth + 1);
+            }
         }
         else
             diagnose("ELEMENT_SKIPPED", node.local);
-        if (clip && !output.length)
+        if (clip && !output.length) {
             target.pop();
+            elementCount--;
+        }
     }
-    render(root, { matrix: [unit * outer.matrix[0], 0, 0, unit * outer.matrix[3], unit * outer.matrix[4], unit * outer.matrix[5]], style: initial, fontSize: 16, opacity: 1 }, elements, 0);
-    return { version: 1, width: outer.width * unit, height: outer.height * unit, elements, standardFonts: true };
+    render(root, { matrix: [unit * outer.matrix[0], 0, 0, unit * outer.matrix[3], unit * outer.matrix[4], unit * outer.matrix[5]],
+        userWidth: outer.userWidth, userHeight: outer.userHeight, style: initial, fontSize: 16, opacity: 1 }, elements, 0);
+    return { version: 1, width: Math.min(14400, outer.width * unit), height: Math.min(14400, outer.height * unit), elements, standardFonts: true };
 }
 const _exports = Object.freeze({ svgToPdfDrawing: svgToPdfDrawing });
-_modules.set("73be4535e8315d4fa3a97a1e81a674bb0fc716b4383631ddc6910d1f039e0c3a", _exports);
+_modules.set("c85cca91c9a4cd8a4a2a5cf2d631c7fa44e56e5c01f2f4a52da16867590177fd", _exports);
 return _exports;
 })();
 
-const _m99 = _modules.get("aacb321bfb03908f941f85aa84fe615a352b7eb2a6f2151c998b437897083c7c") ?? (() => {
+const _m99 = _modules.get("1cb4b7ed8cf637ea454a7622f0d0dc7f4ab8311b2c0452f5713dabc990b6f3ed") ?? (() => {
 const { ExportCell } = _m5;
+
+const { ExportBudget } = _m9;
 
 const display = (header) => header + " (display)";
 function dateFormat(chart) {
@@ -12719,48 +12868,75 @@ function xColumn(chart) {
 const withUnit = (header, unit) => unit ? header + " (" + unit + ")" : header;
 /** Whether every series can share one row per x value. */
 function canWiden(chart) {
+    const captions = new Map();
     for (const series of chart.series) {
         const seen = new Set();
         for (const point of series.points) {
-            if (point.key === null) {
-                if (chart.kind !== "category")
-                    return false;
-                continue;
-            }
+            if (point.key === null && chart.kind !== "category")
+                return false;
             if (seen.has(point.key))
                 return false;
             seen.add(point.key);
+            if (point.xCaption !== undefined) {
+                const previous = captions.get(point.key);
+                if (previous !== undefined && previous !== point.xCaption)
+                    return false;
+                captions.set(point.key, point.xCaption);
+            }
         }
     }
     return true;
 }
 /** Map the chart's series to typed columns in a stable order: x, its caption, then each series' value and caption. */
-function chartTable(chart, layout = "auto") {
+function chartTable(chart, layout = "auto", limits) {
     if (layout !== "auto" && layout !== "wide" && layout !== "long")
         throw new TypeError("Chart layout must be auto, wide or long.");
-    const wide = layout === "wide" || layout === "auto" && canWiden(chart);
-    if (layout === "wide" && !canWiden(chart))
-        throw new TypeError("A wide chart sheet needs unique x values in every series.");
+    const wide = layout !== "long" && canWiden(chart);
+    if (layout === "wide" && !wide)
+        throw new TypeError("A wide chart sheet needs unique x values in every series and consistent x captions.");
+    const budget = new ExportBudget(limits);
+    const headingRows = chart.title ? 2 : 1;
+    function checkRows(count) {
+        budget.row(count);
+        if (count + headingRows > 1048576)
+            throw new RangeError("Excel supports at most 1,048,576 rows including headings.");
+    }
+    function checkCells(rows, columns) {
+        budget.check("maxCells", (rows + headingRows) * columns);
+    }
     const x = xColumn(chart), hasXCaption = chart.series.some(series => series.points.some(point => point.xCaption !== undefined));
     const value = (point, format, column) => point?.y === null || point === undefined ? null : format !== undefined && format !== column ? new ExportCell(point.y, { presentation: { numberFormat: format } }) : point.y;
     if (!wide) {
-        const yFormat = chart.yFormat, yHeader = withUnit(chart.yTitle, chart.yUnit), hasCaption = chart.series.some(series => series.points.some(point => point.caption !== undefined));
+        const yFormat = chart.yFormat, hasCaption = chart.series.some(series => series.points.some(point => point.caption !== undefined));
+        const units = new Set(chart.series.filter(series => series.points.length > 0).map(series => (series.unit ?? chart.yUnit) || undefined));
+        const mixedUnits = units.size > 1;
+        const yHeader = withUnit(chart.yTitle, units.size === 0 ? chart.yUnit : mixedUnits ? undefined : units.values().next().value);
         const columns = [{ key: "series", header: "Series", type: "string" }, { key: "seriesId", header: "Series ID", type: "string" }, x,
             ...(hasXCaption ? [{ key: "xCaption", header: display(x.header), type: "string" }] : []),
             { key: "y", header: yHeader, type: "number", ...(yFormat === undefined ? {} : { format: yFormat }) },
-            ...(hasCaption ? [{ key: "caption", header: display(yHeader), type: "string" }] : [])];
-        const rows = [];
-        for (const series of chart.series)
-            for (const point of series.points)
-                rows.push([series.name, series.id, point.x, ...(hasXCaption ? [point.xCaption ?? null] : []), value(point, series.format ?? yFormat, yFormat),
-                    ...(hasCaption ? [point.caption ?? null] : [])]);
-        return { layout: "long", columns, rows };
+            ...(hasCaption ? [{ key: "caption", header: display(yHeader), type: "string" }] : []),
+            ...(mixedUnits ? [{ key: "unit", header: "Unit", type: "string" }] : [])];
+        const rowCount = chart.series.reduce((count, series) => count + series.points.length, 0);
+        checkRows(rowCount);
+        checkCells(rowCount, columns.length);
+        function* rows() {
+            for (const series of chart.series)
+                for (const point of series.points)
+                    yield [series.name, series.id, point.x, ...(hasXCaption ? [point.xCaption ?? null] : []), value(point, series.format ?? yFormat, yFormat),
+                        ...(hasCaption ? [point.caption ?? null] : []), ...(mixedUnits ? [series.unit ?? chart.yUnit ?? null] : [])];
+        }
+        return { columns, rows: rows() };
     }
+    const captionColumns = chart.series.map(series => series.points.some(point => point.caption !== undefined));
+    const columnCount = 1 + Number(hasXCaption) + chart.series.length + captionColumns.filter(Boolean).length;
+    if (columnCount > 16384)
+        throw new RangeError("Excel supports at most 16,384 columns.");
     const keys = [], captions = new Map(), values = new Map();
     const known = new Set();
     for (const series of chart.series)
         for (const point of series.points) {
             if (!known.has(point.key)) {
+                checkRows(keys.length + 1);
                 known.add(point.key);
                 keys.push(point.key);
                 values.set(point.key, point.x);
@@ -12768,6 +12944,7 @@ function chartTable(chart, layout = "auto") {
             if (point.xCaption !== undefined && !captions.has(point.key))
                 captions.set(point.key, point.xCaption);
         }
+    checkCells(keys.length, columnCount);
     if (chart.kind !== "category")
         keys.sort((a, b) => a - b);
     const names = new Map();
@@ -12776,31 +12953,33 @@ function chartTable(chart, layout = "auto") {
     const columns = [x, ...(hasXCaption ? [{ key: "xCaption", header: display(x.header), type: "string" }] : [])];
     const lookups = chart.series.map((series, index) => {
         const format = series.format ?? chart.yFormat, header = withUnit(series.name + (names.get(series.name) > 1 ? " [" + series.id + "]" : ""), series.unit ?? chart.yUnit);
-        const caption = series.points.some(point => point.caption !== undefined);
+        const caption = captionColumns[index];
         columns.push({ key: "s" + index, header, type: "number", ...(format === undefined ? {} : { format }) });
         if (caption)
             columns.push({ key: "s" + index + "Caption", header: display(header), type: "string" });
         return { caption, format, points: new Map(series.points.map(point => [point.key, point])) };
     });
-    const rows = keys.map(key => {
-        const row = [values.get(key) ?? null, ...(hasXCaption ? [captions.get(key) ?? null] : [])];
-        for (const lookup of lookups) {
-            const point = lookup.points.get(key);
-            row.push(value(point, lookup.format, lookup.format));
-            if (lookup.caption)
-                row.push(point?.caption ?? null);
+    function* rows() {
+        for (const key of keys) {
+            const row = [values.get(key) ?? null, ...(hasXCaption ? [captions.get(key) ?? null] : [])];
+            for (const lookup of lookups) {
+                const point = lookup.points.get(key);
+                row.push(point?.y ?? null);
+                if (lookup.caption)
+                    row.push(point?.caption ?? null);
+            }
+            yield row;
         }
-        return row;
-    });
-    return { layout: "wide", columns, rows };
+    }
+    return { columns, rows: rows() };
 }
-const _exports = Object.freeze({ canWiden: canWiden, chartTable: chartTable });
-_modules.set("aacb321bfb03908f941f85aa84fe615a352b7eb2a6f2151c998b437897083c7c", _exports);
+const _exports = Object.freeze({ chartTable: chartTable });
+_modules.set("1cb4b7ed8cf637ea454a7622f0d0dc7f4ab8311b2c0452f5713dabc990b6f3ed", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("a2dd22ed06cf1a31fe6f0134ca170828979b48a965f74372e444f81c30cab47e") ?? (() => {
-const { BlobByteSink } = _m1;
+const _m0 = _modules.get("f0f92d7745009a8984326740d41814637a7232b75383d1cbdb5d3ba3b9fdc4fa") ?? (() => {
+const { BlobByteSink, checkAbort } = _m1;
 
 const { captureFields } = _m10;
 
@@ -12809,6 +12988,8 @@ const { captureCommonLimits, captureXlsxOptions, mergeAdapterLimits } = _m14;
 const { writeXlsxTo } = _m22;
 
 const { writePdfDocumentTo } = _m56;
+
+const { capturePdfLimits } = _m16;
 
 const { prepareChart } = _m93;
 
@@ -12824,7 +13005,7 @@ const slots = ["regular", "bold", "italic", "boldItalic"];
 const headerFill = "E7EDF5", headerBorder = Object.freeze({ bottom: Object.freeze({ style: "thin", color: "A6B4C8" }) });
 /** Convert resolved chart SVG markup to the PDF writer's portable vector drawing, without a browser. */
 function chartForgeXDrawing(svg, options = {}) {
-    return svgToPdfDrawing(svg, captureFields(options, ["unsupported", "fonts", "winAnsi", "onDiagnostic"]));
+    return svgToPdfDrawing(svg, captureFields(options, ["unsupported", "fonts", "winAnsi", "limits", "onDiagnostic"]));
 }
 /** Write a ChartForgeX capture as a typed XLSX sheet of its series, or a PDF with its title, description and vector SVG. */
 async function writeChartForgeXTo(capture, format, destination, options = {}) {
@@ -12834,14 +13015,16 @@ async function writeChartForgeXTo(capture, format, destination, options = {}) {
     const { signal, onProgress, onDiagnostic, unsupported } = selected, limits = captureCommonLimits(selected.limits);
     if (unsupported !== undefined && unsupported !== "skip" && unsupported !== "reject")
         throw new TypeError("unsupported must be skip or reject.");
+    checkAbort(signal);
     const chart = prepareChart(capture), stream = { ...(signal ? { signal } : {}), ...(onProgress ? { onProgress } : {}) };
     if (format === "xlsx") {
         const input = captureFields(selected.xlsx ?? {}, ["dateMode", "compression", "creator", "created", "modified", "sheetName"]);
         const { sheetName = "Chart data", ...workbook } = input;
-        const xlsx = captureXlsxOptions(workbook), table = chartTable(chart, selected.layout);
+        const xlsx = captureXlsxOptions(workbook), xlsxLimits = mergeAdapterLimits(xlsx.limits, limits);
+        const table = chartTable(chart, selected.layout, xlsxLimits);
         return writeXlsxTo(table.rows, destination, { dateMode: "utc", ...xlsx, ...stream, columns: table.columns,
             ...(chart.title === undefined ? {} : { title: chart.title }), ...(chart.description === undefined ? {} : { description: chart.description }),
-            limits: mergeAdapterLimits(xlsx.limits, limits),
+            limits: xlsxLimits,
             sheet: { name: sheetName, headerFill, headerBorder, headerWrap: true, freezeHeader: true, autoFilter: true, boldHeader: true,
                 autoSize: { minWidth: 8, maxWidth: 48 }, ...(chart.title ? { title: { text: chart.title } } : {}) } });
     }
@@ -12849,19 +13032,29 @@ async function writeChartForgeXTo(capture, format, destination, options = {}) {
         throw new TypeError("A ChartForgeX PDF needs the chart's SVG markup.");
     const pdf = captureFields(selected.pdf ?? {}, ["pageSize", "orientation", "margins", "fonts", "tagged", "compression", "pageNumbers", "pageHeader",
         "pageFooter", "fontSize", "limits"]);
-    // Text in a slot without a supplied face uses standard Helvetica, so it is mapped to WinAnsi unless a regular face is embedded.
-    const faces = pdf.fonts, available = faces ? slots.filter(slot => slot === "regular" || faces[slot] !== undefined) : slots;
-    const drawing = svgToPdfDrawing(chart.svg, { fonts: available, winAnsi: !faces?.regular, ...(unsupported ? { unsupported } : {}),
-        ...(onDiagnostic ? { onDiagnostic } : {}) });
+    const pdfLimits = mergeAdapterLimits(pdf.limits === undefined ? undefined : capturePdfLimits(pdf.limits), limits);
+    // Keep Unicode labels in the embedded regular face when an emphasis face is missing.
+    const faces = pdf.fonts === undefined ? undefined : captureFields(pdf.fonts, slots);
+    const available = faces ? slots.filter(slot => slot === "regular" || faces[slot] !== undefined) : slots;
+    const reported = new Set();
+    const report = (diagnostic) => {
+        if (reported.has(diagnostic.code))
+            return;
+        reported.add(diagnostic.code);
+        onDiagnostic?.(diagnostic);
+    };
+    const drawing = svgToPdfDrawing(chart.svg, { fonts: available, winAnsi: !faces?.regular, limits: pdfLimits, ...(unsupported ? { unsupported } : {}),
+        onDiagnostic: report }, signal);
     const standard = (text) => text === undefined || faces?.regular ? text :
         winAnsiText(text, () => { if (unsupported === "reject")
-            throw new TypeError("Chart text needs an embedded font: supply pdf.fonts.regular."); onDiagnostic?.({ code: "TEXT_SUBSTITUTED" }); });
+            throw new TypeError("Chart text needs an embedded font: supply pdf.fonts.regular."); report({ code: "TEXT_SUBSTITUTED" }); });
     const title = standard(chart.title), description = standard(chart.description);
     // The figure alternative stays exact: it is Unicode metadata, not painted text.
     const blocks = [...(description ? [{ kind: "paragraph", text: description }] : []),
         { kind: "drawing", drawing, alignment: "center", alternativeText: chart.description || chart.title || "Chart" }];
     return writePdfDocumentTo(blocks, destination, { orientation: drawing.width > drawing.height ? "landscape" : "portrait", pageNumbers: false,
-        ...pdf, ...stream, ...(title ? { title } : {}), limits: mergeAdapterLimits(pdf.limits, limits) });
+        ...pdf, ...stream, ...(faces ? { fonts: faces } : {}), ...(title ? { title } : {}),
+        ...(chart.title ? { metadataTitle: chart.title } : {}), limits: pdfLimits });
 }
 /** Export a ChartForgeX capture as a Blob. No chart runtime, browser layout or server is involved. */
 async function exportChartForgeX(capture, format, options = {}) {
@@ -12876,7 +13069,7 @@ async function exportChartForgeX(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ PdfFont: _m62.PdfFont, chartForgeXDrawing: chartForgeXDrawing, writeChartForgeXTo: writeChartForgeXTo, exportChartForgeX: exportChartForgeX });
-_modules.set("a2dd22ed06cf1a31fe6f0134ca170828979b48a965f74372e444f81c30cab47e", _exports);
+_modules.set("f0f92d7745009a8984326740d41814637a7232b75383d1cbdb5d3ba3b9fdc4fa", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

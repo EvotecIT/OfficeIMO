@@ -65,6 +65,9 @@ test("standard-font drawing text measures anchors, turns baselines and dashes st
   assert.match(content, /\[4 2\] 1 d\n-20 0 m/);
   assert.equal(pdf.text.replace(/\s+/g, " ").trim(), "AB End Slant");
   assert.ok([...pdf.objects.values()].some(object => /\/BaseFont \/Helvetica-Bold /.test(object.body)));
+  const mixed = await inspectPdf(await writePdfDocument(blocks, { ...options, fonts: { regular: fonts.regular } }));
+  assert.match([...mixed.objects.values()].map(object => object.body).join("\n"), /\/BaseFont \/Helvetica-Bold /);
+  assert.equal(mixed.text.replace(/\s+/g, " ").trim(), "AB End Slant");
   await assert.rejects(writePdfDocument([{ kind: "drawing", drawing: { ...drawing([{ ...text, text: "Łódź" }]), standardFonts: true } }], { pageNumbers: false }), /U\+141 needs an embedded/);
 });
 
@@ -78,6 +81,8 @@ test("portable drawing schemas reject unsupported fields, geometry, versions and
     [block([{ ...text, rotation: 400 }]), /rotation/],
     [block([{ ...text, anchor: "center" }]), /anchor/],
     [block([{ ...path, dash: [0, 0] }]), /dash/],
+    [block([{ ...path, dash: [0.0001] }]), /positive length after PDF rounding/],
+    [block([{ ...path, dash: [, 1] }]), /dash lengths/],
     [block([{ ...path, dash: [-1] }]), /dash/],
     [block([{ ...path, dashOffset: 1 }]), /requires dash/],
     [{ ...block([path]), drawing: { ...drawing([path]), standardFonts: "yes" } }, /standardFonts/],

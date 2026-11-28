@@ -245,7 +245,7 @@ Captured group identity is checked against the original raw scalar before relati
 `exportChartForgeX(capture, "xlsx" | "pdf", options)` turns a chart capture from the ChartForgeX browser runtime into a typed workbook of the chart's series, or a PDF with the chart's title, description and SVG as vector paths and text. It runs offline: no server, browser layout or chart runtime is involved. `writeChartForgeXTo` writes to a caller-owned destination.
 
 ```ts
-import { exportChartForgeX } from "@evotecit/officeimo/integrations/chartforgex";
+import { exportChartForgeX, type ChartForgeXCapture } from "@evotecit/officeimo/integrations/chartforgex";
 
 const capture = {
   version: 1, title: "Sign-ins", description: "Weekly sign-ins by method.",
@@ -255,14 +255,14 @@ const capture = {
     { id: "password", name: "Password", format: "0.0", points: [{ x: "2026-01-05", y: 300.5 }] }
   ],
   svg: serializedChartSvg
-};
+} satisfies ChartForgeXCapture;
 const excel = await exportChartForgeX(capture, "xlsx");
 const pdf = await exportChartForgeX(capture, "pdf", { onDiagnostic: d => console.info(d.code) });
 ```
 
 `x.kind` types the x values: `date` takes ISO 8601 strings or `Date` values (a string without an offset is a UTC wall-clock time, which is how ChartForgeX serializes time axes), `number` takes finite numbers and `category` takes labels. `y` values are finite numbers or `null`. `xCaption` and `caption` are the texts the chart displays. Axis and series `format` values are native Excel number formats; dates default to `yyyy-mm-dd`, with time or seconds added only when the data has them.
 
-The workbook has one sheet, `Chart data` by default (`xlsx.sheetName`), with the title above the headings and the title and description in the document properties. With `layout: "wide"` there is a row per x value and a column per series, in series order; rows follow ascending dates and numbers, and categories keep their first-seen order. `layout: "long"` has a row per point with `Series`, `Series ID`, x and value columns. The default `auto` is wide unless a series repeats an x value or a date or number point has no x. A column of display captions, headed `<name> (display)`, follows the x column and each series column that has captions; the typed cells keep the underlying values. Units are appended to value headings, and a repeated series name gets its ID in brackets.
+The workbook has one sheet, `Chart data` by default (`xlsx.sheetName`), with the title above the headings and the title and description in the document properties. With `layout: "wide"` there is a row per x value and a column per series, in series order. Rows follow ascending dates and numbers, and categories keep their first-seen order. `layout: "long"` has a row per point with `Series`, `Series ID`, x and value columns. The default `auto` uses long layout when a series repeats an x value, a date or number point has no x, or series give the same x different display captions. Display columns, headed `<name> (display)`, preserve captions alongside the typed cells. Units appear in value headings or in a `Unit` column when long-layout rows use different units. A repeated series name gets its ID in brackets.
 
 The PDF puts the title on the first page and in the document information, the description as a paragraph, and the chart as a centred drawing whose figure alternative is the description (or title). It is landscape when the chart is wider than tall. The SVG must carry resolved paint inline, as style declarations or presentation attributes; stylesheets and classes are not evaluated. ChartForgeX's own SVG export produces this. The converter reads shapes, path data (arcs and quadratic curves become cubic curves), transforms, nested `svg` viewports, `use`, rectangular `clipPath`s, dashes, text with `tspan` lines, anchors and rotation, and colours in hex, named, `rgb()`, `hsl()`, `oklab()`, `oklch()` and `color(srgb …)` forms. Effects without a vector equivalent are skipped and reported once per code through `onDiagnostic`: translucency and gradients are flattened over white (`OPACITY_FLATTENED`, `GRADIENT_FLATTENED`), and images, filters, masks, markers, non-rectangular clips and text paths are left out. `unsupported: "reject"` fails instead. Without `pdf.fonts`, text uses the standard Helvetica faces: typographic minus and spaces become ASCII, and other characters outside WinAnsi become `?` (`TEXT_SUBSTITUTED`). Supply `pdf.fonts.regular` (and the emphasis faces the chart uses) to keep Unicode text. `chartForgeXDrawing(svg)` returns the [portable drawing](#portable-drawings) on its own for composing into a larger document.
 

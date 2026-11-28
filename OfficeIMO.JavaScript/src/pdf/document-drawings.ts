@@ -37,9 +37,15 @@ function clipRectangle(value: unknown): PdfDrawingClip {
 /** A PDF dash array: 1 through 16 nonnegative lengths, not all zero, and a finite phase. */
 function dashPattern(value: unknown, offset: unknown): string {
   if (value === undefined) { if (offset !== undefined) throw new TypeError("Drawing dashOffset requires dash."); return ""; }
-  if (!Array.isArray(value) || !value.length || value.length > 16 || value.some(item => typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400) || !value.some(item => item > 0))
+  if (!Array.isArray(value) || !value.length || value.length > 16)
     throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
-  return "[" + value.map(n).join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+  const lengths = Array.from(value, item => {
+    if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+      throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+    return n(item);
+  });
+  if (lengths.every(length => length === "0")) throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+  return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
 }
 async function cooperate(settings: PdfSettings): Promise<void> {
   if (taskYieldDue()) await pause();
@@ -50,7 +56,8 @@ async function cooperate(settings: PdfSettings): Promise<void> {
 function captureDrawing(drawing: PdfDrawing, settings: PdfSettings, used: PdfDrawingUsage): CapturedDrawing {
   checkAbort(settings.options.signal);
   const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
-  if (root.standardFonts !== undefined && typeof root.standardFonts !== "boolean") throw new TypeError("Drawing standardFonts must be boolean.");
+  const standardFonts = root.standardFonts;
+  if (standardFonts !== undefined && typeof standardFonts !== "boolean") throw new TypeError("Drawing standardFonts must be boolean.");
   if (root.version !== 1) throw new NotSupportedError("Only portable drawing version 1 is supported.");
   const width = positive(root.width as number, "Drawing width"), height = positive(root.height as number, "Drawing height");
   let commands = used.commands, elements = used.elements;
@@ -139,7 +146,7 @@ function captureDrawing(drawing: PdfDrawing, settings: PdfSettings, used: PdfDra
   }
   const plan = children(root.elements as readonly PdfDrawingElement[], 1);
   checkAbort(settings.options.signal);
-  return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: root.standardFonts === true };
+  return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
@@ -150,8 +157,7 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
   function fontFor(slot: PdfDrawingFont): PdfFontResource {
     const existing = drawingFonts.get(slot);
     if (existing) return existing;
-    const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-    // standardFonts admits the standard Helvetica face for a slot the document supplies no TrueType face for.
+    const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
     if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
       throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
     drawingFonts.set(slot, font); return font;

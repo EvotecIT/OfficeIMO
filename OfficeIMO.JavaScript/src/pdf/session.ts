@@ -42,7 +42,8 @@ export class PdfWriteSession {
     if (this.structure) await this.structure.finish();
     await this.outlines.finish();
     await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-    await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+    const title = options.metadataTitle ?? options.title;
+    await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
     await objects.finish(this.root, this.info);
   }
 }

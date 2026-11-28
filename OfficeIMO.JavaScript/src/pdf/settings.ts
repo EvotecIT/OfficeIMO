@@ -17,12 +17,16 @@ const sizes: Readonly<Record<string, PdfPageSize>> = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 export const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-  "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+  "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
   "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"] as const;
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 export const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
   "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
   "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"] as const;
+
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+export const pdfDrawingLimits: Readonly<Required<Pick<PdfLimits, "maxVectorCommands" | "maxDrawingElements">>> =
+  Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 export function capturePdfOptions<T extends object>(input: T): T {
@@ -83,7 +87,7 @@ function repeatedColumns(policy: PdfOptions["wideTable"], columns: readonly Proj
   return Object.freeze([...selected].sort((left, right) => left - right));
 }
 export interface PdfSettings {
-  readonly options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">;
+  readonly options: PdfOptions & Pick<PdfDocumentOptions, "metadataTitle" | "paragraphStyles">;
   readonly paragraphStyles: Readonly<Record<string, Readonly<PdfParagraphStyle>>>;
   readonly page: PdfPageSize;
   readonly margins: PdfMargins;
@@ -94,7 +98,7 @@ export interface PdfSettings {
   /** Captured identities resolved once to selected table positions, shared by layout and band planning. */
   readonly repeatedColumns: readonly number[];
 }
-export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">, document = false): PdfSettings {
+export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "metadataTitle" | "paragraphStyles">, document = false): PdfSettings {
   const configuration = { ...capturePdfOptions(input) };
   configuration.booleanText = captureBooleanText(configuration.booleanText);
   if (configuration.limits !== undefined) configuration.limits = capturePdfLimits(configuration.limits);
@@ -115,7 +119,7 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
   if (document) configuration.includeHeader = false;
   if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
   const capturedFonts = configuration.fonts === undefined ? undefined : captureFields(configuration.fonts, ["regular", "bold", "italic", "boldItalic"]);
-  const options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles"> = { ...configuration, columns,
+  const options: PdfSettings["options"] = { ...configuration, columns,
     ...(textShaper ? { textShaper: Object.freeze({ shapeLine: shapeLine!.bind(textShaper) }) } : {}),
     ...(configuration.tagged ? { tagged: Object.freeze(captureFields(configuration.tagged, ["language"])) } : {}),
     ...(configuration.headerRows ? { headerRows: captureTableSpans(configuration.headerRows, columns.length) } : {}),
@@ -126,7 +130,7 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
     footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
   const budget = new ExportBudget(options.limits);
   const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
     maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
     maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
@@ -144,7 +148,7 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
   if (margins.left + margins.right >= page.width || margins.top + margins.bottom >= page.height) throw new RangeError("PDF margins leave no content area.");
   const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
   if (!Number.isFinite(padding) || padding < 0 || padding > 72) throw new RangeError("PDF padding must be from 0 through 72 points.");
-  for (const key of ["title", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
+  for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
   for (const key of ["pageHeader", "pageFooter"] as const) if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function") throw new TypeError(key + " must be text or a synchronous callback.");
   for (const key of ["formatValue", "formatRuns"] as const)
     if (options[key] !== undefined && typeof options[key] !== "function") throw new TypeError(key + " must be a synchronous function.");

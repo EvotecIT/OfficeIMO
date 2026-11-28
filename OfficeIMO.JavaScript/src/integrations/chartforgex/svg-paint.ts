@@ -16,9 +16,11 @@ function channel(text: string, scale: number): number {
   const value = parseFloat(text);
   return text.trim().endsWith("%") ? value / 100 * scale : value;
 }
-function alpha(text: string | undefined): number {
-  if (text === undefined || text === "") return 1;
-  return clamp(text.trim().endsWith("%") ? parseFloat(text) / 100 : parseFloat(text), 0, 1);
+export function alpha(text: string | undefined): number | undefined {
+  if (text === undefined) return 1;
+  if (text.trim() === "none") return 0;
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%?$/i.test(text.trim())) return undefined;
+  return clamp(channel(text, 1), 0, 1);
 }
 function functionArguments(body: string, legacyAlpha: boolean): { readonly values: string[]; readonly alpha: string | undefined } {
   const [main, slash] = body.split("/") as [string, string | undefined];
@@ -66,24 +68,27 @@ export function parseColor(input: string): Rgba | undefined {
   if (values.some(value => !/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(%|deg|rad|turn)?$/.test(value) && value !== "none")) {
     if (name !== "color") return undefined;
   }
+  const a = alpha(opacity);
+  if (a === undefined) return undefined;
   const v = values.map(value => value === "none" ? "0" : value);
   if ((name === "rgb" || name === "rgba") && v.length === 3)
-    return { r: clamp(channel(v[0]!, 255), 0, 255), g: clamp(channel(v[1]!, 255), 0, 255), b: clamp(channel(v[2]!, 255), 0, 255), a: alpha(opacity) };
+    return { r: clamp(channel(v[0]!, 255), 0, 255), g: clamp(channel(v[1]!, 255), 0, 255), b: clamp(channel(v[2]!, 255), 0, 255), a };
   if ((name === "hsl" || name === "hsla") && v.length === 3) {
     const h = ((hue(v[0]!) % 360) + 360) % 360 / 360, s = clamp(parseFloat(v[1]!) / 100, 0, 1), l = clamp(parseFloat(v[2]!) / 100, 0, 1);
     const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
     const tone = (t: number): number => { t = (t + 1) % 1; return 255 * (t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p); };
-    return { r: tone(h + 1 / 3), g: tone(h), b: tone(h - 1 / 3), a: alpha(opacity) };
+    return { r: tone(h + 1 / 3), g: tone(h), b: tone(h - 1 / 3), a };
   }
-  if (name === "oklab" && v.length === 3) return fromOklab(channel(v[0]!, 1), channel(v[1]!, .4), channel(v[2]!, .4), alpha(opacity));
+  if (name === "oklab" && v.length === 3) return fromOklab(channel(v[0]!, 1), channel(v[1]!, .4), channel(v[2]!, .4), a);
   if (name === "oklch" && v.length === 3) {
     const l = channel(v[0]!, 1), c = channel(v[1]!, .4), h = hue(v[2]!) * Math.PI / 180;
-    return fromOklab(l, c * Math.cos(h), c * Math.sin(h), alpha(opacity));
+    return fromOklab(l, c * Math.cos(h), c * Math.sin(h), a);
   }
   if (name === "color" && v.length === 4 && (v[0] === "srgb" || v[0] === "srgb-linear")) {
     const parts = v.slice(1).map(value => channel(value, 1));
     const convert = v[0] === "srgb" ? (x: number): number => clamp(x, 0, 1) * 255 : linearToSrgb;
-    return { r: convert(parts[0]!), g: convert(parts[1]!), b: convert(parts[2]!), a: alpha(opacity) };
+    if (!parts.every(Number.isFinite)) return undefined;
+    return { r: convert(parts[0]!), g: convert(parts[1]!), b: convert(parts[2]!), a };
   }
   return undefined;
 }
@@ -100,11 +105,16 @@ export function flatten(color: Rgba, opacity: number): string | undefined {
 export function parseStyle(text: string | undefined): Map<string, string> {
   const result = new Map<string, string>();
   if (!text) return result;
+  const important = new Set<string>();
   for (const declaration of text.split(";")) {
     const colon = declaration.indexOf(":");
     if (colon < 0) continue;
-    const name = declaration.slice(0, colon).trim().toLowerCase(), value = declaration.slice(colon + 1).replace(/!important\s*$/i, "").trim();
-    if (name && value) result.set(name, value);
+    const name = declaration.slice(0, colon).trim().toLowerCase(), raw = declaration.slice(colon + 1);
+    const priority = /!\s*important\s*$/i;
+    const value = raw.replace(priority, "").trim(), takesPriority = priority.test(raw);
+    if (!name || !value || important.has(name) && !takesPriority) continue;
+    if (takesPriority) important.add(name);
+    result.set(name, value);
   }
   return result;
 }

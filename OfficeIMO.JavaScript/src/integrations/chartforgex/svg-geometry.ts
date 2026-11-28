@@ -71,14 +71,21 @@ function arc(out: UserCommand[], x1: number, y1: number, rx: number, ry: number,
 export function parsePathData(d: string): { readonly commands: UserCommand[]; readonly malformed: boolean } {
   const out: UserCommand[] = [], tokens = /([MmLlHhVvCcSsQqTtAaZz])|([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([\s,]+)|(.)/g;
   const list: string[] = [];
+  let malformed = false;
   for (const match of d.matchAll(tokens)) {
-    if (match[4] !== undefined) return { commands: out, malformed: true };
+    if (match[4] !== undefined) { malformed = true; break; }
     if (match[1] !== undefined || match[2] !== undefined) list.push(match[1] ?? match[2]!);
   }
   let i = 0, x = 0, y = 0, startX = 0, startY = 0, command = "", lastControl: [number, number] | undefined, lastQuad: [number, number] | undefined;
   let open = false;
   const isCommand = (value: string | undefined): boolean => value !== undefined && /^[A-Za-z]$/.test(value);
-  const take = (): number | undefined => { const value = list[i]; if (value === undefined || isCommand(value)) return undefined; i++; return Number(value); };
+  const take = (): number | undefined => {
+    const value = list[i];
+    if (value === undefined || isCommand(value)) return undefined;
+    i++;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
+  };
   // Arc flags may be written without separators ("a1 1 0 011 1"): split compact digit runs.
   const flag = (): number | undefined => {
     const raw = list[i];
@@ -92,6 +99,7 @@ export function parsePathData(d: string): { readonly commands: UserCommand[]; re
     if (isCommand(token)) { command = token!; i++; }
     else if (!command || command === "Z" || command === "z") return { commands: out, malformed: true };
     const relative = command === command.toLowerCase(), base = command.toUpperCase();
+    if (!out.length && base !== "M") return { commands: out, malformed: true };
     const ox = relative ? x : 0, oy = relative ? y : 0;
     if (base === "Z") {
       if (open) out.push({ op: "close" });
@@ -105,9 +113,12 @@ export function parsePathData(d: string): { readonly commands: UserCommand[]; re
     }
     if (base === "L" || base === "H" || base === "V") {
       const a = take(); if (a === undefined) return { commands: out, malformed: true };
-      if (base === "L") { const b = take(); if (b === undefined) return { commands: out, malformed: true }; x = ox + a; y = oy + b; }
-      else if (base === "H") x = ox + a; else y = oy + a;
-      ensure(); out.push({ op: "line", x, y }); lastControl = lastQuad = undefined; continue;
+      const b = base === "L" ? take() : undefined;
+      if (base === "L" && b === undefined) return { commands: out, malformed: true };
+      ensure();
+      if (base !== "V") x = ox + a;
+      if (base !== "H") y = oy + (b ?? a);
+      out.push({ op: "line", x, y }); lastControl = lastQuad = undefined; continue;
     }
     if (base === "C" || base === "S") {
       const values: number[] = [];
@@ -135,7 +146,7 @@ export function parsePathData(d: string): { readonly commands: UserCommand[]; re
     }
     return { commands: out, malformed: true };
   }
-  return { commands: out, malformed: false };
+  return { commands: out, malformed };
 }
 
 const kappa = 0.5522847498307936;
