@@ -1878,13 +1878,20 @@ jobs:
 
       - name: Pack and install the .NET tool
         run: |
-          # Without the packaging property the tool must refuse to pack rather than write a RID-neutral package.
-          if dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output artifacts/unflagged-package -p:PackageVersion=0.0.0-local; then
-            echo "::error::OfficeIMO.Tool packed without PowerForgePackaging=true"; exit 1
-          fi
-          if ls artifacts/unflagged-package/*.nupkg >/dev/null 2>&1; then
-            echo "::error::A rejected OfficeIMO.Tool pack left a package behind"; exit 1
-          fi
+          # Without the packaging property the tool must refuse to pack, with or without a runtime, rather than write
+          # a RID-neutral or single-platform package.
+          for runtime in "" "linux-x64"; do
+            output="artifacts/unflagged-package-${runtime:-any}"
+            if dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output "$output" -p:PackageVersion=0.0.0-local ${runtime:+--runtime "$runtime"} > "$output.log" 2>&1; then
+              echo "::error::OfficeIMO.Tool packed without PowerForgePackaging=true (runtime '${runtime}')"; exit 1
+            fi
+            if ! grep -q "OfficeIMO.Tool packs its per-platform packages only with -p:PowerForgePackaging=true" "$output.log"; then
+              cat "$output.log"; echo "::error::The unflagged OfficeIMO.Tool pack failed for another reason (runtime '${runtime}')"; exit 1
+            fi
+            if ls "$output"/*.nupkg >/dev/null 2>&1; then
+              echo "::error::A rejected OfficeIMO.Tool pack left a package behind (runtime '${runtime}')"; exit 1
+            fi
+          done
           dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output artifacts/tool-package -p:PackageVersion=0.0.0-local -p:PowerForgePackaging=true
           python3 Build/validate_mcp_registry.py package artifacts/tool-package/OfficeIMO.Tool.0.0.0-local.nupkg
           dotnet tool install OfficeIMO.Tool --tool-path artifacts/tool-install --version 0.0.0-local --add-source artifacts/tool-package
