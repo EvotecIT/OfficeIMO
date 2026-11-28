@@ -1,34 +1,25 @@
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        private const int ThemeNamespace = OfficeXmlNamespaces.DrawingML;
+
         /// <summary>
         ///     Gets or sets the name of the presentation theme.
         /// </summary>
         public string ThemeName {
             get {
                 ThrowIfDisposed();
-                SlideMasterPart master = SdkPresentationPart.SlideMasterParts.First();
-                return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
+                return RequireMasterPartRef(0).RelatedPart(PowerPointPartRef.ThemeRelationshipType).Root.Attribute("name") ?? string.Empty;
             }
             set {
                 ThrowIfDisposed();
-                SlideMasterPart master = SdkPresentationPart.SlideMasterParts.First();
-                ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
-                if (themePart.Theme == null) {
-                    themePart.Theme = new A.Theme { ThemeElements = new A.ThemeElements() };
-                }
-
-                themePart.Theme.Name = value;
+                PowerPointPartRef theme = EnsureThemePart(RequireMasterPartRef(0));
+                theme.Root.SetAttribute("name", value);
+                theme.MarkEdited();
             }
         }
 
@@ -37,14 +28,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? GetThemeColor(PowerPointThemeColor color, int masterIndex = 0) {
             ThrowIfDisposed();
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.ColorScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-            if (scheme == null) {
-                return null;
-            }
-
-            OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-            return GetThemeColorValue(element);
+            OfficeXmlNode scheme = ThemeElements(RequireMasterPartRef(masterIndex)).Child(ThemeNamespace, "clrScheme");
+            return scheme.IsNone ? null : GetThemeColorValue(scheme.Child(ThemeNamespace, ColorElementName(color)));
         }
 
         /// <summary>
@@ -54,12 +39,16 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(hexValue);
 
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.ColorScheme scheme = EnsureColorScheme(masterPart);
-            OpenXmlCompositeElement element = GetOrCreateColorElement(scheme, color);
-            element.RemoveAllChildren<A.RgbColorModelHex>();
-            element.RemoveAllChildren<A.SystemColor>();
-            element.Append(new A.RgbColorModelHex { Val = hexValue });
+            PowerPointPartRef theme = EnsureThemePart(RequireMasterPartRef(masterIndex));
+            OfficeXmlNode scheme = EnsureScheme(theme, "clrScheme");
+            string name = ColorElementName(color);
+            OfficeXmlNode element = scheme.Child(ThemeNamespace, name);
+            // A missing slot goes last, as the model added it.
+            if (element.IsNone) element = scheme.Append(scheme.CreateElement(ThemeNamespace, name));
+            element.RemoveChildren(ThemeNamespace, "srgbClr");
+            element.RemoveChildren(ThemeNamespace, "sysClr");
+            element.Append(element.CreateElement(ThemeNamespace, "srgbClr")).SetAttribute("val", hexValue);
+            theme.MarkEdited();
             RefreshLayoutTheme(masterIndex);
         }
 
@@ -80,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeColorForAllMasters(PowerPointThemeColor color, string hexValue) {
             ThrowIfDisposed();
-            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
+            int masterCount = MasterCount;
             for (int i = 0; i < masterCount; i++) {
                 SetThemeColor(color, hexValue, i);
             }
@@ -92,27 +81,25 @@ namespace OfficeIMO.PowerPoint {
         public void SetThemeColorsForAllMasters(IDictionary<PowerPointThemeColor, string> colors) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(colors);
-            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
+            int masterCount = MasterCount;
             for (int i = 0; i < masterCount; i++) {
                 SetThemeColors(colors, i);
             }
         }
 
         /// <summary>
-        ///     Returns the theme colors that are defined on the master.        
+        ///     Returns the theme colors that are defined on the master.
         /// </summary>
         public IReadOnlyDictionary<PowerPointThemeColor, string> GetThemeColors(int masterIndex = 0) {
             ThrowIfDisposed();
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.ColorScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-            if (scheme == null) {
-                return new Dictionary<PowerPointThemeColor, string>();
+            OfficeXmlNode scheme = ThemeElements(RequireMasterPartRef(masterIndex)).Child(ThemeNamespace, "clrScheme");
+            var colors = new Dictionary<PowerPointThemeColor, string>();
+            if (scheme.IsNone) {
+                return colors;
             }
 
-            var colors = new Dictionary<PowerPointThemeColor, string>();
             foreach (PowerPointThemeColor color in global::OfficeIMO.Internal.EnumCompat.GetValues<PowerPointThemeColor>()) {
-                OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-                string? hexValue = GetThemeColorValue(element);
+                string? hexValue = GetThemeColorValue(scheme.Child(ThemeNamespace, ColorElementName(color)));
                 if (!string.IsNullOrEmpty(hexValue)) {
                     colors[color] = hexValue!;
                 }
@@ -147,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeLatinFontsForAllMasters(string majorLatin, string minorLatin) {
             ThrowIfDisposed();
-            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
+            int masterCount = MasterCount;
             for (int i = 0; i < masterCount; i++) {
                 SetThemeLatinFonts(majorLatin, minorLatin, i);
             }
@@ -158,16 +145,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointThemeFontSet GetThemeFonts(int masterIndex = 0) {
             ThrowIfDisposed();
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.FontScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            OfficeXmlNode scheme = ThemeElements(RequireMasterPartRef(masterIndex)).Child(ThemeNamespace, "fontScheme");
+            OfficeXmlNode major = scheme.Child(ThemeNamespace, "majorFont"), minor = scheme.Child(ThemeNamespace, "minorFont");
 
             return new PowerPointThemeFontSet(
-                scheme?.MajorFont?.LatinFont?.Typeface,
-                scheme?.MinorFont?.LatinFont?.Typeface,
-                scheme?.MajorFont?.EastAsianFont?.Typeface,
-                scheme?.MinorFont?.EastAsianFont?.Typeface,
-                scheme?.MajorFont?.ComplexScriptFont?.Typeface,
-                scheme?.MinorFont?.ComplexScriptFont?.Typeface);
+                major.Child(ThemeNamespace, "latin").Attribute("typeface"),
+                minor.Child(ThemeNamespace, "latin").Attribute("typeface"),
+                major.Child(ThemeNamespace, "ea").Attribute("typeface"),
+                minor.Child(ThemeNamespace, "ea").Attribute("typeface"),
+                major.Child(ThemeNamespace, "cs").Attribute("typeface"),
+                minor.Child(ThemeNamespace, "cs").Attribute("typeface"));
         }
 
         /// <summary>
@@ -175,15 +162,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true) {
             ThrowIfDisposed();
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.FontScheme scheme = EnsureFontScheme(masterPart);
-            scheme.MajorFont ??= new A.MajorFont();
-            scheme.MinorFont ??= new A.MinorFont();
+            PowerPointPartRef theme = EnsureThemePart(RequireMasterPartRef(masterIndex));
+            OfficeXmlNode scheme = EnsureScheme(theme, "fontScheme");
+            OfficeXmlNode major = scheme.GetOrAddChild(ThemeNamespace, "majorFont", AFontSchemeView.Order);
+            OfficeXmlNode minor = scheme.GetOrAddChild(ThemeNamespace, "minorFont", AFontSchemeView.Order);
 
-            SetThemeFont(scheme.MajorFont, fonts.MajorLatin, fonts.MajorEastAsian, fonts.MajorComplexScript,
-                keepExistingWhenNull);
-            SetThemeFont(scheme.MinorFont, fonts.MinorLatin, fonts.MinorEastAsian, fonts.MinorComplexScript,
-                keepExistingWhenNull);
+            SetThemeFont(major, fonts.MajorLatin, fonts.MajorEastAsian, fonts.MajorComplexScript, keepExistingWhenNull);
+            SetThemeFont(minor, fonts.MinorLatin, fonts.MinorEastAsian, fonts.MinorComplexScript, keepExistingWhenNull);
+            theme.MarkEdited();
             RefreshLayoutTheme(masterIndex);
         }
 
@@ -192,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeFontsForAllMasters(PowerPointThemeFontSet fonts, bool keepExistingWhenNull = true) {
             ThrowIfDisposed();
-            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
+            int masterCount = MasterCount;
             for (int i = 0; i < masterCount; i++) {
                 SetThemeFonts(fonts, i, keepExistingWhenNull);
             }
@@ -204,10 +190,11 @@ namespace OfficeIMO.PowerPoint {
         public void SetThemeNameForAllMasters(string name) {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
-                ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
-                themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
-                themePart.Theme.Name = name;
+            int masterCount = MasterCount;
+            for (int i = 0; i < masterCount; i++) {
+                PowerPointPartRef theme = EnsureThemePart(RequireMasterPartRef(i));
+                theme.Root.SetAttribute("name", name);
+                theme.MarkEdited();
             }
         }
 
@@ -217,8 +204,11 @@ namespace OfficeIMO.PowerPoint {
         public void SetThemeName(string name, int masterIndex = 0) {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            A.Theme theme = EnsureTheme(GetSlideMasterPart(masterIndex));
-            theme.Name = name;
+            PowerPointPartRef theme = EnsureThemePart(RequireMasterPartRef(masterIndex));
+            OfficeXmlNode root = theme.Root;
+            root.GetOrAddChild(ThemeNamespace, "themeElements", AOfficeStyleSheetView.Order);
+            root.SetAttribute("name", name);
+            theme.MarkEdited();
         }
 
         /// <summary>
@@ -227,32 +217,15 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointTableStyleInfo> TableStyles {
             get {
                 ThrowIfDisposed();
-                TableStylesPart? stylesPart = SdkPresentationPart.TableStylesPart;
-                if (stylesPart?.TableStyleList == null) {
-                    PowerPointUtils.CreateTableStylesPart(SdkPresentationPart);
-                    stylesPart = SdkPresentationPart.TableStylesPart;
-                }
-
                 List<PowerPointTableStyleInfo> styles = new();
                 HashSet<string> seenStyleIds = new(StringComparer.OrdinalIgnoreCase);
-                A.TableStyleList? styleList = stylesPart?.TableStyleList;
-                if (styleList != null) {
-                    foreach (A.TableStyle style in styleList.Elements<A.TableStyle>()) {
-                        string styleId = style.StyleId?.Value ?? string.Empty;
-                        if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
-                            continue;
-                        }
-
-                        string name = style.StyleName?.Value ?? string.Empty;
-                        styles.Add(new PowerPointTableStyleInfo(styleId, name));
+                foreach (OfficeXmlNode style in EnsureTableStylesPart().Root.Children(ThemeNamespace, "tblStyle")) {
+                    string styleId = style.Attribute("styleId") ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
+                        continue;
                     }
-                }
 
-                if (stylesPart != null) {
-                    using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
-                    if (stream.Length > 0) {
-                        AddTableStylesFromStream(styles, seenStyleIds, stream);
-                    }
+                    styles.Add(new PowerPointTableStyleInfo(styleId, style.Attribute("styleName") ?? string.Empty));
                 }
 
                 if (styles.Count == 0) {
@@ -286,126 +259,96 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string? GetThemeColorValue(OpenXmlCompositeElement? element) {
-            string? rgbColor = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+        // The number of slide masters, in relationship order as the index-based APIs count them.
+        private int MasterCount => PresentationPartRef.RelatedParts(PowerPointPartRef.SlideMasterRelationshipType).Count();
+
+        // The theme elements of a master's theme, or none.
+        private static OfficeXmlNode ThemeElements(PowerPointPartRef master) =>
+            master.RelatedPart(PowerPointPartRef.ThemeRelationshipType).Root.Child(ThemeNamespace, "themeElements");
+
+        // A master's theme part with its theme elements; a master without a theme gets one, as the model adds it.
+        private PowerPointPartRef EnsureThemePart(PowerPointPartRef master) {
+            PowerPointPartRef theme = master.RelatedPart(PowerPointPartRef.ThemeRelationshipType);
+            if (theme.IsNone || theme.Root.IsNone) theme = PowerPointUtils.EnsureThemePart(this, master);
+            theme.Root.GetOrAddChild(ThemeNamespace, "themeElements", AOfficeStyleSheetView.Order);
+            return theme;
+        }
+
+        // The colour or font scheme of a theme, added with the name Office when missing.
+        private static OfficeXmlNode EnsureScheme(PowerPointPartRef theme, string localName) {
+            OfficeXmlNode elements = theme.Root.Child(ThemeNamespace, "themeElements");
+            OfficeXmlNode scheme = elements.Child(ThemeNamespace, localName);
+            if (!scheme.IsNone) return scheme;
+            scheme = elements.AddOrdered(ThemeNamespace, localName, ABaseStylesView.Order);
+            scheme.SetAttribute("name", "Office");
+            return scheme;
+        }
+
+        private static string? GetThemeColorValue(OfficeXmlNode element) {
+            string? rgbColor = element.Child(ThemeNamespace, "srgbClr").Attribute("val");
             if (!string.IsNullOrWhiteSpace(rgbColor)) {
                 return rgbColor;
             }
 
-            return element?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
+            return element.Child(ThemeNamespace, "sysClr").Attribute("lastClr");
         }
 
-        private static A.Theme EnsureTheme(SlideMasterPart masterPart) {
-            ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
-            themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
-            themePart.Theme.ThemeElements ??= new A.ThemeElements();
-            return themePart.Theme;
+        // Replaces the Latin, East Asian and complex script fonts, first in the collection in that order.
+        private static void SetThemeFont(OfficeXmlNode parent, string? latin, string? eastAsian, string? complexScript, bool keepExistingWhenNull) {
+            OfficeXmlNode resolvedLatin = ResolveThemeFont(parent, "latin", latin, keepExistingWhenNull);
+            OfficeXmlNode resolvedEastAsian = ResolveThemeFont(parent, "ea", eastAsian, keepExistingWhenNull);
+            OfficeXmlNode resolvedComplexScript = ResolveThemeFont(parent, "cs", complexScript, keepExistingWhenNull);
+
+            parent.RemoveChildren(ThemeNamespace, "latin");
+            parent.RemoveChildren(ThemeNamespace, "ea");
+            parent.RemoveChildren(ThemeNamespace, "cs");
+
+            OfficeXmlNode first = parent.FirstChild;
+            parent.InsertBefore(resolvedLatin, first);
+            parent.InsertBefore(resolvedEastAsian, first);
+            parent.InsertBefore(resolvedComplexScript, first);
         }
 
-        private static A.ColorScheme EnsureColorScheme(SlideMasterPart masterPart) {
-            A.Theme theme = EnsureTheme(masterPart);
-            theme.ThemeElements ??= new A.ThemeElements();
-            A.ColorScheme scheme = theme.ThemeElements.ColorScheme ??= new A.ColorScheme { Name = "Office" };
-            return scheme;
-        }
-
-        private static A.FontScheme EnsureFontScheme(SlideMasterPart masterPart) {
-            A.Theme theme = EnsureTheme(masterPart);
-            theme.ThemeElements ??= new A.ThemeElements();
-            A.FontScheme scheme = theme.ThemeElements.FontScheme ??= new A.FontScheme { Name = "Office" };
-            return scheme;
-        }
-
-        private static void SetThemeFont(OpenXmlCompositeElement parent, string? latin, string? eastAsian,
-            string? complexScript, bool keepExistingWhenNull) {
-            A.LatinFont? resolvedLatin = ResolveThemeFont<A.LatinFont>(parent, latin, keepExistingWhenNull);
-            A.EastAsianFont? resolvedEastAsian =
-                ResolveThemeFont<A.EastAsianFont>(parent, eastAsian, keepExistingWhenNull);
-            A.ComplexScriptFont? resolvedComplexScript =
-                ResolveThemeFont<A.ComplexScriptFont>(parent, complexScript, keepExistingWhenNull);
-
-            parent.RemoveAllChildren<A.LatinFont>();
-            parent.RemoveAllChildren<A.EastAsianFont>();
-            parent.RemoveAllChildren<A.ComplexScriptFont>();
-
-            int insertIndex = 0;
-            if (resolvedLatin != null) {
-                parent.InsertAt(resolvedLatin, insertIndex++);
-            }
-            if (resolvedEastAsian != null) {
-                parent.InsertAt(resolvedEastAsian, insertIndex++);
-            }
-            if (resolvedComplexScript != null) {
-                parent.InsertAt(resolvedComplexScript, insertIndex);
-            }
-        }
-
-        private static TFont? ResolveThemeFont<TFont>(OpenXmlCompositeElement parent, string? typeface,
-            bool keepExistingWhenNull) where TFont : A.TextFontType, new() {
-            TFont? existing = parent.GetFirstChild<TFont>()?.CloneNode(true) as TFont;
+        private static OfficeXmlNode ResolveThemeFont(OfficeXmlNode parent, string localName, string? typeface, bool keepExistingWhenNull) {
+            OfficeXmlNode existing = parent.Child(ThemeNamespace, localName);
+            existing = existing.IsNone ? default : existing.Clone();
             if (typeface == null) {
                 // DrawingML requires all three font slots even when no typeface is specified.
-                return keepExistingWhenNull && existing != null ? existing : new TFont { Typeface = string.Empty };
+                if (keepExistingWhenNull && !existing.IsNone) return existing;
+                OfficeXmlNode empty = parent.CreateElement(ThemeNamespace, localName);
+                empty.SetAttribute("typeface", string.Empty);
+                return empty;
             }
             ArgumentException.ThrowIfNullOrWhiteSpace(typeface);
 
-            TFont font = existing ?? new TFont();
-            if (font is A.LatinFont) {
-                if (!string.Equals(font.Typeface?.Value, typeface, StringComparison.Ordinal) || font.Panose == null) {
+            OfficeXmlNode font = existing.IsNone ? parent.CreateElement(ThemeNamespace, localName) : existing;
+            if (localName == "latin") {
+                if (!string.Equals(font.Attribute("typeface"), typeface, StringComparison.Ordinal) || font.Attribute("panose") == null) {
                     PowerPointFontClassification.Apply(font, typeface);
                 }
             } else {
-                font.Typeface = typeface;
-                if (existing != null && !string.Equals(existing.Typeface?.Value, typeface, StringComparison.Ordinal)) {
-                    font.Panose = null;
+                font.SetAttribute("typeface", typeface);
+                if (!existing.IsNone && !string.Equals(parent.Child(ThemeNamespace, localName).Attribute("typeface"), typeface, StringComparison.Ordinal)) {
+                    font.RemoveAttribute("panose");
                 }
             }
             return font;
         }
 
-        private static OpenXmlCompositeElement? GetColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {
-            return color switch {
-                PowerPointThemeColor.Dark1 => scheme.GetFirstChild<A.Dark1Color>(),
-                PowerPointThemeColor.Light1 => scheme.GetFirstChild<A.Light1Color>(),
-                PowerPointThemeColor.Dark2 => scheme.GetFirstChild<A.Dark2Color>(),
-                PowerPointThemeColor.Light2 => scheme.GetFirstChild<A.Light2Color>(),
-                PowerPointThemeColor.Accent1 => scheme.GetFirstChild<A.Accent1Color>(),
-                PowerPointThemeColor.Accent2 => scheme.GetFirstChild<A.Accent2Color>(),
-                PowerPointThemeColor.Accent3 => scheme.GetFirstChild<A.Accent3Color>(),
-                PowerPointThemeColor.Accent4 => scheme.GetFirstChild<A.Accent4Color>(),
-                PowerPointThemeColor.Accent5 => scheme.GetFirstChild<A.Accent5Color>(),
-                PowerPointThemeColor.Accent6 => scheme.GetFirstChild<A.Accent6Color>(),
-                PowerPointThemeColor.Hyperlink => scheme.GetFirstChild<A.Hyperlink>(),
-                PowerPointThemeColor.FollowedHyperlink => scheme.GetFirstChild<A.FollowedHyperlinkColor>(),
-                _ => null
-            };
-        }
-
-        private static OpenXmlCompositeElement GetOrCreateColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {
-            OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-            if (element != null) {
-                return element;
-            }
-
-            element = color switch {
-                PowerPointThemeColor.Dark1 => new A.Dark1Color(),
-                PowerPointThemeColor.Light1 => new A.Light1Color(),
-                PowerPointThemeColor.Dark2 => new A.Dark2Color(),
-                PowerPointThemeColor.Light2 => new A.Light2Color(),
-                PowerPointThemeColor.Accent1 => new A.Accent1Color(),
-                PowerPointThemeColor.Accent2 => new A.Accent2Color(),
-                PowerPointThemeColor.Accent3 => new A.Accent3Color(),
-                PowerPointThemeColor.Accent4 => new A.Accent4Color(),
-                PowerPointThemeColor.Accent5 => new A.Accent5Color(),
-                PowerPointThemeColor.Accent6 => new A.Accent6Color(),
-                PowerPointThemeColor.Hyperlink => new A.Hyperlink(),
-                PowerPointThemeColor.FollowedHyperlink => new A.FollowedHyperlinkColor(),
-                _ => new A.Dark1Color()
-            };
-
-            scheme.Append(element);
-            return element;
-        }
-
+        private static string ColorElementName(PowerPointThemeColor color) => color switch {
+            PowerPointThemeColor.Dark1 => "dk1",
+            PowerPointThemeColor.Light1 => "lt1",
+            PowerPointThemeColor.Dark2 => "dk2",
+            PowerPointThemeColor.Light2 => "lt2",
+            PowerPointThemeColor.Accent1 => "accent1",
+            PowerPointThemeColor.Accent2 => "accent2",
+            PowerPointThemeColor.Accent3 => "accent3",
+            PowerPointThemeColor.Accent4 => "accent4",
+            PowerPointThemeColor.Accent5 => "accent5",
+            PowerPointThemeColor.Accent6 => "accent6",
+            PowerPointThemeColor.Hyperlink => "hlink",
+            PowerPointThemeColor.FollowedHyperlink => "folHlink",
+            _ => "dk1"
+        };
     }
 }

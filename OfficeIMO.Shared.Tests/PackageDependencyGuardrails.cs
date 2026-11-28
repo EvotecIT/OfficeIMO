@@ -515,7 +515,6 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
-                "OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoicePreservedXml.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfile.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfileDeclaration.cs",

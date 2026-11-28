@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXmlSdk;
 using OfficeIMO.OpenXml.Internal;
@@ -216,6 +217,50 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             }
         }
 
+        /// <summary>
+        /// Points the part's relationships of <paramref name="relationshipType"/> at <paramref name="target"/> instead: the old
+        /// ones go and one new relationship, with the SDK's kind of id, is added.
+        /// </summary>
+        internal void ReplaceRelatedPart(string relationshipType, PowerPointPartRef target) {
+            PowerPointPartRef current = Current, related = target.Current;
+            if (current._sdk != null) {
+                PowerPointSdkParts.ReplaceRelatedPart(current._sdk, relationshipType, related._sdk!);
+                return;
+            }
+            OfficeOpcEditablePackage package = current.EditablePackage();
+            // The new relationship goes in first, so a failure there keeps the old one.
+            string added = package.AddRelationship(current._name, relationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, related._name!),
+                id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
+            OfficeXmlTree tree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(current._name));
+            for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;) {
+                int next = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                if (type != null && string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)
+                    && !string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id"), added, StringComparison.Ordinal)) tree.Remove(node);
+                node = next;
+            }
+            current.MarkRelationshipsEdited();
+        }
+
+        /// <summary>The id of the first internal relationship of <paramref name="relationshipType"/> to <paramref name="target"/>, or null.</summary>
+        internal string? RelationshipIdOf(PowerPointPartRef target, string relationshipType) {
+            PowerPointPartRef current = Current, wanted = target.Current;
+            if (current._sdk != null) return wanted._sdk == null ? null : PowerPointSdkParts.IdOfPart(current._sdk, wanted._sdk, relationshipType);
+            if (current._document?.ReadablePackage is not { } package) return null;
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
+            if (!package.PartExists(relationshipsPart)) return null;
+            OfficeXmlTree tree = package.GetXml(relationshipsPart);
+            for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                if (type == null || !string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) continue;
+                string? partName = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target") ?? string.Empty);
+                if (partName != null && Package(current._document, partName).Equals(wanted)) return tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+            }
+            return null;
+        }
+
         // ---- Content --------------------------------------------------------------------------------------------
 
         /// <summary>The part's content type, or null when it is not known.</summary>
@@ -227,16 +272,27 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>The part's bytes as they would be saved now.</summary>
-        internal byte[] ReadBytes() {
+        internal byte[] ReadBytes(long? maximumBytes = null) {
+            if (maximumBytes is <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             PowerPointPartRef current = Current;
             if (current._sdk != null) {
                 using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+                if (maximumBytes.HasValue) return OfficeStreamReader.ReadAllBytes(stream, maximumBytes);
                 using var copy = new MemoryStream();
                 stream.CopyTo(copy);
                 return copy.ToArray();
             }
             OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
-            return package.ReadPartBytes(current._name!);
+            string name = current._name!;
+            if (maximumBytes == null) return package.ReadPartBytes(name);
+            if (package.TryGetBinaryLength(name, out long length)) {
+                OfficeStreamReader.EnsureWithinLimit(length, maximumBytes);
+                return package.ReadPartBytes(name);
+            }
+
+            byte[] bytes = package.ReadPartBytes(name);
+            OfficeStreamReader.EnsureWithinLimit(bytes.LongLength, maximumBytes);
+            return bytes;
         }
 
         /// <summary>
@@ -380,9 +436,11 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             return false;
         }
 
+        // Pictures, sounds and video: parts the SDK deletes once nothing refers to them.
         private static bool IsMedia(OfficeOpcEditablePackage package, string partName) {
             string? contentType = package.GetContentType(partName);
-            return contentType != null && (contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase));
+            return contentType != null && (contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
         }
 
         // Whether any relationship in the package still targets the part.
