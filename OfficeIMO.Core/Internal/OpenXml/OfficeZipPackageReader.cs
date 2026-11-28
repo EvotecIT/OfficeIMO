@@ -37,13 +37,13 @@ internal sealed class OfficeZipPackageReader : IDisposable {
 
     /// <summary>Opens the ZIP archive that starts at the current position of a readable, seekable stream.</summary>
     /// <exception cref="InvalidDataException">The archive is malformed, ambiguous or repeats a member name.</exception>
-    internal static OfficeZipPackageReader Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30) {
+    internal static OfficeZipPackageReader Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30, int? maximumEntries = null) {
         ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead || !source.CanSeek) throw new ArgumentException("The package stream must be readable and seekable.", nameof(source));
         long origin = source.Position;
         var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
         OfficeArchiveSafety.ZipCentralDirectoryScanResult scan = OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(
-            source, source.Length - origin, MaximumEntries, records);
+            source, source.Length - origin, maximumEntries ?? MaximumEntries, records);
         if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The package is not a valid ZIP archive.");
         if (scan.LimitExceeded) throw new InvalidDataException("The package has more members than an Open XML reader accepts.");
 

@@ -38,8 +38,9 @@ internal sealed class OfficeOpcPackage : IDisposable {
     internal OfficeXmlNamespaces.Table Namespaces { get; } = new();
 
     /// <exception cref="InvalidDataException">The ZIP container or the content-types part is missing or malformed.</exception>
-    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false) {
-        OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen);
+    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30,
+        int? maximumEntries = null) {
+        OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen, maximumEntryLength, maximumEntries);
         try {
             return new OfficeOpcPackage(zip);
         } catch {
@@ -205,11 +206,13 @@ internal sealed class OfficeOpcPackage : IDisposable {
         var relationships = new List<OfficeOpcRelationship>();
         var ids = new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal);
         string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
-        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
+        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content, processMarkupCompatibility: false);
         using (content) {
             while (reader.Read()) {
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
-                    || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                if (reader.Depth == 1 && !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationships"))
+                    throw new InvalidDataException("The part '" + relationshipsPart + "' has no Relationships root element.");
+                if (reader.Depth != 2 || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Type", out string type)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string target)) {
