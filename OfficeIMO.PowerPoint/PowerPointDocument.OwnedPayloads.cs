@@ -111,7 +111,12 @@ public sealed partial class PowerPointDocument {
                 if (validateForSave) {
                     System.Xml.XmlConvert.VerifyNCName(relationship.Id);
                     if (!Uri.TryCreate(relationship.Type, UriKind.Absolute, out _) ||
-                        !Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out _)) return false;
+                        relationship.Target.Length == 0 ||
+                        !Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out Uri? targetUri) ||
+                        !relationship.IsExternal && targetUri.IsAbsoluteUri) return false;
+                    if (!relationship.IsExternal && relationship.Type == PowerPointPartRef.HyperlinkRelationshipType &&
+                        (relationship.TargetPartName is not { } hyperlinkTarget ||
+                        OfficeOpcPartNames.GetRelationshipSourceDirectory(hyperlinkTarget) != null)) return false;
                 }
                 if (relationship.IsExternal) continue;
                 bool reference = IsReferenceRelationship(relationship.Type);

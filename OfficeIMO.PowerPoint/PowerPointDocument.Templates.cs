@@ -91,25 +91,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryCreateOwnedTemplate(string inputPath, string stagingPath, PowerPointTemplateCreationOptions options) {
-            if (options.HideRetainedSourceSlides || options.SlideRetention is not (PowerPointTemplateSlideRetention.None or PowerPointTemplateSlideRetention.All)
+            if (options.SlideRetention is not (PowerPointTemplateSlideRetention.None or PowerPointTemplateSlideRetention.All
+                    or PowerPointTemplateSlideRetention.Selected)
                 || new FileInfo(inputPath).IsReadOnly) return false;
             byte[] converted;
             try {
                 using Stream source = File.OpenRead(inputPath);
+                if (source.Length > PowerPointLoadOptions.DefaultMaxInputBytes) return false;
                 using PowerPointDocument? template = TryOpenDeferredPackage(source, filePath: null, associatedStream: null,
                     new PowerPointLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
                 if (template == null || template._loadedDocumentType != PresentationDocumentType.Template ||
                     template._loadedPackage is not { HasDuplicateContentTypes: false } package ||
                     package.GetRelationships(null).Any(edge => edge.IsExternal) || template.EditablePackage is not { } editable ||
                     !CanProjectTemplateContentTypes(editable)) return false;
-                if (options.SlideRetention == PowerPointTemplateSlideRetention.None) {
+                int selectedCount = options.SourceSlideIndexes.Count;
+                bool clearsSlides = options.SlideRetention == PowerPointTemplateSlideRetention.None ||
+                    options.SlideRetention == PowerPointTemplateSlideRetention.Selected && selectedCount == 0;
+                bool removesSelection = options.SlideRetention == PowerPointTemplateSlideRetention.Selected &&
+                    selectedCount > 0 && selectedCount < template.Slides.Count;
+                if (clearsSlides || removesSelection) {
                     if (package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType) is not { } main) return false;
-                    // The old type change chooses the name before removing the slides, including parts that clear may delete.
+                    // The old type change chooses the name before removing the slides.
                     _ = NextSubtypeMainPartName(editable, main, out bool collision);
-                    if (collision || !template.TryClearPackageSlides(requireTransitionalTypes: true)) return false;
+                    if (collision || removesSelection && !CanSaveCurrentSubtype(editable, main, requireTransitionalTypes: true)) return false;
                 }
+                if (!template.ApplyTemplateSlideRetention(options, ownedOnly: true)) return false;
                 if (!template.TryCreateOwnedPackageBytes(keepsSubtype: false, PresentationMainContentType,
                     preserveVbaProject: false, out converted, requireTransitionalTypes: true)) return false;
+                if (converted.LongLength > PowerPointLoadOptions.DefaultMaxInputBytes) return false;
             } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or FormatException or NotSupportedException or OverflowException) {
                 return false;
             }
@@ -170,36 +179,53 @@ namespace OfficeIMO.PowerPoint {
             return AddSlide(layout.MasterIndex, layout.LayoutIndex);
         }
 
-        private void ApplyTemplateSlideRetention(PowerPointTemplateCreationOptions options) {
+        private bool ApplyTemplateSlideRetention(PowerPointTemplateCreationOptions options, bool ownedOnly = false) {
             if (options.SlideRetention == PowerPointTemplateSlideRetention.None) {
-                ClearSlides();
-                return;
+                return ClearTemplateSlides(ownedOnly);
             }
 
             if (options.SlideRetention == PowerPointTemplateSlideRetention.Selected) {
                 int originalCount = Slides.Count;
                 foreach (int index in options.SourceSlideIndexes) {
                     if (index < 0 || index >= originalCount) {
+                        if (ownedOnly) return false;
                         throw new ArgumentOutOfRangeException(nameof(options.SourceSlideIndexes),
                             "Selected source slide index " + index + " is outside the template slide range.");
                     }
                 }
 
                 if (options.SourceSlideIndexes.Count == 0) {
-                    ClearSlides();
-                    return;
+                    return ClearTemplateSlides(ownedOnly);
                 }
 
                 for (int slideIndex = originalCount - 1; slideIndex >= 0; slideIndex--) {
-                    if (!options.SourceSlideIndexes.Contains(slideIndex)) RemoveSlide(slideIndex);
+                    if (options.SourceSlideIndexes.Contains(slideIndex)) continue;
+                    if (ownedOnly) {
+                        if (!TryRemoveSlideWithoutSdk(slideIndex)) return false;
+                    } else {
+                        RemoveSlide(slideIndex);
+                    }
                 }
             }
 
             if (options.HideRetainedSourceSlides) {
-                for (int slideIndex = 0; slideIndex < Slides.Count; slideIndex++) {
-                    Slides[slideIndex].Hidden = true;
+                IReadOnlyList<PowerPointSlide>? slides = ownedOnly ? GetPackageSlides() : Slides;
+                if (slides == null) return false;
+                for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+                    PowerPointSlide slide = slides[slideIndex];
+                    if (ownedOnly && (slide.PackageTree is not { } tree ||
+                        !tree.IsElement(tree.Root, OfficeXmlNamespaces.PresentationML, "sld") ||
+                        GetPackageSlideEntry(slide.PackagePartName!) == null)) return false;
+                    slide.Hidden = true;
                 }
             }
+            return true;
+        }
+
+        private bool ClearTemplateSlides(bool ownedOnly) {
+            if (ownedOnly) return TryClearPackageSlides(requireTransitionalTypes: true);
+            ClearSlides();
+            return true;
         }
     }
 

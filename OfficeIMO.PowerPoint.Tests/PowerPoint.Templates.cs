@@ -354,45 +354,72 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void CreateFromTemplate_SelectedRetentionIsDeterministicAndCanHideReferenceSlides() {
+        [Theory]
+        [InlineData(PowerPointTemplateSlideRetention.Selected, false)]
+        [InlineData(PowerPointTemplateSlideRetention.Selected, true)]
+        [InlineData(PowerPointTemplateSlideRetention.All, true)]
+        public void CreateFromTemplate_HidesRetainedSlidesWithoutChangingExtensionMarkup(PowerPointTemplateSlideRetention retention,
+            bool useTemplateSubtype) {
             string templatePath = CreateTemplatePresentation();
+            string potx = TempPath(".potx");
             string outputPath = TempPath(".pptx");
             try {
+                string sourcePath = templatePath;
+                if (useTemplateSubtype) {
+                    File.Copy(templatePath, potx);
+                    ChangeTemplateDocumentTypeThroughSdk(potx, PresentationDocumentType.Template);
+                    sourcePath = potx;
+                }
+                EditTemplateCarrierFixture(sourcePath, "visibility extension");
+                byte[] sourceBytes = File.ReadAllBytes(sourcePath);
                 var options = new PowerPointTemplateCreationOptions {
-                    SlideRetention = PowerPointTemplateSlideRetention.Selected,
+                    SlideRetention = retention,
                     HideRetainedSourceSlides = true
                 };
-                options.SourceSlideIndexes.Add(1);
+                options.SourceSlideIndexes.Add(2);
+                options.SourceSlideIndexes.Add(0);
 
-                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(templatePath,
+                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(sourcePath,
                            outputPath, options)) {
-                    PowerPointSlide retained = Assert.Single(presentation.Slides);
-                    Assert.True(retained.Hidden);
-                    Assert.Contains(retained.TextBoxes, box => box.Text == "Source slide 2");
-                    presentation.Save();
+                    Assert.All(presentation.Slides, slide => Assert.True(slide.Hidden));
+                    string[] texts = presentation.Slides.Select(slide => Assert.Single(slide.TextBoxes).Text).ToArray();
+                    Assert.Equal(retention == PowerPointTemplateSlideRetention.Selected
+                        ? new[] { "Source slide 1", "Source slide 3" }
+                        : new[] { "Source slide 1", "Source slide 2", "Source slide 3" }, texts);
                 }
 
-                using PowerPointDocument reopened = PowerPointDocument.Load(outputPath);
-                Assert.Single(reopened.Slides);
-                Assert.True(reopened.Slides[0].Hidden);
+                Assert.Equal(sourceBytes, File.ReadAllBytes(sourcePath));
+                using var package = OfficeOpcPackage.Open(File.OpenRead(outputPath));
+                string main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+                string slidePart = package.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+                XElement root = ReadTemplateXml(package, slidePart);
+                XNamespace p = root.Name.Namespace;
+                XElement decoy = Assert.Single(root.Element(p + "extLst")!.Descendants(p + "sld"));
+                Assert.Equal("1", (string?)decoy.Attribute("show"));
             } finally {
-                Delete(templatePath, outputPath);
+                Delete(templatePath, potx, outputPath);
             }
         }
 
-        [Fact]
-        public void CreateFromTemplate_DoesNotExposeCopiedTemplateWhenRetentionValidationFails() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CreateFromTemplate_DoesNotExposeCopiedTemplateWhenRetentionValidationFails(bool useTemplateSubtype) {
             string templatePath = CreateTemplatePresentation();
+            string potx = TempPath(".potx");
             string outputPath = TempPath(".pptx");
             try {
+                if (useTemplateSubtype) {
+                    File.Copy(templatePath, potx);
+                    ChangeTemplateDocumentTypeThroughSdk(potx, PresentationDocumentType.Template);
+                }
                 var options = new PowerPointTemplateCreationOptions {
                     SlideRetention = PowerPointTemplateSlideRetention.Selected
                 };
                 options.SourceSlideIndexes.Add(99);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    PowerPointTemplate.CreateDocument(templatePath, outputPath, options));
+                    PowerPointTemplate.CreateDocument(useTemplateSubtype ? potx : templatePath, outputPath, options));
 
                 Assert.False(File.Exists(outputPath));
                 string directory = Path.GetDirectoryName(outputPath)!;
@@ -400,7 +427,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(Directory.EnumerateFiles(directory), path =>
                     Path.GetFileName(path).StartsWith(prefix, StringComparison.Ordinal));
             } finally {
-                Delete(templatePath, outputPath);
+                Delete(templatePath, potx, outputPath);
             }
         }
 
@@ -482,6 +509,37 @@ namespace OfficeIMO.Tests {
             document.Save();
         }
 
+        [Theory]
+        [InlineData("discarded Strict slide")]
+        [InlineData("absolute internal hyperlink")]
+        [InlineData("internal hyperlink to relationships")]
+        [InlineData("internal hyperlink to directory")]
+        public void CreateFromTemplate_ChecksRelationshipsBeforeDiscardingUnselectedSlides(string carrierCase) {
+            string templatePath = CreateTemplatePresentation();
+            string potx = TempPath(".potx");
+            string reference = TempPath(".pptx");
+            string outputPath = TempPath(".pptx");
+            try {
+                File.Copy(templatePath, potx);
+                ChangeTemplateDocumentTypeThroughSdk(potx, PresentationDocumentType.Template);
+                EditTemplateCarrierFixture(potx, carrierCase);
+                File.Copy(potx, reference);
+                Exception expected = Assert.ThrowsAny<Exception>(() =>
+                    ChangeTemplateDocumentTypeThroughSdk(reference, PresentationDocumentType.Presentation));
+                byte[] existingDestination = File.ReadAllBytes(templatePath);
+                File.WriteAllBytes(outputPath, existingDestination);
+                var options = new PowerPointTemplateCreationOptions {
+                    SlideRetention = PowerPointTemplateSlideRetention.Selected,
+                    Overwrite = true
+                };
+                options.SourceSlideIndexes.Add(1);
+                Assert.IsType(expected.GetType(), Record.Exception(() => PowerPointTemplate.CreateDocument(potx, outputPath, options).Dispose()));
+                Assert.Equal(existingDestination, File.ReadAllBytes(outputPath));
+            } finally {
+                Delete(templatePath, potx, reference, outputPath);
+            }
+        }
+
         private static XElement ReadTemplateXml(OfficeOpcPackage package, string part) {
             using var bytes = package.ReadPart(part);
             using var stream = new MemoryStream(bytes.Array, 0, bytes.Length, writable: false);
@@ -495,6 +553,26 @@ namespace OfficeIMO.Tests {
             string slide = original.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
             using var editable = OfficeOpcEditablePackage.Open(new MemoryStream(data, writable: false));
             switch (carrierCase) {
+                case "absolute internal hyperlink":
+                case "internal hyperlink to relationships":
+                case "internal hyperlink to directory":
+                    string target = carrierCase switch {
+                        "absolute internal hyperlink" => "https://example.invalid/template",
+                        "internal hyperlink to directory" => ".",
+                        _ => OfficeOpcPartNames.GetRelationshipsPartName(slide)
+                    };
+                    editable.AddRelationship(slide, PowerPointPartRef.HyperlinkRelationshipType, target);
+                    break;
+                case "visibility extension":
+                    OfficeXmlTree slideTree = editable.GetXml(slide);
+                    const int p = OfficeXmlNamespaces.PresentationML;
+                    int extList = slideTree.FindChild(slideTree.Root, p, "extLst");
+                    if (extList == OfficeXmlTree.NoNode) extList = PowerPointDocument.Append(slideTree, slideTree.Root, p, "extLst");
+                    int extension = PowerPointDocument.Append(slideTree, extList, p, "ext");
+                    slideTree.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "{A9E23632-C341-4775-A681-3E73E42A92EE}");
+                    int decoy = PowerPointDocument.Append(slideTree, extension, p, "sld");
+                    slideTree.SetAttribute(decoy, OfficeXmlNamespaces.None, "show", "1");
+                    break;
                 case "external relationship":
                     editable.AddRelationship(null, "urn:officeimo:template-reference", "https://example.invalid/template", external: true);
                     break;
