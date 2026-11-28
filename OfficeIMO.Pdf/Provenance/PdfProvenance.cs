@@ -49,13 +49,13 @@ public static partial class PdfProvenance {
             revisionEnds.Length + 1, seen, null, currentCarriers);
         long historicalBytes = InspectHistoricalCarriers(pdf, document, options, effectiveReadOptions, inspectionTimer,
             maximumManifestBytes, evidence, stores, occurrences, revisionEnds, seen, historicalCarriers);
-        string[] declarationDiagnostics = InspectDeclarations(document, options, evidence, out long prefixDecodedBytes);
+        string[] declarationDiagnostics = InspectDeclarations(document, options, evidence);
         IReadOnlyList<string> diagnostics = SelectActiveManifest(stores).Concat(declarationDiagnostics).ToArray();
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,
             evidence.AsReadOnly(),
             diagnostics: diagnostics,
-            expandedInspectionBytes: checked(document.DecodedStreamBudget.UsedBytes + historicalBytes + prefixDecodedBytes));
+            expandedInspectionBytes: checked(document.DecodedStreamBudget.UsedBytes + historicalBytes));
     }
 
     /// <summary>Inspects a bounded PDF file.</summary>
@@ -161,9 +161,13 @@ public static partial class PdfProvenance {
         List<ObjectGraphEdit> declarationEdits = removeDeclarations
             ? PlanDeclarationRemoval(document, options, changes)
             : new List<ObjectGraphEdit>();
-        if (declarationEdits.Count > 0 && !removeAttachedManifests && historicalCarriers.Count > 0) {
+        // A rewrite keeps only the current revision, so it must not run when the plan leaves an earlier-revision credential in place:
+        // one the caller keeps, or a malformed one that strict mode preserves.
+        bool keepsHistoricalCarrier = historicalCarriers.Any(historical =>
+            !removeAttachedManifests || !historical.Evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier);
+        if (declarationEdits.Count > 0 && keepsHistoricalCarrier) {
             throw new InvalidOperationException(
-                "Removing AI declarations rewrites the PDF without its earlier revisions, which would also drop the Content Credentials kept in them. Remove those credentials too, or keep the declarations.");
+                "Removing AI declarations rewrites the PDF without its earlier revisions, which would also drop the Content Credentials kept in them. Remove those credentials too (a malformed one needs RequireStructurallyValidCarrier = false), or keep the declarations.");
         }
         if (removeFileSpecifications.Count == 0 && !rewriteHistory && declarationEdits.Count == 0) {
             return new OfficeProvenanceRemovalResult(

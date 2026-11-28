@@ -55,6 +55,13 @@ internal static class PdfHiddenData {
             }
         }
 
+        // The sanitizer rewrites the catalog's metadata stream, so an image that shares it would lose its own declarations with it.
+        if (Selects(options.Kinds, OfficeHiddenDataKind.DocumentProperties) &&
+            PdfProvenance.SplitSharedCatalogMetadata(current, ProvenanceReadOptions(currentReadOptions), cancellationToken) is byte[] split) {
+            current = split;
+            currentReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, current.LongLength);
+        }
+
         PdfSanitizationOptions policy = CreatePolicy(options.Kinds);
         policy.MaximumOutputBytes = maximumOutputBytes;
         policy.CancellationToken = cancellationToken;
@@ -200,9 +207,18 @@ internal static class PdfHiddenData {
         return options;
     }
 
+    private static string Owner(string location) {
+        if (!location.StartsWith("PDF/Object[", StringComparison.Ordinal)) return location;
+        int end = location.IndexOf(']');
+        return end < 0 ? location : "PDF/Object[]" + location.Remove(0, end + 1);
+    }
+
     private static bool TakeMatch(List<OfficeProvenanceEvidence> remaining, OfficeProvenanceEvidence evidence) {
+        // Evidence pairs with the same owner: the catalog, the Info dictionary or one attachment keep their location, and an image's
+        // object number can change in the rewrite, so images pair only with images.
+        string owner = Owner(evidence.Location);
         int index = remaining.FindIndex(item => item.Carrier == evidence.Carrier && item.Value == evidence.Value &&
-            item.PayloadLength == evidence.PayloadLength);
+            item.PayloadLength == evidence.PayloadLength && Owner(item.Location) == owner);
         if (index < 0) return false;
         remaining.RemoveAt(index);
         return true;

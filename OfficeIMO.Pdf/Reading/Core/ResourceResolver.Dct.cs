@@ -84,11 +84,38 @@ internal static partial class ResourceResolver {
         int maxDecodedStreamBytes,
         out byte[] jpegBytes) {
         jpegBytes = Array.Empty<byte>();
-        if (!TryGetDctFilters(stream.Dictionary, objects, out List<PdfName>? filters)) return false;
-        if (filters.Count == 1) {
+        if (!TryCreateDctPrefix(stream, objects, out PdfDictionary? prefixDictionary)) return false;
+        if (prefixDictionary == null) {
             jpegBytes = stream.Data;
             return true;
         }
+
+        try {
+            jpegBytes = Filters.StreamDecoder.DecodeRequired(
+                prefixDictionary,
+                stream.Data,
+                objects,
+                maxDecodedStreamBytes);
+            return OfficeJpegCodec.IsJpeg(jpegBytes);
+        } catch (PdfReadLimitException) {
+            throw;
+        } catch (InvalidDataException) {
+            jpegBytes = Array.Empty<byte>();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The filters ahead of a trailing DCTDecode, with their decode parameters, as a dictionary that decodes the stream's data to
+    /// its JPEG payload. <paramref name="prefix"/> is null when DCTDecode is the only filter, so the data already is the JPEG.
+    /// </summary>
+    internal static bool TryCreateDctPrefix(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfDictionary? prefix) {
+        prefix = null;
+        if (!TryGetDctFilters(stream.Dictionary, objects, out List<PdfName>? filters)) return false;
+        if (filters.Count == 1) return true;
 
         var prefixDictionary = new PdfDictionary();
         var prefixFilters = new PdfArray();
@@ -114,20 +141,8 @@ internal static partial class ResourceResolver {
             }
             prefixDictionary.Items["DecodeParms"] = prefixDecodeParms;
         }
-
-        try {
-            jpegBytes = Filters.StreamDecoder.DecodeRequired(
-                prefixDictionary,
-                stream.Data,
-                objects,
-                maxDecodedStreamBytes);
-            return OfficeJpegCodec.IsJpeg(jpegBytes);
-        } catch (PdfReadLimitException) {
-            throw;
-        } catch (InvalidDataException) {
-            jpegBytes = Array.Empty<byte>();
-            return false;
-        }
+        prefix = prefixDictionary;
+        return true;
     }
 
     private static bool TryDecodeDctImage(

@@ -140,7 +140,57 @@ public sealed class PdfProvenanceAiDeclarationTests {
         Assert.Contains("trainedAlgorithmicMedia", Encoding.UTF8.GetString(imageMetadata.Data));
     }
 
-    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false, bool singleFilterArray = false, bool sharedMetadata = false) {
+    [Fact]
+    public void LimitsEmbeddedAssetSwitchAlsoKeepsImagesOutOfRemoval() {
+        byte[] source = CreatePdf(out _, imageMetadata: true);
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.ProcessEmbeddedAssets = false;
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(source, options);
+
+        Assert.DoesNotContain(result.Changes, change => change.Location.StartsWith("PDF/Object[", StringComparison.Ordinal));
+        PdfReadDocument document = PdfReadDocument.Open(result.ToArray());
+        Assert.Contains("trainedAlgorithmicMedia", Encoding.UTF8.GetString(ImageMetadata(document).Data));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DocumentPropertiesCleanupKeepsImageXmpAndReportsEachOwner(bool shared) {
+        byte[] source = shared ? CreatePdf(out _, sharedMetadata: true) : CreatePdf(out _, imageMetadata: true);
+        using var document = PdfDocument.Load(source);
+
+        OfficeHiddenDataResult result = document.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties });
+
+        PdfReadDocument output = PdfReadDocument.Open(result.ToArray());
+        Assert.Contains("trainedAlgorithmicMedia", Encoding.UTF8.GetString(ImageMetadata(output).Data));
+        OfficeHiddenDataFinding[] findings = result.Report.GetFindings(OfficeHiddenDataKind.Provenance)
+            .Where(finding => finding.Provenance!.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType).ToArray();
+        Assert.Equal(OfficeHiddenDataOutcome.Removed,
+            Assert.Single(findings, finding => finding.Location.StartsWith("PDF/Catalog/", StringComparison.Ordinal)).Outcome);
+        Assert.Equal(OfficeHiddenDataOutcome.Retained,
+            Assert.Single(findings, finding => finding.Location.StartsWith("PDF/Object[", StringComparison.Ordinal)).Outcome);
+    }
+
+    [Fact]
+    public void ReferencedDctDecodeParametersAreKept() {
+        byte[] source = CreatePdf(out _, singleFilterArray: true, referencedParameters: true);
+
+        PdfReadDocument document = PdfReadDocument.Open(PdfProvenance.Remove(source).ToArray());
+        PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
+        PdfDictionary parameters = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(document.Objects, image.Dictionary.Items["DecodeParms"]));
+        Assert.Equal(0, Assert.IsType<PdfNumber>(parameters.Items["ColorTransform"]).Value);
+    }
+
+    private static PdfStream ImageMetadata(PdfReadDocument document) {
+        PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
+        return Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(document.Objects, image.Dictionary.Items["Metadata"]));
+    }
+
+    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false, bool singleFilterArray = false, bool sharedMetadata = false,
+        bool imageMetadata = false, bool referencedParameters = false) {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -188,12 +238,26 @@ public sealed class PdfProvenanceAiDeclarationTests {
                 var parameters = new PdfDictionary();
                 parameters.Items["ColorTransform"] = new PdfNumber(0);
                 var parameterList = new PdfArray();
-                parameterList.Items.Add(parameters);
+                if (referencedParameters) {
+                    int parametersNumber = next++;
+                    objects[parametersNumber] = new PdfIndirectObject(parametersNumber, 0, parameters);
+                    parameterList.Items.Add(new PdfReference(parametersNumber, 0));
+                } else {
+                    parameterList.Items.Add(parameters);
+                }
                 imageDictionary.Items["DecodeParms"] = parameterList;
             } else {
                 imageDictionary.Items["Filter"] = new PdfName("DCTDecode");
             }
             if (sharedMetadata) imageDictionary.Items["Metadata"] = new PdfReference(metadataNumber, 0);
+            if (imageMetadata) {
+                var imageXmpDictionary = new PdfDictionary();
+                imageXmpDictionary.Items["Type"] = new PdfName("Metadata");
+                imageXmpDictionary.Items["Subtype"] = new PdfName("XML");
+                int imageXmpNumber = next++;
+                objects[imageXmpNumber] = new PdfIndirectObject(imageXmpNumber, 0, new PdfStream(imageXmpDictionary, xmp));
+                imageDictionary.Items["Metadata"] = new PdfReference(imageXmpNumber, 0);
+            }
             int imageNumber = next++;
             objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(imageDictionary, imageData));
             PdfDictionary pages = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Pages"]));
