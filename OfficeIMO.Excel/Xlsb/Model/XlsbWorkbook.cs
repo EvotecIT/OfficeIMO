@@ -23,6 +23,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal IReadOnlyList<XlsbSheet> Sheets => _worksheets;
 
+        private bool? _hasMultilineText;
+
+        /// <summary>Whether the decoded workbook has text that triggers Excel's automatic wrap format.</summary>
+        internal bool HasMultilineText => _hasMultilineText ??= _worksheets.Any(sheet => sheet.Cells.Any(cell =>
+            cell.Value is string text && (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)));
+
         /// <summary>Formatting runs of rich shared strings, keyed by shared-string index.</summary>
         internal Dictionary<int, XlsbTextRun[]> SharedStringRuns { get; } = new();
 
@@ -76,7 +82,10 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// <summary>Every decoded table in the workbook, keyed by its idList.</summary>
         internal Dictionary<uint, XlsbTable> Tables { get; } = new Dictionary<uint, XlsbTable>();
 
-        internal void AddSheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
+        internal void AddSheet(XlsbSheet worksheet) {
+            _hasMultilineText = null;
+            _worksheets.Add(worksheet);
+        }
 
         internal void AddDefinedName(XlsbDefinedName definedName) {
             _definedNames.Add(definedName);

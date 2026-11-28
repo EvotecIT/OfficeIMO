@@ -1,5 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Projection;
@@ -39,22 +38,23 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int? availableCellFormatCount, IXlsbFormulaEncodingContext? formulas, XlsbRichTextFontTable? richText = null,
             XlsbCellTextRuns? textRuns = null) {
             textRuns = richText?.TextRuns ?? textRuns
-                ?? new XlsbCellTextRuns(document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable);
+                ?? XlsbCellTextRuns.ForWorkbook(document);
             var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
             var result = new List<XlsbWriteCell>();
             IReadOnlyDictionary<string, string> resolvedFormulaTexts = sheet.BuildResolvedFormulaTextMap();
-            SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
-            if (sheetData == null) return result;
+            OfficeXmlNode sheetData = XlsbWorksheetMarkup.Child(XlsbWorksheetMarkup.Root(sheet), "sheetData");
+            if (sheetData.IsNone) return result;
 
-            foreach (Row row in sheetData.Elements<Row>()) {
-                uint sequentialRow = row.RowIndex?.Value ?? 0U;
+            foreach (OfficeXmlNode row in WorksheetChildren(sheetData, "row")) {
+                uint sequentialRow = XlsbWorkbookMarkup.ReadUInt32(row, "r") ?? 0U;
                 int sequentialColumn = 1;
-                foreach (Cell cell in row.Elements<Cell>()) {
-                    ParseCellReference(cell.CellReference?.Value, sequentialRow, sequentialColumn, out int cellRow, out int cellColumn);
+                foreach (OfficeXmlNode node in WorksheetChildren(row, "c")) {
+                    var cell = new CellMarkup(node);
+                    ParseCellReference(cell.Reference, sequentialRow, sequentialColumn, out int cellRow, out int cellColumn);
                     if (cellRow <= 0 || cellRow > 1_048_576 || cellColumn <= 0 || cellColumn > 16_384) {
-                        throw new NotSupportedException($"Native XLSB rewriting cannot encode invalid cell reference '{cell.CellReference?.Value}'.");
+                        throw new NotSupportedException($"Native XLSB rewriting cannot encode invalid cell reference '{cell.Reference}'.");
                     }
 
                     sourceCells.TryGetValue((cellRow, cellColumn), out XlsbCell? sourceCell);
@@ -102,28 +102,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 int row = left.Row.CompareTo(right.Row);
                 return row != 0 ? row : left.Column.CompareTo(right.Column);
             });
-            return ApplyArrayFormulaGroups(sheet, result, formulas).AsReadOnly();
+            return ApplyArrayFormulaGroups(sheet, sheetData, result, formulas).AsReadOnly();
         }
 
         // Worksheet parts that a feature writer encodes or that the rewrite validates separately: the DrawingML
         // drawing graph (XlsbWorksheetDrawingWriter, XlsbWorksheetDrawingPlan).
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
-            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
-            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support {unsupportedPart ?? "relationship-backed content"} on worksheet '{sheet.Name}'.");
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet, "relationship-backed content");
+            if (unsupportedPart != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support {unsupportedPart} on worksheet '{sheet.Name}'.");
             }
 
-            OpenXmlElement? unsupported = XlsbWorksheetContent.FindUnsupported(sheet.WorksheetPart.Worksheet);
+            string? unsupported = XlsbWorksheetContent.FindUnsupported(sheet);
             if (unsupported != null) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
+                throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported}' on worksheet '{sheet.Name}'.");
             }
         }
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbSheet sourceSheet) {
             // Comments and their VML drawing are compared with the source by XlsbWorksheetCommentRewrite.
-            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
-            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify {unsupportedPart ?? "relationship-backed worksheet content"} on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet, "relationship-backed worksheet content");
+            if (unsupportedPart != null) {
+                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify {unsupportedPart} on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
             // Edited tables are rewritten in place; adding or removing a table needs new package parts.
             if (!XlsbWorksheetTableProjector.TryPair(sheet, sourceSheet, out _)) {
@@ -144,28 +144,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static XlsbWriteCell? ConvertCell(
             ExcelDocument document,
             ExcelSheet sheet,
-            Cell cell,
+            CellMarkup cell,
             XlsbCell? sourceCell,
             int row,
             int column,
             uint styleIndex,
             IReadOnlyDictionary<string, string> resolvedFormulaTexts, IXlsbFormulaEncodingContext? formulas,
             XlsbRichTextFontTable? richText, XlsbCellTextRuns textRuns) {
-            if (cell.CellFormula != null) {
-                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts, formulas);
+            if (cell.Formula.Exists) {
+                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts, formulas, textRuns);
             }
 
-            CellValues? dataType = cell.DataType?.Value;
-            string rawValue = cell.CellValue?.InnerText ?? string.Empty;
-            if (dataType == CellValues.Boolean) {
+            string? dataType = cell.DataType;
+            string rawValue = cell.Value.InnerText;
+            if (dataType == "b") {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Boolean, rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase));
             }
 
-            if (dataType == CellValues.Error) {
+            if (dataType == "e") {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Error, GetErrorCode(rawValue, row, column));
             }
 
-            if (dataType == CellValues.Date) {
+            if (dataType == "d") {
                 if (!ExcelIsoDateText.TryGetSerial(rawValue, document.DateSystem, DateTimeStyles.RoundtripKind, out double serial)) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot encode date value '{rawValue}' at {ToAddress(row, column)}.");
                 }
@@ -173,28 +173,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Number, serial);
             }
 
-            if ((dataType == CellValues.Number || dataType == null)
+            if ((dataType == "n" || dataType == null)
                 && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Number, number);
             }
 
-            if (dataType == CellValues.SharedString
-                || dataType == CellValues.InlineString
-                || dataType == CellValues.String
+            if (dataType == "s"
+                || dataType == "inlineStr"
+                || dataType == "str"
                 || !string.IsNullOrEmpty(rawValue)) {
-                string text = sheet.GetCellText(cell);
+                string text = textRuns.ReadText(sheet, cell.Node, dataType, rawValue);
                 EnsureCellTextLength(text, row, column);
-                if (richText == null && textRuns.HasFormattedRuns(cell)) {
+                if (richText == null && textRuns.HasFormattedRuns(cell.Node)) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot add rich text runs at {sheet.Name}!{ToAddress(row, column)}; save as .xlsx to retain that change.");
                 }
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Text, text) {
-                    TextRuns = richText?.CreateRuns(cell, styleIndex, text)
+                    TextRuns = richText?.CreateRuns(cell.Node, styleIndex, text)
                 };
             }
 
             // Preserve native source cells and intentional styled blanks, including
             // tabular missing cells carrying the explicit default format.
-            return sourceCell != null || (cell.StyleIndex != null && cell.StyleIndex.HasValue)
+            return sourceCell != null || cell.StyleIndex.HasValue
                 ? new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Blank, null)
                 : null;
         }
@@ -202,12 +202,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static XlsbWriteCell ConvertFormulaCell(
             ExcelDocument document,
             ExcelSheet sheet,
-            Cell cell,
+            CellMarkup cell,
             XlsbCell? sourceCell,
             int row,
             int column,
             uint styleIndex,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts, IXlsbFormulaEncodingContext? formulas) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts, IXlsbFormulaEncodingContext? formulas,
+            XlsbCellTextRuns textRuns) {
             string formulaText = GetResolvedFormulaText(cell, resolvedFormulaTexts);
             byte[] formulaPayload;
             if (sourceCell?.FormulaBytes != null
@@ -224,29 +225,29 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation cannot encode formula '{formulaText}' at {ToAddress(row, column)}. {reason}");
             }
 
-            if (cell.CellFormula?.CalculateCell?.Value == true && (sourceCell?.FormulaBytes == null || sourceCell.FormulaText != formulaText)) { formulaPayload = (byte[])formulaPayload.Clone(); formulaPayload[0] |= 2; }
-            if (cell.CellValue == null && cell.InlineString == null) {
+            if (XlsbWorkbookMarkup.ReadBoolean(cell.Formula, "ca") == true && (sourceCell?.FormulaBytes == null || sourceCell.FormulaText != formulaText)) { formulaPayload = (byte[])formulaPayload.Clone(); formulaPayload[0] |= 2; }
+            if (cell.Value.IsNone && cell.InlineString.IsNone) {
                 formulaPayload = (byte[])formulaPayload.Clone(); formulaPayload[0] |= 2;
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaText, string.Empty, formulaPayload);
             }
 
-            CellValues? dataType = cell.DataType?.Value;
-            string rawValue = cell.CellValue?.InnerText ?? string.Empty;
-            if (dataType == CellValues.Boolean) {
+            string? dataType = cell.DataType;
+            string rawValue = cell.Value.InnerText;
+            if (dataType == "b") {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaBoolean, rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase), formulaPayload);
             }
 
-            if (dataType == CellValues.Error) {
+            if (dataType == "e") {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaError, GetErrorCode(rawValue, row, column), formulaPayload);
             }
 
-            if (dataType == CellValues.SharedString || dataType == CellValues.InlineString || dataType == CellValues.String) {
-                string text = sheet.GetCellText(cell);
+            if (dataType == "s" || dataType == "inlineStr" || dataType == "str") {
+                string text = textRuns.ReadText(sheet, cell.Node, dataType, rawValue);
                 EnsureCellTextLength(text, row, column);
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaText, text, formulaPayload);
             }
 
-            if (dataType == CellValues.Date
+            if (dataType == "d"
                 && ExcelIsoDateText.TryGetSerial(rawValue, document.DateSystem, DateTimeStyles.RoundtripKind, out double serial)) {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, serial, formulaPayload);
             }
@@ -260,21 +261,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static string GetResolvedFormulaText(
-            Cell cell,
+            CellMarkup cell,
             IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
-            string? reference = cell.CellReference?.Value;
+            string? reference = cell.Reference;
             return reference != null && resolvedFormulaTexts.TryGetValue(reference, out string? formulaText)
                 ? formulaText
-                : cell.CellFormula?.Text ?? string.Empty;
+                : cell.Formula.InnerText;
         }
 
         private static bool CellMatchesSource(
             ExcelSheet sheet,
-            Cell cell,
+            CellMarkup cell,
             XlsbCell sourceCell,
             IReadOnlyDictionary<string, string> resolvedFormulaTexts,
             XlsbCellTextRuns textRuns) {
-            string? currentFormula = cell.CellFormula == null
+            string? currentFormula = cell.Formula.IsNone
                 ? null
                 : GetResolvedFormulaText(cell, resolvedFormulaTexts);
             if (sourceCell.FormulaBytes != null) {
@@ -287,19 +288,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return false;
             }
 
-            string rawValue = cell.CellValue?.InnerText ?? string.Empty;
+            string rawValue = cell.Value.InnerText;
             switch (sourceCell.Kind) {
                 case XlsbCellValueKind.Blank:
                     return string.IsNullOrEmpty(rawValue)
-                        && cell.InlineString == null;
+                        && cell.InlineString.IsNone;
                 case XlsbCellValueKind.Number:
                     return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                         && sourceCell.Value is double sourceNumber
                         && number.Equals(sourceNumber);
                 case XlsbCellValueKind.Text:
                     // Equal text with added, changed or removed runs is an edit, so the source record is not kept.
-                    return string.Equals(sheet.GetCellText(cell), sourceCell.Value as string ?? string.Empty, StringComparison.Ordinal)
-                        && (sourceCell.FormulaBytes != null || textRuns.MatchesSource(cell, sourceCell));
+                    return string.Equals(textRuns.ReadText(sheet, cell.Node, cell.DataType, rawValue), sourceCell.Value as string ?? string.Empty, StringComparison.Ordinal)
+                        && (sourceCell.FormulaBytes != null || textRuns.MatchesSource(cell.Node, sourceCell));
                 case XlsbCellValueKind.Boolean:
                     bool value = rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase);
                     return sourceCell.Value is bool sourceBoolean && value == sourceBoolean;
@@ -311,14 +312,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static uint ResolveStyleIndex(
-            Cell cell,
+            CellMarkup cell,
             XlsbCell? sourceCell,
             string sheetName,
             int row,
             int column,
             bool allowNewStyles,
             int? availableCellFormatCount) {
-            uint current = cell.StyleIndex?.Value ?? 0U;
+            uint current = cell.StyleIndex ?? 0U;
             if (sourceCell != null) {
                 if (current != sourceCell.StyleIndex
                     && (!availableCellFormatCount.HasValue || current >= availableCellFormatCount.Value)) {
@@ -335,6 +336,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             return current;
+        }
+
+        private static OfficeXmlNode.ChildList WorksheetChildren(OfficeXmlNode parent, string name) =>
+            parent.Children(OfficeXmlNamespaces.SpreadsheetML, name);
+
+        private readonly struct CellMarkup {
+            internal CellMarkup(OfficeXmlNode node) => Node = node;
+
+            internal OfficeXmlNode Node { get; }
+            internal string? Reference => Node.Attribute("r");
+            internal string? DataType => XlsbCellTextRuns.ReadCellType(Node);
+            internal uint? StyleIndex => XlsbWorkbookMarkup.ReadUInt32(Node, "s");
+            internal OfficeXmlNode Formula => XlsbWorksheetMarkup.Child(Node, "f");
+            internal OfficeXmlNode Value => XlsbWorksheetMarkup.Child(Node, "v");
+            internal OfficeXmlNode InlineString => XlsbWorksheetMarkup.Child(Node, "is");
         }
 
         private static byte GetErrorCode(string value, int row, int column) {

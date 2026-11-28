@@ -12,6 +12,44 @@ namespace OfficeIMO.Tests;
 /// <summary>Worksheet content after the cell table that the native XLSB writers encode and the reader projects.</summary>
 public sealed class ExcelXlsbWorksheetFeatureTests {
     [Fact]
+    public void Native_cell_writer_uses_only_cells_directly_in_the_row() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue(3D);
+        Row row = sheet.WorksheetPart.Worksheet!.GetFirstChild<SheetData>()!.GetFirstChild<Row>()!;
+        const string spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        var extensionList = new OpenXmlUnknownElement("x", "extLst", spreadsheet);
+        var extension = new OpenXmlUnknownElement("v", "payload", "urn:officeimo:xlsb-test");
+        extension.Append(new Cell { CellReference = "B1", CellValue = new CellValue("4") });
+        extensionList.Append(extension);
+        row.Append(extensionList);
+
+        XlsbWriteCell cell = Assert.Single(XlsbWorksheetCellExtractor.ExtractNew(document, sheet));
+
+        Assert.Equal(1, cell.Row);
+        Assert.Equal(1, cell.Column);
+        Assert.Equal(3D, cell.Value);
+    }
+
+    [Fact]
+    public void Native_multiline_text_import_keeps_the_workbook_deferred() {
+        const string text = "First\r\nSecond";
+        using ExcelDocument seed = ExcelDocument.Create();
+        ExcelSheet sheet = seed.AddSheet("Lines");
+        sheet.Cell(1, 1).SetValue(text);
+        sheet.Cell(1, 2).SetValue(17);
+        sheet.SetCellStyleIndex(1, 1, 0, save: false);
+        byte[] native = seed.ToBytes(ExcelFileFormat.Xlsb);
+
+        using ExcelDocument document = ExcelDocument.Load(new MemoryStream(native));
+        Assert.True(document.IsSdkDeferred);
+        Assert.Equal(native, document.ToBytes(ExcelFileFormat.Xlsb));
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        Assert.Equal(text, document.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal(17, document.Sheets[0].Cell(1, 2).GetValue<int>());
+    }
+
+    [Fact]
     public void Page_breaks_and_ignored_errors_survive_native_xlsb_save() {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = document.AddSheet("Data");

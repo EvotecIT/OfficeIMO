@@ -11,7 +11,8 @@ internal static partial class XlsbNativePackageWriter {
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int Row, int Column), ExcelDeferredCellEdit>> worksheetEdits,
         long maximumBytes, out byte[] result) {
         result = originalPackage;
-        if (source.Sheets.Any(sheet => sheet.State is 1 or 2)
+        // The general writer can re-encode worksheet records on sheets untouched by scalar edits.
+        if (source.HasMultilineText || source.Sheets.Any(sheet => sheet.State is 1 or 2 || sheet.FormulaGroups.Any(group => group.Type == 426))
             || source.ActiveTab.GetValueOrDefault() != 0 || source.FirstSheet.GetValueOrDefault() != 0) return false;
 
         using var input = new MemoryStream(originalPackage, writable: false);

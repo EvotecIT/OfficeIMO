@@ -26,9 +26,10 @@ The cells and merges themselves must match. It ignores the modification time wri
 the same exception type and message.
 
 Run the paired benchmark on the Mac mini. The lock covers both builds and all
-measurements. The runner generates one input with the baseline executable,
-checks the output values in each revision, and records raw time and allocation
-samples with alternating revision order.
+measurements. The baseline executable generates the plain and array-formula
+XLSB inputs and a styled XLSX for the native save workload. Each revision
+validates the cell values, array metadata, and styled output. The runner records raw time and allocation samples with
+alternating revision order.
 
 ```sh
 python3 Build/Verification/ExcelXlsb/benchmark.py origin/master HEAD "$benchmark_dir" \

@@ -18,10 +18,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         // imports also use the existing path to retain their XLSX export layout and property handling.
         internal static bool CanWrite(XlsbWorkbook workbook) =>
             workbook.Sheets.Count != 0 && workbook.CustomPropertiesXml == null && workbook.VbaProjectPartName == null
-            && workbook.Sheets.All(sheet => sheet.Tables.Count == 0 && sheet.Comments == null
-                && XlsbWorksheetGridProjector.CanStream(sheet));
+            && workbook.Sheets.All(sheet => sheet.Tables.Count == 0 && sheet.Comments == null);
 
-        internal static byte[] Write(OfficeOpcEditablePackage package, XlsbWorkbook native,
+        internal static byte[]? Write(OfficeOpcEditablePackage package, XlsbWorkbook native,
             Func<string, ISet<string>, string> worksheetName, Action<string, string?, bool> recordMutation,
             CancellationToken cancellationToken) {
             OfficeXmlTree workbookTree = package.GetXml(WorkbookPart);
@@ -34,6 +33,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 for (OfficeXmlNode child = root.FirstChild; child.Exists; child = root.FirstChild) child.Remove();
                 XlsbStylesheetMarkup.Write(root, native.Stylesheet);
             }
+            if (native.HasMultilineText && !TryRetainAutomaticWrapFormat(package)) return null;
 
             if (native.Uses1904DateSystem || !string.IsNullOrEmpty(native.CodeName)) {
                 OfficeXmlNode properties = XlsbWorkbookMarkup.Add(workbook, "workbookPr");
@@ -108,6 +108,17 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 int index = strings.IndexOf(text);
                 return index < 0 ? null : index;
             }
+        }
+
+        // The Excel model applies wrapping as it sets multiline text, then assigns the original
+        // native style index. Retain the generated format in the stylesheet for both projections.
+        private static bool TryRetainAutomaticWrapFormat(OfficeOpcEditablePackage package) {
+            byte[] markup = package.ReadPartBytes(StylesPart);
+            package.ReplacePart(StylesPart, markup, markup.Length);
+            ExcelOwnedStyles? styles = ExcelOwnedStyles.Load(package, StylesPart);
+            if (styles == null || styles.Apply(0, ExcelStyleOperation.Flagged(ExcelStyleOperationKind.WrapText, true)) == null) return false;
+            styles.Write();
+            return true;
         }
 
         private static string[] NameSheetParts(IReadOnlyList<XlsbSheet> sheets) {

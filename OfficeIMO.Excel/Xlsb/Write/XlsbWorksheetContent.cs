@@ -39,8 +39,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal static bool IsRepeatable(OpenXmlElement element) => Repeatable.Contains(element.GetType());
 
+        internal static string? FindUnsupported(ExcelSheet sheet) =>
+            FindUnsupported(sheet.WorksheetPart.Worksheet)?.LocalName;
+
         internal static OpenXmlElement? FindUnsupported(Worksheet? worksheet) =>
             worksheet?.ChildElements.FirstOrDefault(element => !IsSupported(element));
+
+        internal static string? FindUnsupportedPart(ExcelSheet sheet, string externalContent) {
+            WorksheetPart part = sheet.WorksheetPart;
+            return FindUnsupportedPart(part) ?? (part.ExternalRelationships.Any() ? externalContent : null);
+        }
 
         /// <summary>
         /// Returns a message naming the first worksheet-related part the native writers cannot carry, or null. Comments with

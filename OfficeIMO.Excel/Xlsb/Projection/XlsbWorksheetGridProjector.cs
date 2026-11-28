@@ -5,20 +5,8 @@ using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Streams the XLSB cell grid to SpreadsheetML in the validated BIFF12 row and column order.</summary>
-    internal static class XlsbWorksheetGridProjector {
+    internal static partial class XlsbWorksheetGridProjector {
         private static readonly string Namespace = OfficeXmlNamespaces.KnownUri(OfficeXmlNamespaces.SpreadsheetML)!;
-
-        /// <summary>
-        /// Array groups require a second projection of their members. Line breaks can add a wrap-text style during
-        /// import even when the cell is later assigned its native style index.
-        /// </summary>
-        internal static bool CanStream(XlsbSheet sheet) {
-            if (sheet.FormulaGroups.Any(group => group.Type == 426)) return false;
-            foreach (XlsbCell cell in sheet.Cells) {
-                if (cell.Value is string text && (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)) return false;
-            }
-            return true;
-        }
 
         internal static void WriteWorksheet(Stream output, XlsbSheet source, Func<string, int?> sharedStringIndex,
             Action<string?, bool> recordMutation, CancellationToken cancellationToken, OfficeXmlNode layout = default,
@@ -44,6 +32,12 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         private static void WriteGrid(XmlWriter writer, XlsbSheet source, Func<string, int?> sharedStringIndex,
             Action<string?, bool> recordMutation, bool includeLayout, XlsbStylesheet? styles, CancellationToken cancellationToken) {
+            ArrayProjection? arrays = ArrayProjection.Create(source, cancellationToken);
+            if (arrays != null) {
+                WriteArrayGrid(writer, source, sharedStringIndex, recordMutation, includeLayout, styles, arrays, cancellationToken);
+                return;
+            }
+
             writer.WriteStartElement("sheetData", Namespace);
             int cellIndex = 0, rowIndex = 0;
             IReadOnlyList<XlsbRowInfo> rows = includeLayout ? source.Rows : Array.Empty<XlsbRowInfo>();
