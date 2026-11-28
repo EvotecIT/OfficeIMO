@@ -39,6 +39,130 @@ public sealed class PowerPointModernSubtypeLoadTests {
         Assert.Contains(Assert.Single(reopened.Slides).TextBoxes, box => box.Text == "Pending edit");
     }
 
+    [Theory]
+    [InlineData(PresentationDocumentType.MacroEnabledPresentation, ".pptm")]
+    [InlineData(PresentationDocumentType.Template, ".potx")]
+    [InlineData(PresentationDocumentType.MacroEnabledTemplate, ".potm")]
+    [InlineData(PresentationDocumentType.Slideshow, ".ppsx")]
+    [InlineData(PresentationDocumentType.MacroEnabledSlideshow, ".ppsm")]
+    [InlineData(PresentationDocumentType.AddIn, ".ppam")]
+    public void SavesAnEditedCopyInTheLoadedSubtypeWithoutOpeningTheSdk(PresentationDocumentType type, string extension) {
+        byte[] fixture = CreateFixture(type, signed: false);
+        using var original = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+        OfficeOpcRelationship originalMain = Assert.Single(original.GetRelationships(null),
+            edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType);
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-SubtypeSave-" + Guid.NewGuid().ToString("N") + extension);
+        try {
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Assert.Single(presentation.Slides).AddTextBox("Saved edit");
+            presentation.SaveCopy(path);
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.Equal(extension, presentation.SourceFormatDescriptor.Extension);
+
+            byte[] saved = File.ReadAllBytes(path);
+            using var actual = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+            OfficeOpcRelationship actualMain = Assert.Single(actual.GetRelationships(null),
+                edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType);
+            Assert.Equal(originalMain.Id, actualMain.Id);
+            Assert.Equal(originalMain.TargetPartName, actualMain.TargetPartName);
+            using var sdk = PresentationDocument.Open(new MemoryStream(saved, writable: false), false);
+            Assert.Equal(type, sdk.DocumentType);
+            using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            Assert.Contains(Assert.Single(reopened.Slides).TextBoxes, box => box.Text == "Saved edit");
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("missing video")]
+    [InlineData("unexpected relationship child")]
+    [InlineData("unexpected root attribute")]
+    [InlineData("unexpected edge attribute")]
+    [InlineData("wrong view content type")]
+    public void SameSubtypeSaveRetainsSdkFailuresForInvalidParts(string invalidPart) {
+        byte[] fixture = CreateFixture(PresentationDocumentType.Template, signed: false);
+        using var original = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+        string main = original.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+        string slide = original.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+        fixture = EditPackage(fixture, package => {
+            const int ns = OfficeXmlNamespaces.PackageRelationships;
+            OfficeXmlTree relationships = package.GetRelationships(slide);
+            switch (invalidPart) {
+                case "missing video":
+                    package.AddRelationship(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "video", "/ppt/media/missing.mp4");
+                    break;
+                case "unexpected relationship child":
+                    relationships.Append(relationships.Root, relationships.CreateElement(ns, "Unexpected"));
+                    break;
+                case "unexpected root attribute":
+                    relationships.SetAttribute(relationships.Root, OfficeXmlNamespaces.None, "Unexpected", "1");
+                    break;
+                case "unexpected edge attribute":
+                    relationships.SetAttribute(relationships.FindChild(relationships.Root, ns, "Relationship"),
+                        OfficeXmlNamespaces.None, "Unexpected", "1");
+                    break;
+                case "wrong view content type":
+                    string view = original.GetRelatedPartName(main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "viewProps")!;
+                    package.SetOverride(view, "application/xml");
+                    break;
+            }
+        });
+
+        AssertSameSubtypeSaveFailure(fixture);
+    }
+
+    [Fact]
+    public void SameSubtypeSaveRetainsSdkValidationOfTheExistingCreatedDate() {
+        byte[] fixture = CreateFixture(PresentationDocumentType.Template, signed: false);
+        using var original = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+        string core = original.GetRelatedPartName(null, OfficeOpcPackage.CorePropertiesRelationshipType)!;
+        fixture = EditPackage(fixture, package => {
+            OfficeXmlTree tree = package.GetXml(core);
+            const int ns = OfficeXmlNamespaces.DublinCoreTerms;
+            int created = tree.FindChild(tree.Root, ns, "created");
+            Assert.NotEqual(OfficeXmlTree.NoNode, tree.FindChild(tree.Root, ns, "modified"));
+            tree.RemoveAttribute(created, package.Namespaces.GetId("http://www.w3.org/2001/XMLSchema-instance"), "type");
+        });
+
+        AssertSameSubtypeSaveFailure(fixture);
+    }
+
+    [Fact]
+    public void SameSubtypeSaveDropsAnUnreferencedVbaPartFromAMacroFreeTemplate() {
+        const string vba = "/ppt/vbaProject.bin";
+        byte[] fixture = EditPackage(CreateFixture(PresentationDocumentType.Template, signed: false),
+            package => package.CreateBinaryPart(vba, "application/vnd.ms-office.vbaProject", new byte[] { 1, 2, 3, 4 }));
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-OrphanVba-" + Guid.NewGuid().ToString("N") + ".potx");
+        try {
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Assert.False(presentation.HasVbaProject);
+            Assert.False(presentation.IsSdkLoaded);
+            presentation.SaveCopy(path);
+
+            using var saved = OfficeOpcPackage.Open(File.OpenRead(path));
+            Assert.False(saved.PartExists(vba));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private static void AssertSameSubtypeSaveFailure(byte[] fixture) {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-InvalidSubtype-" + Guid.NewGuid().ToString("N") + ".potx");
+        try {
+            using var sdk = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Exception expected = Assert.ThrowsAny<Exception>(() => {
+                _ = sdk.OpenXmlDocument;
+                sdk.SaveCopy(path);
+            });
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.IsType(expected.GetType(), Record.Exception(() => presentation.SaveCopy(path)));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     [Fact]
     public void SignedTemplatesKeepTheExistingLoadPath() {
         byte[] fixture = CreateFixture(PresentationDocumentType.Template, signed: true);

@@ -69,7 +69,7 @@ public class PowerPointVbaReadBenchmarks {
         return destination.ToArray();
     }
 
-    private static string FindProjectFixture() {
+    internal static string FindProjectFixture() {
         for (DirectoryInfo? location = new(AppContext.BaseDirectory); location != null; location = location.Parent) {
             string file = Path.Combine(location.FullName, "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", "inert-macro-control.xlsm");
             if (File.Exists(file)) return file;

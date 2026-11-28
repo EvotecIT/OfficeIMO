@@ -226,7 +226,12 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocumentType? destinationType = null) {
             EnsureWritableForSave();
             ApplySignatureMutationPolicy(options);
-            if (TryCreateUnchangedPackageBytes(destinationType is not { } type || type == PresentationDocumentType.Presentation, out byte[] unchangedPackageBytes)) {
+            bool keepsSubtype = destinationType is { } type
+                ? _loadedDocumentType == type
+                : IsLoadedStandardPresentation;
+            // With no requested type a projection can infer a macro subtype from a VBA project.
+            bool keepsVbaProject = preserveVbaProject && destinationType.HasValue;
+            if (TryCreateUnchangedPackageBytes(keepsSubtype, keepsVbaProject, out byte[] unchangedPackageBytes)) {
                 return unchangedPackageBytes;
             }
             PersistFooterDefinitions();

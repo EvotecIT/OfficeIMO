@@ -45,6 +45,32 @@ public sealed class PowerPointVbaProjectReadTests {
     }
 
     [Fact]
+    public void SameSubtypeSaveRetainsTheVbaProjectAndSignatureBytes() {
+        byte[] project = ReadInertProject();
+        byte[] fixture = CreateFixture(project, includeSignature: true);
+        using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        Assert.Single(presentation.Slides).AddTextBox("Saved with VBA");
+        byte[] saved = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptm });
+        Assert.False(presentation.IsSdkLoaded);
+
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+        Assert.Equal(".pptm", reopened.SourceFormatDescriptor.Extension);
+        Assert.Equal(project, reopened.GetVbaProjectBytes());
+        Assert.True(reopened.InspectVbaProjectMetadata()!.HasSignature);
+        Assert.Contains(Assert.Single(reopened.Slides).TextBoxes, box => box.Text == "Saved with VBA");
+        Assert.False(reopened.IsSdkLoaded);
+        using var originalPackage = PresentationDocument.Open(new MemoryStream(fixture, writable: false), false);
+        using var savedPackage = PresentationDocument.Open(new MemoryStream(saved, writable: false), false);
+        OpenXmlPart originalSignature = Assert.Single(originalPackage.PresentationPart!.VbaProjectPart!.Parts).OpenXmlPart;
+        OpenXmlPart savedSignature = Assert.Single(savedPackage.PresentationPart!.VbaProjectPart!.Parts).OpenXmlPart;
+        using var expected = new MemoryStream();
+        using var actual = new MemoryStream();
+        using (Stream entry = originalSignature.GetStream()) entry.CopyTo(expected);
+        using (Stream entry = savedSignature.GetStream()) entry.CopyTo(actual);
+        Assert.Equal(expected.ToArray(), actual.ToArray());
+    }
+
+    [Fact]
     public void MacroFreePresentationsReportNoProjectWithoutOpeningTheSdk() {
         using var presentation = PowerPointDocument.Create();
         presentation.AddSlide();

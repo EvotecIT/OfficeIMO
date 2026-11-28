@@ -71,7 +71,7 @@ public sealed partial class PowerPointDocument {
 
     private static bool TryVisitPackageGraph(Func<string?, IReadOnlyList<OfficeOpcRelationship>?> getRelationships,
         Func<string, string?> getPartName, Func<string, string?> getContentType, CancellationToken cancellationToken,
-        Action<PackageGraphRelationship> visit, string? root = null) {
+        Action<PackageGraphRelationship> visit, string? root = null, bool validateForSave = false) {
         var visited = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
         var pending = new Queue<string?>();
         pending.Enqueue(root);
@@ -85,8 +85,22 @@ public sealed partial class PowerPointDocument {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeOpcRelationship relationship = relationships[index];
                 if (relationship.Id.Length == 0 || relationship.Type.Length == 0) return false;
-                if (relationship.IsExternal || IsReferenceRelationship(relationship.Type)) continue;
+                if (validateForSave) {
+                    System.Xml.XmlConvert.VerifyNCName(relationship.Id);
+                    if (!Uri.TryCreate(relationship.Type, UriKind.Absolute, out _) ||
+                        !Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out _)) return false;
+                }
+                if (relationship.IsExternal) continue;
+                bool reference = IsReferenceRelationship(relationship.Type);
+                if (reference && (!validateForSave || relationship.Type == PowerPointPartRef.HyperlinkRelationshipType)) continue;
                 if (relationship.TargetPartName is not { } target || getPartName(target) is not { } part) return false;
+                if (reference) {
+                    // The SDK clones referenced media data parts, which do not contribute child relationships.
+                    string? dataType = getContentType(part);
+                    if (dataType == null || !MatchesSubtypeSavePart(relationship.Type, dataType)) return false;
+                    visit(new PackageGraphRelationship(owner, relationship.Id, relationship.Type, part, dataType));
+                    continue;
+                }
                 string identity = OfficeOpcPackage.GetPartIdentity(part);
                 if (!targets.Add(identity)) return false;
                 if (visited.TryGetValue(identity, out string? previousType)) {
@@ -97,19 +111,22 @@ public sealed partial class PowerPointDocument {
                 }
 
                 string? contentType = getContentType(part);
-                if (contentType == null || !CanFollowPackageGraphPart(relationship.Type, contentType)) return false;
+                if (contentType == null || !CanFollowPackageGraphPart(relationship.Type, contentType) ||
+                    validateForSave && !MatchesSubtypeSavePart(relationship.Type, contentType)) return false;
                 visit(new PackageGraphRelationship(owner, relationship.Id, relationship.Type, part, contentType));
             }
         }
         return true;
     }
 
-    private static IReadOnlyList<OfficeOpcRelationship>? ReadEditablePackageRelationships(OfficeOpcEditablePackage package, string? owner) {
+    private static IReadOnlyList<OfficeOpcRelationship>? ReadEditablePackageRelationships(OfficeOpcEditablePackage package, string? owner,
+        bool strictXml = false) {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(owner);
         if (!package.PartExists(relationshipsPart)) return Array.Empty<OfficeOpcRelationship>();
         OfficeXmlTree tree = package.GetXml(relationshipsPart);
         const int ns = OfficeXmlNamespaces.PackageRelationships;
         if (tree.Root == OfficeXmlTree.NoNode || !tree.IsElement(tree.Root, ns, "Relationships")) return null;
+        if (strictXml && !HasStandardRelationshipMarkup(new OfficeXmlNode(tree, tree.Root))) return null;
         var relationships = new List<OfficeOpcRelationship>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
         string? directory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);

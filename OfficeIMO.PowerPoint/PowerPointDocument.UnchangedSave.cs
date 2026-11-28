@@ -25,9 +25,9 @@ namespace OfficeIMO.PowerPoint {
         /// Writes the loaded package with refreshed document properties when the SDK was never opened and the save
         /// needs nothing else; returns false, having changed nothing, when it must go through the SDK.
         /// </summary>
-        private bool TryCreateUnchangedPackageBytes(bool presentationDestination, out byte[] bytes) {
+        private bool TryCreateUnchangedPackageBytes(bool keepsSubtype, bool preserveVbaProject, out byte[] bytes) {
             bytes = Array.Empty<byte>();
-            if (!_sdkDeferred || IsSdkLoaded || !presentationDestination || !IsLoadedStandardPresentation
+            if (!_sdkDeferred || IsSdkLoaded || !keepsSubtype
                 || _packageStream is not { CanRead: true, CanSeek: true } packageStream) {
                 return false;
             }
@@ -38,7 +38,8 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcPackage? loaded = _loadedPackage;
             OfficeOpcPackage package = loaded ?? OfficeOpcPackage.Open(packageStream, leaveOpen: true);
             try {
-                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage, _packageNotesAdded, out values)) return false;
+                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage,
+                    _packageNotesAdded, preserveVbaProject, out values)) return false;
             } finally {
                 if (loaded == null) package.Dispose();
             }
@@ -49,7 +50,9 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcEditablePackage editable = pending ?? OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
             bool kept = false;
             try {
-                if (!TryGetSavePropertyRoots(editable, values.CorePart, values.ApplicationPart,
+                bool validateSubtype = !IsLoadedStandardPresentation;
+                if (validateSubtype && !CanSaveCurrentSubtype(editable)) return false;
+                if (!TryGetSavePropertyRoots(editable, values.CorePart, values.ApplicationPart, validateSubtype,
                     out OfficeXmlNode core, out OfficeXmlNode application)) return false;
 
                 EnsureApplicationProperty(application, "TotalTime", "0");
@@ -89,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryGetSavePropertyRoots(OfficeOpcEditablePackage package, string? corePart, string? applicationPart,
-            out OfficeXmlNode core, out OfficeXmlNode application) {
+            bool validateCore, out OfficeXmlNode core, out OfficeXmlNode application) {
             core = default;
             application = default;
             if (applicationPart != null) {
@@ -104,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeXmlTree tree = package.GetXml(corePart);
                 core = new OfficeXmlNode(tree, tree.Root);
                 if (!core.Is(OfficeXmlNamespaces.CoreProperties, "coreProperties") ||
-                    (core.Child(OfficeXmlNamespaces.DublinCoreTerms, "modified").IsNone && !IsValidCoreProperties(core))) {
+                    ((validateCore || core.Child(OfficeXmlNamespaces.DublinCoreTerms, "modified").IsNone) && !IsValidCoreProperties(core))) {
                     return false;
                 }
             }
@@ -139,10 +142,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Reads what a save through the SDK would write into the document properties, following
         /// <see cref="PowerPointUtils.UpdateDocumentProperties"/>. Returns false for anything that save would also change
-        /// elsewhere: footer definitions, legacy slide visibility, or a VBA project.
+        /// elsewhere: footer definitions, legacy slide visibility, or a VBA project that needs to be removed.
         /// </summary>
         private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters,
-            OfficeOpcEditablePackage? parsed, bool notesAdded, out UnchangedSaveValues values) {
+            OfficeOpcEditablePackage? parsed, bool notesAdded, bool preserveVbaProject, out UnchangedSaveValues values) {
             values = default;
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
             if (main == null) return false;
@@ -233,7 +236,7 @@ namespace OfficeIMO.PowerPoint {
             bool notesDeclared = notesAdded || package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
             foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, presentationTree != null, main)) {
-                if (string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
+                if (!preserveVbaProject && string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
                 if (external || !string.Equals(type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
                     || target is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
                     continue;
