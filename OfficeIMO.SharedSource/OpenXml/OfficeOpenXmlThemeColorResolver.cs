@@ -251,7 +251,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return transforms.Result;
     }
 
-    private static OfficeXmlNode FindColorElement(OfficeXmlNode container) {
+    internal static OfficeXmlNode FindColorElement(OfficeXmlNode container) {
         if (container.IsNone) {
             return OfficeXmlNode.None;
         }

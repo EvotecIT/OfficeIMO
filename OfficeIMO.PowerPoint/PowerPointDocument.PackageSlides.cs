@@ -323,41 +323,6 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
-        /// <summary>The attributes of the presentation's first p:sldSz in the package, or null when it has none there.</summary>
-        internal (string? Width, string? Height, string? Type)? GetPackageSlideSize() {
-            if (GetPackage(edit: false) is not { } package) return null;
-            try {
-                if (PackageSlideList.Read(package) is not { } slides) return null;
-                OfficeXmlTree presentation = slides.Presentation;
-                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
-                if (size == OfficeXmlTree.NoNode) return null;
-                return (presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cx"), presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cy"),
-                    presentation.GetAttribute(size, OfficeXmlNamespaces.None, "type"));
-            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Sets or removes an attribute of the presentation's p:sldSz in the package; false when the presentation has none
-        /// there, and the model adds one through the SDK.
-        /// </summary>
-        internal bool TrySetPackageSlideSize(string attribute, string? value) {
-            if (GetPackage(edit: true) is not { } package) return false;
-            try {
-                if (PackageSlideList.Read(package) is not { } slides) return false;
-                OfficeXmlTree presentation = slides.Presentation;
-                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
-                if (size == OfficeXmlTree.NoNode) return false;
-                if (value == null) presentation.RemoveAttribute(size, OfficeXmlNamespaces.None, attribute);
-                else presentation.SetAttribute(size, OfficeXmlNamespaces.None, attribute, value);
-                _pendingEdits = true;
-                return true;
-            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
-                return false;
-            }
-        }
-
         /// <summary>A slide's entry in the presentation's slide list in the package, or null when it can't be read there.</summary>
         internal (OfficeXmlTree Tree, int Node)? GetPackageSlideEntry(string slidePart) {
             if (GetPackage(edit: false) is not { } package) return null;

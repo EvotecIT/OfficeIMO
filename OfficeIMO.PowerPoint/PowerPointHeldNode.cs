@@ -17,11 +17,10 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner) {
             _element = element;
-            if (element.Tree != null && owner.OwnerSlide is { } slide) {
-                _packageSlide = slide;
-                _packagePart = slide.PartRef;
-                slide.OwnerDocument?.RegisterPackageBinding(this);
-            }
+            if (element.Tree == null) return;
+            _packagePart = owner.OwnerPartRef;
+            _packageSlide = owner.OwnerSlide;
+            _packagePart.Document?.RegisterPackageBinding(this);
         }
 
         /// <summary>The element as it is held now: once the SDK opened, a package node is its SDK element.</summary>

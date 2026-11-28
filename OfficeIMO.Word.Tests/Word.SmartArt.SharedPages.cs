@@ -134,7 +134,7 @@ public sealed class WordSmartArtSharedPageTests {
         if (type == WordSmartArtType.BasicProcess)
             while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
         string[] labels = SetNodeLabels(smartArt);
-        DW.Extent extent = smartArt._drawing.Inline!.Extent!;
+        DW.Extent extent = smartArt.SdkDrawing().Inline!.Extent!;
         extent.Cx = 2_743_200L;
         extent.Cy = 914_400L;
         document.AddParagraph("Body page one");

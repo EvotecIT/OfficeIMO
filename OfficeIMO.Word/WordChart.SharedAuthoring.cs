@@ -66,11 +66,9 @@ public partial class WordChart {
             ChartSpaceNode.Child(NsC, "roundedCorners").SetAttribute("val", OfficeChartXml.Text(rounded));
             EnsureFramelessChartArea();
         } else {
-            // The workbook goes in before the shared writer saves the updated chart to its part.
-            embedded ??= AddEmbeddedWorkbook();
-            WriteEmbeddedPackage(embedded, workbook);
-            written = true;
+            // The shared writer validates the update before it changes anything, so the package is only touched after it.
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
+            embedded ??= AddEmbeddedWorkbook();
             OfficeXmlNode space = ChartSpaceNode;
             OfficeXmlNode external = space.Child(NsC, "externalData");
             if (external.IsNone) external = OfficeChartXml.SetOrdered(space, NewC(space, "externalData"), CChartSpaceView.Order);

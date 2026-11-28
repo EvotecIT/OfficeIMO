@@ -225,7 +225,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal void PrepareForPackageSave() {
             if (!SlidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(GetSlideId()) == null) {
+                && GetSlideId().Attribute("show") == null) {
                 return;
             }
 
@@ -233,9 +233,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
-            SlideId slideId = GetSlideId();
+            var slideId = GetSlideId();
             if (!SlidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(slideId) == null) {
+                && slideId.Attribute("show") == null) {
                 _notes?.Save();
                 return;
             }

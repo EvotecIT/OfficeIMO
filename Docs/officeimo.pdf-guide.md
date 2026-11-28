@@ -2,6 +2,41 @@
 
 This guide shows every `OfficeIMO.Pdf` workflow with an example. Installation and the shortest examples are in the [package README](../OfficeIMO.Pdf/README.md); exact coverage and known limits are in [PDF current state](officeimo.pdf.current-state.md).
 
+## Embedded fonts and color emoji
+
+Embedded fonts follow their OS/2 `fsType` licence, read the least restrictive way when several permissions are set. A font that forbids embedding or allows only bitmaps is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that forbids subsetting is embedded whole.
+
+Color emoji fonts keep their color. Text in a run with COLR glyphs (Segoe UI Emoji) or CBDT/sbix PNG glyphs (Noto Color Emoji, Apple Color Emoji) is written as invisible, searchable text, and each glyph's color layers or image are painted at the same position, so extraction and `ActualText` return the exact source. The artwork follows the text's rotation and skew, including in text watermarks, and translucent palette colors keep their alpha. COLR v1 gradients are painted as solid layers, and SVG glyphs are reported by the text encoding preflight.
+
+## Read a few pages of a large PDF
+
+For a large, stable PDF when you only need a few pages, use `PdfDocument.LoadSeekable(...)`.
+Initial admission scans the complete PDF with a bounded read cache. Later page reads fetch the
+encoded ranges they need. Saving, fingerprinting and operations that need the exact source read
+the complete PDF. The library holds a path open until disposal when the operating system can
+exclude writes. Otherwise the path overload takes a bounded snapshot.
+
+Pass a seekable stream at the start of the PDF, with a length when it occupies part of a larger
+stream. Keep the input available and unchanged until the document is disposed. The document
+preserves the stream position during its reads.
+
+## Rendering with ICC output profiles
+
+Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
+
+## Extract PDF assets
+
+```csharp
+using var pdf = PdfDocument.Load("artwork.pdf");
+IReadOnlyList<string> files = pdf.ExtractAssets("artwork-assets");
+```
+
+The new folder contains distinct images and embedded font programs, ICC profiles and an SVG for each page. Open `report.html` to browse the files and see image placement DPI, page boxes in millimetres, spot colorants and font subset status. `report.json` contains the same inventory in a machine-readable form.
+
+Supported image soft masks are saved as RGBA PNGs by default. Pass `CompositeSoftMasks = false` in `PdfAssetExtractionOptions` to use the ordinary image extraction formats. Standalone TrueType and OpenType programs with unusable names receive a repaired name table. Font subsets keep the glyphs the PDF embedded, and raw CFF and Type 1 programs keep their decoded bytes.
+
+Use `ExtractAssetsTo` to open a stream for each bundle file, or `ExtractEmbeddedFonts` to save the fonts alone. The same extraction is available in the browser. [Extract PDF assets](https://officeimo.com/browser/extract-pdf-assets/)
+
 ## Find your task
 
 | I want to | Go to |
