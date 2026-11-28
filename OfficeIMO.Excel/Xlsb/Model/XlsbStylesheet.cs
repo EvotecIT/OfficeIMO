@@ -25,6 +25,13 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// <summary>Differential formats from the DXFS collection, already in their canonical SpreadsheetML shape.</summary>
         internal IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat> DifferentialFormats => _differentialFormats;
 
+        internal int DifferentialFormatCount => _differentialFormats.Count;
+
+        /// <summary>Provides the decoded differential formats as SpreadsheetML fragments.</summary>
+        internal IEnumerable<OfficeXmlNode> ReadDifferentialFormatMarkup() {
+            foreach (var format in _differentialFormats) yield return OfficeXmlNode.FromSdk(format);
+        }
+
         /// <summary>Named cell styles; empty when the part has none or they stay preserved as native records.</summary>
         internal IReadOnlyList<XlsbCellStyle> CellStyles { get; set; } = Array.Empty<XlsbCellStyle>();
 

@@ -41,6 +41,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// </summary>
         internal OpenXmlElement? Criterion { get; set; }
 
+        /// <summary>The decoded filter criterion as an Open XML element handle.</summary>
+        internal OfficeXmlNode CriterionMarkup => OfficeXmlNode.FromSdk(Criterion);
+
         /// <summary>True between BrtBeginCustomFilters and BrtEndCustomFilters.</summary>
         internal bool InCustomFilters { get; set; }
 

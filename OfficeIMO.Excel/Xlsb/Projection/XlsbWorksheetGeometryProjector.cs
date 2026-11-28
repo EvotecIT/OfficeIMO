@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
             if (!equivalentDefaultView) {
                 SheetViews expectedViews = CreateSheetViews(sourceSheet);
-                if (actualViews.Length != 1 || !string.Equals(actualViews[0].OuterXml, expectedViews.OuterXml, StringComparison.Ordinal)) {
+                if (actualViews.Length != 1 || !XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(actualViews[0]), OfficeXmlNode.FromSdk(expectedViews))) {
                     ThrowGeometryMutation(sheet, "worksheet panes");
                 }
             }
@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             TElement[] actual = worksheet.Elements<TElement>().ToArray();
             if (actual.Length > 1
                 || (expected == null && actual.Length != 0)
-                || (expected != null && (actual.Length != 1 || !string.Equals(actual[0].OuterXml, expected.OuterXml, StringComparison.Ordinal)))) {
+                || (expected != null && (actual.Length != 1 || !XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(actual[0]), OfficeXmlNode.FromSdk(expected))))) {
                 ThrowGeometryMutation(sheet, detail);
             }
         }
@@ -328,7 +328,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 ApplyRowMetadata(expectedRow, sourceRow);
                 Row metadataOnly = (Row)actualRow.CloneNode(true);
                 metadataOnly.RemoveAllChildren<Cell>();
-                if (!string.Equals(metadataOnly.OuterXml, expectedRow.OuterXml, StringComparison.Ordinal)) {
+                if (!XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(metadataOnly), OfficeXmlNode.FromSdk(expectedRow))) {
                     ThrowGeometryMutation(sheet, $"row {rowIndex} metadata");
                 }
                 if (sourceRow != null) foundSourceRows.Add(rowIndex);

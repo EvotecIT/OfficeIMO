@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Projection;
 
@@ -8,31 +6,33 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal static class XlsbWorkbookProtectionWriter {
         private const int BrtBookProtection = 534;
 
-        internal static void Write(Stream output, WorkbookProtection? protection) {
+        internal static void Write(Stream output, OfficeXmlNode protection) {
             ArgumentNullException.ThrowIfNull(output);
-            if (protection == null) return;
+            if (protection.IsNone) return;
             XlsbRecordWriter.Write(output, BrtBookProtection, CreatePayload(protection));
         }
 
-        internal static void Validate(WorkbookProtection? protection) {
-            if (protection == null) return;
+        internal static void Validate(OfficeXmlNode protection) {
+            if (protection.IsNone) return;
             CreatePayload(protection);
         }
 
-        private static byte[] CreatePayload(WorkbookProtection protection) {
-            if (protection.HasChildren) {
+        private static byte[] CreatePayload(OfficeXmlNode protection) {
+            if (protection.FirstChild.Exists) {
                 throw new NotSupportedException("Native XLSB generation does not support child content in workbook protection.");
             }
-            EnsureOnlyAttributes(protection,
-                "workbookPassword", "revisionsPassword", "lockStructure", "lockWindows", "lockRevision");
-            if (!XlsbWorkbookProtectionProjector.TryParsePassword(protection.WorkbookPassword?.Value, out ushort workbookPassword)
-                || !XlsbWorkbookProtectionProjector.TryParsePassword(protection.RevisionsPassword?.Value, out ushort revisionsPassword)) {
+            string? unsupported = XlsbWorkbookProtectionProjector.UnsupportedAttribute(protection);
+            if (unsupported != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support workbook protection attribute '{unsupported}'.");
+            }
+            if (!XlsbWorkbookProtectionProjector.TryParsePassword(protection.Attribute("workbookPassword"), out ushort workbookPassword)
+                || !XlsbWorkbookProtectionProjector.TryParsePassword(protection.Attribute("revisionsPassword"), out ushort revisionsPassword)) {
                 throw new NotSupportedException("Native XLSB generation requires classic workbook protection hashes with at most four hexadecimal digits.");
             }
 
-            ushort flags = (ushort)((protection.LockStructure?.Value == true ? 0x0001 : 0)
-                | (protection.LockWindows?.Value == true ? 0x0002 : 0)
-                | (protection.LockRevision?.Value == true ? 0x0004 : 0));
+            ushort flags = (ushort)((XlsbWorkbookProtectionProjector.ReadLock(protection, "lockStructure") ? 0x0001 : 0)
+                | (XlsbWorkbookProtectionProjector.ReadLock(protection, "lockWindows") ? 0x0002 : 0)
+                | (XlsbWorkbookProtectionProjector.ReadLock(protection, "lockRevision") ? 0x0004 : 0));
             return new[] {
                 (byte)workbookPassword,
                 (byte)(workbookPassword >> 8),
@@ -41,14 +41,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 (byte)flags,
                 (byte)(flags >> 8)
             };
-        }
-
-        private static void EnsureOnlyAttributes(OpenXmlElement element, params string[] allowedNames) {
-            OpenXmlAttribute? unsupported =
-                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
-            if (unsupported.HasValue) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support workbook protection attribute '{unsupported.Value.LocalName}'.");
-            }
         }
     }
 }

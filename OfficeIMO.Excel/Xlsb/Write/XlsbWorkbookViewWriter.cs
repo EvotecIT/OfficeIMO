@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Projection;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Writes the normal workbook-window records referenced by worksheet views.</summary>
@@ -8,66 +8,70 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtBeginBookViews = 135;
         private const int BrtEndBookViews = 136;
         private const int BrtBookView = 158;
+        internal const string ElementName = "bookViews";
 
-        internal static void Write(Stream output, BookViews? views, int sheetCount) {
+        private static readonly string[] ViewAttributes = {
+            "visibility", "minimized", "showHorizontalScroll", "showVerticalScroll", "showSheetTabs",
+            "xWindow", "yWindow", "windowWidth", "windowHeight", "tabRatio", "firstSheet", "activeTab",
+            "autoFilterDateGrouping"
+        };
+
+        internal static void Write(Stream output, OfficeXmlNode views, int sheetCount) {
             ArgumentNullException.ThrowIfNull(output);
-            if (views == null) return;
+            if (views.IsNone) return;
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sheetCount);
-            EnsureOnlyAttributes(views);
-            WorkbookView[] workbookViews = views.Elements<WorkbookView>().ToArray();
-            if (workbookViews.Length != views.ChildElements.Count || workbookViews.Length == 0) {
-                throw new NotSupportedException("Native XLSB generation requires workbook views to contain one or more normal workbookView elements.");
+            EnsureOnlyAttributes(views, Array.Empty<string>());
+            if (!views.FirstChild.Exists) ThrowUnsupportedViews();
+            foreach (OfficeXmlNode view in views.Children()) {
+                if (!view.Is(OfficeXmlNamespaces.SpreadsheetML, "workbookView")) ThrowUnsupportedViews();
             }
 
             XlsbRecordWriter.Write(output, BrtBeginBookViews);
-            foreach (WorkbookView view in workbookViews) {
+            foreach (OfficeXmlNode view in views.Children()) {
                 XlsbRecordWriter.Write(output, BrtBookView, CreatePayload(view, sheetCount));
             }
             XlsbRecordWriter.Write(output, BrtEndBookViews);
         }
 
-        internal static void Validate(BookViews? views, int sheetCount) {
-            if (views == null) return;
-            using var sink = new MemoryStream();
-            Write(sink, views, sheetCount);
+        internal static void Validate(OfficeXmlNode views, int sheetCount) {
+            Write(Stream.Null, views, sheetCount);
         }
 
-        private static byte[] CreatePayload(WorkbookView view, int sheetCount) {
-            EnsureOnlyAttributes(view,
-                "visibility", "minimized", "showHorizontalScroll", "showVerticalScroll", "showSheetTabs",
-                "xWindow", "yWindow", "windowWidth", "windowHeight", "tabRatio", "firstSheet", "activeTab",
-                "autoFilterDateGrouping");
-            if (view.HasChildren) {
+        private static byte[] CreatePayload(OfficeXmlNode view, int sheetCount) {
+            EnsureOnlyAttributes(view, ViewAttributes);
+            if (view.FirstChild.Exists) {
                 throw new NotSupportedException("Native XLSB generation does not support child content in workbookView elements.");
             }
 
-            uint activeTab = CoerceSheetIndex(view.ActiveTab?.Value, sheetCount, 0U);
-            uint firstSheet = CoerceSheetIndex(view.FirstSheet?.Value, sheetCount, activeTab);
-            uint width = view.WindowWidth?.Value ?? 28_800U;
-            uint height = view.WindowHeight?.Value ?? 17_640U;
-            uint tabRatio = view.TabRatio?.Value ?? 600U;
+            uint activeTab = CoerceSheetIndex(XlsbWorkbookMarkup.ReadUInt32(view, "activeTab"), sheetCount, 0U);
+            uint firstSheet = CoerceSheetIndex(XlsbWorkbookMarkup.ReadUInt32(view, "firstSheet"), sheetCount, activeTab);
+            uint width = XlsbWorkbookMarkup.ReadUInt32(view, "windowWidth") ?? 28_800U;
+            uint height = XlsbWorkbookMarkup.ReadUInt32(view, "windowHeight") ?? 17_640U;
+            uint tabRatio = XlsbWorkbookMarkup.ReadUInt32(view, "tabRatio") ?? 600U;
             if (width == 0U || height == 0U || tabRatio > 1000U) {
                 throw new NotSupportedException("Native XLSB generation requires positive workbook window dimensions and a tabRatio from 0 through 1000.");
             }
 
-            VisibilityValues? visibility = view.Visibility?.Value;
-            byte flags = 0;
-            if (visibility == VisibilityValues.Hidden || visibility == VisibilityValues.VeryHidden) flags |= 0x01;
-            if (view.Minimized?.Value == true) flags |= 0x02;
-            if (visibility == VisibilityValues.VeryHidden) flags |= 0x04;
-            if (view.ShowHorizontalScroll?.Value ?? true) flags |= 0x08;
-            if (view.ShowVerticalScroll?.Value ?? true) flags |= 0x10;
-            if (view.ShowSheetTabs?.Value ?? true) flags |= 0x20;
-            if (view.AutoFilterDateGrouping?.Value ?? true) flags |= 0x40;
+            byte flags = view.Attribute("visibility") switch {
+                null or "visible" => 0,
+                "hidden" => 0x01,
+                "veryHidden" => 0x05,
+                string value => throw new FormatException($"Invalid workbook view visibility '{value}'.")
+            };
+            if (XlsbWorkbookMarkup.ReadBoolean(view, "minimized") == true) flags |= 0x02;
+            if (XlsbWorkbookMarkup.ReadBoolean(view, "showHorizontalScroll") ?? true) flags |= 0x08;
+            if (XlsbWorkbookMarkup.ReadBoolean(view, "showVerticalScroll") ?? true) flags |= 0x10;
+            if (XlsbWorkbookMarkup.ReadBoolean(view, "showSheetTabs") ?? true) flags |= 0x20;
+            if (XlsbWorkbookMarkup.ReadBoolean(view, "autoFilterDateGrouping") ?? true) flags |= 0x40;
 
             using var payload = new MemoryStream(29);
-            WriteInt32(payload, view.XWindow?.Value ?? 0);
-            WriteInt32(payload, view.YWindow?.Value ?? 0);
-            WriteUInt32(payload, width);
-            WriteUInt32(payload, height);
-            WriteUInt32(payload, tabRatio);
-            WriteUInt32(payload, firstSheet);
-            WriteUInt32(payload, activeTab);
+            XlsbPayloadWriter.WriteInt32(payload, XlsbWorkbookMarkup.ReadInt32(view, "xWindow") ?? 0);
+            XlsbPayloadWriter.WriteInt32(payload, XlsbWorkbookMarkup.ReadInt32(view, "yWindow") ?? 0);
+            XlsbPayloadWriter.WriteUInt32(payload, width);
+            XlsbPayloadWriter.WriteUInt32(payload, height);
+            XlsbPayloadWriter.WriteUInt32(payload, tabRatio);
+            XlsbPayloadWriter.WriteUInt32(payload, firstSheet);
+            XlsbPayloadWriter.WriteUInt32(payload, activeTab);
             payload.WriteByte(flags);
             return payload.ToArray();
         }
@@ -75,21 +79,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static uint CoerceSheetIndex(uint? index, int sheetCount, uint fallback) =>
             index.HasValue && index.Value < sheetCount ? index.Value : fallback;
 
-        private static void EnsureOnlyAttributes(OpenXmlElement element, params string[] allowedNames) {
-            OpenXmlAttribute? unsupported =
-                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
-            if (unsupported.HasValue) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support workbook-view attribute '{unsupported.Value.LocalName}'.");
+        private static void EnsureOnlyAttributes(OfficeXmlNode element, string[] allowedNames) {
+            string? unsupported = XlsbWorkbookMarkup.UnsupportedAttribute(element, allowedNames);
+            if (unsupported != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support workbook-view attribute '{unsupported}'.");
             }
         }
 
-        private static void WriteInt32(Stream stream, int value) => WriteUInt32(stream, unchecked((uint)value));
-
-        private static void WriteUInt32(Stream stream, uint value) {
-            stream.WriteByte((byte)value);
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)(value >> 16));
-            stream.WriteByte((byte)(value >> 24));
-        }
+        private static void ThrowUnsupportedViews() =>
+            throw new NotSupportedException("Native XLSB generation requires workbook views to contain one or more normal workbookView elements.");
     }
 }

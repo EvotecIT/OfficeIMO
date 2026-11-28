@@ -192,11 +192,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// The owned save writes XLSX packages only. A save to XLS or XLSB opens the SDK before the binary writers look at
-        /// the workbook, so the replay puts the recorded values where those writers read them.
+        /// A binary save opens the SDK before the writers read recorded edits. An XLSB imported into the owned package
+        /// can copy its untouched source first. A rewrite opens the SDK when the XLSB writer needs those edits.
         /// </summary>
-        private void OpenDeferredSdkForBinaryTarget(bool binaryTarget) {
-            if (binaryTarget && _deferredWorkbook != null) OpenDeferredSdk("Save: the target is a binary workbook");
+        private void OpenDeferredSdkForBinaryTarget(bool binaryTarget, bool nativeXlsbTarget) {
+            if (binaryTarget && _deferredWorkbook != null && !(nativeXlsbTarget && _xlsbDeferredBaseline != null)) {
+                OpenDeferredSdk("Save: the target is a binary workbook");
+            }
         }
 
         private static bool IsBinaryWorkbookPath(string path) =>

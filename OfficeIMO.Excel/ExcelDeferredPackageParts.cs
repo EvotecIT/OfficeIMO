@@ -186,15 +186,18 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Writes the table with its new items, or returns false when the markup needs the model.</summary>
-        internal bool TryWrite(OfficeOpcEditablePackage package, string workbookPartName) {
+        internal bool TryWrite(OfficeOpcEditablePackage package, string workbookPartName, bool declareNewCounts = true) {
             if (!Changed) return true;
             if (PartName == null) {
                 // The model creates the table part at the usual name, which must then be free.
                 const string name = "/xl/sharedStrings.xml";
                 if (package.PartExists(name)) return false;
                 var xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"utf-8\"?><x:sst xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"");
-                xml.Append(" count=\"").Append(Count(0, 0).ToString(CultureInfo.InvariantCulture)).Append("\" uniqueCount=\"")
-                    .Append(_count.ToString(CultureInfo.InvariantCulture)).Append("\">");
+                if (declareNewCounts) {
+                    xml.Append(" count=\"").Append(Count(0, 0).ToString(CultureInfo.InvariantCulture)).Append("\" uniqueCount=\"")
+                        .Append(_count.ToString(CultureInfo.InvariantCulture)).Append('"');
+                }
+                xml.Append('>');
                 foreach (string item in _added) AppendItem(xml, "x:", item);
                 xml.Append("</x:sst>");
                 package.CreateBinaryPart(name, "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml",

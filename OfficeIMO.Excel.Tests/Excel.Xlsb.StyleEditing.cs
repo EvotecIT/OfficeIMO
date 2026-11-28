@@ -75,6 +75,25 @@ public sealed class ExcelXlsbStyleEditingTests {
     }
 
     [Fact]
+    public void Owned_xlsb_projection_writes_combined_font_flags_in_schema_order() {
+        using var source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue(1);
+        var styles = source.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
+        Font font = Assert.Single(styles.Fonts!.Elements<Font>());
+        font.Condense = new Condense();
+        font.Outline = new Outline();
+        byte[] native = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+
+        using var reopened = ExcelDocument.Load(new MemoryStream(native));
+        Assert.True(reopened.IsSdkDeferred);
+        var projected = reopened.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
+        var flags = Assert.Single(projected.Fonts!.Elements<Font>()).ChildElements
+            .Where(child => child is Condense or Outline).Select(child => child.LocalName);
+        Assert.Equal(new[] { "condense", "outline" }, flags);
+    }
+
+    [Fact]
     public void Projected_native_chartsheets_have_valid_sheet_views() {
         string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", "excel-populated-macro.xlsb");
         using var document = ExcelDocument.Load(fixture);

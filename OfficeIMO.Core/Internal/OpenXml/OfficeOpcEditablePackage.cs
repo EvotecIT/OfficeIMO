@@ -114,6 +114,12 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             part.Tree = Parse(part.Content, part.ContentLength);
             return part.Tree;
         }
+        if (part.Writer != null) {
+            byte[] bytes = ReadPartBytes(partName);
+            part.Tree = Parse(bytes, bytes.Length);
+            part.Writer = null;
+            return part.Tree;
+        }
         if (!_zip!.TryRead(part.Member, out OfficePooledBytes content)) throw new InvalidDataException("The package has no part '" + partName + "'.");
         part.Source = content;
         part.Tree = Parse(content.Array, content.Length);
@@ -146,11 +152,18 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         part.ContentLength = content.Length;
     }
 
+    /// <summary>Adds a part whose content is written directly into the package on save.</summary>
+    internal void CreateStreamedPart(string partName, string? contentType, Action<Stream> write) {
+        ArgumentNullException.ThrowIfNull(write);
+        AddPart(partName, contentType).Writer = write;
+    }
+
     /// <summary>The bytes of a part as the package holds them now; the caller disposes the result.</summary>
     /// <exception cref="InvalidDataException">The package has no such part.</exception>
     internal OfficePooledBytes ReadPart(string partName) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         if (part.Tree != null) throw new InvalidOperationException("The part '" + partName + "' is held as an XML tree.");
+        if (part.Writer != null) throw new InvalidOperationException("The part '" + partName + "' is streamed. Use ReadPartBytes to materialize it.");
         if (part.Content != null) {
             OfficePooledBytes copy = OfficePooledBytes.Rent(part.ContentLength);
             Buffer.BlockCopy(part.Content, 0, copy.Array, 0, part.ContentLength);
@@ -182,10 +195,11 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         }
     }
 
-    // Drops a part's tree, source bytes and content, returning whatever came from the array pool.
+    // Drops a part's tree, writer, source bytes and content, returning whatever came from the array pool.
     private void ReleaseStorage(Part part) {
         if (_poolTrees) part.Tree?.ReleasePooledStorage();
         part.Tree = null;
+        part.Writer = null;
         part.Source?.Dispose();
         part.Source = null;
         ReturnContent(part);
@@ -470,6 +484,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             xml.Target = null;
         } else if (part.Content != null) {
             output.Write(part.Content, 0, part.ContentLength);
+        } else if (part.Writer != null) {
+            part.Writer(output);
         } else {
             if (!_zip!.TryRead(part.Member, out OfficePooledBytes content)) throw new InvalidDataException("The package has no part '" + part.Name + "'.");
             using (content) output.Write(content.Array, 0, content.Length);
@@ -517,6 +533,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         internal OfficeXmlTree? Tree { get; set; }
         internal OfficePooledBytes? Source { get; set; }
         internal byte[]? Content { get; set; }
+        internal Action<Stream>? Writer { get; set; }
         internal int ContentLength { get; set; }
         internal bool Deleted { get; set; }
         internal string? DeletedContentType { get; set; }

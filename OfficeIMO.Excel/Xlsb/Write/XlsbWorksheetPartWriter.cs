@@ -1,6 +1,7 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
@@ -75,9 +76,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            var properties = worksheet.GetFirstChild<SheetProperties>();
-            if (codeName != null) { properties = properties == null ? new SheetProperties() : (SheetProperties)properties.CloneNode(true); properties.CodeName = codeName; }
-            XlsbWorksheetPropertiesWriter.Write(output, properties, sheet.Name);
+            OfficeXmlNode worksheetRoot = OfficeXmlNode.FromSdk(worksheet);
+            XlsbWorksheetPropertiesWriter.Write(output,
+                XlsbWorksheetMarkup.Child(worksheetRoot, XlsbWorksheetPropertiesProjector.ElementName), sheet.Name, codeName);
             XlsbRecordWriter.Write(output, BrtWsDim, geometry.DimensionPayload);
             foreach (XlsbGeneratedRecord record in geometry.PrefixRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
@@ -97,19 +98,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
             }
             XlsbRecordWriter.Write(output, BrtEndSheetData);
-            XlsbWorksheetProtectionWriter.Write(output, worksheet.GetFirstChild<SheetProtection>());
+            XlsbWorksheetProtectionWriter.Write(output, XlsbWorksheetMarkup.Child(worksheetRoot, XlsbWorksheetProtectionProjector.ElementName));
             XlsbWorksheetAutoFilterWriter.Write(output, worksheet.GetFirstChild<AutoFilter>(), sheet.Name);
             WriteRecords(output, geometry.SuffixRecords);
             WriteRecords(output, features.ConditionalFormatting);
             WriteRecords(output, features.DataValidations);
             WriteRecords(output, hyperlinkRecords);
-            XlsbWorksheetPrintSettingsWriter.Write(
-                output,
-                worksheet.GetFirstChild<PrintOptions>(),
-                worksheet.GetFirstChild<PageMargins>(),
-                worksheet.GetFirstChild<PageSetup>(),
-                worksheet.GetFirstChild<HeaderFooter>(),
-                sheet.Name);
+            XlsbWorksheetPrintSettingsWriter.Write(output, worksheetRoot, sheet.Name);
             WriteRecords(output, features.PageBreaks);
             WriteRecords(output, features.IgnoredErrors);
             WriteRecords(output, features.Drawings);
