@@ -16,7 +16,7 @@
 | --- | --- |
 | Containers read | ZIP (stored, Deflate, ZIP64, descriptors), 7z (Copy, LZMA, LZMA2, encoded headers, solid folders), CAB (Store, MSZIP, LZX), MSI (CFB database, embedded cabinets), TAR (ustar, pax, GNU, v7), .tar.gz, gzip |
 | Containers written | ZIP, TAR, .tar.gz, gzip, all byte-identical across platforms and targets |
-| Codecs | Deflate encoder (managed, deterministic), Deflate validation in `OfficeIMO.Core` with runtime inflate, LZMA and LZMA2 decoders (7z), LZX decoder (CAB, shared in Core), MSZIP |
+| Codecs | Deflate encoder (managed, deterministic), Deflate validation in `OfficeIMO.Core` with runtime inflate, LZMA and LZMA2 decoders (7z), LZX decoder (CAB, shared in Core), MSZIP, Zstandard decoder |
 | Checksums | CRC-32 (several private copies across Core, Email, OneNote and Png), Adler-32 inside zlib |
 | Safety | Portable-path checks, staged atomic extraction, symlink/reparse refusal, per-member and aggregate byte limits, decode-work accounting, shared `ArchiveOperationBudget` across related containers |
 | Beyond the usual archive library | MSI payload extraction with File/Directory/Media resolution and alias proof; passive inventory that keeps raw names and ordinals; `PlanRead` cost plans before decoding; atomic grouped reads; verified copies through a private spool; `ArchiveResourceUsage` reports; nested-archive traversal in `OfficeIMO.Reader.Zip` |
@@ -30,7 +30,7 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | Deflate decode / encode | Yes / yes, levels | Runtime inflate behind managed validation / managed deterministic encoder, one level | Managed inflate (WASM and determinism-independent), encoder levels |
 | zlib, gzip | Yes | gzip read and write; zlib internal only | Public zlib |
 | Deflate64 (ZIP method 9) | Decode and encode | No | Decision: no formal specification |
-| Zstandard | Decode, encode (levels 1–22), dictionaries, training, long-distance matching, multithreaded jobs, seekable format | No | Decode first, then encode, dictionaries, seekable format |
+| Zstandard | Decode, encode (levels 1–22), dictionaries, training, long-distance matching, multithreaded jobs, seekable format | Decode with dictionaries (`ZstandardArchive`) | Container integration, encoder, training, seekable format |
 | LZ4 | Block and frame, levels, dictionaries | No | Decode and encode |
 | Brotli | Decode and encode (qualities 0–11) | Runtime `BrotliStream` on .NET 8+ only (WOFF2, CSV) | Managed decode on every target, then encode |
 | LZMA, LZMA2 | Decode and encode | Decode (7z) | Encoder |
@@ -50,9 +50,9 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | Compound files | Versions 3 and 4, read and write, recovery mode on read | Read and write in Core (MSI, legacy Office) | Recovery reading where a consumer needs it |
 | RAR 5 | Listing and stored entries | No | Separate work in progress |
 | Small messages | Frame-per-message and flushed-stream modes for Zstandard and LZ4 with trained dictionaries | No | With Zstandard dictionaries |
-| Single compressed files | `.gz .bz2 .zst .lz4 .xz .lz`, `.br` by name, `.tar.*` detection | gzip only | Content-sniffed single-stream reading for every codec that has a signature; Brotli only with an explicit format or a `.br` name, since a Brotli stream has no signature (a single `0x06` byte is a valid empty stream) |
+| Single compressed files | `.gz .bz2 .zst .lz4 .xz .lz`, `.br` by name, `.tar.*` detection | gzip through `ArchiveExtractor`; standalone Zstandard streams through `ZstandardArchive` (not detected automatically yet) | Content-sniffed single-stream reading for every codec that has a signature; Brotli only with an explicit format or a `.br` name, since a Brotli stream has no signature (a single `0x06` byte is a valid empty stream) |
 | Format detection | From bytes, then extension | Caller chooses the API | `ArchiveInspector` sniffing across every container and codec with a signature; Brotli is never guessed from content |
-| Typed errors | One exception hierarchy with format, offset and expectation | Resource limits typed; corruption mostly `InvalidDataException` | Typed corruption exception with format, offset and expectation |
+| Typed errors | One exception hierarchy with format, offset and expectation | Resource limits typed; `ArchiveCorruptionException` (format, offset, expectation) for new codecs; older readers use `InvalidDataException` | Move the older readers to `ArchiveCorruptionException` |
 | Determinism | Byte-identical across OS, CPU, runtime, threads | Byte-identical across OS and target frameworks | Extend to every encoder and to thread count |
 | Targets | `net10.0`; AOT, trim, browser WASM | `netstandard2.0`, `net472`, `net8.0`, `net10.0`; AOT smoke | Keep the wider target set; add a WASM smoke |
 

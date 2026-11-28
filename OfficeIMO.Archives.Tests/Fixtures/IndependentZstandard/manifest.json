@@ -1,0 +1,89 @@
+{
+  "producer": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+  "source": "https://github.com/facebook/zstd/releases",
+  "verification": "zstd -t (with -D for dictionary fixtures and --long=27 for the large window) applied to each fixture.",
+  "dictionaries": {
+    "trained.dict": "zstd --train over 400 generated JSON messages, --maxdict=1024 --dictID=4242.",
+    "raw-content.dict": "Plain bytes without the dictionary magic number."
+  },
+  "fixtures": [
+    {
+      "file": "text-level1.zst",
+      "input": "inputs/text.txt",
+      "command": "zstd -1 inputs/text.txt -o text-level1.zst",
+      "sha256": "c1b4f629bde854ad51b11a0d9961750aca512f4810a48b22ef668404c07999b8"
+    },
+    {
+      "file": "text-level3-check.zst",
+      "input": "inputs/text.txt",
+      "command": "zstd -3 --check inputs/text.txt -o text-level3-check.zst",
+      "sha256": "048723cbdec413a4945045737b31b30364b84c740044c1e9be421ddb02c1e88b"
+    },
+    {
+      "file": "text-level19-nocheck.zst",
+      "input": "inputs/text.txt",
+      "command": "zstd -19 --no-check inputs/text.txt -o text-level19-nocheck.zst",
+      "sha256": "4ba74621aadc85c42c6b890580a37374d835a87c563e8e54ca3737543a97fb2c"
+    },
+    {
+      "file": "mixed-level22.zst",
+      "input": "inputs/mixed.bin",
+      "command": "zstd --ultra -22 inputs/mixed.bin -o mixed-level22.zst",
+      "sha256": "ddb54b7a10765174f92b5fc6ccc75eb259fb9873ad8b4713e859d87bf5664e2e"
+    },
+    {
+      "file": "mixed-level-fast.zst",
+      "input": "inputs/mixed.bin",
+      "command": "zstd --fast=5 inputs/mixed.bin -o mixed-level-fast.zst",
+      "sha256": "ce2aafa2f4cf07fc5d4d16077c34fdd88115c083ea60fb08e3fc5c18cf8c1e37"
+    },
+    {
+      "file": "mixed-window1k.zst",
+      "input": "inputs/mixed.bin",
+      "command": "zstd -12 --zstd=windowLog=10 inputs/mixed.bin -o mixed-window1k.zst",
+      "sha256": "62f0ef573dc107d83a02c0d5c3a1e386ecfbbd09c0715f42965d29c13bcaadf5"
+    },
+    {
+      "file": "mixed-blocks.zst",
+      "input": "inputs/mixed.bin",
+      "command": "zstd -6 --zstd=targetLength=16 --no-content-size inputs/mixed.bin -o mixed-blocks.zst",
+      "sha256": "0add8480ffb150a2faff015e340f8a3c64d4eefb9a03e47c7574b58ecf74589f"
+    },
+    {
+      "file": "empty.zst",
+      "input": "inputs/empty.bin",
+      "command": "zstd -3 inputs/empty.bin -o empty.zst",
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c"
+    },
+    {
+      "file": "message-trained-dict.zst",
+      "input": "inputs/message.json",
+      "command": "zstd -3 -D trained.dict inputs/message.json -o message-trained-dict.zst",
+      "sha256": "3d266a5598ea80582491d944491fb66b034bc22aa9f6b042f07cae26593682f8"
+    },
+    {
+      "file": "message-raw-dict.zst",
+      "input": "inputs/message.json",
+      "command": "zstd -3 -D raw-content.dict inputs/message.json -o message-raw-dict.zst",
+      "sha256": "f5b2b489425b5b407ac2a17c0b9e2a53740561341c857cea5b2e74ef943ba23d"
+    },
+    {
+      "file": "text-window128m.zst",
+      "input": "inputs/text.txt",
+      "command": "zstd -3 --long=27 -c < inputs/text.txt > text-window128m.zst",
+      "sha256": "1a49274d7c9fb961fa2e427534205a27942abacbaac8fe917c3c4f42666beb77"
+    },
+    {
+      "file": "text4-window1k.zst",
+      "input": "inputs/text.txt four times",
+      "command": "cat inputs/text.txt inputs/text.txt inputs/text.txt inputs/text.txt > text4.txt; zstd -12 --zstd=windowLog=10 text4.txt -o text4-window1k.zst",
+      "sha256": "4ae5351f248e1c0a1ff57b129e9f946893f5b11bac867140ec8faac2cebd203b"
+    },
+    {
+      "file": "concatenated.zst",
+      "input": "inputs/text.txt + inputs/mixed.bin",
+      "command": "text-level1.zst, a 5-byte skippable frame (magic 0x184D2A50), then mixed-level-fast.zst",
+      "sha256": "31108ef918fdaf381fff0ac261904b4107459493673537e8f799c64bbbeca531"
+    }
+  ]
+}

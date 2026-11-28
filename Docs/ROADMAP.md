@@ -633,8 +633,7 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 The [archive codecs and containers design](officeimo.archives-codecs-design.md) sets the codec set, package placement, specifications and proof for the items below. Each lands with reference-tool fixtures from a committed script, typed malformed-input errors with offsets, default-on limits and, for encoders, determinism pins.
 
-- [ ] Add a typed archive corruption exception that names the format, byte offset and expected structure, and one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
-- [ ] Decode Zstandard (RFC 8878) frames, skippable frames and dictionaries with window and memory limits, as single `.zst` streams and `.tar.zst`.
+- [ ] Report corruption in the existing ZIP, 7z, CAB, MSI, TAR and gzip readers through `ArchiveCorruptionException` with offsets, and add one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
 - [ ] Read encrypted ZIP members: traditional ZipCrypto (PKWARE APPNOTE) and WinZip AES (AE-1 and AE-2), with the password supplied through options. Encrypted members are rejected today.
 - [ ] Read and write TAR wrapped in Zstandard, xz, lzip, LZ4 and Brotli (and bzip2 after the specification decision) alongside gzip, as each decoder and encoder lands, with content-based detection in `ArchiveExtractor` and `ArchiveReader.ReadTar`.
 - [ ] Rename `OfficeIMO.Reader.Zip` to `OfficeIMO.Reader.Archives` for 4.0 (`AddArchiveHandler`, `ReaderArchiveOptions`) and read 7z, CAB and RAR stored entries automatically like ZIP, TAR and gzip, with MSI opt-in. Nested archives of any supported kind use the same nested path and limits, and each new TAR wrapper is picked up as it lands.

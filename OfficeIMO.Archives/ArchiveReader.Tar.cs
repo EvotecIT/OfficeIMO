@@ -86,6 +86,8 @@ public static partial class ArchiveReader {
                 token.ThrowIfCancellationRequested();
                 long remaining = (remainingInput ?? limits.Input) - snapshot.Length;
                 int read = source.Read(buffer, 0, remaining >= buffer.Length ? buffer.Length : (int)remaining + 1);
+                // A read can request cancellation as it returns; nothing it delivered is charged or limited after that.
+                token.ThrowIfCancellationRequested();
                 if (read == 0) break;
                 if (read > remaining) throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxInputBytes), limits.Input);
                 limits.Operation.AdmitInput(read);
