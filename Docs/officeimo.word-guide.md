@@ -281,7 +281,7 @@ OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
 streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
 single-payload convenience API. Streams are complete, read-only and caller-owned;
 they survive disposal of the Word document. Keep the document open while
-requesting a read. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+requesting a read. The [Core payload contract](officeimo.core-guide.md#bounded-embedded-payload-reads)
 defines count, member, aggregate and cumulative work limits, unknown lengths and
 optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
 relationship without reading binary module content; `ModuleInspectionRequested`
@@ -1008,7 +1008,7 @@ and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute V
 
 ### VBA source editing
 
-`ReadVbaProject()` returns a detached [native VBA model](../OfficeIMO.Core/README.md#native-vba-projects),
+`ReadVbaProject()` returns a detached [native VBA model](officeimo.core-guide.md#native-vba-projects),
 or `null` when the document has no project. Apply edits explicitly:
 
 ```csharp
@@ -1401,7 +1401,7 @@ fallbacks carry supported point styles. Pie legend swatches follow their slices.
 Static area charts use the opaque series fill, honor an explicit no-outline series,
 and report unsupported per-point styling. Imported native point overrides remain
 in the editable chart package.
-See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+See the [shared style example](officeimo.core-guide.md#style-individual-chart-points).
 
 ## SmartArt in headers and footers
 

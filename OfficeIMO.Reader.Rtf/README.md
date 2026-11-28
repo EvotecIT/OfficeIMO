@@ -89,7 +89,7 @@ Enable `ReaderOptions.Inspection` to add bounded loaded-content safety and Unico
 integrity observations. The adapter inspects the already parsed RTF model without
 reopening, saving or executing embedded content. The result includes native coverage
 and omissions rather than treating a missing finding as a safety guarantee.
-[Reader Core](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+[Reader Core](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.reader.md#inspect-review-and-saved-content)
 defines the operation-wide inspection budgets; exceeded native safety or inspection
 ceilings terminate the operation.
 

@@ -41,7 +41,7 @@ document.Save();
 
 Use `OfficeVisualSvgPolicy.RequireVector` when producing a chart for the JavaScript PDF drawing block. Add the same licensed static TrueType faces to `OfficeVisualConversionOptions.Fonts` before conversion so SVG text measurement uses the faces registered during chart preparation. Call `conversion.Report.ThrowIfLoss()`, then pass `conversion.Drawing` to `OfficeDrawingPortableExporter.TryExportJson` in `OfficeIMO.Core` with the selected font family. The JavaScript consumer loads those same faces separately.
 
-This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Core/README.md#portable-report-drawings) for its limits.
+This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.core-guide.md#portable-report-drawings) for its limits.
 
 ## Choose the destination
 

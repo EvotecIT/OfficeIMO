@@ -99,7 +99,7 @@ observations, embedded payload/VBA descriptors and loaded-content safety evidenc
 remain separate categories. They do not execute presentation content or validate
 signature mathematics.
 
-The [shared inspection policy](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+The [shared inspection policy](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.reader.md#inspect-review-and-saved-content)
 controls requested categories and aggregate record/character limits. Exceeded
 inspection or native safety ceilings terminate the operation. Legacy import limits
 and unsupported-feature diagnostics still apply.

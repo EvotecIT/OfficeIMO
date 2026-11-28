@@ -180,7 +180,7 @@ sheet, row and column definitions for the selected sheets.
 Package and content-safety inspection use the loaded owner and original-package
 capture. Payload and VBA records remain inert. Inspection metadata is available on
 rich or structured reads; incremental row chunks do not carry a complete inspection
-record collection. [Reader Core](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+record collection. [Reader Core](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.reader.md#inspect-review-and-saved-content)
 defines the shared budgets and terminal resource failures.
 
 ## Targets and dependencies

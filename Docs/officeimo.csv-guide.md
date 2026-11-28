@@ -379,7 +379,7 @@ Use the three-argument `FromColumn` or `FromColumns` overload with
 `RowMappingColumnOptions` for an optional column, a column-specific culture,
 date/time formats, or a converter. Missing optional columns preserve the model's
 initialized value; present invalid values still fail. These controls share the
-same [Core mapping owner](../OfficeIMO.Core/README.md#per-column-row-mapping)
+same [Core mapping owner](officeimo.core-guide.md#per-column-row-mapping)
 across document, reader, async and parallel projections.
 
 For a non-positional record with a public parameterless constructor, an

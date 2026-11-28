@@ -58,7 +58,7 @@ foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.Code}: {diagnostic.Message}");
 ```
 
-The [cached page projection](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/README.md#diagram-page-scenes)
+The [cached page projection](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#diagram-page-scenes)
 retains supported outlines with exact arc, ellipse and Bezier curves, cached
 linear and radial gradient fills, physical strokes, distinct arrowhead kinds,
 text runs and paragraphs, connector routes and bitmap placements. Shape and
@@ -70,7 +70,7 @@ report omissions. Native rendering acceptance for background chains with
 different page sizes or scales remains open. ShapeSheet recalculation, themes, data
 graphics, connector fill artwork, native text fitting and exact
 arrow appearance remain outside the qualified profile. Cached shape reflections
-follow the [native placement contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/README.md#cached-shape-text-frame-placement); native reflected-text appearance acceptance remains open. Shared text fitting, spline and NURBS
+follow the [native placement contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#cached-shape-text-frame-placement); native reflected-text appearance acceptance remains open. Shared text fitting, spline and NURBS
 flattening and arrow proportions report approximations; content that still cannot fit a frame and
 unprojected content report omissions.
 
@@ -121,9 +121,9 @@ foreach (var diagnostic in report.Diagnostics) {
 }
 ```
 
-PNG previews use visible screen layers by default. The example selects printable layers independently of screen visibility. Semantic text and topology still include hidden content; preview selection does not filter searchable PDF content. See the [layer-selection contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/README.md#layer-selection-in-previews) for groups, connectors and multiple memberships.
+PNG previews use visible screen layers by default. The example selects printable layers independently of screen visibility. Semantic text and topology still include hidden content; preview selection does not filter searchable PDF content. See the [layer-selection contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#layer-selection-in-previews) for groups, connectors and multiple memberships.
 
-PNG previews render the supported [embedded-image profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/README.md#legacy-visio-xml),
+PNG previews render the supported [embedded-image profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#legacy-visio-xml),
 including crop offsets, master inheritance and group transforms. PDF composition
 reduces oversized previews proportionally to fit the configured page content
 area. The embedded raster retains its pixels unless the configured image
