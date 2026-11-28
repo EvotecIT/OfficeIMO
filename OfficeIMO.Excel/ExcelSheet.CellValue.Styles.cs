@@ -170,6 +170,17 @@ namespace OfficeIMO.Excel {
         internal bool TryGetCellText(int row, int column, SharedStringCache? sharedStrings, out string text) {
             text = string.Empty;
             try {
+                if (sharedStrings == null && DeferredEntry is { } entry && _excelDocument.HasOwnedLegacyXlsProjection) {
+                    if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns) return false;
+                    if (_excelDocument.TryReadUneditedLegacyXlsCell(entry, row, column, out string? original)) {
+                        text = original ?? string.Empty;
+                        return original != null;
+                    }
+                    ExcelCellData value = FormulaModel.ReadValue(row, column);
+                    text = value.CachedText ?? value.Formula ?? string.Empty;
+                    return !value.IsBlank;
+                }
+
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                     if (_excelDocument.HasDeferredDirectDataSetImport) {
                         _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();

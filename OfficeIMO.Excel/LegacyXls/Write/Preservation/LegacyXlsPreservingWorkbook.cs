@@ -54,8 +54,14 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             }
         }
         foreach (var record in _records.TakeWhile(record => record.Type != 0x000a).Where(record => record.Type == 0x0085)) {
+            if (record.Payload.Length < 8) throw new NotSupportedException("Native preservation requires a complete BoundSheet record.");
             int offset = 7;
-            string name = BiffStringReader.ReadUnicodeStringNoCch(record.Payload, ref offset, record.Payload[6]);
+            string name;
+            try {
+                name = BiffStringReader.ReadUnicodeStringNoCch(record.Payload, ref offset, record.Payload[6]);
+            } catch (Exception exception) when (exception is InvalidDataException or OverflowException) {
+                throw new NotSupportedException("Native preservation requires a valid BoundSheet name.", exception);
+            }
             _nativeSheets.Add(name, _nativeSheets.Count);
         }
         var recordIndexes = _records.Select((record, index) => (record.Offset, Index: index)).ToDictionary(item => item.Offset, item => item.Index);

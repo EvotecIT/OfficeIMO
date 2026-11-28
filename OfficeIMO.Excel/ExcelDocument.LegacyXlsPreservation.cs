@@ -1,9 +1,34 @@
+using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
 
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     private LegacyXlsPreservationSnapshot? _legacyXlsPreservationSnapshot;
+    private LegacyXlsDeferredPreservation? _legacyXlsDeferredPreservation;
+
+    internal bool HasOwnedLegacyXlsProjection => _legacyXlsDeferredPreservation != null;
+
+    private sealed record LegacyXlsDeferredPreservation(byte[] Projection, LegacyXlsWorkbook Workbook, bool NativeRecordsAreComplete);
+
+    /// <summary>Builds the legacy edit baseline only when a save needs native preservation.</summary>
+    private LegacyXlsPreservationSnapshot? GetLegacyXlsPreservationSnapshot(CancellationToken token = default) {
+        if (Volatile.Read(ref _legacyXlsDeferredPreservation) == null) return _legacyXlsPreservationSnapshot;
+
+        return WithDeferredOpenGate(() => {
+            if (_legacyXlsDeferredPreservation is { } original) {
+                token.ThrowIfCancellationRequested();
+                if (original.NativeRecordsAreComplete) {
+                    using ExcelDocument projection = LoadFromByteArray(original.Projection, new ExcelLoadOptions(),
+                        filePath: null, captureSourcePackageSecurity: false);
+                    projection._deferredCreated = true;
+                    _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(projection, original.Workbook, token);
+                }
+                Volatile.Write(ref _legacyXlsDeferredPreservation, null);
+            }
+            return _legacyXlsPreservationSnapshot;
+        });
+    }
 
     internal string GetLegacyXlsCorePropertiesSnapshot() {
         var properties = _spreadSheetDocument.PackageProperties;
@@ -16,11 +41,11 @@ public partial class ExcelDocument {
 
     internal bool TryGetLegacyXlsPreservationPlan(ExcelSaveOptions? options, out LegacyXlsPreservationPlan? plan) {
         plan = null;
-        return SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out plan) == true;
+        return SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && GetLegacyXlsPreservationSnapshot()?.TryCreatePlan(this, out plan) == true;
     }
 
     private bool CanPreserveNativeLegacyXls(ExcelSaveOptions? options) =>
-        SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out _) == true;
+        SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && GetLegacyXlsPreservationSnapshot()?.TryCreatePlan(this, out _) == true;
 
     private bool HasLegacyPreservationTransforms(ExcelSaveOptions? options) =>
         options?.SafeRepairDefinedNames == true || options?.SafePreflight == true || options?.ValidateOpenXml == true;
@@ -33,7 +58,7 @@ public partial class ExcelDocument {
         }
         direct = false; preserved = false;
         var calculation = PrepareNativeCalculationForSave(options);
-        if (SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out var plan, cancellationToken) == true) {
+        if (SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && GetLegacyXlsPreservationSnapshot(cancellationToken)?.TryCreatePlan(this, out var plan, cancellationToken) == true) {
             preserved = true;
             long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
             return LegacyXlsWriter.WithinWorkbookSizeLimit(maximumBytes, () => plan!.Write(null, maximumBytes, cancellationToken, calculation));
