@@ -333,6 +333,151 @@ public sealed class PowerPointVbaProjectReadTests {
         Assert.True(presentation.IsSdkLoaded);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EditsVbaSourceWithTheExistingSignatureAndRecoveryPolicy(bool hasCache) {
+        const string cachePart = "/ppt/vba/cache.bin";
+        const string olePart = "/ppt/embeddings/object1.bin";
+        const string cacheRelationship = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "package";
+        const string projectRelationship = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
+        OfficeVbaProject project = OfficeVbaProject.Create("SourceFixture");
+        project.AddModule("Helpers", "' original source");
+        byte[] original = project.Write().GetBytes();
+        byte[] fixture = CreateFixture(original, includeSignature: true);
+        if (hasCache) {
+            using var reader = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+            string main = reader.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string carrier = reader.GetRelatedPartName(main, projectRelationship)!;
+            string slide = reader.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            using var editable = OfficeOpcEditablePackage.Open(new MemoryStream(fixture, writable: false));
+            editable.CreateBinaryPart(cachePart, "application/octet-stream", new byte[] { 5, 9 });
+            editable.AddRelationship(carrier, cacheRelationship, cachePart, id: "sourceCache");
+            editable.CreateBinaryPart(olePart, "application/vnd.openxmlformats-officedocument.oleObject", new byte[] { 7 });
+            editable.AddRelationship(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "oleObject", olePart, id: "opaqueObject");
+            using var modified = new MemoryStream();
+            editable.Save(modified);
+            fixture = modified.ToArray();
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        Assert.Throws<InvalidDataException>(() => presentation.ReadVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = 1 }));
+        OfficeVbaProject source = presentation.ReadVbaProject()!;
+        Assert.Contains("original source", Assert.Single(source.Modules).Source);
+        presentation.SetVbaProject(source, new OfficeVbaWriteOptions { MaximumRecoveryBytes = 1 });
+        Assert.True(presentation.InspectVbaProjectMetadata()!.HasSignature);
+
+        source.SetModuleSource("Helpers", "' revised source");
+        Assert.Throws<InvalidOperationException>(() => presentation.SetVbaProject(source));
+        Assert.Throws<InvalidDataException>(() => presentation.SetVbaProject(source,
+            new OfficeVbaWriteOptions { AllowSignatureRemoval = true, MaximumRecoveryBytes = 1 }));
+        Assert.True(presentation.InspectVbaProjectMetadata()!.HasSignature);
+        Assert.Equal(original, presentation.GetVbaProjectBytes());
+        Assert.False(presentation.IsSdkLoaded);
+
+        using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        _ = baseline.OpenXmlDocument;
+        var options = new OfficeVbaWriteOptions { AllowSignatureRemoval = true };
+        baseline.SetVbaProject(source, options);
+        presentation.SetVbaProject(source, options);
+        Assert.Equal(baseline.GetVbaProjectBytes(), presentation.GetVbaProjectBytes());
+        byte[] saved = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptm });
+        Assert.False(presentation.IsSdkLoaded);
+
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+        Assert.False(reopened.InspectVbaProjectMetadata()!.HasSignature);
+        Assert.Contains("revised source", Assert.Single(reopened.ReadVbaProject()!.Modules).Source);
+        using var package = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+        Assert.Equal(hasCache, package.PartExists(cachePart));
+        Assert.Equal(hasCache, package.PartExists(olePart));
+        if (hasCache) {
+            using var storedCache = package.ReadPart(cachePart);
+            Assert.Equal(new byte[] { 5, 9 }, storedCache.Array.Take(storedCache.Length));
+        }
+    }
+
+    [Fact]
+    public void AddsADetachedSourceProjectToAnOwnedPresentation() {
+        using var presentation = PowerPointDocument.Create();
+        Assert.Null(presentation.ReadVbaProject());
+        OfficeVbaProject project = OfficeVbaProject.Create();
+        project.AddModule("Helpers", "' source only");
+
+        presentation.SetVbaProject(project);
+        byte[] saved = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptm });
+
+        Assert.False(presentation.IsSdkLoaded);
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+        Assert.Contains("source only", Assert.Single(reopened.ReadVbaProject()!.Modules).Source);
+        Assert.False(reopened.IsSdkLoaded);
+    }
+
+    [Theory]
+    [InlineData("fixed part type")]
+    [InlineData("relationship part type")]
+    [InlineData("relationship markup")]
+    [InlineData("duplicate relationship part type")]
+    public void DetachedVbaSourceOperationsKeepTheSdkErrorForAMalformedPackage(string defect) {
+        OfficeVbaProject source = OfficeVbaProject.Create();
+        source.AddModule("Helpers", "' original source");
+        byte[] original = source.Write().GetBytes();
+        byte[] seed = CreateFixture(original, includeSignature: false);
+        using var info = OfficeOpcPackage.Open(new MemoryStream(seed, writable: false));
+        string main = info.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+        string view = info.GetRelatedPartName(main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "viewProps")!;
+        using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(seed, writable: false));
+        if (defect == "relationship markup") {
+            OfficeXmlTree relationships = edit.GetRelationships(main);
+            relationships.Append(relationships.Root, relationships.CreateElement(OfficeXmlNamespaces.PackageRelationships, "Unexpected"));
+        } else if (defect == "duplicate relationship part type") {
+            string relationships = OfficeOpcPartNames.GetRelationshipsPartName(main);
+            edit.SetOverride(relationships, "application/xml");
+            OfficeXmlTree types = edit.ContentTypes;
+            int duplicate = types.CreateElement(OfficeXmlNamespaces.ContentTypes, "Override");
+            types.SetAttribute(duplicate, OfficeXmlNamespaces.None, "PartName", relationships);
+            types.SetAttribute(duplicate, OfficeXmlNamespaces.None, "ContentType", OfficeOpcEditablePackage.RelationshipContentType);
+            types.Append(types.Root, duplicate);
+        } else {
+            edit.SetOverride(defect == "relationship part type" ? OfficeOpcPartNames.GetRelationshipsPartName(main) : view, "application/xml");
+        }
+        using var output = new MemoryStream();
+        edit.Save(output);
+        byte[] fixture = output.ToArray();
+
+        using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        Exception expected = Assert.ThrowsAny<Exception>(() => {
+            _ = baseline.OpenXmlDocument;
+            _ = baseline.ReadVbaProject();
+        });
+        using var reader = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        Assert.IsType(expected.GetType(), Record.Exception(() => reader.ReadVbaProject()));
+
+        using var writer = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        source.SetModuleSource("Helpers", "' changed source");
+        Assert.IsType(expected.GetType(), Record.Exception(() => writer.SetVbaProject(source)));
+        Assert.Equal(original, writer.GetVbaProjectBytes());
+    }
+
+    [Fact]
+    public void SourceVbaAttachmentKeepsItsPartSequenceAcrossSdkHandoff() {
+        OfficeVbaProject project = OfficeVbaProject.Create();
+        project.AddModule("Helpers", "' source only");
+        using var baseline = PowerPointDocument.Create();
+        _ = baseline.OpenXmlDocument;
+        baseline.SetVbaProject(project);
+        Assert.True(baseline.RemoveVbaProject());
+        baseline.SetVbaProject(project);
+
+        using var presentation = PowerPointDocument.Create();
+        presentation.SetVbaProject(project);
+        Assert.True(presentation.RemoveVbaProject());
+        Assert.False(presentation.IsSdkLoaded);
+        _ = presentation.OpenXmlDocument;
+        presentation.SetVbaProject(project);
+
+        Assert.Equal(baseline.InspectVbaProjectMetadata()!.PartUri, presentation.InspectVbaProjectMetadata()!.PartUri);
+    }
+
     private static PowerPointDocument LoadReadOnly(byte[] fixture) =>
         PowerPointDocument.Load(new MemoryStream(fixture, writable: false),
             new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });

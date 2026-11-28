@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
                 bool projectOutput = !keepsSubtype || stripVba;
                 if (stripVba && destinationContentType == null) return false;
                 bool validateSubtype = projectOutput || !IsLoadedStandardPresentation;
-                if (validateSubtype && !CanSaveCurrentSubtype(editable, projectOutput, keepsSubtype ? null : values.MainPart)) return false;
+                if (validateSubtype && !CanSaveCurrentSubtype(editable, keepsSubtype ? null : values.MainPart)) return false;
                 PackageSaveProjection? projection = null;
                 if (projectOutput && !TryPlanPackageSaveProjection(editable, values.MainPart, keepsSubtype ? null : destinationContentType,
                     stripVba, out projection)) return false;

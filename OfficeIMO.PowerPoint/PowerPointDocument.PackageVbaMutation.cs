@@ -7,16 +7,29 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         private sealed record PackageVbaMutation(
             string Main, string Project, string? AddedRelationship, OfficeXmlTree? Relationships,
-            IReadOnlyList<int> RemovedRelationships, IReadOnlyList<string> RemovedParts);
+            IReadOnlyList<int> RemovedRelationships, IReadOnlyList<string> RemovedParts,
+            bool RemoveProjectRelationships = false, IReadOnlyCollection<string>? RecoveryParts = null);
 
-        private bool TryMutatePackageVbaProject(byte[]? project, out bool removed) {
+        private bool TryMutatePackageVbaProject(byte[]? project, out bool removed, OfficeVbaWriteOptions? sourceOptions = null) {
             removed = false;
-            if (EditablePackage is not { } package || !TryPlanPackageVbaMutation(package, project == null, out PackageVbaMutation? plan)) {
+            if (EditablePackage is not { } package || !TryPlanPackageVbaMutation(package, project == null,
+                out PackageVbaMutation? plan, preserveNonSignatureParts: sourceOptions != null)) {
                 return false;
             }
             if (plan == null) return true;
+            if (sourceOptions != null) {
+                if (sourceOptions.MaximumRecoveryBytes < 1) throw new ArgumentOutOfRangeException(nameof(sourceOptions.MaximumRecoveryBytes));
+                if (plan.RecoveryParts is { } parts) {
+                    if (PackageVbaBytesMatch(package, plan.Project, project!)) return true;
+                    if (plan.RemovedRelationships.Count != 0 && !sourceOptions.AllowSignatureRemoval) {
+                        throw new InvalidOperationException("Changing the VBA project invalidates its signatures. Explicit signature removal is required.");
+                    }
+                    ValidatePackageVbaRecovery(package, parts, sourceOptions.MaximumRecoveryBytes);
+                }
+            }
 
-            byte[]? stored = project == null ? null : (byte[])project.Clone();
+            // The source editor supplies its own byte array. The byte-array API retains caller ownership.
+            byte[]? stored = project == null || sourceOptions != null ? project : (byte[])project.Clone();
             if (plan.AddedRelationship is { } id) {
                 string part = UniquePartName(package, VbaProjectContentType, plan.Project);
                 package.CreateBinaryPart(part, VbaProjectContentType, stored!);
@@ -31,8 +44,9 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (stored != null) {
                     package.ReplacePart(plan.Project, stored, stored.Length);
-                    string projectRelationships = OfficeOpcPartNames.GetRelationshipsPartName(plan.Project);
-                    if (package.PartExists(projectRelationships)) package.DeletePart(projectRelationships);
+                    if (plan.RemoveProjectRelationships) {
+                        package.DeletePart(OfficeOpcPartNames.GetRelationshipsPartName(plan.Project));
+                    }
                 }
                 foreach (string part in plan.RemovedParts) {
                     string partRelationships = OfficeOpcPartNames.GetRelationshipsPartName(part);
@@ -46,11 +60,13 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private bool TryPlanPackageVbaMutation(OfficeOpcEditablePackage package, bool remove, out PackageVbaMutation? plan) {
+        private bool TryPlanPackageVbaMutation(OfficeOpcEditablePackage package, bool remove, out PackageVbaMutation? plan,
+            bool preserveNonSignatureParts = false) {
             plan = null;
             try {
                 if (package.PartNames.Any(name => name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) &&
                     OfficeOpcPieceAssembler.HasPieceSuffix(name))) return false;
+                if (preserveNonSignatureParts && !HasUniqueContentTypeEntries(package.ContentTypes)) return false;
                 string? main = FirstRelated(package, null, OfficeOpcPackage.OfficeDocumentRelationshipType, out _);
                 if (main == null || package.GetPartName(main) is not { } mainPart) return false;
 
@@ -75,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
                             graph.Add(source, edges);
                         }
                         edges.Add(relationship);
-                    })) return false;
+                    }, validateForSave: preserveNonSignatureParts)) return false;
 
                 string mainIdentity = PartIdentity(mainPart);
                 if (!graph.TryGetValue(mainIdentity, out List<PackageGraphRelationship>? children)) {
@@ -89,23 +105,38 @@ namespace OfficeIMO.PowerPoint {
                 string identity = PartIdentity(current.Part);
                 IReadOnlyList<OfficeOpcRelationship>? projectLinks = ReadVbaMutationRelationships(package, current.Part);
                 if (projectLinks == null || projectLinks.Any(link => link.IsExternal || IsReferenceRelationship(link.Type))) return false;
+                HashSet<string>? signatureIds = null;
+                if (preserveNonSignatureParts) {
+                    signatureIds = new HashSet<string>(StringComparer.Ordinal);
+                    if (graph.TryGetValue(identity, out List<PackageGraphRelationship>? projectChildren)) {
+                        foreach (PackageGraphRelationship edge in projectChildren) {
+                            if (IsVbaProjectSignature(edge.Type, edge.ContentType)) signatureIds.Add(edge.Id);
+                        }
+                    }
+                }
                 OfficeXmlTree? relationships = null;
                 int[] edgesToRemove = Array.Empty<int>();
-                if (remove || projectLinks.Count != 0) {
+                if (remove || (signatureIds?.Count ?? projectLinks.Count) != 0) {
                     relationships = package.GetRelationships(remove ? mainPart : current.Part);
                     edgesToRemove = remove
                         ? new[] { FindRelationship(relationships, current.Id) }
-                        : projectLinks.Select(link => FindRelationship(relationships, link.Id)).ToArray();
+                        : projectLinks.Where(link => signatureIds == null || signatureIds.Contains(link.Id))
+                            .Select(link => FindRelationship(relationships, link.Id)).ToArray();
                     if (edgesToRemove.Any(edge => edge == OfficeXmlTree.NoNode)) return false;
                 }
 
-                Dictionary<string, string> kept = ReachVbaPackageParts(graph, string.Empty, mainIdentity,
-                    remove ? current.Id : null, remove ? null : identity);
                 Dictionary<string, string> projectGraph = ReachVbaPackageParts(graph, current.Part, null, null, null);
                 // An SDK data part is accounted for separately from the child parts walked above.
                 if (referencedData.Any(edge => projectGraph.ContainsKey(edge.Owner) || projectGraph.ContainsKey(edge.Target))) return false;
-                string[] dead = projectGraph.Where(part => !kept.ContainsKey(part.Key)).Select(part => part.Value).ToArray();
-                plan = new PackageVbaMutation(mainPart, current.Part, null, relationships, edgesToRemove, dead);
+                string[] dead = Array.Empty<string>();
+                if (signatureIds == null || signatureIds.Count > 0) {
+                    Dictionary<string, string> kept = ReachVbaPackageParts(graph, string.Empty, signatureIds == null ? mainIdentity : identity,
+                        remove ? current.Id : null, remove || signatureIds != null ? null : identity, skipIds: signatureIds);
+                    dead = projectGraph.Where(part => !kept.ContainsKey(part.Key)).Select(part => part.Value).ToArray();
+                }
+                bool removeRelationships = !remove && (signatureIds == null || signatureIds.Count > 0 && signatureIds.Count == projectLinks.Count);
+                plan = new PackageVbaMutation(mainPart, current.Part, null, relationships, edgesToRemove, dead, removeRelationships,
+                    preserveNonSignatureParts ? projectGraph.Values : null);
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException or
                 ArgumentException or NotSupportedException or InvalidOperationException or OverflowException) {
@@ -142,7 +173,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static Dictionary<string, string> ReachVbaPackageParts(Dictionary<string, List<PackageGraphRelationship>> graph,
-            string start, string? skipOwner, string? skipId, string? stopAt) {
+            string start, string? skipOwner, string? skipId, string? stopAt, HashSet<string>? skipIds = null) {
             string startIdentity = PartIdentity(start);
             var found = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance) { [startIdentity] = start };
             var pending = new Stack<string>();
@@ -150,9 +181,9 @@ namespace OfficeIMO.PowerPoint {
             while (pending.Count > 0) {
                 string source = pending.Pop();
                 if (OfficeAsciiIgnoreCaseComparer.Instance.Equals(source, stopAt) || !graph.TryGetValue(source, out var edges)) continue;
-                bool skip = skipId != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(source, skipOwner);
+                bool skip = (skipId != null || skipIds != null) && OfficeAsciiIgnoreCaseComparer.Instance.Equals(source, skipOwner);
                 foreach (PackageGraphRelationship edge in edges) {
-                    if (skip && edge.Id == skipId) continue;
+                    if (skip && (edge.Id == skipId || skipIds?.Contains(edge.Id) == true)) continue;
                     string part = PartIdentity(edge.Part);
                     if (found.ContainsKey(part)) continue;
                     found.Add(part, edge.Part);

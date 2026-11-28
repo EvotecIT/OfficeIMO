@@ -49,19 +49,20 @@ public sealed partial class PowerPointDocument {
     private readonly record struct PackageGraphRelationship(string? Owner, string Id, string Type, string Part, string ContentType);
 
     private static bool TryVisitPackageGraph(OfficeOpcEditablePackage package, CancellationToken cancellationToken,
-        Action<PackageGraphRelationship> visit, string? root = null) {
+        Action<PackageGraphRelationship> visit, string? root = null, bool validateForSave = false) {
         if (package.PartNames.Any(name => name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) &&
             OfficeOpcPieceAssembler.HasPieceSuffix(name))) return false;
-        return TryVisitPackageGraph(owner => ReadEditablePackageRelationships(package, owner), package.GetPartName,
-            package.GetContentType, cancellationToken, visit, root);
+        if (validateForSave && !HasUniqueContentTypeEntries(package.ContentTypes)) return false;
+        return TryVisitPackageGraph(owner => ReadEditablePackageRelationships(package, owner, strictXml: validateForSave), package.GetPartName,
+            package.GetContentType, cancellationToken, visit, root, validateForSave);
     }
 
     private static bool TryVisitPackageGraph(OfficeOpcPackage package, CancellationToken cancellationToken,
-        Action<PackageGraphRelationship> visit) {
-        if (package.HasInterleavedParts) return false;
+        Action<PackageGraphRelationship> visit, bool validateForSave = false) {
+        if (package.HasInterleavedParts || validateForSave && package.HasDuplicateContentTypes) return false;
         try {
-            return TryVisitPackageGraph(package.GetRelationships, package.GetPartName, package.GetContentType,
-                cancellationToken, visit);
+            return TryVisitPackageGraph(validateForSave ? package.GetStandardRelationships : package.GetRelationships,
+                package.GetPartName, package.GetContentType, cancellationToken, visit, validateForSave: validateForSave);
         } catch (Exception exception) when (exception is InvalidDataException or IOException or System.Xml.XmlException
             or ArgumentException or NotSupportedException or InvalidOperationException or OverflowException) {
             // The existing SDK opener decides how to report or repair malformed relationships.
@@ -69,15 +70,37 @@ public sealed partial class PowerPointDocument {
         }
     }
 
+    private static bool HasUniqueContentTypeEntries(OfficeXmlTree types) {
+        const int ns = OfficeXmlNamespaces.ContentTypes;
+        var defaults = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var overrides = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
+        for (int node = types.FindChild(types.Root, ns, "Default"); node != OfficeXmlTree.NoNode;
+             node = types.FindNextSibling(node, ns, "Default")) {
+            string? extension = types.GetAttribute(node, OfficeXmlNamespaces.None, "Extension");
+            if (extension != null && !defaults.Add(extension)) return false;
+        }
+        for (int node = types.FindChild(types.Root, ns, "Override"); node != OfficeXmlTree.NoNode;
+             node = types.FindNextSibling(node, ns, "Override")) {
+            string? part = types.GetAttribute(node, OfficeXmlNamespaces.None, "PartName");
+            if (part != null && !overrides.Add(PartIdentity(part))) return false;
+        }
+        return true;
+    }
+
     private static bool TryVisitPackageGraph(Func<string?, IReadOnlyList<OfficeOpcRelationship>?> getRelationships,
         Func<string, string?> getPartName, Func<string, string?> getContentType, CancellationToken cancellationToken,
         Action<PackageGraphRelationship> visit, string? root = null, bool validateForSave = false) {
         var visited = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
+        HashSet<string>? dataParts = null;
         var pending = new Queue<string?>();
         pending.Enqueue(root);
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             string? owner = pending.Dequeue();
+            if (validateForSave) {
+                string part = OfficeOpcPartNames.GetRelationshipsPartName(owner);
+                if (getPartName(part) != null && getContentType(part) != OfficeOpcEditablePackage.RelationshipContentType) return false;
+            }
             if (getRelationships(owner) is not { } relationships) return false;
             if (relationships.Count == 0) continue;
             var targets = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
@@ -94,15 +117,16 @@ public sealed partial class PowerPointDocument {
                 bool reference = IsReferenceRelationship(relationship.Type);
                 if (reference && (!validateForSave || relationship.Type == PowerPointPartRef.HyperlinkRelationshipType)) continue;
                 if (relationship.TargetPartName is not { } target || getPartName(target) is not { } part) return false;
+                string identity = OfficeOpcPackage.GetPartIdentity(part);
                 if (reference) {
                     // The SDK clones referenced media data parts, which do not contribute child relationships.
                     string? dataType = getContentType(part);
-                    if (dataType == null || !MatchesSubtypeSavePart(relationship.Type, dataType)) return false;
+                    if (dataType == null || !MatchesSubtypeSavePart(relationship.Type, dataType) || visited.ContainsKey(identity)) return false;
+                    (dataParts ??= new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance)).Add(identity);
                     visit(new PackageGraphRelationship(owner, relationship.Id, relationship.Type, part, dataType));
                     continue;
                 }
-                string identity = OfficeOpcPackage.GetPartIdentity(part);
-                if (!targets.Add(identity)) return false;
+                if (!targets.Add(identity) || dataParts?.Contains(identity) == true) return false;
                 if (visited.TryGetValue(identity, out string? previousType)) {
                     if (previousType != relationship.Type) return false;
                 } else {

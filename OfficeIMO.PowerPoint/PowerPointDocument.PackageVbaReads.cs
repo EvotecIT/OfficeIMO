@@ -18,21 +18,21 @@ public sealed partial class PowerPointDocument {
     }
 
     private bool TryReadPackageVbaProject(long? maximumBytes, bool inspectSignature,
-        out PackageVbaProject? project, out byte[]? bytes) {
+        out PackageVbaProject? project, out byte[]? bytes, bool validateForSource = false) {
         project = null;
         bytes = null;
         if (!_sdkDeferred || IsSdkLoaded || _deferredOpenSettings?.MaxCharactersInPart > 0) return false;
         SemaphoreSlim gate = PayloadReadGate;
         gate.Wait();
         try {
-            return TryReadPackageVbaProjectCore(maximumBytes, inspectSignature, out project, out bytes);
+            return TryReadPackageVbaProjectCore(maximumBytes, inspectSignature, out project, out bytes, validateForSource);
         } finally {
             gate.Release();
         }
     }
 
     private bool TryReadPackageVbaProjectCore(long? maximumBytes, bool inspectSignature,
-        out PackageVbaProject? project, out byte[]? bytes) {
+        out PackageVbaProject? project, out byte[]? bytes, bool validateForSource) {
         project = null;
         bytes = null;
         OfficeOpcPackage? loaded = LoadedPackageForCurrentBytes;
@@ -55,16 +55,20 @@ public sealed partial class PowerPointDocument {
             if (relationship.Owner == mainPart && relationship.Type == VbaProjectRelationshipType) {
                 projectPart ??= relationship.Part;
             }
-            if (inspectSignature && relationship.Owner is { } owner &&
-                (relationship.Type.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                 relationship.ContentType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0)) {
+            if (inspectSignature && relationship.Owner is { } owner && IsVbaProjectSignature(relationship.Type, relationship.ContentType)) {
                 (signatureOwners ??= new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance)).Add(owner);
             }
         }
 
-        bool visited = loaded != null
-            ? TryVisitPackageGraph(loaded, default, InspectRelationship)
-            : TryVisitPackageGraph(editable!, default, InspectRelationship);
+        bool visited;
+        try {
+            visited = loaded != null
+                ? TryVisitPackageGraph(loaded, default, InspectRelationship, validateForSave: validateForSource)
+                : TryVisitPackageGraph(editable!, default, InspectRelationship, validateForSave: validateForSource);
+        } catch (Exception exception) when (validateForSource && (exception is InvalidDataException or IOException or System.Xml.XmlException
+            or ArgumentException or NotSupportedException or InvalidOperationException or OverflowException)) {
+            return false;
+        }
         if (!visited) return false;
         if (projectPart == null) return true;
         string? contentType = loaded?.GetContentType(projectPart) ?? editable?.GetContentType(projectPart);
@@ -78,4 +82,8 @@ public sealed partial class PowerPointDocument {
         project = new PackageVbaProject(projectPart, signatureOwners?.Contains(projectPart) == true);
         return true;
     }
+
+    private static bool IsVbaProjectSignature(string relationshipType, string contentType) =>
+        relationshipType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        contentType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0;
 }

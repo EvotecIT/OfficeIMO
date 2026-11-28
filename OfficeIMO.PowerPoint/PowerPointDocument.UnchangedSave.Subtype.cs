@@ -5,17 +5,14 @@ using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package, bool projectOutput, string? renamedPart) {
+        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package, string? renamedPart) {
             // The SDK clone writes only its relationship graph. Keep the same behavior for opaque or orphaned ZIP parts.
             var reachable = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance) { OfficeOpcEditablePackage.ContentTypesPartName };
-            HashSet<string>? mediaParts = null;
-            bool hasMixedPartRoles = false;
             try {
                 IReadOnlyList<OfficeOpcRelationship>? Relationships(string? owner) {
                     IReadOnlyList<OfficeOpcRelationship>? edges = ReadEditablePackageRelationships(package, owner, strictXml: true);
                     if (edges is { Count: > 0 }) {
                         string part = OfficeOpcPartNames.GetRelationshipsPartName(owner);
-                        if (projectOutput && package.GetContentType(part) != OfficeOpcEditablePackage.RelationshipContentType) return null;
                         if (renamedPart != null && edges.Any(edge => !edge.IsExternal && edge.TargetPartName is { } target &&
                             OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(target), PartIdentity(renamedPart)) &&
                             (owner != null || edge.Type != OfficeOpcPackage.OfficeDocumentRelationshipType))) return null;
@@ -25,17 +22,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 return TryVisitPackageGraph(Relationships, package.GetPartName, package.GetContentType, default,
-                    edge => {
-                        string identity = PartIdentity(edge.Part);
-                        if (IsReferenceRelationship(edge.Type)) {
-                            mediaParts ??= new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
-                            hasMixedPartRoles |= mediaParts.Add(identity) && reachable.Contains(identity);
-                        } else {
-                            hasMixedPartRoles |= mediaParts?.Contains(identity) == true;
-                        }
-                        reachable.Add(identity);
-                    }, validateForSave: true)
-                    && !hasMixedPartRoles
+                    edge => reachable.Add(PartIdentity(edge.Part)), validateForSave: true)
                     && package.PartNames.All(name => reachable.Contains(PartIdentity(name)));
             } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or IOException
                 or ArgumentException or NotSupportedException or InvalidOperationException or OverflowException) {
@@ -97,7 +84,9 @@ namespace OfficeIMO.PowerPoint {
                 case VideoDataRelationshipType: return type.StartsWith("video/", StringComparison.Ordinal);
                 case MediaDataRelationshipType:
                     return type.StartsWith("audio/", StringComparison.Ordinal) || type.StartsWith("video/", StringComparison.Ordinal);
-                case r + "package": return true; // Embedded packages have variable content types.
+                case EmbeddedPackageRelationshipType:
+                case EmbeddedObjectRelationshipType:
+                    return true; // Embedded packages and OLE objects have variable content types.
                 case r + "chart": return type == drawing + "chart+xml";
                 case r + "diagramColors": return type == drawing + "diagramColors+xml";
                 case r + "diagramData": return type == drawing + "diagramData+xml";

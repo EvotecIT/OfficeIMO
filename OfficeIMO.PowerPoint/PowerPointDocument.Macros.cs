@@ -1,6 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint {
@@ -96,6 +97,12 @@ namespace OfficeIMO.PowerPoint {
                 part = presentation.AddNewPart<VbaProjectPart>();
             }
         }
+
+        private byte[]? ReadSourceVbaBytesUsingSdk(int maximumBytes) => SdkPresentationPart.VbaProjectPart is { } part
+            ? OfficeVbaProjectPartEditor.Read(part, maximumBytes) : null;
+
+        private void SetSourceVbaProjectUsingSdk(byte[] bytes, OfficeVbaWriteOptions options) =>
+            OfficeVbaProjectPartEditor.Apply(SdkPresentationPart, SdkPresentationPart.VbaProjectPart, bytes, options, out _, create: AddSdkVbaProject);
 
         /// <summary>Removes the embedded VBA project and its related signature or cache parts.</summary>
         public bool RemoveVbaProject() {

@@ -67,8 +67,6 @@ namespace OfficeIMO.PowerPoint {
                 string key = owner == null ? string.Empty : PartIdentity(owner);
                 IReadOnlyList<OfficeOpcRelationship>? links = ReadEditablePackageRelationships(package, owner, strictXml: true);
                 if (links == null) return null;
-                string relationships = OfficeOpcPartNames.GetRelationshipsPartName(owner);
-                if (links.Count != 0 && package.GetContentType(relationships) != OfficeOpcEditablePackage.RelationshipContentType) return null;
                 foreach (OfficeOpcRelationship edge in links) {
                     if (edge.IsExternal) continue;
                     // Data-part lifetimes and physical aliases reached through reference relationships are handled by the SDK.
