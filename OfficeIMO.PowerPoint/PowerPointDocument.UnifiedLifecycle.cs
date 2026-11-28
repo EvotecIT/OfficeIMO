@@ -110,8 +110,9 @@ public sealed partial class PowerPointDocument {
         } else if (SdkDocument.FileOpenAccess != FileAccess.ReadWrite) {
             // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
             // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
-            using (var clone = (OpenXmlPackage)SdkDocument.Clone(package, true)) {
+            using (var clone = (PresentationDocument)SdkDocument.Clone(package, true)) {
                 if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<OpenXmlPart>());
+                CopyPackageReferenceRelationships(SdkDocument, clone);
             }
         } else {
             // Cloning saves the SDK package first, and that save rewrites the core properties part and the core

@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 failureFeature = LegacyPptFeature.Layouts;
                 return false;
             }
-            foreach (LegacyPptPartView masterPart in view.SlideMasterParts) {
+            foreach (LegacyPptPartView masterPart in SlideMasterPartsInRelationshipOrder(view)) {
                 if (!TryAddMasterPartPictures(presentation, catalog,
                         masterPart, tableFonts, pictureBullets,
                         convertUnsupportedTables, out failureFeature,

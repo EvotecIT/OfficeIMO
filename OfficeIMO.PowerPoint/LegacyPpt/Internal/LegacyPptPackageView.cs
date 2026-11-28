@@ -170,6 +170,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal OfficeXmlNode RootOf(string partName) {
             if (!IsXml(partName)) return default;
+            // The copy honours the document's part size limit, as reading the part through the document would.
+            if (_document != null && _document.IsOverPartLimit(_package, partName)) {
+                throw new InvalidDataException("The part '" + partName + "' exceeds the configured maximum part size.");
+            }
             OfficeXmlTree tree = _package.GetXml(partName);
             return new OfficeXmlNode(tree, tree.Root);
         }

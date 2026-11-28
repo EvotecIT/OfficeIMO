@@ -196,7 +196,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
                 // Indentation between elements is formatting, which serializers add or drop.
-                if (hasElements && tree.KindOf(child) == OfficeXmlTreeNodeKind.Text && string.IsNullOrWhiteSpace(tree.GetText(child))
+                if (hasElements && tree.KindOf(child) == OfficeXmlTreeNodeKind.Text && IsXmlWhitespace(tree.GetText(child))
                     && !PreservesSpace(tree, node)) continue;
                 AppendCanonical(tree, child, builder);
             }
@@ -227,6 +227,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (colon >= 0) resolved.Append(token, colon + 1, token.Length - colon - 1);
             }
             return resolved.ToString();
+        }
+
+        // Only XML whitespace (space, tab, CR, LF) is indentation; other Unicode spaces such as U+00A0 are text.
+        private static bool IsXmlWhitespace(string text) {
+            foreach (char character in text) {
+                if (character is not (' ' or '\t' or '\r' or '\n')) return false;
+            }
+            return true;
         }
 
         // Whether the nearest xml:space on the element or its ancestors is "preserve".

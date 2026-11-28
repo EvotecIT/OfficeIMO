@@ -50,7 +50,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     propertyReason
                     ?? "A document property cannot be encoded by the native binary writer."));
             }
-            IReadOnlyList<LegacyPptPartView> masterParts = view.SlideMasterParts;
+            // The masters the writer emits: every related master, listed or not.
+            IReadOnlyList<LegacyPptPartView> masterParts = LegacyPptWriter.SlideMasterPartsInRelationshipOrder(view);
             int masterCount = masterParts.Count;
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets;

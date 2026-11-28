@@ -271,10 +271,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     OfficeXmlNode frame = view.Resolve(ole.OwnerPartRef.Name, ole.XmlElement);
                     string? relationshipId = OleObjectElement(frame).Attribute(LegacyPptXml.R, "id");
                     LegacyPptPartView embedded = slidePart.PartById(relationshipId);
-                    if (embedded.IsNone) {
-                        throw new InvalidOperationException(
-                            $"The OLE object's relationship '{relationshipId}' does not target an embedded-object part.");
-                    }
+                    // An unresolved relationship maps nothing here; the writer reports the OLE object itself.
+                    if (embedded.IsNone) continue;
                     mapped.Add(embedded.Name);
                 }
             }

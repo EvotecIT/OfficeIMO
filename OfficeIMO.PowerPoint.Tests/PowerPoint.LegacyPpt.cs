@@ -111,6 +111,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Digest_TreatsNonBreakingSpaceBesideElementsAsText() {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+
+            Assert.NotEqual(DigestOf("<v:root xmlns:v=\"urn:test\"><v:item/>&#160;</v:root>"),
+                DigestOf("<v:root xmlns:v=\"urn:test\"><v:item/></v:root>"));
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
 
