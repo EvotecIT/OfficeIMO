@@ -34,10 +34,10 @@ namespace OfficeIMO.Word {
                 if (_officeMath is not null && _mathParagraph is not null) return new WordEquation(_document, _paragraph, _officeMath, _mathParagraph);
                 if (_officeMath is not null) return new WordEquation(_document, _paragraph, _officeMath);
                 if (_mathParagraph is not null) return new WordEquation(_document, _paragraph, _mathParagraph);
-                if (_simpleField is not null && new WordField(_document, _paragraph, _simpleField, null).FieldType == WordFieldType.EQ) {
+                if (_simpleField is not null && WrapSdkField(_document, _paragraph, _simpleField, null).FieldType == WordFieldType.EQ) {
                     return new WordEquation(_document, _paragraph, _simpleField);
                 }
-                if (_runs is not null && new WordField(_document, _paragraph, null, _runs).FieldType == WordFieldType.EQ) {
+                if (_runs is not null && WrapSdkField(_document, _paragraph, null, _runs).FieldType == WordFieldType.EQ) {
                     return new WordEquation(_document, _paragraph, _runs);
                 }
                 OpenXmlElement? wrapper = (OpenXmlElement?)_hyperlink ?? _stdRun;
@@ -51,8 +51,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the field contained in this paragraph, if any.
         /// </summary>
-        public WordField? Field =>
-            _simpleField is not null || _runs is not null ? new WordField(_document, _paragraph, _simpleField, _runs) : null;
+        public WordField? Field => _authoredField ??
+            (_simpleField is not null || _runs is not null ? WrapSdkField(_document, _paragraph, _simpleField, _runs) : null);
         /// <summary>
         /// Gets the hyperlink contained in this paragraph, if present.
         /// </summary>

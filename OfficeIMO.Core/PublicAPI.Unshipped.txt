@@ -902,3 +902,305 @@ OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithReversedScale(bool reversed) ->
 static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out byte[]? pixels, out int width, out int height, out OfficeIMO.Drawing.OfficeRasterDecodeInfo! info) -> bool
 static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, out byte[]? pixels, out int width, out int height) -> bool
 const OfficeIMO.OfficeDiagnosticCodes.SdkFallback = "sdk-fallback" -> string!
+OfficeIMO.Entities.EntityCandidate
+OfficeIMO.Entities.EntityCandidate.EntityCandidate(OfficeIMO.Entities.EntityValidationResult! validation, int start, int length, OfficeIMO.Entities.EntityCandidateStrength strength, OfficeIMO.Entities.EntityEvidence evidence = OfficeIMO.Entities.EntityEvidence.None) -> void
+OfficeIMO.Entities.EntityCandidate.Evidence.get -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityCandidate.Length.get -> int
+OfficeIMO.Entities.EntityCandidate.Start.get -> int
+OfficeIMO.Entities.EntityCandidate.Strength.get -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidate.Validation.get -> OfficeIMO.Entities.EntityValidationResult!
+OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.DigitCheck = 1 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.DistinctiveShape = 3 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.PrefixedShape = 2 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.ShapeOnly = 0 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.ShortLetterDigitCheck = 5 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.StrongCheck = 4 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCatalog
+OfficeIMO.Entities.EntityCatalog.GetScheme(string! id) -> OfficeIMO.Entities.EntityScheme!
+OfficeIMO.Entities.EntityCatalog.Schemes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityScheme!>!
+OfficeIMO.Entities.EntityCatalog.TryGetScheme(string! id, out OfficeIMO.Entities.EntityScheme? scheme) -> bool
+OfficeIMO.Entities.EntityCatalog.Validate(string! schemeId, string? value) -> OfficeIMO.Entities.EntityValidationResult!
+OfficeIMO.Entities.EntityCatalogBuilder
+OfficeIMO.Entities.EntityCatalogBuilder.Add(OfficeIMO.Entities.EntityScheme! scheme, OfficeIMO.Entities.IEntityRecognizer? recognizer = null) -> OfficeIMO.Entities.EntityCatalogBuilder!
+OfficeIMO.Entities.EntityCatalogBuilder.AddKeyword(string! schemeId, string! language, string! keyword) -> OfficeIMO.Entities.EntityCatalogBuilder!
+OfficeIMO.Entities.EntityCatalogBuilder.AddRecognizer(OfficeIMO.Entities.IEntityRecognizer! recognizer) -> OfficeIMO.Entities.EntityCatalogBuilder!
+OfficeIMO.Entities.EntityCatalogBuilder.Build() -> OfficeIMO.Entities.EntityCatalog!
+OfficeIMO.Entities.EntityCatalogBuilder.EntityCatalogBuilder() -> void
+OfficeIMO.Entities.EntityCatalogBuilderExtensions
+OfficeIMO.Entities.EntityCheckInfo
+OfficeIMO.Entities.EntityCheckInfo.EntityCheckInfo(string! name, OfficeIMO.Entities.EntityCheckKind kind, OfficeIMO.Entities.EntityCheckProvenance provenance, System.Uri? source = null) -> void
+OfficeIMO.Entities.EntityCheckInfo.Kind.get -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckInfo.Name.get -> string!
+OfficeIMO.Entities.EntityCheckInfo.Provenance.get -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityCheckInfo.Source.get -> System.Uri?
+OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Luhn = 5 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Mod10 = 1 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Mod11 = 2 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Mod23 = 3 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Mod97_10 = 4 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.None = 0 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckKind.Other = 6 -> OfficeIMO.Entities.EntityCheckKind
+OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityCheckOutcome.Failed = 2 -> OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityCheckOutcome.NotDefined = 0 -> OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityCheckOutcome.Passed = 1 -> OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityCheckProvenance.CommunityDocumented = 2 -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityCheckProvenance.IssuerPublished = 1 -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityCheckProvenance.None = 0 -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityDetails
+OfficeIMO.Entities.EntityDetails.BirthDate.get -> System.DateTime?
+OfficeIMO.Entities.EntityDetails.Country.get -> string?
+OfficeIMO.Entities.EntityDetails.EntityDetails(System.DateTime? birthDate = null, OfficeIMO.Entities.EntitySex? sex = null, string? country = null, string? variant = null, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? properties = null) -> void
+OfficeIMO.Entities.EntityDetails.Properties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+OfficeIMO.Entities.EntityDetails.Sex.get -> OfficeIMO.Entities.EntitySex?
+OfficeIMO.Entities.EntityDetails.Variant.get -> string?
+OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.AmbiguousReading = 256 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.CheckDigitPassed = 1 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.CommunityDocumentedCheck = 1024 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.ContextKeyword = 16 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.CountryPrefix = 8 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.IssuerFormatting = 4 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.KnownIssuerRange = 128 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.Label = 32 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.NoCheckDefined = 2 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.None = 0 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.PlausibleDate = 64 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityEvidence.StructuredSource = 512 -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityFindResult
+OfficeIMO.Entities.EntityFindResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Entities.EntityFindResult.DroppedOverlaps.get -> int
+OfficeIMO.Entities.EntityFindResult.Matches.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityMatch!>!
+OfficeIMO.Entities.EntityFindResult.Truncated.get -> bool
+OfficeIMO.Entities.EntityFinder
+OfficeIMO.Entities.EntityFinder.EntityFinder(OfficeIMO.Entities.EntityCatalog? catalog = null, OfficeIMO.Entities.EntityFinderOptions? options = null) -> void
+OfficeIMO.Entities.EntityFinder.Find(System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityTextSegment>! segments) -> OfficeIMO.Entities.EntityFindResult!
+OfficeIMO.Entities.EntityFinder.Find(System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityTextSegment>! segments, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Entities.EntityFindResult!
+OfficeIMO.Entities.EntityFinder.Find(string! text) -> OfficeIMO.Entities.EntityFindResult!
+OfficeIMO.Entities.EntityFinder.Find(string! text, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Entities.EntityFindResult!
+OfficeIMO.Entities.EntityFinderOptions
+OfficeIMO.Entities.EntityFinderOptions.ContextWindow.get -> int
+OfficeIMO.Entities.EntityFinderOptions.ContextWindow.set -> void
+OfficeIMO.Entities.EntityFinderOptions.Countries.get -> System.Collections.Generic.ISet<string!>!
+OfficeIMO.Entities.EntityFinderOptions.EntityFinderOptions() -> void
+OfficeIMO.Entities.EntityFinderOptions.ExcludeSchemes.get -> System.Collections.Generic.ISet<string!>!
+OfficeIMO.Entities.EntityFinderOptions.IncludeSchemes.get -> System.Collections.Generic.ISet<string!>!
+OfficeIMO.Entities.EntityFinderOptions.Kinds.get -> System.Collections.Generic.ISet<OfficeIMO.Entities.EntityKind>!
+OfficeIMO.Entities.EntityFinderOptions.Languages.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
+OfficeIMO.Entities.EntityFinderOptions.Languages.set -> void
+OfficeIMO.Entities.EntityFinderOptions.MaxInputCharacters.get -> int
+OfficeIMO.Entities.EntityFinderOptions.MaxInputCharacters.set -> void
+OfficeIMO.Entities.EntityFinderOptions.MaxMatches.get -> int
+OfficeIMO.Entities.EntityFinderOptions.MaxMatches.set -> void
+OfficeIMO.Entities.EntityFinderOptions.MinimumConfidence.get -> double
+OfficeIMO.Entities.EntityFinderOptions.MinimumConfidence.set -> void
+OfficeIMO.Entities.EntityFinderOptions.OverlapPolicy.get -> OfficeIMO.Entities.EntityOverlapPolicy
+OfficeIMO.Entities.EntityFinderOptions.OverlapPolicy.set -> void
+OfficeIMO.Entities.EntityFormatStyle
+OfficeIMO.Entities.EntityFormatStyle.Compact = 0 -> OfficeIMO.Entities.EntityFormatStyle
+OfficeIMO.Entities.EntityFormatStyle.Display = 1 -> OfficeIMO.Entities.EntityFormatStyle
+OfficeIMO.Entities.EntityFormatStyle.Electronic = 2 -> OfficeIMO.Entities.EntityFormatStyle
+OfficeIMO.Entities.EntityKind
+OfficeIMO.Entities.EntityKind.EntityKind() -> void
+OfficeIMO.Entities.EntityKind.EntityKind(string! name) -> void
+OfficeIMO.Entities.EntityKind.Equals(OfficeIMO.Entities.EntityKind other) -> bool
+OfficeIMO.Entities.EntityMaskOptions
+OfficeIMO.Entities.EntityMaskOptions.EntityMaskOptions() -> void
+OfficeIMO.Entities.EntityMaskOptions.FixedCharacter.get -> char
+OfficeIMO.Entities.EntityMaskOptions.FixedCharacter.set -> void
+OfficeIMO.Entities.EntityMaskOptions.FixedLength.get -> int?
+OfficeIMO.Entities.EntityMaskOptions.FixedLength.set -> void
+OfficeIMO.Entities.EntityMaskOptions.PseudonymKey.get -> byte[]?
+OfficeIMO.Entities.EntityMaskOptions.PseudonymKey.set -> void
+OfficeIMO.Entities.EntityMaskOptions.Sensitivities.get -> System.Collections.Generic.ISet<OfficeIMO.Entities.EntitySensitivity>!
+OfficeIMO.Entities.EntityMaskOptions.Style.get -> OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMaskOptions.Style.set -> void
+OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMaskStyle.Fixed = 1 -> OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMaskStyle.KindLabel = 0 -> OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMaskStyle.Partial = 2 -> OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMaskStyle.Pseudonym = 3 -> OfficeIMO.Entities.EntityMaskStyle
+OfficeIMO.Entities.EntityMasker
+OfficeIMO.Entities.EntityMatch
+OfficeIMO.Entities.EntityMatch.Alternatives.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityMatch!>!
+OfficeIMO.Entities.EntityMatch.Check.get -> OfficeIMO.Entities.EntityCheckInfo?
+OfficeIMO.Entities.EntityMatch.CheckDigit.get -> OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityMatch.CheckProvenance.get -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityMatch.Confidence.get -> double
+OfficeIMO.Entities.EntityMatch.Contained.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityMatch!>!
+OfficeIMO.Entities.EntityMatch.ContextKeyword.get -> string?
+OfficeIMO.Entities.EntityMatch.ContextLanguage.get -> string?
+OfficeIMO.Entities.EntityMatch.Evidence.get -> OfficeIMO.Entities.EntityEvidence
+OfficeIMO.Entities.EntityMatch.Kind.get -> OfficeIMO.Entities.EntityKind
+OfficeIMO.Entities.EntityMatch.Length.get -> int
+OfficeIMO.Entities.EntityMatch.Location.get -> OfficeIMO.Entities.EntitySegmentLocation?
+OfficeIMO.Entities.EntityMatch.Normalized.get -> string!
+OfficeIMO.Entities.EntityMatch.Parts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityMatchPart>!
+OfficeIMO.Entities.EntityMatch.Scheme.get -> OfficeIMO.Entities.EntityScheme!
+OfficeIMO.Entities.EntityMatch.SegmentIndex.get -> int
+OfficeIMO.Entities.EntityMatch.Start.get -> int
+OfficeIMO.Entities.EntityMatch.Validation.get -> OfficeIMO.Entities.EntityValidationResult!
+OfficeIMO.Entities.EntityMatchPart
+OfficeIMO.Entities.EntityMatchPart.EntityMatchPart() -> void
+OfficeIMO.Entities.EntityMatchPart.Length.get -> int
+OfficeIMO.Entities.EntityMatchPart.SegmentIndex.get -> int
+OfficeIMO.Entities.EntityMatchPart.Start.get -> int
+OfficeIMO.Entities.EntityOverlapPolicy
+OfficeIMO.Entities.EntityOverlapPolicy.All = 1 -> OfficeIMO.Entities.EntityOverlapPolicy
+OfficeIMO.Entities.EntityOverlapPolicy.BestOnly = 0 -> OfficeIMO.Entities.EntityOverlapPolicy
+OfficeIMO.Entities.EntityPseudonymResult
+OfficeIMO.Entities.EntityPseudonymResult.Map.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+OfficeIMO.Entities.EntityPseudonymResult.Text.get -> string!
+OfficeIMO.Entities.EntityRecognitionContext
+OfficeIMO.Entities.EntityRecognitionContext.Add(OfficeIMO.Entities.EntityCandidate! candidate) -> void
+OfficeIMO.Entities.EntityRecognitionContext.CancellationToken.get -> System.Threading.CancellationToken
+OfficeIMO.Entities.EntityRecognitionContext.GetTokens(OfficeIMO.Entities.EntityTokenShape shapes) -> System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityToken>!
+OfficeIMO.Entities.EntityRecognitionContext.IsEnabled(OfficeIMO.Entities.EntityScheme! scheme) -> bool
+OfficeIMO.Entities.EntityRecognitionContext.Segment.get -> OfficeIMO.Entities.EntityTextSegment
+OfficeIMO.Entities.EntityRecognitionContext.SegmentIndex.get -> int
+OfficeIMO.Entities.EntityRecognitionContext.Text.get -> string!
+OfficeIMO.Entities.EntityScheme
+OfficeIMO.Entities.EntityScheme.EntityScheme() -> void
+OfficeIMO.Entities.EntityScheme.IsValid(string? value) -> bool
+OfficeIMO.Entities.EntityScheme.Normalize(string? value) -> string?
+OfficeIMO.Entities.EntityScheme.TryNormalize(string? value, out string! normalized) -> bool
+OfficeIMO.Entities.EntitySegmentLocation
+OfficeIMO.Entities.EntitySegmentLocation.Address.get -> string?
+OfficeIMO.Entities.EntitySegmentLocation.EntitySegmentLocation(string? part = null, string? address = null, int? page = null) -> void
+OfficeIMO.Entities.EntitySegmentLocation.Page.get -> int?
+OfficeIMO.Entities.EntitySegmentLocation.Part.get -> string?
+OfficeIMO.Entities.EntitySensitivity
+OfficeIMO.Entities.EntitySensitivity.Financial = 1 -> OfficeIMO.Entities.EntitySensitivity
+OfficeIMO.Entities.EntitySensitivity.Organizational = 2 -> OfficeIMO.Entities.EntitySensitivity
+OfficeIMO.Entities.EntitySensitivity.Personal = 0 -> OfficeIMO.Entities.EntitySensitivity
+OfficeIMO.Entities.EntitySensitivity.Public = 3 -> OfficeIMO.Entities.EntitySensitivity
+OfficeIMO.Entities.EntitySex
+OfficeIMO.Entities.EntitySex.Female = 0 -> OfficeIMO.Entities.EntitySex
+OfficeIMO.Entities.EntitySex.Male = 1 -> OfficeIMO.Entities.EntitySex
+OfficeIMO.Entities.EntityTextSegment
+OfficeIMO.Entities.EntityTextSegment.ContinuesPrevious.get -> bool
+OfficeIMO.Entities.EntityTextSegment.EntityTextSegment() -> void
+OfficeIMO.Entities.EntityTextSegment.EntityTextSegment(string! text, OfficeIMO.Entities.EntitySegmentLocation? location = null, string? label = null, bool structuredSource = false, bool continuesPrevious = false) -> void
+OfficeIMO.Entities.EntityTextSegment.Label.get -> string?
+OfficeIMO.Entities.EntityTextSegment.Location.get -> OfficeIMO.Entities.EntitySegmentLocation?
+OfficeIMO.Entities.EntityTextSegment.StructuredSource.get -> bool
+OfficeIMO.Entities.EntityTextSegment.Text.get -> string!
+OfficeIMO.Entities.EntityToken
+OfficeIMO.Entities.EntityToken.CharacterCount.get -> int
+OfficeIMO.Entities.EntityToken.EntityToken() -> void
+OfficeIMO.Entities.EntityToken.Length.get -> int
+OfficeIMO.Entities.EntityToken.Shape.get -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityToken.Start.get -> int
+OfficeIMO.Entities.EntityToken.TouchesWord.get -> bool
+OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityTokenShape.AlphaNumericRun = 2 -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityTokenShape.At = 4 -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityTokenShape.DigitRun = 1 -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityTokenShape.None = 0 -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityTokenShape.Scheme = 8 -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.EntityValidationResult
+OfficeIMO.Entities.EntityValidationResult.Check.get -> OfficeIMO.Entities.EntityCheckInfo?
+OfficeIMO.Entities.EntityValidationResult.CheckDigit.get -> OfficeIMO.Entities.EntityCheckOutcome
+OfficeIMO.Entities.EntityValidationResult.CheckProvenance.get -> OfficeIMO.Entities.EntityCheckProvenance
+OfficeIMO.Entities.EntityValidationResult.EntityValidationResult(OfficeIMO.Entities.EntityScheme! scheme, OfficeIMO.Entities.EntityValidationStatus status, string? normalized = null, OfficeIMO.Entities.EntityCheckOutcome checkDigit = OfficeIMO.Entities.EntityCheckOutcome.NotDefined, OfficeIMO.Entities.EntityCheckInfo? check = null) -> void
+OfficeIMO.Entities.EntityValidationResult.IsValid.get -> bool
+OfficeIMO.Entities.EntityValidationResult.Normalized.get -> string?
+OfficeIMO.Entities.EntityValidationResult.Scheme.get -> OfficeIMO.Entities.EntityScheme!
+OfficeIMO.Entities.EntityValidationResult.Status.get -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.Empty = 1 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.InvalidCharacters = 2 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.InvalidCheckDigit = 5 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.InvalidDate = 6 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.InvalidFormat = 4 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.InvalidLength = 3 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.NotAllocated = 7 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.UnsupportedVariant = 8 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EntityValidationStatus.Valid = 0 -> OfficeIMO.Entities.EntityValidationStatus
+OfficeIMO.Entities.EuVatSchemes
+OfficeIMO.Entities.FinancialSchemes
+OfficeIMO.Entities.IEntityRecognizer
+OfficeIMO.Entities.IEntityRecognizer.Id.get -> string!
+OfficeIMO.Entities.IEntityRecognizer.Recognize(OfficeIMO.Entities.EntityRecognitionContext! context) -> void
+OfficeIMO.Entities.IEntityRecognizer.Schemes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityScheme!>!
+OfficeIMO.Entities.IEntityRecognizer.Shapes.get -> OfficeIMO.Entities.EntityTokenShape
+OfficeIMO.Entities.InternetSchemes
+OfficeIMO.Entities.PolandSchemes
+OfficeIMO.Entities.UnitedKingdomSchemes
+OfficeIMO.Entities.UnitedStatesSchemes
+abstract OfficeIMO.Entities.EntityScheme.DisplayName.get -> string!
+abstract OfficeIMO.Entities.EntityScheme.Id.get -> string!
+abstract OfficeIMO.Entities.EntityScheme.Kind.get -> OfficeIMO.Entities.EntityKind
+abstract OfficeIMO.Entities.EntityScheme.Validate(string? value) -> OfficeIMO.Entities.EntityValidationResult!
+override OfficeIMO.Entities.EntityKind.Equals(object? obj) -> bool
+override OfficeIMO.Entities.EntityKind.GetHashCode() -> int
+override OfficeIMO.Entities.EntityKind.ToString() -> string!
+override OfficeIMO.Entities.EntityMatch.ToString() -> string!
+override OfficeIMO.Entities.EntityValidationResult.ToString() -> string!
+static OfficeIMO.Entities.EntityCatalog.Default.get -> OfficeIMO.Entities.EntityCatalog!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddEuVat(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddFinancial(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddInternet(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddPoland(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddUnitedKingdom(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityCatalogBuilderExtensions.AddUnitedStates(this OfficeIMO.Entities.EntityCatalogBuilder! builder) -> OfficeIMO.Entities.EntityCatalogBuilder!
+static OfficeIMO.Entities.EntityKind.BankAccount.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.BankIdentifier.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.CompanyId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.CompanyName.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.Email.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.IdentityDocument.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.LegalEntityId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.NationalId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.PaymentCard.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.Phone.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.PostalAddress.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.SecurityId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.TaxId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.Url.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.VatId.get -> OfficeIMO.Entities.EntityKind
+static OfficeIMO.Entities.EntityKind.operator !=(OfficeIMO.Entities.EntityKind left, OfficeIMO.Entities.EntityKind right) -> bool
+static OfficeIMO.Entities.EntityKind.operator ==(OfficeIMO.Entities.EntityKind left, OfficeIMO.Entities.EntityKind right) -> bool
+static OfficeIMO.Entities.EntityMasker.Mask(System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityTextSegment>! segments, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches) -> System.Collections.Generic.IReadOnlyList<string!>!
+static OfficeIMO.Entities.EntityMasker.Mask(System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityTextSegment>! segments, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions? options) -> System.Collections.Generic.IReadOnlyList<string!>!
+static OfficeIMO.Entities.EntityMasker.Mask(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches) -> string!
+static OfficeIMO.Entities.EntityMasker.Mask(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions? options) -> string!
+static OfficeIMO.Entities.EntityMasker.Pseudonymize(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions! options) -> OfficeIMO.Entities.EntityPseudonymResult!
+static OfficeIMO.Entities.EuVatSchemes.All.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityScheme!>!
+static OfficeIMO.Entities.EuVatSchemes.Get(string! prefix) -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.FinancialSchemes.Bic.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.FinancialSchemes.Card.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.FinancialSchemes.Iban.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.FinancialSchemes.Isin.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.FinancialSchemes.Lei.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.InternetSchemes.Email.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.InternetSchemes.Url.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.IdentityCard.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.Krs.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.Nip.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.Passport.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.Pesel.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.PolandSchemes.Regon.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.UnitedKingdomSchemes.Company.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.UnitedKingdomSchemes.Nino.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.UnitedKingdomSchemes.Vat.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.UnitedStatesSchemes.Ein.get -> OfficeIMO.Entities.EntityScheme!
+static OfficeIMO.Entities.UnitedStatesSchemes.Ssn.get -> OfficeIMO.Entities.EntityScheme!
+virtual OfficeIMO.Entities.EntityScheme.Check.get -> OfficeIMO.Entities.EntityCheckKind
+virtual OfficeIMO.Entities.EntityScheme.Checks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityCheckInfo!>!
+virtual OfficeIMO.Entities.EntityScheme.Contains.get -> System.Collections.Generic.IReadOnlyList<string!>!
+virtual OfficeIMO.Entities.EntityScheme.Country.get -> string?
+virtual OfficeIMO.Entities.EntityScheme.Decode(string! normalized) -> OfficeIMO.Entities.EntityDetails?
+virtual OfficeIMO.Entities.EntityScheme.DefaultCheckProvenance.get -> OfficeIMO.Entities.EntityCheckProvenance
+virtual OfficeIMO.Entities.EntityScheme.DescribeChecks() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityCheckInfo!>!
+virtual OfficeIMO.Entities.EntityScheme.Format(string! normalized, OfficeIMO.Entities.EntityFormatStyle style = OfficeIMO.Entities.EntityFormatStyle.Display) -> string!
+virtual OfficeIMO.Entities.EntityScheme.Issuer.get -> string?
+virtual OfficeIMO.Entities.EntityScheme.MaskPartial(string! normalized) -> string!
+virtual OfficeIMO.Entities.EntityScheme.MaxLength.get -> int
+virtual OfficeIMO.Entities.EntityScheme.MinLength.get -> int
+virtual OfficeIMO.Entities.EntityScheme.Sensitivity.get -> OfficeIMO.Entities.EntitySensitivity
+virtual OfficeIMO.Entities.EntityScheme.Specification.get -> System.Uri?
+OfficeIMO.Provenance.OfficeProvenanceCarrierKind.AiGeneratorMetadata = 3 -> OfficeIMO.Provenance.OfficeProvenanceCarrierKind

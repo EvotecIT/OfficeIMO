@@ -67,15 +67,14 @@ namespace OfficeIMO.Excel {
             ExcelCellDisplayText? display = _opt.DisplayText;
             if (display == null) return Array.Empty<(uint, uint, uint)>();
             var styles = new List<(uint Min, uint Max, uint Style)>();
-            if (_hasSdkWorksheetPart && _wsPart.IsRootElementLoaded) {
+            if (_hasLiveWorksheetPart && _worksheetPart.IsRootLoaded) {
                 // A loaded or imported worksheet lives in its DOM; its part stream may be stale.
-                var worksheet = SdkWorksheetPart.Worksheet;
-                if (worksheet == null) return styles.ToArray();
-                foreach (var column in worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Columns>()
-                             .SelectMany(columns => columns.Elements<DocumentFormat.OpenXml.Spreadsheet.Column>())) {
-                    if (column.Min?.Value is uint min && column.Max?.Value is uint max && column.Style?.Value is uint style
-                        && display.IsFormatted(style)) {
-                        styles.Add((min, max, style));
+                foreach (OfficeXmlNode columns in _worksheetPart.Root.Children(SpreadsheetXml, "cols")) {
+                    foreach (OfficeXmlNode column in columns.Children(SpreadsheetXml, "col")) {
+                        if (column.UInt32Attribute("min") is uint min && column.UInt32Attribute("max") is uint max
+                            && column.UInt32Attribute("style") is uint style && display.IsFormatted(style)) {
+                            styles.Add((min, max, style));
+                        }
                     }
                 }
                 return styles.ToArray();
@@ -83,10 +82,17 @@ namespace OfficeIMO.Excel {
             try {
                 using Stream stream = OpenReaderWorksheetStream(_opt.CancellationToken);
                 using XmlReader reader = OpenWorksheetXmlReader(stream);
+                var worksheet = new WorksheetXmlRowSelector();
+                int columnsDepth = -1;
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element) continue;
-                    if (reader.LocalName == "sheetData") break;
-                    if (reader.LocalName != "col") continue;
+                    _opt.CancellationToken.ThrowIfCancellationRequested();
+                    if (worksheet.IsWorksheetChildElement(reader, "sheetData")) break;
+                    if (reader.Depth <= columnsDepth) columnsDepth = -1;
+                    if (worksheet.IsWorksheetChildElement(reader, "cols") && !reader.IsEmptyElement) {
+                        columnsDepth = reader.Depth;
+                        continue;
+                    }
+                    if (columnsDepth < 0 || !SpreadsheetXmlContent.IsDirectChildElement(reader, columnsDepth, "col")) continue;
                     if (uint.TryParse(reader.GetAttribute("min"), NumberStyles.None, CultureInfo.InvariantCulture, out uint min)
                         && uint.TryParse(reader.GetAttribute("max"), NumberStyles.None, CultureInfo.InvariantCulture, out uint max)
                         && uint.TryParse(reader.GetAttribute("style"), NumberStyles.None, CultureInfo.InvariantCulture, out uint style)

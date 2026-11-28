@@ -14,6 +14,9 @@ internal readonly struct OfficePngContainerValidation {
     /// <summary>Requires the same input owned by the current synchronous decode request.</summary>
     internal bool IsFor(byte[] bytes) => ReferenceEquals(_bytes, bytes);
 
+    /// <summary>Records a container that the caller has just validated, so a following decode does not validate it again.</summary>
+    internal static OfficePngContainerValidation ForValidated(byte[] bytes, int frameCount) => new(bytes, frameCount);
+
     internal static bool TryCreate(
         byte[] bytes,
         CancellationToken cancellationToken,

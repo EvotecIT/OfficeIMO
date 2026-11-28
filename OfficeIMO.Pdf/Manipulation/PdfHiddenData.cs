@@ -37,16 +37,29 @@ internal static class PdfHiddenData {
         PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, options.Kinds, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
 
-        // Content Credentials sign the file's bytes, so the rewrite below would leave them stale. They are removed first through the
-        // provenance engine, which keeps malformed carriers when RequireStructurallyValidCarrier is set.
+        // Content Credentials attached to the file sign its bytes, so the rewrite below would leave them stale. They are removed first
+        // through the provenance engine, which keeps malformed carriers when RequireStructurallyValidCarrier is set. AI declarations and
+        // credentials inside images go only when provenance is selected.
+        bool provenanceSelected = collector.Removes(OfficeHiddenDataKind.Provenance);
         byte[] current = pdf;
         PdfLoadOptions? currentReadOptions = readOptions;
         if (provenance.Count > 0) {
-            OfficeProvenanceRemovalResult removed = PdfProvenance.Remove(pdf, CreateProvenanceRemoval(options.Provenance, pdf.LongLength, cancellationToken), ProvenanceReadOptions(readOptions));
+            OfficeProvenanceRemovalResult removed = PdfProvenance.Remove(
+                pdf,
+                CreateProvenanceRemoval(options.Provenance, provenanceSelected, pdf.LongLength, cancellationToken),
+                ProvenanceReadOptions(readOptions),
+                alwaysRemoveAttachedManifests: true);
             if (removed.WasReserialized) {
                 current = removed.ToArray();
                 currentReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, current.LongLength);
             }
+        }
+
+        // The sanitizer rewrites the catalog's metadata stream, so an image that shares it would lose its own declarations with it.
+        if (Selects(options.Kinds, OfficeHiddenDataKind.DocumentProperties) &&
+            PdfProvenance.SplitSharedCatalogMetadata(current, ProvenanceReadOptions(currentReadOptions), cancellationToken) is byte[] split) {
+            current = split;
+            currentReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, current.LongLength);
         }
 
         PdfSanitizationOptions policy = CreatePolicy(options.Kinds);
@@ -60,12 +73,19 @@ internal static class PdfHiddenData {
         Record(collector, inventory, includeAlwaysKept: true);
         if (provenance.Count > 0) {
             List<OfficeProvenanceEvidence> remaining = InspectProvenance(sanitized.Bytes, sanitized.ReadOptions, cancellationToken).ToList();
-            bool selected = collector.Removes(OfficeHiddenDataKind.Provenance);
             foreach (OfficeProvenanceEvidence evidence in provenance) {
                 bool removed = !TakeMatch(remaining, evidence);
-                OfficeHiddenDataReason reason = removed
-                    ? (!selected || !options.Provenance.RemoveC2paManifests ? OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive : OfficeHiddenDataReason.None)
-                    : OfficeHiddenDataReason.ContentCredentialsNoLongerVerify;
+                OfficeHiddenDataReason reason;
+                if (IsAttachedManifest(evidence)) {
+                    reason = removed
+                        ? (!provenanceSelected || !options.Provenance.RemoveC2paManifests ? OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive : OfficeHiddenDataReason.None)
+                        : OfficeHiddenDataReason.ContentCredentialsNoLongerVerify;
+                } else if (removed) {
+                    // Document-level declarations live in the XMP packet and the Info dictionary, which DocumentProperties also cleans.
+                    reason = OfficeHiddenDataReason.None;
+                } else {
+                    collector.Resolve(OfficeHiddenDataKind.Provenance, removed: false, OfficeHiddenDataReason.KeptByProvenanceChoices, out reason);
+                }
                 RecordProvenance(collector, evidence, removed ? OfficeHiddenDataOutcome.Removed : OfficeHiddenDataOutcome.Retained, reason);
             }
         }
@@ -165,12 +185,18 @@ internal static class PdfHiddenData {
     private static PdfLoadOptions ProvenanceReadOptions(PdfLoadOptions? readOptions) =>
         PdfLoadOptions.WithPermissionPolicy(readOptions, PdfPermissionPolicy.IgnoreRestrictions);
 
-    private static OfficeProvenanceRemovalOptions CreateProvenanceRemoval(OfficeProvenanceRemovalOptions carriers, long length, CancellationToken cancellationToken) {
+    /// <summary>Whether the evidence is Content Credentials attached to the whole PDF, as opposed to a declaration or an image's own carrier.</summary>
+    private static bool IsAttachedManifest(OfficeProvenanceEvidence evidence) =>
+        evidence.Carrier == OfficeProvenanceCarrierKind.C2paManifest && evidence.Location.StartsWith("PDF/Filespec[", StringComparison.Ordinal);
+
+    private static OfficeProvenanceRemovalOptions CreateProvenanceRemoval(OfficeProvenanceRemovalOptions carriers, bool selected, long length, CancellationToken cancellationToken) {
         var options = new OfficeProvenanceRemovalOptions {
-            RemoveC2paManifests = true,
-            RemoveExternalC2paReferences = carriers.RemoveExternalC2paReferences,
-            RemoveAiSourceMetadata = carriers.RemoveAiSourceMetadata,
-            RequireStructurallyValidCarrier = carriers.RequireStructurallyValidCarrier
+            RemoveC2paManifests = selected && carriers.RemoveC2paManifests,
+            RemoveExternalC2paReferences = selected && carriers.RemoveExternalC2paReferences,
+            RemoveAiSourceMetadata = selected && carriers.RemoveAiSourceMetadata,
+            RequireStructurallyValidCarrier = carriers.RequireStructurallyValidCarrier,
+            ProcessEmbeddedAssets = selected && carriers.ProcessEmbeddedAssets,
+            MaxEmbeddedAssets = carriers.MaxEmbeddedAssets
         };
         options.Limits.MaxAssetBytes = Math.Max(carriers.Limits.MaxAssetBytes, length);
         options.Limits.MaxManifestBytes = carriers.Limits.MaxManifestBytes;
@@ -181,9 +207,18 @@ internal static class PdfHiddenData {
         return options;
     }
 
+    private static string Owner(string location) {
+        if (!location.StartsWith("PDF/Object[", StringComparison.Ordinal)) return location;
+        int end = location.IndexOf(']');
+        return end < 0 ? location : "PDF/Object[]" + location.Remove(0, end + 1);
+    }
+
     private static bool TakeMatch(List<OfficeProvenanceEvidence> remaining, OfficeProvenanceEvidence evidence) {
+        // Evidence pairs with the same owner: the catalog, the Info dictionary or one attachment keep their location, and an image's
+        // object number can change in the rewrite, so images pair only with images.
+        string owner = Owner(evidence.Location);
         int index = remaining.FindIndex(item => item.Carrier == evidence.Carrier && item.Value == evidence.Value &&
-            item.PayloadLength == evidence.PayloadLength);
+            item.PayloadLength == evidence.PayloadLength && Owner(item.Location) == owner);
         if (index < 0) return false;
         remaining.RemoveAt(index);
         return true;

@@ -40,6 +40,11 @@ namespace OfficeIMO.Excel {
             if (negative || value[0] == (byte)'+') value = value.Slice(1);
             if (value.IsEmpty || (uint)(value[0] - (byte)'0') > 9) return false;
 
+            if (value.Length <= 8 && TryParseUnsignedDigits(value, out uint shortInteger)) {
+                result = negative ? -(double)shortInteger : shortInteger;
+                return true;
+            }
+
             int places = value.Length >= 2 && value[value.Length - 2] == (byte)'.' ? 1
                 : value.Length >= 3 && value[value.Length - 3] == (byte)'.' ? 2 : 0;
             ReadOnlySpan<byte> whole = places == 0 ? value : value.Slice(0, value.Length - places - 1);
@@ -66,6 +71,16 @@ namespace OfficeIMO.Excel {
             double parsed = integer * scale + fraction;
             if (places != 0) parsed /= scale;
             result = negative ? -parsed : parsed;
+            return true;
+        }
+
+        private static bool TryParseUnsignedDigits(ReadOnlySpan<byte> digits, out uint result) {
+            result = 0;
+            foreach (byte character in digits) {
+                uint digit = (uint)(character - (byte)'0');
+                if (digit > 9) return false;
+                result = result * 10 + digit;
+            }
             return true;
         }
 #endif

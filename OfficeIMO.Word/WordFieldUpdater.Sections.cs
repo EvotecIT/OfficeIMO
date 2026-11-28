@@ -1,5 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
@@ -98,33 +97,29 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static int? EstimateSectionForBodyField(WordDocument document, OpenXmlElement anchorElement) {
+        private static int? EstimateSectionForBodyField(WordDocument document, OfficeXmlNode anchorElement) {
             SectionPageEstimate? estimate = EstimateSectionPageForBodyField(document, anchorElement);
             return estimate?.SectionNumber;
         }
 
-        private static int? EstimateSectionPagesForBodyField(WordDocument document, OpenXmlElement anchorElement) {
+        private static int? EstimateSectionPagesForBodyField(WordDocument document, OfficeXmlNode anchorElement) {
             SectionPageEstimate? estimate = EstimateSectionPageForBodyField(document, anchorElement);
             return estimate?.SectionPages;
         }
 
-        private static SectionPageEstimate? EstimateSectionPageForBodyField(WordDocument document, OpenXmlElement anchorElement) {
-            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            if (body == null) {
-                return null;
-            }
+        private static SectionPageEstimate? EstimateSectionPageForBodyField(WordDocument document, OfficeXmlNode anchorElement) {
+            OfficeXmlNode body = WordFieldInventory.BodyNode(document);
+            if (body.IsNone) return null;
 
-            OpenXmlElement? targetBodyChild = GetBodyChildForField(body, anchorElement);
-            if (targetBodyChild == null) {
-                return null;
-            }
+            OfficeXmlNode targetBodyChild = GetBodyChildForField(body, anchorElement);
+            if (targetBodyChild.IsNone) return null;
 
             var pagesBySection = new Dictionary<int, int>();
             int currentSection = 1;
             int targetSection = 0;
 
-            foreach (OpenXmlElement child in body.ChildElements) {
-                if (child is SectionProperties) {
+            foreach (OfficeXmlNode child in body.Children()) {
+                if (child.Is(FieldNamespace, "sectPr")) {
                     continue;
                 }
 
@@ -134,7 +129,7 @@ namespace OfficeIMO.Word {
 
                 pagesBySection[currentSection] += CountExplicitPageAdvances(child);
 
-                if (ReferenceEquals(child, targetBodyChild)) {
+                if (child == targetBodyChild) {
                     targetSection = currentSection;
                 }
 
@@ -150,42 +145,23 @@ namespace OfficeIMO.Word {
             return new SectionPageEstimate(targetSection, sectionPages);
         }
 
-        private static OpenXmlElement? GetBodyChildForField(Body body, OpenXmlElement anchorElement) {
-            OpenXmlElement current = anchorElement;
-            while (current.Parent != null && !ReferenceEquals(current.Parent, body)) {
-                current = current.Parent;
+        private static OfficeXmlNode GetBodyChildForField(OfficeXmlNode body, OfficeXmlNode anchorElement) {
+            for (OfficeXmlNode current = anchorElement; current.Exists; current = current.Parent) {
+                if (current.Parent == body) return current;
             }
-
-            return ReferenceEquals(current.Parent, body) ? current : null;
+            return default;
         }
 
-        private static int CountExplicitPageAdvances(OpenXmlElement element) {
-            int count = 0;
-            foreach (Paragraph paragraph in EnumerateParagraphs(element)) {
-                if (WordParagraph.HasPageBreakBefore(paragraph)) {
-                    count++;
-                }
-
-                count += paragraph
-                    .Descendants<Break>()
-                    .Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
+        private static int CountExplicitPageAdvances(OfficeXmlNode element) {
+            int count = element.Is(FieldNamespace, "p") ? CountParagraphPageBreaks(element) : 0;
+            foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(element)) {
+                if (node.Is(FieldNamespace, "p")) count += CountParagraphPageBreaks(node);
             }
-
             return count;
         }
 
-        private static IEnumerable<Paragraph> EnumerateParagraphs(OpenXmlElement element) {
-            if (element is Paragraph paragraph) {
-                yield return paragraph;
-            }
-
-            foreach (Paragraph descendant in element.Descendants<Paragraph>()) {
-                yield return descendant;
-            }
-        }
-
-        private static bool HasSectionBoundary(OpenXmlElement element) =>
-            element is Paragraph paragraph && paragraph.ParagraphProperties?.SectionProperties != null;
+        private static bool HasSectionBoundary(OfficeXmlNode element) => element.Is(FieldNamespace, "p") &&
+            element.Child(FieldNamespace, "pPr").Child(FieldNamespace, "sectPr").Exists;
 
         private readonly struct SectionPageEstimate {
             internal SectionPageEstimate(int sectionNumber, int sectionPages) {

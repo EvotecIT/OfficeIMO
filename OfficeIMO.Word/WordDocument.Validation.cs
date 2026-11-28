@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.OpenXml.Internal;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -166,8 +167,10 @@ namespace OfficeIMO.Word {
         private void RefreshGeneratedTableOfContent() {
             WordTableOfContent? generated = _generatedTableOfContent;
             if (generated == null) return;
-            if (generated.SdtBlock.Parent == null || !ReferenceEquals(generated.SdtBlock.Ancestors<Body>().FirstOrDefault(),
-                    _wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+            OfficeXmlNode body = _ownedModel is { } model
+                ? new OfficeXmlNode(model.Document, model.Body)
+                : OfficeXmlNode.FromSdk(_wordprocessingDocument.MainDocumentPart?.Document?.Body);
+            if (!generated.BelongsToBody(body)) {
                 _generatedTableOfContent = null;
                 return;
             }

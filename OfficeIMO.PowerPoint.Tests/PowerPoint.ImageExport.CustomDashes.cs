@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 new A.DashStop { DashLength = 200000, SpaceLength = 400000 });
             if (source == "Local") outline.Append(custom);
             else {
-                A.Outline themeLine = slide.ResolvedFormatScheme!.GetFirstChild<A.LineStyleList>()!.Elements<A.Outline>().First();
+                A.Outline themeLine = ((A.FormatScheme)PowerPointThemeScope.For(slide.PartRef).FormatScheme.SdkElement!).GetFirstChild<A.LineStyleList>()!.Elements<A.Outline>().First();
                 themeLine.RemoveAllChildren<A.PresetDash>();
                 themeLine.InsertAfter(custom, themeLine.GetFirstChild<A.SolidFill>());
                 native.ShapeStyle = new ShapeStyle(

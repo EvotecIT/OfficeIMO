@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly OpenXmlPartContainer? _initialOwnerPart;
         // A chart read from the package belongs to its slide's part once the SDK opens.
         private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or SlidePart
-            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? OwnerSlide!.SlidePart
+            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? RelationshipOwnerPart ?? OwnerSlide!.SlidePart
             : _initialOwnerPart;
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {

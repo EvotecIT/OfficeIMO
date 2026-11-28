@@ -148,8 +148,14 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
             if (GetPackage(edit: true) is not { } package) return null;
             try {
-                // Any notes relationship, even one whose part is missing, is the model's to handle.
-                if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")) return null;
+                // A notes relationship to a part that holds no notes is replaced, as nothing reads it as notes; any other
+                // notes relationship, even one whose part is missing, is the model's to handle. They are removed only once
+                // the notes can be added.
+                List<int>? misdirected = null;
+                if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")
+                    && (misdirected = NonNotesRelationships(package, slidePart)) == null) {
+                    return null;
+                }
                 // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
                 string slideDirectory = slidePart.Substring(0, slidePart.LastIndexOf('/'));
                 if (slideDirectory.LastIndexOf('/') < 0) return null;
@@ -173,6 +179,10 @@ namespace OfficeIMO.PowerPoint {
                     listed = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id") == masterRelationship;
                 }
                 if (!listed) return null;
+                if (misdirected != null) {
+                    OfficeXmlTree slideRelationshipTree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(slidePart));
+                    foreach (int node in misdirected) slideRelationshipTree.Remove(node);
+                }
 
                 // The slide's first free rIdN, as the notes model picks it.
                 var used = new HashSet<string>(StringComparer.Ordinal);
@@ -209,6 +219,26 @@ namespace OfficeIMO.PowerPoint {
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return null;
             }
+        }
+
+        // The slide's notes relationships when every one targets an existing part whose root is not p:notes; null when one
+        // targets notes or a missing part.
+        private static List<int>? NonNotesRelationships(OfficeOpcEditablePackage package, string slidePart) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(slidePart);
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            var removed = new List<int>();
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty)
+                    != OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide") continue;
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) return null;
+                string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                if (target == null || !package.PartExists(target)) return null;
+                OfficeXmlTree content = package.GetXml(target);
+                if (content.IsElement(content.Root, OfficeXmlNamespaces.PresentationML, "notes")) return null;
+                removed.Add(node);
+            }
+            return removed;
         }
 
         // The notes slide the notes model writes: a group named for the notes, and the body placeholder with one empty run.
@@ -291,41 +321,6 @@ namespace OfficeIMO.PowerPoint {
                 if (resolved != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(resolved), PartIdentity(target))) return true;
             }
             return false;
-        }
-
-        /// <summary>The attributes of the presentation's first p:sldSz in the package, or null when it has none there.</summary>
-        internal (string? Width, string? Height, string? Type)? GetPackageSlideSize() {
-            if (GetPackage(edit: false) is not { } package) return null;
-            try {
-                if (PackageSlideList.Read(package) is not { } slides) return null;
-                OfficeXmlTree presentation = slides.Presentation;
-                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
-                if (size == OfficeXmlTree.NoNode) return null;
-                return (presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cx"), presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cy"),
-                    presentation.GetAttribute(size, OfficeXmlNamespaces.None, "type"));
-            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Sets or removes an attribute of the presentation's p:sldSz in the package; false when the presentation has none
-        /// there, and the model adds one through the SDK.
-        /// </summary>
-        internal bool TrySetPackageSlideSize(string attribute, string? value) {
-            if (GetPackage(edit: true) is not { } package) return false;
-            try {
-                if (PackageSlideList.Read(package) is not { } slides) return false;
-                OfficeXmlTree presentation = slides.Presentation;
-                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
-                if (size == OfficeXmlTree.NoNode) return false;
-                if (value == null) presentation.RemoveAttribute(size, OfficeXmlNamespaces.None, attribute);
-                else presentation.SetAttribute(size, OfficeXmlNamespaces.None, attribute, value);
-                _pendingEdits = true;
-                return true;
-            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
-                return false;
-            }
         }
 
         /// <summary>A slide's entry in the presentation's slide list in the package, or null when it can't be read there.</summary>

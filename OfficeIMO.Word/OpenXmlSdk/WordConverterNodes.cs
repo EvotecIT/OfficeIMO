@@ -18,19 +18,26 @@ namespace OfficeIMO.Word;
 /// file is the converters' only path to the SDK: it shrinks as the model moves to OfficeIMO's own tree.
 /// </remarks>
 internal static class WordConverterNodes {
+    // Every adapter wraps the model's SDK element through Wrap. Once the engine holds an element as an OfficeXmlNode,
+    // the overload below turns the old wrapping call into a build error, instead of a node boxed as an SDK element.
+    private static OfficeXmlNode Wrap(object? sdkElement) => OfficeXmlNode.FromSdk(sdkElement);
+
+    [Obsolete("The model already holds this element as an OfficeXmlNode: return it instead of wrapping it.", error: true)]
+    private static OfficeXmlNode Wrap(OfficeXmlNode node) => node;
+
     // ---- Document parts -------------------------------------------------------------------------------------------
 
     /// <summary>The <c>w:document</c> element.</summary>
-    internal static OfficeXmlNode DocumentNode(this WordDocument document) => OfficeXmlNode.FromSdk(document._document);
+    internal static OfficeXmlNode DocumentNode(this WordDocument document) => Wrap(document._document);
 
     /// <summary>The <c>w:body</c> element, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode BodyNode(this WordDocument document) => OfficeXmlNode.FromSdk(document._document?.Body);
+    internal static OfficeXmlNode BodyNode(this WordDocument document) => Wrap(document._document?.Body);
 
     private static MainDocumentPart? Main(WordDocument? document) => document?._wordprocessingDocument?.MainDocumentPart;
 
     /// <summary>The <c>w:settings</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode SettingsNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.DocumentSettingsPart?.Settings);
+        Wrap(Main(document)?.DocumentSettingsPart?.Settings);
 
     /// <summary>
     /// The <c>w:styles</c> root, or <see cref="OfficeXmlNode.None"/>. Reading it loads the whole styles part; style
@@ -38,48 +45,48 @@ internal static class WordConverterNodes {
     /// whether there is one.
     /// </summary>
     internal static OfficeXmlNode StylesNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.StyleDefinitionsPart?.Styles);
+        Wrap(Main(document)?.StyleDefinitionsPart?.Styles);
 
     /// <summary>Whether the document has a styles part, without loading it.</summary>
     internal static bool HasStylesPart(this WordDocument? document) => Main(document)?.StyleDefinitionsPart != null;
 
     /// <summary>The <c>w:numbering</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode NumberingNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.NumberingDefinitionsPart?.Numbering);
+        Wrap(Main(document)?.NumberingDefinitionsPart?.Numbering);
 
     /// <summary>The <c>w:footnotes</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode FootnotesNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.FootnotesPart?.Footnotes);
+        Wrap(Main(document)?.FootnotesPart?.Footnotes);
 
     /// <summary>The <c>w:endnotes</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode EndnotesNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.EndnotesPart?.Endnotes);
+        Wrap(Main(document)?.EndnotesPart?.Endnotes);
 
     /// <summary>The <c>w:comments</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode CommentsNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.WordprocessingCommentsPart?.Comments);
+        Wrap(Main(document)?.WordprocessingCommentsPart?.Comments);
 
     /// <summary>The <c>w:fonts</c> root of the font table, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode FontTableNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.FontTablePart?.Fonts);
+        Wrap(Main(document)?.FontTablePart?.Fonts);
 
     /// <summary>The <c>a:theme</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode ThemeNode(this WordDocument? document) =>
-        OfficeXmlNode.FromSdk(Main(document)?.ThemePart?.Theme);
+        Wrap(Main(document)?.ThemePart?.Theme);
 
     // ---- Parts and relationships ----------------------------------------------------------------------------------
 
     /// <summary>The root element of the part that holds <paramref name="element"/>.</summary>
     internal static OfficeXmlNode PartRoot(this OfficeXmlNode element) =>
-        OfficeXmlNode.FromSdk((PartOf(element))?.RootElement);
+        Wrap((PartOf(element))?.RootElement);
 
     /// <summary>The root element of the part <paramref name="relationshipId"/> names from the part that holds <paramref name="element"/>.</summary>
     internal static OfficeXmlNode RelatedPartRoot(this OfficeXmlNode element, string? relationshipId) =>
-        OfficeXmlNode.FromSdk(RelatedPart(element, relationshipId)?.RootElement);
+        Wrap(RelatedPart(element, relationshipId)?.RootElement);
 
     /// <summary>The root element of the part <paramref name="relationshipId"/> names from the main document part.</summary>
     internal static OfficeXmlNode RelatedPartRoot(this WordDocument document, string? relationshipId) =>
-        OfficeXmlNode.FromSdk(TryGetPart(Main(document), relationshipId)?.RootElement);
+        Wrap(TryGetPart(Main(document), relationshipId)?.RootElement);
 
     /// <summary>
     /// Whether <paramref name="relationshipId"/> names an image part from the part that holds <paramref name="element"/>;
@@ -122,136 +129,136 @@ internal static class WordConverterNodes {
     // ---- Model objects --------------------------------------------------------------------------------------------
 
     /// <summary>The paragraph's <c>w:p</c>.</summary>
-    internal static OfficeXmlNode Node(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._paragraph);
+    internal static OfficeXmlNode Node(this WordParagraph paragraph) => Wrap(paragraph._paragraph);
 
     /// <summary>The paragraph's <c>w:pPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode ParagraphPropertiesNode(this WordParagraph paragraph) =>
-        OfficeXmlNode.FromSdk(paragraph._paragraphProperties);
+        Wrap(paragraph._paragraphProperties);
 
     /// <summary>The run this paragraph object stands for, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode RunNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._run);
+    internal static OfficeXmlNode RunNode(this WordParagraph paragraph) => Wrap(paragraph._run);
 
     /// <summary>The run properties this paragraph object reads, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode RunPropertiesNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._runProperties);
+    internal static OfficeXmlNode RunPropertiesNode(this WordParagraph paragraph) => Wrap(paragraph._runProperties);
 
     /// <summary>The hyperlink this paragraph object stands in, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode HyperlinkNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._hyperlink);
+    internal static OfficeXmlNode HyperlinkNode(this WordParagraph paragraph) => Wrap(paragraph._hyperlink);
 
     /// <summary>The table's <c>w:tbl</c>.</summary>
-    internal static OfficeXmlNode Node(this WordTable table) => OfficeXmlNode.FromSdk(table._table);
+    internal static OfficeXmlNode Node(this WordTable table) => Wrap(table._table);
 
     /// <summary>The table's <c>w:tblPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode PropertiesNode(this WordTable table) => OfficeXmlNode.FromSdk(table._tableProperties);
+    internal static OfficeXmlNode PropertiesNode(this WordTable table) => Wrap(table._tableProperties);
 
     /// <summary>The row's <c>w:tr</c>.</summary>
-    internal static OfficeXmlNode Node(this WordTableRow row) => OfficeXmlNode.FromSdk(row._tableRow);
+    internal static OfficeXmlNode Node(this WordTableRow row) => Wrap(row._tableRow);
 
     /// <summary>The cell's <c>w:tc</c>.</summary>
-    internal static OfficeXmlNode Node(this WordTableCell cell) => OfficeXmlNode.FromSdk(cell._tableCell);
+    internal static OfficeXmlNode Node(this WordTableCell cell) => Wrap(cell._tableCell);
 
     /// <summary>The cell's <c>w:tcPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode PropertiesNode(this WordTableCell cell) => OfficeXmlNode.FromSdk(cell._tableCellProperties);
+    internal static OfficeXmlNode PropertiesNode(this WordTableCell cell) => Wrap(cell._tableCellProperties);
 
     /// <summary>The section's <c>w:sectPr</c>.</summary>
-    internal static OfficeXmlNode Node(this WordSection section) => OfficeXmlNode.FromSdk(section._sectionProperties);
+    internal static OfficeXmlNode Node(this WordSection section) => Wrap(section._sectionProperties);
 
     /// <summary>The <c>w:hdr</c> or <c>w:ftr</c> root of the header or footer, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode Node(this WordHeaderFooter headerFooter) =>
-        OfficeXmlNode.FromSdk((object?)headerFooter._header ?? headerFooter._footer);
+        Wrap((object?)headerFooter._header ?? headerFooter._footer);
 
     /// <summary>The image's <c>w:drawing</c>, or <see cref="OfficeXmlNode.None"/> for a VML image.</summary>
-    internal static OfficeXmlNode DrawingNode(this WordImage image) => OfficeXmlNode.FromSdk(image._Image);
+    internal static OfficeXmlNode DrawingNode(this WordImage image) => Wrap(image._Image);
 
     /// <summary>The image's VML <c>v:shape</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode VmlShapeNode(this WordImage image) => OfficeXmlNode.FromSdk(image._vmlShape);
+    internal static OfficeXmlNode VmlShapeNode(this WordImage image) => Wrap(image._vmlShape);
 
     /// <summary>The element that places the image in the story: its VML shape or its drawing.</summary>
-    internal static OfficeXmlNode OccurrenceNode(this WordImage image) => OfficeXmlNode.FromSdk(image.OccurrenceElement);
+    internal static OfficeXmlNode OccurrenceNode(this WordImage image) => Wrap(image.OccurrenceElement);
 
     /// <summary>The chart's <c>w:drawing</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode DrawingNode(this WordChart chart) => OfficeXmlNode.FromSdk(chart.Drawing);
+    internal static OfficeXmlNode DrawingNode(this WordChart chart) => Wrap(chart.Drawing);
 
     /// <summary>The <c>c:chartSpace</c> root of the chart part, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode ChartSpaceNode(this WordChart chart) => OfficeXmlNode.FromSdk(chart.ChartPart?.ChartSpace);
+    internal static OfficeXmlNode ChartSpaceNode(this WordChart chart) => Wrap(chart.ChartPart?.ChartSpace);
 
     /// <summary>The SmartArt's <c>w:drawing</c>.</summary>
-    internal static OfficeXmlNode DrawingNode(this WordSmartArt smartArt) => OfficeXmlNode.FromSdk(smartArt._drawing);
+    internal static OfficeXmlNode DrawingNode(this WordSmartArt smartArt) => smartArt._drawing;
 
     /// <summary>The text box's <c>w:drawing</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode DrawingNode(this WordTextBox textBox) => OfficeXmlNode.FromSdk(textBox.Drawing);
+    internal static OfficeXmlNode DrawingNode(this WordTextBox textBox) => Wrap(textBox.Drawing);
 
     /// <summary>The text box's <c>wp:anchor</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode AnchorNode(this WordTextBox textBox) => OfficeXmlNode.FromSdk(textBox.Anchor);
+    internal static OfficeXmlNode AnchorNode(this WordTextBox textBox) => Wrap(textBox.Anchor);
 
     /// <summary>The text box's <c>w:txbxContent</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode ContentNode(this WordTextBox textBox) => OfficeXmlNode.FromSdk(textBox.Content);
+    internal static OfficeXmlNode ContentNode(this WordTextBox textBox) => Wrap(textBox.Content);
 
     /// <summary>The text box shape's <c>wps:spPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode ShapePropertiesNode(this WordTextBox textBox) => OfficeXmlNode.FromSdk(textBox.DrawingShapeProperties);
+    internal static OfficeXmlNode ShapePropertiesNode(this WordTextBox textBox) => Wrap(textBox.DrawingShapeProperties);
 
     /// <summary>The text box shape's <c>wps:bodyPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode TextBodyPropertiesNode(this WordTextBox textBox) => OfficeXmlNode.FromSdk(textBox.DrawingTextBodyProperties);
+    internal static OfficeXmlNode TextBodyPropertiesNode(this WordTextBox textBox) => Wrap(textBox.DrawingTextBodyProperties);
 
     /// <summary>The shape's <c>w:drawing</c>, or <see cref="OfficeXmlNode.None"/> for a VML shape.</summary>
-    internal static OfficeXmlNode DrawingNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._drawing);
+    internal static OfficeXmlNode DrawingNode(this WordShape shape) => Wrap(shape._drawing);
 
     /// <summary>The shape's <c>wps:wsp</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode WpsShapeNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._wpsShape);
+    internal static OfficeXmlNode WpsShapeNode(this WordShape shape) => Wrap(shape._wpsShape);
 
     /// <summary>The run that holds the shape, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode RunNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape.Run);
+    internal static OfficeXmlNode RunNode(this WordShape shape) => Wrap(shape.Run);
 
     /// <summary>The content control's <c>w:sdt</c> block.</summary>
-    internal static OfficeXmlNode SdtBlockNode(this WordStructuredDocumentTag tag) => OfficeXmlNode.FromSdk(tag.SdtBlock);
+    internal static OfficeXmlNode SdtBlockNode(this WordStructuredDocumentTag tag) => Wrap(tag.SdtBlock);
 
     /// <summary>The cover page's <c>w:sdt</c> block.</summary>
-    internal static OfficeXmlNode SdtBlockNode(this WordCoverPage coverPage) => OfficeXmlNode.FromSdk(coverPage.SdtBlock);
+    internal static OfficeXmlNode SdtBlockNode(this WordCoverPage coverPage) => Wrap(coverPage.SdtBlock);
 
     /// <summary>The table of contents' <c>w:sdt</c> block.</summary>
-    internal static OfficeXmlNode SdtBlockNode(this WordTableOfContent tableOfContent) => OfficeXmlNode.FromSdk(tableOfContent.SdtBlock);
+    internal static OfficeXmlNode SdtBlockNode(this WordTableOfContent tableOfContent) => Wrap(tableOfContent.SdtBlock);
 
     /// <summary>The shape's VML <c>v:line</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode VmlLineNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._line);
+    internal static OfficeXmlNode VmlLineNode(this WordShape shape) => Wrap(shape._line);
 
     /// <summary>The shape's VML <c>v:polyline</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode VmlPolygonNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._polygon);
+    internal static OfficeXmlNode VmlPolygonNode(this WordShape shape) => Wrap(shape._polygon);
 
     /// <summary>The shape's VML <c>v:oval</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode VmlOvalNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._ellipse);
+    internal static OfficeXmlNode VmlOvalNode(this WordShape shape) => Wrap(shape._ellipse);
 
     /// <summary>The shape's VML <c>v:roundrect</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode VmlRoundRectangleNode(this WordShape shape) => OfficeXmlNode.FromSdk(shape._roundRectangle);
+    internal static OfficeXmlNode VmlRoundRectangleNode(this WordShape shape) => Wrap(shape._roundRectangle);
 
     /// <summary>The URI of the chart's part, as text, or null.</summary>
     internal static string? ChartPartUri(this WordChart chart) => chart.ChartPart?.Uri?.ToString();
 
     /// <summary>The inline content control (<c>w:sdt</c>) this paragraph object stands for, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode SdtRunNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._stdRun);
+    internal static OfficeXmlNode SdtRunNode(this WordParagraph paragraph) => Wrap(paragraph._stdRun);
 
     /// <summary>The run properties the hyperlink's run carries, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode RunPropertiesNode(this WordHyperLink hyperlink) => OfficeXmlNode.FromSdk(hyperlink._runProperties);
+    internal static OfficeXmlNode RunPropertiesNode(this WordHyperLink hyperlink) => Wrap(hyperlink._runProperties);
 
     /// <summary>The style's <c>w:style</c> element, parsed when first asked for.</summary>
-    internal static OfficeXmlNode ElementNode(this WordStyleDefinitionsReader.StyleDefinition style) => OfficeXmlNode.FromSdk(style.Element);
+    internal static OfficeXmlNode ElementNode(this WordStyleDefinitionsReader.StyleDefinition style) => Wrap(style.Element);
 
     /// <summary>The <c>w:docDefaults</c> of the style catalog, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode DocumentDefaultsNode(this WordStyleCatalog catalog) => OfficeXmlNode.FromSdk(catalog.DocumentDefaults);
+    internal static OfficeXmlNode DocumentDefaultsNode(this WordStyleCatalog catalog) => Wrap(catalog.DocumentDefaults);
 
     /// <summary>The <c>w:docDefaults</c> of the document's styles, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode DocumentDefaultsNode(this WordDocument document) =>
-        OfficeXmlNode.FromSdk(WordStyleCatalog.For(document).DocumentDefaults);
+        Wrap(WordStyleCatalog.For(document).DocumentDefaults);
 
     /// <summary>The <c>w:tabs</c> of the paragraph's numbering level, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode LevelTabStopsNode(this WordDocumentTraversal.ListInfo info) => OfficeXmlNode.FromSdk(info.LevelTabStops);
+    internal static OfficeXmlNode LevelTabStopsNode(this WordDocumentTraversal.ListInfo info) => Wrap(info.LevelTabStops);
 
     /// <summary>The element the field was read from.</summary>
-    internal static OfficeXmlNode SourceNode(this WordFieldInventory.FieldInfoCandidate field) => OfficeXmlNode.FromSdk(field.SourceElement);
+    internal static OfficeXmlNode SourceNode(this WordFieldInventory.FieldInfoCandidate field) => Wrap(field.SourceElement);
 
     // ---- Run content ----------------------------------------------------------------------------------------------
 
     /// <summary>The run's direct content with the active markup-compatibility branch selected.</summary>
     internal static IEnumerable<OfficeXmlNode> EffectiveRunContentNodes(this WordParagraph paragraph) {
-        foreach (OpenXmlElement child in paragraph.EnumerateEffectiveRunContent()) yield return OfficeXmlNode.FromSdk(child);
+        foreach (OpenXmlElement child in paragraph.EnumerateEffectiveRunContent()) yield return Wrap(child);
     }
 
     /// <summary>The source children a run view projects, or null when it shows the whole source run.</summary>
@@ -264,13 +271,13 @@ internal static class WordConverterNodes {
     /// </summary>
     internal static IEnumerable<OfficeXmlNode> ProjectedRunChildNodes(this WordParagraph run) {
         IEnumerable<OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
-        foreach (OpenXmlElement child in children) yield return OfficeXmlNode.FromSdk(child);
+        foreach (OpenXmlElement child in children) yield return Wrap(child);
     }
 
     /// <summary>The branch of an <c>mc:AlternateContent</c> Word selects, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode SelectAlternateContentBranch(OfficeXmlNode alternateContent) =>
         alternateContent.SdkElement is AlternateContent alternate
-            ? OfficeXmlNode.FromSdk(WordAlternateContentResolver.SelectBranch(alternate))
+            ? Wrap(WordAlternateContentResolver.SelectBranch(alternate))
             : default;
 
     /// <summary>The element's visible text, as <see cref="WordParagraph.ReadVisibleText(OpenXmlElement)"/>.</summary>
@@ -391,18 +398,18 @@ internal static class WordConverterNodes {
     // ---- Detached elements ----------------------------------------------------------------------------------------
 
     /// <summary>A new, detached, empty <c>w:p</c>.</summary>
-    internal static OfficeXmlNode CreateDetachedParagraph() => OfficeXmlNode.FromSdk(new W.Paragraph());
+    internal static OfficeXmlNode CreateDetachedParagraph() => Wrap(new W.Paragraph());
 
     /// <summary>A new, detached, empty <c>w:r</c>.</summary>
-    internal static OfficeXmlNode CreateDetachedRun() => OfficeXmlNode.FromSdk(new W.Run());
+    internal static OfficeXmlNode CreateDetachedRun() => Wrap(new W.Run());
 
     /// <summary>A new, detached <c>w:t</c> holding <paramref name="text"/> with spaces preserved.</summary>
     internal static OfficeXmlNode CreateDetachedPreservedText(string text) =>
-        OfficeXmlNode.FromSdk(new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
+        Wrap(new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
 
     /// <summary>A detached copy of the element with its attributes and no children, as the SDK's <c>CloneNode(false)</c>.</summary>
     internal static OfficeXmlNode CloneShallow(this OfficeXmlNode element) {
-        if (element.SdkElement is OpenXmlElement sdk) return OfficeXmlNode.FromSdk(sdk.CloneNode(false));
+        if (element.SdkElement is OpenXmlElement sdk) return Wrap(sdk.CloneNode(false));
         OfficeXmlNode copy = element.Clone();
         for (OfficeXmlNode child = copy.FirstChild; !child.IsNone; child = copy.FirstChild) child.Remove();
         return copy;
@@ -438,7 +445,7 @@ internal static class WordConverterNodes {
 
     /// <summary>The <c>w:fldChar</c> that began the innermost open field, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode BeginMarkerNode(this WordComplexFieldRunVisibility visibility) =>
-        OfficeXmlNode.FromSdk(visibility.CurrentState?.BeginMarker);
+        Wrap(visibility.CurrentState?.BeginMarker);
 
     /// <summary>
     /// The visible form of <paramref name="run"/>: the run itself, a projection holding only its visible children, or
@@ -448,7 +455,7 @@ internal static class WordConverterNodes {
         out IReadOnlyList<OfficeXmlNode>? visibleSourceChildren) {
         W.Run? visible = visibility.GetVisibleRun((W.Run)run.SdkElement!, out IReadOnlyList<OpenXmlElement>? children);
         visibleSourceChildren = children == null ? null : ToNodes(children);
-        return OfficeXmlNode.FromSdk(visible);
+        return Wrap(visible);
     }
 
     /// <summary>Advances the field state past the <c>w:r</c> <paramref name="run"/>, observing its field characters.</summary>
@@ -478,10 +485,10 @@ internal static class WordConverterNodes {
     internal static IReadOnlyList<WordEquationContentSegment> VisibleEquationContentSegments(OfficeXmlNode container,
         IReadOnlyList<WordEquationOccurrence> occurrences, Func<OfficeXmlNode, bool>? includeElement = null) =>
         WordEquation.GetVisibleContentSegments((OpenXmlElement)container.SdkElement!, occurrences,
-            includeElement == null ? null : element => includeElement(OfficeXmlNode.FromSdk(element)));
+            includeElement == null ? null : element => includeElement(Wrap(element)));
 
     /// <summary>The run artifact (break, note reference, ...) the equation segment stands for, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode ArtifactNode(this WordEquationContentSegment segment) => OfficeXmlNode.FromSdk(segment.ArtifactElement);
+    internal static OfficeXmlNode ArtifactNode(this WordEquationContentSegment segment) => Wrap(segment.ArtifactElement);
 
     /// <summary>The run object the equation segment's text comes from, or <paramref name="paragraph"/>.</summary>
     internal static WordParagraph CreateSourceParagraph(this WordEquationContentSegment segment, WordParagraph paragraph) =>
@@ -500,17 +507,17 @@ internal static class WordConverterNodes {
     internal static IReadOnlyList<WordElement> GetBlockContentElements(WordDocument document, OfficeXmlNode block,
         Func<OfficeXmlNode, bool>? includeParagraph = null) =>
         WordDocumentTraversal.GetBlockContentElements(document, (W.SdtBlock?)block.SdkElement,
-            includeParagraph == null ? null : paragraph => includeParagraph(OfficeXmlNode.FromSdk(paragraph)));
+            includeParagraph == null ? null : paragraph => includeParagraph(Wrap(paragraph)));
 
     // ---- Notes ----------------------------------------------------------------------------------------------------
 
     /// <summary>The ordinary footnote with this identifier, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode FindFootnoteNode(this WordDocument? document, long? referenceId) =>
-        OfficeXmlNode.FromSdk(WordNoteResolver.FindFootnote(Main(document), referenceId));
+        Wrap(WordNoteResolver.FindFootnote(Main(document), referenceId));
 
     /// <summary>The ordinary endnote with this identifier, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode FindEndnoteNode(this WordDocument? document, long? referenceId) =>
-        OfficeXmlNode.FromSdk(WordNoteResolver.FindEndnote(Main(document), referenceId));
+        Wrap(WordNoteResolver.FindEndnote(Main(document), referenceId));
 
     /// <summary>Whether a <c>w:footnote</c> or <c>w:endnote</c> is an ordinary note rather than a separator story.</summary>
     internal static bool IsOrdinaryNote(OfficeXmlNode note) =>
@@ -528,7 +535,7 @@ internal static class WordConverterNodes {
         story.Append(new W.Paragraph(
             new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "240", LineRule = W.LineSpacingRuleValues.Auto }),
             new W.Run(mark)));
-        return OfficeXmlNode.FromSdk(story);
+        return Wrap(story);
     }
 
     // ---- Formatting -----------------------------------------------------------------------------------------------
@@ -547,15 +554,15 @@ internal static class WordConverterNodes {
 
     /// <summary>The shading of the nearest table cell holding the paragraph, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode ContainingTableCellShadingNode(this WordParagraph paragraph) =>
-        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveContainingTableCellShading(paragraph));
+        Wrap(WordRunFormatting.ResolveContainingTableCellShading(paragraph));
 
     /// <summary>The cell's resolved <c>w:shd</c>, as <see cref="WordRunFormatting.ResolveTableCellShading(WordTableCell)"/>.</summary>
     internal static OfficeXmlNode ResolveTableCellShading(WordTableCell cell) =>
-        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableCellShading(cell));
+        Wrap(WordRunFormatting.ResolveTableCellShading(cell));
 
     /// <summary>The table's resolved <c>w:shd</c>, as <see cref="WordRunFormatting.ResolveTableShading(WordTable)"/>.</summary>
     internal static OfficeXmlNode ResolveTableShading(WordTable table) =>
-        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableShading(table));
+        Wrap(WordRunFormatting.ResolveTableShading(table));
 
     /// <summary>The highlight token of run properties, as <see cref="WordRunFormatting.ReadRunHighlight"/>.</summary>
     internal static string? ReadRunHighlight(OfficeXmlNode properties) =>
@@ -592,9 +599,12 @@ internal static class WordConverterNodes {
 
     // ---- Drawings and packages ------------------------------------------------------------------------------------
 
-    /// <summary>Reads a <c>w:drawing</c>'s placement and size, as <see cref="WordDrawingLayoutReader.TryRead"/>.</summary>
+    /// <summary>
+    /// Reads a <c>w:drawing</c>'s placement and size, as <see cref="WordDrawingLayoutReader.TryRead(OfficeXmlNode, out WordDrawingLayoutInfo)"/>.
+    /// A drawing inside markup the model doesn't read has none.
+    /// </summary>
     internal static bool TryReadDrawingLayout(OfficeXmlNode drawing, out WordDrawingLayoutInfo layout) =>
-        WordDrawingLayoutReader.TryRead(drawing.SdkElement as W.Drawing, out layout);
+        WordDrawingLayoutReader.TryRead(drawing.IsModelElement() ? drawing : default, out layout);
 
     /// <summary>The VML shape's style declarations, as <see cref="ImageShapeStyleHelper.GetStyle"/>.</summary>
     internal static Dictionary<string, string> VmlShapeStyle(OfficeXmlNode shape) => ImageShapeStyleHelper.GetStyle((V.Shape)shape.SdkElement!);
@@ -605,7 +615,7 @@ internal static class WordConverterNodes {
     /// </summary>
     internal static OfficeXmlNode PackageThemeNode(this OfficeXmlNode element) =>
         PartOf(element)?.OpenXmlPackage is WordprocessingDocument document
-            ? OfficeXmlNode.FromSdk(document.MainDocumentPart?.ThemePart?.Theme)
+            ? Wrap(document.MainDocumentPart?.ThemePart?.Theme)
             : default;
 
     /// <summary>The <c>w:hdr</c> roots of the header parts, then the <c>w:ftr</c> roots of the footer parts.</summary>
@@ -614,10 +624,10 @@ internal static class WordConverterNodes {
         MainDocumentPart? main = Main(document);
         if (main == null) return roots;
         foreach (HeaderPart part in main.HeaderParts) {
-            if (part.Header is { } header) roots.Add(OfficeXmlNode.FromSdk(header));
+            if (part.Header is { } header) roots.Add(Wrap(header));
         }
         foreach (FooterPart part in main.FooterParts) {
-            if (part.Footer is { } footer) roots.Add(OfficeXmlNode.FromSdk(footer));
+            if (part.Footer is { } footer) roots.Add(Wrap(footer));
         }
         return roots;
     }
@@ -647,7 +657,7 @@ internal static class WordConverterNodes {
 
     private static List<OfficeXmlNode> ToNodes(IReadOnlyList<OpenXmlElement> elements) {
         var nodes = new List<OfficeXmlNode>(elements.Count);
-        foreach (OpenXmlElement element in elements) nodes.Add(OfficeXmlNode.FromSdk(element));
+        foreach (OpenXmlElement element in elements) nodes.Add(Wrap(element));
         return nodes;
     }
 
@@ -671,38 +681,38 @@ internal static class WordConverterNodes {
             "numbering" => W.StyleValues.Numbering,
             _ => new W.StyleValues(type)
         };
-        foreach (W.Style style in catalog.EnumerateChain(styleId, styleType)) yield return OfficeXmlNode.FromSdk(style);
+        foreach (W.Style style in catalog.EnumerateChain(styleId, styleType)) yield return Wrap(style);
     }
 
     /// <summary>The first <c>w:style</c> with this identifier, as <see cref="WordStyleCatalog.FindById"/>.</summary>
     internal static OfficeXmlNode FindStyleNodeById(this WordStyleCatalog catalog, string? styleId) =>
-        OfficeXmlNode.FromSdk(catalog.FindById(styleId));
+        Wrap(catalog.FindById(styleId));
 
     /// <summary>Whether the table's look turns first-row formatting on, as <see cref="WordTable.HasFirstRowFormatting"/>.</summary>
     internal static bool HasFirstRowFormatting(OfficeXmlNode table) => WordTable.HasFirstRowFormatting((W.Table)table.SdkElement!);
 
     /// <summary>The check box's <c>w:sdt</c>.</summary>
-    internal static OfficeXmlNode SdtRunNode(this WordCheckBox checkBox) => OfficeXmlNode.FromSdk(checkBox._sdtRun);
+    internal static OfficeXmlNode SdtRunNode(this WordCheckBox checkBox) => Wrap(checkBox._sdtRun);
 
     /// <summary>The drop-down list's <c>w:sdt</c>.</summary>
-    internal static OfficeXmlNode SdtRunNode(this WordDropDownList dropDownList) => OfficeXmlNode.FromSdk(dropDownList._sdtRun);
+    internal static OfficeXmlNode SdtRunNode(this WordDropDownList dropDownList) => Wrap(dropDownList._sdtRun);
 
     /// <summary>The combo box's <c>w:sdt</c>.</summary>
-    internal static OfficeXmlNode SdtRunNode(this WordComboBox comboBox) => OfficeXmlNode.FromSdk(comboBox._sdtRun);
+    internal static OfficeXmlNode SdtRunNode(this WordComboBox comboBox) => Wrap(comboBox._sdtRun);
 
     /// <summary>The date picker's <c>w:sdt</c>.</summary>
-    internal static OfficeXmlNode SdtRunNode(this WordDatePicker datePicker) => OfficeXmlNode.FromSdk(datePicker._sdtRun);
+    internal static OfficeXmlNode SdtRunNode(this WordDatePicker datePicker) => Wrap(datePicker._sdtRun);
 
     /// <summary>The content control's inline or block <c>w:sdt</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode SdtElementNode(this WordStructuredDocumentTag tag) => OfficeXmlNode.FromSdk(tag.SdtElement);
+    internal static OfficeXmlNode SdtElementNode(this WordStructuredDocumentTag tag) => Wrap(tag.SdtElement);
 
     /// <summary>The cell's resolved border on <paramref name="side"/>, as <see cref="WordRunFormatting.ResolveTableCellBorder(WordTableCell, WordTableBorderSide)"/>.</summary>
     internal static OfficeXmlNode ResolveTableCellBorderNode(WordTableCell cell, WordTableBorderSide side) =>
-        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableCellBorder(cell, side));
+        Wrap(WordRunFormatting.ResolveTableCellBorder(cell, side));
 
     /// <summary>The cell's resolved diagonal border, as <see cref="WordRunFormatting.ResolveTableCellDiagonalBorder"/>.</summary>
     internal static OfficeXmlNode ResolveTableCellDiagonalBorderNode(WordTableCell cell, bool descending) =>
-        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, descending));
+        Wrap(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, descending));
 
     /// <summary>The footnote a <c>w:footnoteReference</c> in <paramref name="run"/>'s paragraph names, read from a detached run holding a copy of the reference.</summary>
     internal static WordFootNote FootNoteForReference(this WordParagraph run, OfficeXmlNode footnoteReference) =>
@@ -724,11 +734,11 @@ internal static class WordConverterNodes {
         if (mainPart == null) yield break;
         CustomFilePropertiesPart? customPropertiesPart = includeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null;
         if (customPropertiesPart?.Properties is OpenXmlElement customProperties) {
-            yield return (OfficeXmlNode.FromSdk(customProperties), customPropertiesPart.Uri.ToString(), 0);
+            yield return (Wrap(customProperties), customPropertiesPart.Uri.ToString(), 0);
         }
 
         foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-            yield return (OfficeXmlNode.FromSdk(root.Root), root.PartUri, 0);
+            yield return (Wrap(root.Root), root.PartUri, 0);
         }
         var chartUris = new HashSet<Uri>();
         IEnumerable<OpenXmlPart> stories = new OpenXmlPart[] { mainPart }
@@ -739,39 +749,39 @@ internal static class WordConverterNodes {
             foreach (var chart in story.Parts.Select(relationship => relationship.OpenXmlPart)
                 .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
                 if (chartUris.Add(chart.Uri) && chart.RootElement is OpenXmlElement chartRoot)
-                    yield return (OfficeXmlNode.FromSdk(chartRoot), chart.Uri.ToString(), 0);
+                    yield return (Wrap(chartRoot), chart.Uri.ToString(), 0);
                 foreach (var presentation in chart.Parts.Select(relationship => relationship.OpenXmlPart)
                     .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
                     if (chartUris.Add(presentation.Uri) && presentation.RootElement is OpenXmlElement presentationRoot)
-                        yield return (OfficeXmlNode.FromSdk(presentationRoot), presentation.Uri.ToString(), 0);
+                        yield return (Wrap(presentationRoot), presentation.Uri.ToString(), 0);
                 }
             }
         }
         if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
-            yield return (OfficeXmlNode.FromSdk(comments), mainPart.WordprocessingCommentsPart.Uri.ToString(), 0);
+            yield return (Wrap(comments), mainPart.WordprocessingCommentsPart.Uri.ToString(), 0);
         }
         foreach (StylesPart? stylesPart in new StylesPart?[] { mainPart.StyleDefinitionsPart, mainPart.StylesWithEffectsPart }) {
             if (stylesPart == null) continue;
             if (WordStyleDefinitionsReader.TryCountElements(stylesPart) is long count) {
                 yield return (default, stylesPart.Uri.ToString(), count);
             } else if (stylesPart.Styles is OpenXmlElement styles) {
-                yield return (OfficeXmlNode.FromSdk(styles), stylesPart.Uri.ToString(), 0);
+                yield return (Wrap(styles), stylesPart.Uri.ToString(), 0);
             }
         }
         if (mainPart.NumberingDefinitionsPart?.Numbering is OpenXmlElement numbering) {
-            yield return (OfficeXmlNode.FromSdk(numbering), mainPart.NumberingDefinitionsPart.Uri.ToString(), 0);
+            yield return (Wrap(numbering), mainPart.NumberingDefinitionsPart.Uri.ToString(), 0);
         }
         if (mainPart.ThemePart?.Theme is OpenXmlElement theme) {
-            yield return (OfficeXmlNode.FromSdk(theme), mainPart.ThemePart.Uri.ToString(), 0);
+            yield return (Wrap(theme), mainPart.ThemePart.Uri.ToString(), 0);
         }
         if (mainPart.FontTablePart?.Fonts is OpenXmlElement fonts) {
-            yield return (OfficeXmlNode.FromSdk(fonts), mainPart.FontTablePart.Uri.ToString(), 0);
+            yield return (Wrap(fonts), mainPart.FontTablePart.Uri.ToString(), 0);
         }
         if (mainPart.DocumentSettingsPart?.Settings is OpenXmlElement settings) {
-            yield return (OfficeXmlNode.FromSdk(settings), mainPart.DocumentSettingsPart.Uri.ToString(), 0);
+            yield return (Wrap(settings), mainPart.DocumentSettingsPart.Uri.ToString(), 0);
         }
         if (mainPart.WebSettingsPart?.WebSettings is OpenXmlElement webSettings) {
-            yield return (OfficeXmlNode.FromSdk(webSettings), mainPart.WebSettingsPart.Uri.ToString(), 0);
+            yield return (Wrap(webSettings), mainPart.WebSettingsPart.Uri.ToString(), 0);
         }
     }
 
@@ -831,7 +841,7 @@ internal static class WordConverterNodes {
     }
 
     /// <summary>The run properties the run's formatting reads, its content control's included, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode ScopedRunPropertiesNode(this WordParagraph run) => OfficeXmlNode.FromSdk(run.ScopedRunProperties);
+    internal static OfficeXmlNode ScopedRunPropertiesNode(this WordParagraph run) => Wrap(run.ScopedRunProperties);
 
     /// <summary>A hyperlink object over the <c>w:hyperlink</c> <paramref name="hyperlink"/> in <paramref name="paragraph"/>.</summary>
     internal static WordHyperLink HyperlinkView(this WordDocument document, OfficeXmlNode paragraph, OfficeXmlNode hyperlink) =>
@@ -858,10 +868,10 @@ internal static class WordConverterNodes {
 
     /// <summary>The direct child of <paramref name="paragraph"/> that holds <paramref name="element"/>, as <see cref="WordEquation.GetDirectParagraphChild"/>.</summary>
     internal static OfficeXmlNode GetDirectParagraphChild(OfficeXmlNode paragraph, OfficeXmlNode element) =>
-        OfficeXmlNode.FromSdk(WordEquation.GetDirectParagraphChild((W.Paragraph)paragraph.SdkElement!, element.SdkElement as OpenXmlElement));
+        Wrap(WordEquation.GetDirectParagraphChild((W.Paragraph)paragraph.SdkElement!, element.SdkElement as OpenXmlElement));
 
     /// <summary>The hyperlink's <c>w:hyperlink</c>.</summary>
-    internal static OfficeXmlNode Node(this WordHyperLink hyperlink) => OfficeXmlNode.FromSdk(hyperlink._hyperlink);
+    internal static OfficeXmlNode Node(this WordHyperLink hyperlink) => Wrap(hyperlink._hyperlink);
 
     // ---- Word.Html (build) ---
 
@@ -885,8 +895,8 @@ internal static class WordConverterNodes {
     /// <summary>The last body block and last paragraph of the section, when the body layout matches it cheaply.</summary>
     internal static bool TryGetLastBlockNodes(this WordSection section, out OfficeXmlNode lastBlock, out OfficeXmlNode lastParagraph) {
         bool found = section.TryGetLastBlocks(out OpenXmlElement? block, out W.Paragraph? paragraph);
-        lastBlock = OfficeXmlNode.FromSdk(block);
-        lastParagraph = OfficeXmlNode.FromSdk(paragraph);
+        lastBlock = Wrap(block);
+        lastParagraph = Wrap(paragraph);
         return found;
     }
 
@@ -902,8 +912,8 @@ internal static class WordConverterNodes {
             sdkParagraphs, sdkTables);
         paragraphs.Clear();
         tables.Clear();
-        foreach (W.Paragraph paragraph in sdkParagraphs) paragraphs.Add(OfficeXmlNode.FromSdk(paragraph));
-        foreach (W.Table table in sdkTables) tables.Add(OfficeXmlNode.FromSdk(table));
+        foreach (W.Paragraph paragraph in sdkParagraphs) paragraphs.Add(Wrap(paragraph));
+        foreach (W.Table table in sdkTables) tables.Add(Wrap(table));
         return found;
     }
 
@@ -934,8 +944,8 @@ internal static class WordConverterNodes {
             addStyle, tooltip, history, moveContent);
 
     /// <summary>The story root (document, header, footer, notes or comments) that holds the paragraph.</summary>
-    internal static OfficeXmlNode LocationNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph.Location());
+    internal static OfficeXmlNode LocationNode(this WordParagraph paragraph) => Wrap(paragraph.Location());
 
     /// <summary>The <c>wp:positionH</c> of an anchored image; throws for an inline image, as the model does.</summary>
-    internal static OfficeXmlNode HorizontalPositionNode(this WordImage image) => OfficeXmlNode.FromSdk(image.horizontalPosition);
+    internal static OfficeXmlNode HorizontalPositionNode(this WordImage image) => Wrap(image.horizontalPosition);
 }

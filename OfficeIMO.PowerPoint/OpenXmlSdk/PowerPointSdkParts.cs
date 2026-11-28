@@ -78,6 +78,9 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             }
         }
 
+        internal static string? IdOfPart(object part, object target, string relationshipType) =>
+            P(part).Parts.FirstOrDefault(pair => ReferenceEquals(pair.OpenXmlPart, target) && pair.OpenXmlPart.RelationshipType == relationshipType).RelationshipId;
+
         internal static string ContentType(object part) => P(part).ContentType;
 
         internal static Stream GetStream(object part, FileMode mode, FileAccess access) => P(part).GetStream(mode, access);
@@ -92,6 +95,12 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             HyperlinkRelationship relationship = owner.HyperlinkRelationships.FirstOrDefault(candidate => !candidate.IsExternal && candidate.Uri == targetUri)
                 ?? owner.AddHyperlinkRelationship(targetUri, false);
             return relationship.Id;
+        }
+
+        internal static void ReplaceRelatedPart(object part, string relationshipType, object target) {
+            OpenXmlPart owner = P(part);
+            foreach (IdPartPair pair in owner.Parts.Where(pair => pair.OpenXmlPart.RelationshipType == relationshipType).ToList()) owner.DeletePart(pair.RelationshipId);
+            owner.AddPart(P(target));
         }
 
         internal static string GetOrAddPartRelationship(object part, object target) {

@@ -157,12 +157,13 @@ public static partial class OfficePngReader {
     internal static bool TryValidateDecodedPayload(
         byte[] bytes,
         CancellationToken cancellationToken,
-        long retainedManagedBytes = 0L) {
+        long retainedManagedBytes = 0L,
+        OfficePngContainerValidation containerValidation = default) {
         try {
             if (retainedManagedBytes < 0L) return false;
             if (!TryReadPayload(
                     bytes, cancellationToken, includeRgbaOutput: false,
-                    retainedManagedBytes, out PngPayload payload)) return false;
+                    retainedManagedBytes, out PngPayload payload, containerValidation)) return false;
             if (!ValidatePayloadScanlines(payload, cancellationToken)) return false;
             long retainedPayloadBytes = checked(
                 retainedManagedBytes + payload.Scanlines.LongLength +
@@ -270,13 +271,19 @@ public static partial class OfficePngReader {
         byte[] bytes,
         CancellationToken cancellationToken,
         int maximumChunks,
-        out long decodedBytes) {
+        long maximumTextBytes,
+        out long decodedBytes,
+        out long textBytes,
+        out OfficePngContainerValidation containerValidation) {
         decodedBytes = 0;
+        textBytes = 0;
+        containerValidation = default;
         if (bytes == null || bytes.Length < 33) return false;
         for (int index = 0; index < Signature.Length; index++) {
             if (bytes[index] != Signature[index]) return false;
         }
-        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, maximumChunks, out int frameCount, out _) ||
+        if (!OfficePngContainerValidator.TryValidate(
+                bytes, cancellationToken, maximumChunks, maximumTextBytes, out int frameCount, out _, out textBytes) ||
             ReadBigEndianInt32(bytes, 8) != 13 ||
             bytes[12] != (byte)'I' || bytes[13] != (byte)'H' || bytes[14] != (byte)'D' || bytes[15] != (byte)'R') return false;
         int width = ReadBigEndianInt32(bytes, 16);
@@ -317,6 +324,7 @@ public static partial class OfficePngReader {
             }
             if (seenAnimationControl && (controlledFrames != frameCount ||
                     !OfficePngAnimationValidator.TryValidateStructure(bytes, cancellationToken))) return false;
+            containerValidation = OfficePngContainerValidation.ForValidated(bytes, frameCount);
             return true;
         } catch (OverflowException) {
             return false;

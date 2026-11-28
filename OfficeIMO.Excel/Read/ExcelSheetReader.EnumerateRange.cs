@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -24,17 +23,17 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = row.Index;
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
                     if (TryConvertCell(cell, out var value))
                         yield return new ExcelCellValueInfo(rIndex, cIndex, value);
@@ -43,7 +42,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<ExcelCellValueInfo> EnumerateRangeXmlFast(int r1, int c1, int r2, int c2, CancellationToken ct) {
-            using var stream = _wsPart.GetStream(System.IO.FileMode.Open, System.IO.FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(ct);
             RewindWorksheetStream(stream);
             using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();

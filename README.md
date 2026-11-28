@@ -1,12 +1,33 @@
 # OfficeIMO
 
 [![CI](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml)
+[![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Word?label=nuget)](https://www.nuget.org/packages?q=OfficeIMO)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PSWriteOffice.svg?label=PSWriteOffice)](https://www.powershellgallery.com/packages/PSWriteOffice)
 [![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](LICENSE)
 [![Discord](https://img.shields.io/discord/508328927853281280?style=flat-square&label=discord%20chat)](https://evo.yt/discord)
 
-OfficeIMO creates, edits, reads and converts Word, Excel, PowerPoint, PDF, Markdown and two dozen other document formats in .NET, without Microsoft Office or COM. New documents start from a theme, so a table, chart or slide looks finished without styling each element by hand.
+OfficeIMO creates, edits, reads and converts Word, Excel, PowerPoint and PDF files, plus Visio, Project, Access, OpenDocument, Apple iWork, email, e-books, Markdown, HTML and dozens of other formats. It is open source, MIT licensed and doesn't need Microsoft Office or COM. The same engines run in .NET applications, PowerShell scripts, a command line, AI agents, a desktop app and the browser.
 
-PowerShell users get the same engines through [PSWriteOffice](PowerShell/PSWriteOffice/README.MD), which lives in this repository.
+## Ways to use it
+
+| You work in | Use | Start with |
+| --- | --- | --- |
+| .NET | Focused NuGet packages, one per format or conversion | `dotnet add package OfficeIMO` |
+| PowerShell 5.1 and 7 | [PSWriteOffice](PowerShell/PSWriteOffice/README.MD) | `Install-Module PSWriteOffice` |
+| A terminal or CI job | The `officeimo` command line ([OfficeIMO.Tool](OfficeIMO.Tool/README.md)) | `dotnet tool install --global OfficeIMO.Tool` |
+| An AI agent | The same tool as an MCP server, with the [Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) for Claude Code, Codex, VS Code and Cursor | `officeimo mcp serve --stdio` |
+| A desktop app | [OfficeIMO Studio](https://officeimo.com/studio/) for reading, marking up, filling, converting, protecting and signing documents on Windows and Linux ([README](OfficeIMO.Studio/README.md)); native Mac, iPad and iPhone apps are in development ([README](Apple/OfficeIMOStudio/README.md)) | [Downloads](https://officeimo.com/downloads/) |
+| A browser | [Browser tools](https://officeimo.com/convert/) that convert and organize files in the tab, without uploading them | [officeimo.com](https://officeimo.com/) |
+
+## Why OfficeIMO
+
+- **No Office, no COM, no native dependencies.** The engines are managed code that runs on Windows, macOS and Linux, in services, containers and build agents. Optional providers, such as Tesseract for OCR, are opt-in. The [package catalog](Docs/officeimo.package-catalog.md#dependencies) lists every third-party dependency.
+- **One library for old and new files.** Word, Excel and PowerPoint cover the Open XML formats and the documented subsets of `.doc`, `.xls`, `.xlsb` and `.ppt`, with compatibility reports for what a subset doesn't carry.
+- **Conversions say what they lost.** `OfficeConverter` and the `SaveAs` and `To` conversion methods return a report of what the target couldn't carry. You can inspect it, or set `FailOnLoss` to stop instead of writing a lossy file. The [route catalog](Docs/Compatibility/generated/conversion-routes.md) lists each route's result type and limits.
+- **Careful with untrusted input.** Readers bound bytes, package entries, ZIP expansion and decoded text before allocating, and flag hidden or prompt-like content before it reaches an AI pipeline. See the [content safety matrix](Docs/officeimo.content-safety-support-matrix.md).
+- **NativeAOT and WebAssembly.** CI publishes the core engines with NativeAOT on Linux and Windows, and the officeimo.com browser tools run them in WebAssembly.
+- **Measured, not claimed.** Performance figures come from repeatable workloads in [`Docs/performance`](Docs/performance) and the [published benchmarks](https://officeimo.com/benchmarks/), with the method next to each result.
+- **Finished-looking output.** New documents start from a theme, so tables, charts and slides look right without styling each element.
 
 ## Install
 
@@ -65,135 +86,87 @@ using (var deck = PowerPointDocument.Create("Sales.pptx")) {
 record Sale(string Region, decimal Revenue, double Growth);
 ```
 <!-- /powerforge:code -->
+Word, Excel and PowerPoint share one shape: `{Format}Document.Create`, `Load` and `Save`; `AddParagraph`, `AddTable` and `AddChart` return what they created; `SaveAsPdf` and the other `SaveAs` methods write another format and return the conversion report. The other engines keep the same `Create`, `Load` and `Save` lifecycle with content APIs that fit their format, such as `OneNoteSection` for OneNote. `OfficeConverter.Convert` converts files and whole folders, with resumable batches; the [OfficeIMO package README](OfficeIMO/README.md) shows how. Themes, colors and lengths are shared by every format and described in [OfficeIMO.Core](OfficeIMO.Core/README.md).
 
-Every format follows the same shape:
+## Formats
 
-| Job | API |
-| --- | --- |
-| Create, load and save | `{Format}Document.Create(path)`, `Load(path)`, `Save()`, `Save(path)`, `SaveAsync(stream)` |
-| Add content | `AddHeading`, `AddParagraph`, `AddTable(rows)`, `AddChart(type, rows, category, values)`, `AddImage`; each returns what it created |
-| Write another format | `doc.SaveAsPdf(path)`, `doc.SaveAsHtml(path)`; returns an `OfficeConversionReport` |
-| Convert in memory | `doc.ToMarkdown()`, `markdown.ToWord()` |
-| Convert files or folders | `OfficeConverter.Convert(input, output)`, `OfficeConverter.ConvertAsync(files, outputDirectory, target)` |
-| Read for search or AI | `OfficeDocumentReader` from `OfficeIMO.Reader.All` |
+<!-- officeimo-format-map:start -->
+95 formats and 342 conversion routes. Every route runs from .NET; 72 run from the `officeimo` CLI, 72 in Studio, 92 from PSWriteOffice and 14 in the browser tools on officeimo.com.
 
-Conversions report what the target could not carry. `report.HasLoss` and `report.ThrowIfLoss()` check it; `FailOnLoss` in the conversion options turns loss into an error.
+| Family | Formats | Routes from |
+| --- | --- | ---: |
+| Documents | DOCX, DOC, ODT, RTF, Pages, Google Docs, DOCM, DOTM, DOTX, Word, Word XML | 38 |
+| Spreadsheets | XLSX, ODS, CSV, DBF/xBase, Numbers, Google Sheets, Excel, TSV, XLAM, XLS, XLSB, XLSM, XLTM, XLTX, XML Spreadsheet 2003 | 48 |
+| Presentations | PPTX, ODP, Keynote, Google Slides, POT, POTM, POTX, PowerPoint, PPAM, PPS, PPSM, PPSX, PPT, PPTM | 30 |
+| PDF and fixed layout | PDF, XPS/OpenXPS, MHTML, DjVu | 32 |
+| Diagrams | Visio, ODG/FODG, Binary Visio, Binary Visio stencil, Binary Visio template, VSDX, VSSX, VSTX | 18 |
+| Project and Publisher | Project, Publisher | 11 |
+| Images | PNG, SVG, JPEG, TIFF, WebP, HEIC | 1 |
+| Notes and books | OneNote, EPUB, Comic book ZIP, Comic book 7z, Comic book RAR 5 (stored), FictionBook 2, Mobipocket and Kindle, Book project, Compiled HTML Help | 38 |
+| Notebooks | Jupyter Notebook, Notebook source | 6 |
+| Email | Email, EML, MSG, OFT, TNEF | 18 |
+| Bibliography | BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, EndNote XML | 30 |
+| Markup and text | Markdown, AsciiDoc, LaTeX, Plain text, OfficeIMO Markup | 18 |
+| Web and wiki | HTML, Confluence, ADF | 19 |
+| Data | JSON, JSON Lines, TOML, XML, YAML | 35 |
 
-### Themes
+Pick two formats on the [interactive format map](https://officeimo.com/) to see the route between them, or read the [conversion route catalog](Docs/Compatibility/generated/conversion-routes.md) for each route's package, API, support level and limits.
+<!-- officeimo-format-map:end -->
 
-`OfficeTheme` carries the palette, fonts, type scale, table and chart styles. The built-in themes are `Modern` (the default), `Classic`, `Minimal`, `Boardroom` and `Dark`. Loading an existing document never restyles it.
+## Read documents for search and AI
 
-Colors can name theme roles instead of literal values, so output follows the theme:
+`OfficeDocumentReader` from [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md) reads any supported format into text, tables, metadata and chunks with source locations, ready for indexing or an AI pipeline. [OfficeIMO.Reader.DocumentExtraction](OfficeIMO.Reader.DocumentExtraction/README.md) offers the same reading as a provider for `Microsoft.Extensions.DocumentExtraction` (preview). Scanned pages go through an optional OCR provider ([OfficeIMO.Ocr](OfficeIMO.Ocr/README.md)). The `officeimo` MCP server exposes the same reading, search and conversion to agents.
 
-```csharp
-using OfficeIMO;
-
-OfficeColor brand = OfficeColor.Accent1;
-OfficeColor alert = OfficeColor.Danger;
-OfficeLength margin = OfficeLength.Centimeters(2.5);
-```
-
-### Convert files and folders
-
-```csharp
-using OfficeIMO;
-
-OfficeConversionReport report = OfficeConverter.Convert("Sales.docx", "Sales-copy.pdf",
-    new OfficeConversionOptions { FileConflictPolicy = OfficePublicationPolicy.Replace });
-Console.WriteLine($"{report.Target}: {report.Diagnostics.Count} diagnostics");
-
-OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
-    Directory.EnumerateFiles("Reports", "*.docx"),
-    outputDirectory: "Pdf",
-    target: OfficeDocumentFormat.Pdf,
-    new OfficeBatchOptions { MaxParallelism = 4, ConflictPolicy = OfficePublicationPolicy.Replace });
-Console.WriteLine($"{batch.Summary.Completed} converted, {batch.Summary.Failed} failed");
-```
-
-`OfficeConverter` refuses to replace an existing output unless the conflict policy says so. A batch reports every file and can resume an interrupted run from a checkpoint (`OfficeBatchOptions.ResumeFrom`, which needs the default `Fail` policy).
+Before a document leaves your hands, the engines can find and remove author names, comments, tracked changes, hidden text and other [hidden data](Docs/officeimo.hidden-data-support-matrix.md), check accessibility, and sign Word, PDF and email with [OfficeIMO.Security](OfficeIMO.Security/README.md).
 
 ## Packages
 
-Install a format package for that format alone. Conversion adapters are named `OfficeIMO.{Source}.{Target}` and bring only the two engines they join.
+Each format has its own package. Most conversions live in an adapter named `OfficeIMO.{Source}.{Target}` that brings only the two engines it joins, and readers for search and AI are `OfficeIMO.Reader.{Format}`. A few routes live in the format package itself; the [route catalog](Docs/Compatibility/generated/conversion-routes.md) names the package for every route. The main engines:
 
-| Format | Package | Document type | Common adapters |
-| --- | --- | --- | --- |
-| Word `.docx`, `.doc` | [OfficeIMO.Word](OfficeIMO.Word/README.md) | `WordDocument` | `.Word.Pdf`, `.Word.Markdown`, `.Word.Html`, `.Word.Rtf`, `.Word.OpenDocument` |
-| Excel `.xlsx`, `.xls` | [OfficeIMO.Excel](OfficeIMO.Excel/README.md) | `ExcelDocument` | `.Excel.Pdf`, `.Excel.Html`, `.Excel.Csv`, `.Excel.OpenDocument` |
-| PowerPoint `.pptx`, `.ppt` | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | `PowerPointDocument` | `.PowerPoint.Pdf`, `.PowerPoint.Html`, `.PowerPoint.OpenDocument` |
-| PDF | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | `PdfDocument` | `.Pdf.Word`, `.Pdf.Excel`, `.Pdf.PowerPoint`, `.Pdf.Ocr` |
-| Markdown | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | `MarkdownDocument` | `.Markdown.Pdf`, `.Markdown.Html` |
-| HTML | [OfficeIMO.Html](OfficeIMO.Html/README.md) | `HtmlDocument` | `.Html.Pdf`, `.Html.Rtf` |
-| Visio `.vsdx` | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | `VisioDocument` | `.Visio.Pdf` |
-| Project `.mpp`, `.xml` | [OfficeIMO.Project](OfficeIMO.Project/README.md) | `ProjectDocument` | |
-| Access `.accdb`, `.mdb` | [OfficeIMO.Access](OfficeIMO.Access/README.md) | `AccessDocument` | |
-| Jupyter `.ipynb` and notebook sources | [OfficeIMO.Notebook](OfficeIMO.Notebook/README.md), [OfficeIMO.Notebook.Import](OfficeIMO.Notebook.Import/README.md) | `NotebookDocument` | `.Notebook.Pdf`, `.Notebook.Html`, `.Notebook.Word`, `.Notebook.Markdown`, `.Notebook.Spreadsheet` |
-| OneNote `.one` | [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md) | `OneNoteSection` | `.OneNote.Markdown`, `.OneNote.Html`, `.OneNote.Pdf` |
-| Email `.eml`, `.msg`, `.pst` | [OfficeIMO.Email](OfficeIMO.Email/README.md) | | `.Email.Html`, `.Email.Image` |
-| RTF | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | `RtfDocument` | `.Rtf.Pdf`, `.Rtf.Markdown` |
-| OpenDocument `.odt`, `.ods`, `.odp` | [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | | `.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` |
-| EPUB | [OfficeIMO.Epub](OfficeIMO.Epub/README.md) | `EpubDocument` | `.Epub.Image` |
-| CSV | [OfficeIMO.CSV](OfficeIMO.CSV/README.md) | | `.Excel.Csv` |
-| YAML | [OfficeIMO.Yaml](OfficeIMO.Yaml/README.md) | `YamlDocument` | `.Yaml.Configuration` |
-| TOML | [OfficeIMO.Toml](OfficeIMO.Toml/README.md) | `TomlDocument` | `.Toml.Configuration` |
-| Apple Pages, Numbers, Keynote | [OfficeIMO.IWork](OfficeIMO.IWork/README.md) | | `.Word.IWork`, `.Excel.IWork`, `.PowerPoint.IWork` |
-| AsciiDoc, LaTeX | [OfficeIMO.AsciiDoc](OfficeIMO.AsciiDoc/README.md), [OfficeIMO.Latex](OfficeIMO.Latex/README.md) | | `.Markdown`, `.Pdf` |
-| Publisher, XPS, DjVu, CHM, DocBook, OPML | [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md), [OfficeIMO.Xps](OfficeIMO.Xps/README.md), [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md), [OfficeIMO.Chm](OfficeIMO.Chm/README.md), [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md), [OfficeIMO.Opml](OfficeIMO.Opml/README.md) | | `.Pdf` where listed |
+| Area | Package | Document type |
+| --- | --- | --- |
+| Word `.docx`, `.doc` | [OfficeIMO.Word](OfficeIMO.Word/README.md) | `WordDocument` |
+| Excel `.xlsx`, `.xlsb`, `.xls` | [OfficeIMO.Excel](OfficeIMO.Excel/README.md) | `ExcelDocument` |
+| PowerPoint `.pptx`, `.ppt` | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | `PowerPointDocument` |
+| PDF | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | `PdfDocument` |
+| Markdown | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | `MarkdownDocument` |
+| HTML | [OfficeIMO.Html](OfficeIMO.Html/README.md) | `HtmlDocument` |
+| Visio | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | `VisioDocument` |
+| Project | [OfficeIMO.Project](OfficeIMO.Project/README.md) | `ProjectDocument` |
+| Access | [OfficeIMO.Access](OfficeIMO.Access/README.md) | `AccessDocument` |
+| OpenDocument | [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | |
+| Apple Pages, Numbers, Keynote | [OfficeIMO.IWork](OfficeIMO.IWork/README.md) | |
+| OneNote | [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md) | `OneNoteSection` |
+| Email and mail stores | [OfficeIMO.Email](OfficeIMO.Email/README.md) | |
+| EPUB | [OfficeIMO.Epub](OfficeIMO.Epub/README.md) | `EpubDocument` |
+| RTF | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | `RtfDocument` |
+| CSV, YAML, TOML | [OfficeIMO.CSV](OfficeIMO.CSV/README.md), [OfficeIMO.Yaml](OfficeIMO.Yaml/README.md), [OfficeIMO.Toml](OfficeIMO.Toml/README.md) | |
+| Archives (ZIP, 7z, CAB, MSI, TAR, gzip) | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) | |
+| File and folder conversion, printing | [OfficeIMO](OfficeIMO/README.md), [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md) | `OfficeConverter` |
 
-Shared and cross-format packages:
-
-| Need | Package |
-| --- | --- |
-| Theme, colors, lengths, charts, drawing and image export used by every format | [OfficeIMO.Core](OfficeIMO.Core/README.md) |
-| File-to-file and batch conversion across every registered route | [OfficeIMO](OfficeIMO/README.md) (`OfficeConverter`) |
-| Read, search and chunk any format for indexing and AI ingestion | [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md), or one `OfficeIMO.Reader.{Format}` |
-| Office, PDF and other formats as a provider for `Microsoft.Extensions.DocumentExtraction` (preview) | [OfficeIMO.Reader.DocumentExtraction](OfficeIMO.Reader.DocumentExtraction/README.md) |
-| OCR for scanned pages and images | [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md), [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md), [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md) |
-| Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
-| Print any convertible document to installed queues or IPP printers on Windows, macOS and Linux, with sheet preview and job tracking | [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md#print-a-document) |
-| Snapshot tests for generated PDFs | [OfficeIMO.Pdf.Testing](OfficeIMO.Pdf.Testing/README.md) |
-| ZIP, 7z, CAB, MSI, TAR and gzip extraction; reproducible ZIP, TAR and gzip creation | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
-| Google Docs, Sheets, Slides and Drive | [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md) |
-| Confluence pages | [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md) |
-| Electronic invoices | [OfficeIMO.Invoicing](OfficeIMO.Invoicing/README.md) |
-
-The [package catalog](Docs/officeimo.package-catalog.md) lists every package, what each one covers and its third-party dependencies. The [generated operation contract](Docs/Compatibility/generated/package-operations.md) shows each package's supported operations.
-
-## Tools
-
-- [PSWriteOffice](PowerShell/PSWriteOffice/README.MD): PowerShell commands for every format, from `Install-Module PSWriteOffice`.
-- [OfficeIMO.Tool](OfficeIMO.Tool/README.md): the `officeimo` command line, from `dotnet tool install --global OfficeIMO.Tool`. It also serves conversions, extraction and search to AI agents over MCP; the [Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) installs it in Claude Code, Codex, VS Code and Cursor.
-- [OfficeIMO Studio](https://officeimo.com/studio/): an app for reading, marking up, filling, converting, protecting and signing documents on Windows and Linux ([README](OfficeIMO.Studio/README.md)), with native Mac, iPad and iPhone apps in development ([README](Apple/OfficeIMOStudio/README.md)).
-- [Verify.OfficeIMO](https://github.com/VerifyTests/Verify.OfficeIMO): snapshot tests for documents your code generates, from the [Verify](https://github.com/VerifyTests/Verify) project. It turns Word, Excel, PowerPoint, PDF, email, Visio and other OfficeIMO documents into text and page images that Verify compares with approved snapshots.
+The [package catalog](Docs/officeimo.package-catalog.md) lists every package, from Publisher, XPS and DjVu to Google Workspace, Confluence and electronic invoices, with its dependencies. The [operation contract](Docs/Compatibility/generated/package-operations.md) shows what each package can create, read, edit and convert.
 
 ## Platforms
 
-Every library targets `netstandard2.0`, `net8.0` and `net10.0`; Windows builds also target `net472`, so .NET Framework applications get the same routes. A few packages that depend on modern-only runtimes, such as `OfficeIMO.Tool`, `OfficeIMO.AI` and `OfficeIMO.Odbc`, target modern .NET only; their READMEs say so.
+Every library targets `netstandard2.0`, `net8.0` and `net10.0`; Windows builds also target `net472`, so .NET Framework applications get the same routes. A few packages that need a modern runtime, such as `OfficeIMO.Tool`, `OfficeIMO.AI` and `OfficeIMO.Odbc`, target modern .NET only, and their READMEs say so. A handful of results come from the runtime and can differ between .NET Framework and modern .NET; [platform differences](Docs/officeimo.platform-differences.md) lists them.
 
-The same input gives the same document content on every framework. A few things come from the runtime and can differ:
-
-- Reading numbers on .NET Framework. OfficeIMO writes every number as its shortest round-trip text, the same on every framework, and reads numbers with its own correctly rounded parser on .NET Framework. Other .NET Framework code that reads that text with `double.Parse` gets a neighbouring double for about 0.15% of values; that is a limitation of the .NET Framework parser, and .NET 8, .NET 10 and Excel read the text exactly.
-- Package bytes. ZIP-based files (DOCX, XLSX, PPTX, OpenDocument, EPUB) use the runtime's ZIP and Deflate code, and PDF streams its Deflate, so .NET Framework, .NET 8 and .NET 10 write different bytes for the same content. Compare package contents, not file hashes. OfficeIMO.Archives writes ZIP and GZip with its own encoder, so its bytes match everywhere.
-- Culture data. Formatting or sorting with a named or the current culture uses NLS on .NET Framework and ICU on .NET 8 and 10, which differ in month abbreviations, currency patterns and collation. File content uses invariant formatting and ordinal ordering, which do not change.
-- Unicode tables. Character categories, case mapping and regular expression classes follow each runtime's Unicode version, and malformed UTF-8 decodes to a different number of replacement characters.
-- Multi-byte code pages. OLE property sets and VBA projects in code pages 932, 936, 949 and 950 decode on .NET 8 and 10 only when the application registers `CodePagesEncodingProvider`; .NET Framework includes them. The Windows single-byte code pages decode the same everywhere.
-- Math functions. In a 100,000-input run, .NET Framework and .NET 8 and 10 returned results one bit apart from `Math.Sin`, `Cos` and `Tan` for 3 to 4% of inputs, `Cosh` for 8%, `Sinh` 2%, `Asin` 1%, `Pow` 0.2% and `Atan2` under 0.01%; `Exp`, `Log`, `Log10` and `Sqrt` matched. A value computed with these functions and written at full precision, as OfficeIMO writes numbers, then differs in its last digit, for example a point on a rotated or curved shape. Values rounded before they are written, such as EMUs or coordinates with a few decimals, match unless the two results fall on either side of a rounding boundary.
-- Culture-sensitive string search. The string overloads of `IndexOf`, `StartsWith` and `EndsWith` without a `StringComparison` ignore NUL and zero-width characters on ICU (.NET 8 and 10) but not on NLS (.NET Framework); `"a\0b".IndexOf("\0")` is 0 on .NET 8 and 10 and 1 on .NET Framework. The `char` overloads are ordinal everywhere.
-- URI escaping and paths. On .NET Framework, `Uri.EscapeDataString` and `EscapeUriString` throw for an unpaired high surrogate and for strings longer than 65,519 characters; an unpaired low surrogate is escaped as U+FFFD, as .NET 8 and 10 escape both. `System.IO.Path` methods throw for `"`, `<`, `>`, `|` and control characters on .NET Framework; .NET 8 and 10 accept them.
-
-OfficeIMO runs on Windows, macOS and Linux, in services, containers and build agents. It does not automate Office applications. Word, Excel and PowerPoint use the [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) for package mechanics and HTML uses [AngleSharp](https://github.com/AngleSharp/AngleSharp) for parsing. The PDF, Markdown, RTF, OpenDocument, OneNote, email and other engines are OfficeIMO's own code; the [package catalog](Docs/officeimo.package-catalog.md#dependencies) lists every third-party dependency.
+Word, Excel and PowerPoint use the [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) for package mechanics, and HTML uses [AngleSharp](https://github.com/AngleSharp/AngleSharp) for parsing. The PDF, Markdown, RTF, OpenDocument, OneNote, email and other engines are OfficeIMO's own code.
 
 Keep every OfficeIMO package in an application on the same version.
 
 ## Documentation
 
-- [Migration guide](MIGRATION.md): what changed in 3.6 and how to update code and scripts.
-- [Documentation index](Docs/README.md): guides, support matrices and evidence.
+- [officeimo.com](https://officeimo.com/): guides, the format map, examples and API reference.
+- [Documentation index](Docs/README.md): guides, support matrices and evidence in this repository.
 - [Examples](OfficeIMO.Examples/README.md): runnable examples for every package.
-- [API design](Docs/officeimo.api-design.md): the naming, lifecycle and conversion rules every package follows.
-- [Roadmap](Docs/ROADMAP.md) and [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
+- [Migration guide](MIGRATION.md) and [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
+- [Roadmap](Docs/ROADMAP.md).
 
-Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues), for the libraries and PSWriteOffice alike.
+Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues), for the libraries, the tools and PSWriteOffice alike. Questions and examples are welcome on [Discord](https://evo.yt/discord).
+
+### Snapshot testing
+
+[Verify.OfficeIMO](https://github.com/VerifyTests/Verify.OfficeIMO), from the [Verify](https://github.com/VerifyTests/Verify) project, turns Word, Excel, PowerPoint, PDF, email, Visio and other OfficeIMO documents into text and page images that Verify compares with approved snapshots.
 
 ## Sponsors
 

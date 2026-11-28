@@ -1,5 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -77,7 +80,7 @@ namespace OfficeIMO.Word {
         }
 
         private TocHeadingEntry[] CollectIncludedEntries(string instruction, out int skipped) {
-            if (_sdtBlock.SdtContentBlock == null) {
+            if (ContentNode.IsNone) {
                 throw new InvalidOperationException("Table of contents content block is missing.");
             }
 
@@ -98,198 +101,142 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<string, int> customStyleLevels,
             string? bookmarkScope,
             TocSourceOptions sourceOptions) {
-            Body body = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body
-                ?? throw new InvalidOperationException("Document body is missing.");
+            const int W = TocNamespace;
+            const string Word2010 = "http://schemas.microsoft.com/office/word/2010/wordml";
+            OfficeXmlNode body = WordFieldInventory.BodyNode(_document);
+            if (body.IsNone) throw new InvalidOperationException("Document body is missing.");
+            if (_document._ownedModel is { } model) WordOwnedEdits.PrepareBodyEdit(model);
+            HashSet<OfficeXmlNode>? scopedParagraphs = bookmarkScope == null
+                ? null : FindScopedHeadingParagraphs(body, bookmarkScope);
 
             var entries = new List<TocHeadingEntry>();
-            BookmarkRange? bookmarkRange = bookmarkScope == null
-                ? null
-                : FindBookmarkRange(body, bookmarkScope);
-            var existingBookmarkNames = new HashSet<string>(
-                body.Descendants<BookmarkStart>()
-                    .Select(bookmark => bookmark.Name?.Value)
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
-                    .Cast<string>(),
-                StringComparer.Ordinal);
+            var bookmarks = new TocBookmarkState(body);
+            var styles = new Dictionary<string, OfficeXmlNode>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode style in GetTocStylesRoot().Children(W, "style")) {
+                if (style.Attribute(W, "styleId") is { } id && !styles.ContainsKey(id)) styles.Add(id, style);
+            }
 
+            OfficeXmlNode control = SdtNode;
             int pageNumber = 1;
-            int headingIndex = 0;
-
-            foreach (OpenXmlElement child in body.ChildElements) {
-                if (ReferenceEquals(child, _sdtBlock)) {
-                    continue;
-                }
-
-                if (child is Paragraph paragraph) {
-                    ProcessHeadingParagraphWithTextBoxes(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
-                    continue;
-                }
-
-                if (child is Table table) {
-                    foreach (Paragraph nestedParagraph in table.Descendants<Paragraph>()) {
-                        if (nestedParagraph.Ancestors<TextBoxContent>().Any()) {
-                            continue;
-                        }
-
-                        ProcessHeadingParagraphWithTextBoxes(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
-                    }
-
-                    continue;
-                }
-
-                if (child is SdtBlock sdtBlock) {
-                    foreach (Paragraph nestedParagraph in sdtBlock.Descendants<Paragraph>()) {
-                        if (nestedParagraph.Ancestors<TextBoxContent>().Any()) {
-                            continue;
-                        }
-
-                        ProcessHeadingParagraphWithTextBoxes(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
+            foreach (OfficeXmlNode child in body.Children()) {
+                if (child == control) continue;
+                if (child.Is(W, "p")) {
+                    ProcessParagraph(child);
+                } else if (child.Is(W, "tbl") || child.Is(W, "sdt")) {
+                    foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(child)) {
+                        if (node.Is(W, "p") && !node.AncestorOrSelf(W, "txbxContent").Exists) ProcessParagraph(node);
                     }
                 }
             }
 
             return entries;
-        }
 
-        private void ProcessHeadingParagraphWithTextBoxes(
-            Paragraph paragraph,
-            string? tcEntryTypeFilter,
-            IReadOnlyDictionary<string, int> customStyleLevels,
-            string? bookmarkScope,
-            BookmarkRange? bookmarkRange,
-            List<TocHeadingEntry> entries,
-            HashSet<string> existingBookmarkNames,
-            TocSourceOptions sourceOptions,
-            ref int pageNumber,
-            ref int headingIndex) {
-            if (WordParagraph.HasPageBreakBefore(paragraph)) {
-                pageNumber++;
-            }
+            void ProcessParagraph(OfficeXmlNode paragraph) {
+                OfficeXmlNode properties = paragraph.Child(W, "pPr");
+                OfficeXmlNode pageBreak = properties.Child(W, "pageBreakBefore");
+                if (pageBreak.Exists && (pageBreak.Attribute(W, "val") == null || WordFieldInventory.ReadFlag(pageBreak, "val"))) pageNumber++;
 
-            foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(paragraph, customStyleLevels, sourceOptions)) {
-                ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex, countPageBreakBefore: false, countTrailingBreaks: false);
-            }
-
-            ProcessHeadingParagraph(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex, countPageBreakBefore: false, countTrailingBreaks: false);
-            CountParagraphPageBreaks(paragraph, ref pageNumber);
-        }
-
-        private static IReadOnlyList<Paragraph> GetBodyTextBoxHeadingParagraphs(
-            Paragraph paragraph,
-            IReadOnlyDictionary<string, int> customStyleLevels,
-            TocSourceOptions sourceOptions) {
-            if (paragraph.Ancestors<TextBoxContent>().Any()) {
-                return Array.Empty<Paragraph>();
-            }
-
-            var headings = new List<Paragraph>();
-            var seenWordParagraphIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (Paragraph candidate in paragraph.Descendants<TextBoxContent>()
-                .SelectMany(textBoxContent => textBoxContent.Descendants<Paragraph>())) {
-                if (GetHeadingLevel(candidate, customStyleLevels, sourceOptions) == null) {
-                    continue;
+                if (!paragraph.AncestorOrSelf(W, "txbxContent").Exists) {
+                    HashSet<string>? seenIds = null;
+                    foreach (OfficeXmlNode candidate in WordFieldInventory.EnumerateFieldContent(paragraph)) {
+                        if (!candidate.Is(W, "p") || !candidate.AncestorOrSelf(W, "txbxContent").Exists ||
+                            GetHeadingLevel(candidate, customStyleLevels, sourceOptions, styles) == null) continue;
+                        string? id = candidate.Attributes().FirstOrDefault(attr => attr.NamespaceUri == Word2010 && attr.LocalName == "paraId").Value;
+                        if (!string.IsNullOrWhiteSpace(id) && !(seenIds ??= new HashSet<string>(StringComparer.Ordinal)).Add(id!))
+                            continue;
+                        ProcessEntries(candidate);
+                    }
                 }
-
-                string? paragraphId = candidate.ParagraphId?.Value;
-                if (!string.IsNullOrWhiteSpace(paragraphId) && !seenWordParagraphIds.Add(paragraphId!)) {
-                    continue;
+                ProcessEntries(paragraph);
+                foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(paragraph)) {
+                    if (node.Is(W, "br") && node.Attribute(W, "type") == "page") pageNumber++;
                 }
-
-                headings.Add(candidate);
+                if (StartsNewPage(properties.Child(W, "sectPr"))) pageNumber++;
             }
 
-            return headings;
-        }
+            void ProcessEntries(OfficeXmlNode paragraph) {
+                if (scopedParagraphs != null && !scopedParagraphs.Contains(paragraph)) return;
 
-        private void ProcessHeadingParagraph(
-            Paragraph paragraph,
-            string? tcEntryTypeFilter,
-            IReadOnlyDictionary<string, int> customStyleLevels,
-            string? bookmarkScope,
-            BookmarkRange? bookmarkRange,
-            List<TocHeadingEntry> entries,
-            HashSet<string> existingBookmarkNames,
-            TocSourceOptions sourceOptions,
-            ref int pageNumber,
-            ref int headingIndex,
-            bool countPageBreakBefore = true,
-            bool countTrailingBreaks = true) {
-            if (countPageBreakBefore && WordParagraph.HasPageBreakBefore(paragraph)) {
-                pageNumber++;
-            }
-
-            bool isInsideScope = bookmarkScope == null || (bookmarkRange.HasValue && IsParagraphInsideBookmarkRange(paragraph, bookmarkRange.Value));
-            if (isInsideScope) {
-                (int Level, bool ApplyLevelRange)? headingLevel = GetHeadingLevel(paragraph, customStyleLevels, sourceOptions);
-                if (headingLevel != null) {
-                    string headingText = GetParagraphText(paragraph);
-                    if (!string.IsNullOrWhiteSpace(headingText)) {
-                        RemoveImportedTableTocBookmarks(paragraph, existingBookmarkNames);
-                        string bookmarkName = EnsureBookmark(paragraph, existingBookmarkNames, headingIndex);
-                        entries.Add(new TocHeadingEntry(headingText, headingLevel.Value.Level, pageNumber, bookmarkName, headingLevel.Value.ApplyLevelRange));
-                        headingIndex++;
+                if (GetHeadingLevel(paragraph, customStyleLevels, sourceOptions, styles) is { } heading) {
+                    string text = GetParagraphText(paragraph);
+                    if (!string.IsNullOrWhiteSpace(text)) {
+                        RemoveImportedTableTocBookmarks(paragraph, bookmarks);
+                        string bookmarkName = EnsureBookmark(paragraph, bookmarks, entries.Count);
+                        entries.Add(new TocHeadingEntry(text, heading.Level, pageNumber, bookmarkName, heading.ApplyLevelRange));
                     }
                 }
 
-                if (sourceOptions.IncludeTocEntryFields) {
-                    foreach (string instruction in EnumerateTocEntryInstructions(paragraph)) {
-                        if (TryCreateTocEntry(instruction, tcEntryTypeFilter, paragraph, existingBookmarkNames, headingIndex, pageNumber, out TocHeadingEntry? entry)) {
-                            entries.Add(entry!);
-                            headingIndex++;
-                        }
-                    }
+                if (!sourceOptions.IncludeTocEntryFields) return;
+                foreach (string instruction in EnumerateTocEntryInstructions(paragraph)) {
+                    if (TryCreateTocEntry(instruction, tcEntryTypeFilter, paragraph, bookmarks, entries.Count, pageNumber, out TocHeadingEntry? entry))
+                        entries.Add(entry!);
                 }
             }
-
-            if (!countTrailingBreaks) {
-                return;
-            }
-
-            CountParagraphPageBreaks(paragraph, ref pageNumber);
         }
 
-        private static void CountParagraphPageBreaks(Paragraph paragraph, ref int pageNumber) {
-            pageNumber += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
+        private static HashSet<OfficeXmlNode> FindScopedHeadingParagraphs(OfficeXmlNode body, string name) {
+            const int W = TocNamespace;
+            var paragraphs = new HashSet<OfficeXmlNode>();
+            OfficeXmlNode start = WordFieldInventory.EnumerateFieldContent(body).FirstOrDefault(node =>
+                node.Is(W, "bookmarkStart") && node.Attribute(W, "name") == name);
+            string? id = start.Attribute(W, "id");
+            if (string.IsNullOrWhiteSpace(id)) return paragraphs;
+            OfficeXmlNode end = WordFieldInventory.EnumerateFieldContent(body).FirstOrDefault(node =>
+                node.Is(W, "bookmarkEnd") && node.Attribute(W, "id") == id);
+            if (end.IsNone) return paragraphs;
 
-            if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
-                pageNumber++;
+            bool inRange = false;
+            foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(body)) {
+                if (node == start) inRange = true;
+                if (node == end) break;
+                if (inRange && node.Is(W, "p")) paragraphs.Add(node);
             }
+
+            OfficeXmlNode first = FindBookmarkBoundaryParagraph(start, atStart: true);
+            OfficeXmlNode last = FindBookmarkBoundaryParagraph(end, atStart: false);
+            if (first.Exists) paragraphs.Add(first);
+            if (last.Exists) paragraphs.Add(last);
+            return paragraphs;
         }
 
-        private static IEnumerable<string> EnumerateTocEntryInstructions(Paragraph paragraph) {
-            foreach (SimpleField simpleField in paragraph.Descendants<SimpleField>()) {
-                string instruction = simpleField.Instruction?.Value ?? string.Empty;
-                if (IsTocEntryInstruction(instruction)) {
+        private static OfficeXmlNode FindBookmarkBoundaryParagraph(OfficeXmlNode bookmark, bool atStart) {
+            const int W = TocNamespace;
+            OfficeXmlNode paragraph = bookmark.AncestorOrSelf(W, "p");
+            if (paragraph.Exists) return paragraph;
+            for (OfficeXmlNode sibling = atStart ? bookmark.NextSibling : bookmark.PreviousSibling; sibling.Exists;
+                 sibling = atStart ? sibling.NextSibling : sibling.PreviousSibling) {
+                if (sibling.Is(W, "p")) return sibling;
+                IEnumerable<OfficeXmlNode> nested = WordFieldInventory.EnumerateFieldContent(sibling)
+                    .Where(node => node.Is(W, "p"));
+                paragraph = atStart ? nested.FirstOrDefault() : nested.LastOrDefault();
+                if (paragraph.Exists) return paragraph;
+            }
+            return default;
+        }
+
+        private static IEnumerable<string> EnumerateTocEntryInstructions(OfficeXmlNode paragraph) {
+            const int W = TocNamespace;
+            OfficeXmlNode[] content = WordFieldInventory.EnumerateFieldContent(paragraph).ToArray();
+            foreach (OfficeXmlNode node in content) {
+                if (node.Is(W, "fldSimple") && node.Attribute(W, "instr") is { } instruction && IsTocEntryInstruction(instruction))
                     yield return instruction;
-                }
             }
 
-            List<string>? currentComplexField = null;
-            foreach (OpenXmlElement element in paragraph.Descendants()) {
-                if (element is FieldChar fieldChar) {
-                    if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
-                        currentComplexField = new List<string>();
-                    } else if (fieldChar.FieldCharType?.Value == FieldCharValues.End && currentComplexField != null) {
-                        string instruction = string.Concat(currentComplexField);
-                        if (IsTocEntryInstruction(instruction)) {
-                            yield return instruction;
-                        }
-
-                        currentComplexField = null;
+            List<string>? current = null;
+            foreach (OfficeXmlNode node in content) {
+                if (node.Is(W, "fldChar")) {
+                    string? marker = node.Attribute(W, "fldCharType");
+                    if (marker == "begin") {
+                        current = new List<string>();
+                    } else if (marker == "end" && current != null) {
+                        string instruction = string.Concat(current);
+                        if (IsTocEntryInstruction(instruction)) yield return instruction;
+                        current = null;
                     }
-
-                    continue;
-                }
-
-                if (element is FieldCode fieldCode) {
-                    if (currentComplexField != null) {
-                        currentComplexField.Add(fieldCode.Text ?? string.Empty);
-                    } else {
-                        string instruction = fieldCode.Text ?? string.Empty;
-                        if (IsTocEntryInstruction(instruction)) {
-                            yield return instruction;
-                        }
-                    }
+                } else if (node.Is(W, "instrText")) {
+                    string instruction = node.InnerText;
+                    if (current != null) current.Add(instruction);
+                    else if (IsTocEntryInstruction(instruction)) yield return instruction;
                 }
             }
         }
@@ -306,8 +253,8 @@ namespace OfficeIMO.Word {
         private bool TryCreateTocEntry(
             string instruction,
             string? tcEntryTypeFilter,
-            Paragraph paragraph,
-            HashSet<string> existingBookmarkNames,
+            OfficeXmlNode paragraph,
+            TocBookmarkState bookmarks,
             int entryIndex,
             int pageNumber,
             out TocHeadingEntry? entry) {
@@ -338,45 +285,33 @@ namespace OfficeIMO.Word {
                 level = ClampLevel(parsedLevel);
             }
 
-            string bookmarkName = EnsureBookmark(paragraph, existingBookmarkNames, entryIndex);
+            string bookmarkName = EnsureBookmark(paragraph, bookmarks, entryIndex);
             entry = new TocHeadingEntry(text, level, pageNumber, bookmarkName, applyLevelRange: false);
             return true;
         }
 
-        private static bool StartsNewPage(SectionProperties? sectionProperties) {
-            if (sectionProperties == null) {
-                return false;
-            }
+        private static bool StartsNewPage(SectionProperties? sectionProperties) =>
+            StartsNewPage(OfficeXmlNode.FromSdk(sectionProperties));
 
-            SectionType? sectionType = sectionProperties.GetFirstChild<SectionType>();
-            SectionMarkValues? value = sectionType?.Val?.Value;
-            return value == null ||
-                   value == SectionMarkValues.NextPage ||
-                   value == SectionMarkValues.OddPage ||
-                   value == SectionMarkValues.EvenPage;
-        }
+        private static bool StartsNewPage(OfficeXmlNode section) => section.Exists &&
+            section.Child(TocNamespace, "type").Attribute(TocNamespace, "val") is null or "nextPage" or "oddPage" or "evenPage";
 
-        private Paragraph? GetTitleParagraph() {
-            SdtContentBlock? content = _sdtBlock.SdtContentBlock;
-            if (content == null) {
-                return null;
-            }
+        private Paragraph? GetTitleParagraph() => (Paragraph?)GetTitleParagraphNode().SdkElement;
 
-            // A title comes before the generated list. Paragraphs from the table's own field onwards, such as a separate
-            // paragraph holding the field end, belong to the old result. A title may hold other fields.
-            OpenXmlElement? generatedField = EnumerateFieldInstructions(content)
+        private OfficeXmlNode GetTitleParagraphNode() {
+            // Paragraphs from the table's field onwards belong to its result. A title can contain other fields.
+            OfficeXmlNode generatedField = EnumerateFieldInstructions(ContentNode)
                 .Where(field => GetFieldType(field.Instruction) is WordFieldType.TOC or WordFieldType.Index)
                 .Select(field => field.Start).FirstOrDefault();
-            foreach (Paragraph paragraph in content.ChildElements.OfType<Paragraph>()) {
-                if (generatedField != null && (paragraph == generatedField || paragraph.Descendants().Contains(generatedField))) return null;
-                if (!IsGeneratedResultParagraph(paragraph)) return paragraph;
+            foreach (OfficeXmlNode paragraph in ContentNode.Children(TocNamespace, "p")) {
+                if (generatedField.IsInside(paragraph)) return default;
+                if (!IsGeneratedResultStyle(paragraph.Child(TocNamespace, "pPr").Child(TocNamespace, "pStyle")
+                    .Attribute(TocNamespace, "val"))) return paragraph;
             }
-
-            return null;
+            return default;
         }
 
-        private static bool IsGeneratedResultParagraph(Paragraph paragraph) {
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+        private static bool IsGeneratedResultStyle(string? styleId) {
             if (string.IsNullOrWhiteSpace(styleId)) {
                 return false;
             }
@@ -394,49 +329,45 @@ namespace OfficeIMO.Word {
         /// and entries the caller refreshed or edited are left alone.
         /// </summary>
         internal void RefreshEntriesOnSave() {
-            if (_sdtBlock.SdtContentBlock == null) return;
-            // Only a heading table of contents: caption lists (\c, \f) and indexes keep their own refresh.
-            var instructions = _sdtBlock.Descendants<SimpleField>().Select(field => field.Instruction?.Value ?? string.Empty)
-                .Concat(_sdtBlock.Descendants<FieldCode>().Select(code => code.Text ?? string.Empty))
-                .Select(text => text.Trim())
-                .Where(text => text.Length > 0 &&
-                    !text.StartsWith("PAGEREF", StringComparison.OrdinalIgnoreCase) &&
+            const int W = TocNamespace;
+            if (ContentNode.IsNone) return;
+            var instructions = WordFieldInventory.EnumerateFieldContent(SdtNode)
+                .Select(node => node.Is(W, "fldSimple") ? node.Attribute(W, "instr") :
+                    node.Is(W, "instrText") ? node.InnerText : null)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Select(text => text!.Trim())
+                .Where(text => !text.StartsWith("PAGEREF", StringComparison.OrdinalIgnoreCase) &&
                     !text.StartsWith("HYPERLINK", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             if (instructions.Count == 0 ||
                 instructions.Any(text => !text.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) ||
                     Regex.IsMatch(text, @"\\[cfl]\b", RegexOptions.IgnoreCase))) return;
-            bool hasEntries = _sdtBlock.SdtContentBlock.Descendants<ParagraphStyleId>()
-                .Any(style => style.Val?.Value is string id &&
-                              (WordBuiltInStyleNames.GetTocLevel(_document.GetBuiltInStyleId(id)) > 0 ||
-                               id.StartsWith("TOC", StringComparison.Ordinal) && id.Length > 3 && char.IsDigit(id[3])));
-            if (hasEntries && !_entriesWrittenOnSave) return;
+            if (!_entriesWrittenOnSave && WordFieldInventory.EnumerateFieldContent(ContentNode)
+                .Any(style => style.Is(W, "pStyle") && style.Attribute(W, "val") is { } id &&
+                    (WordBuiltInStyleNames.GetTocLevel(_document._ownedModel is { } model ?
+                        model.Styles.GetBuiltInStyleId(id) : _document.GetBuiltInStyleId(id)) > 0 ||
+                        id.StartsWith("TOC", StringComparison.Ordinal) && id.Length > 3 && char.IsDigit(id[3])))) return;
             RefreshEntries();
             _entriesWrittenOnSave = true;
         }
 
         private string GetTocInstruction() {
-            foreach (SimpleField simpleField in _sdtBlock.Descendants<SimpleField>()) {
-                string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
-                string instructionText = instruction ?? string.Empty;
-                if (IsTocInstruction(instructionText)) {
-                    return instructionText;
-                }
-            }
-
-            foreach (Paragraph paragraph in _sdtBlock.Descendants<Paragraph>()) {
-                foreach (string instruction in EnumerateComplexFieldInstructions(paragraph)) {
-                    if (IsTocInstruction(instruction)) {
-                        return instruction;
-                    }
-                }
-            }
-
-            foreach (FieldCode fieldCode in _sdtBlock.Descendants<FieldCode>()) {
-                string instruction = fieldCode.Text ?? string.Empty;
-                if (IsTocInstruction(instruction)) {
+            const int W = TocNamespace;
+            OfficeXmlNode[] markup = WordFieldInventory.EnumerateFieldContent(SdtNode).ToArray();
+            foreach (OfficeXmlNode node in markup) {
+                if (node.Is(W, "fldSimple") && node.Attribute(W, "instr") is { } instruction && IsTocInstruction(instruction))
                     return instruction;
+            }
+
+            foreach (OfficeXmlNode paragraph in markup) {
+                if (!paragraph.Is(W, "p")) continue;
+                foreach (string instruction in EnumerateComplexFieldInstructions(paragraph)) {
+                    if (IsTocInstruction(instruction)) return instruction;
                 }
+            }
+
+            foreach (OfficeXmlNode node in markup) {
+                if (node.Is(W, "instrText") && IsTocInstruction(node.InnerText)) return node.InnerText;
             }
 
             return DefaultTocInstruction;
@@ -523,28 +454,33 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddCustomStyleAliases(Dictionary<string, int> levels, IReadOnlyDictionary<string, int> requestedNames) {
-            Styles? styles = _document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return;
+        private OfficeXmlNode GetTocStylesRoot() {
+            if (_document._ownedModel is { } model) {
+                const string relationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "styles";
+                string? path = WordOwnedSave.RelatedParts(model, relationshipType).FirstOrDefault();
+                if (path == null) return default;
+                OfficeXmlTree tree = model.Package.GetXml(path);
+                return new OfficeXmlNode(tree, tree.Root);
             }
+            return OfficeXmlNode.FromSdk(_document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles);
+        }
 
-            foreach (Style style in styles.Elements<Style>().Where(style => style.Type?.Value == StyleValues.Paragraph)) {
-                string? styleId = style.StyleId?.Value;
-                string? styleName = style.StyleName?.Val?.Value;
-                if (string.IsNullOrWhiteSpace(styleId) || string.IsNullOrWhiteSpace(styleName)) {
-                    continue;
-                }
-
-                if (requestedNames.TryGetValue(styleName!, out int levelFromName) && !levels.ContainsKey(styleId!)) {
-                    levels[styleId!] = levelFromName;
+        private void AddCustomStyleAliases(Dictionary<string, int> levels, IReadOnlyDictionary<string, int> requestedNames) {
+            const int W = TocNamespace;
+            foreach (OfficeXmlNode style in GetTocStylesRoot().Children(W, "style")) {
+                if (style.Attribute(W, "type") != "paragraph") continue;
+                string? styleId = style.Attribute(W, "styleId");
+                string? name = style.Child(W, "name").Attribute(W, "val");
+                if (!string.IsNullOrWhiteSpace(styleId) && !string.IsNullOrWhiteSpace(name) &&
+                    requestedNames.TryGetValue(name!, out int level) && !levels.ContainsKey(styleId!)) {
+                    levels.Add(styleId!, level);
                 }
             }
         }
 
         private string GetNoContentText(string fallback = DefaultNoContentText) {
             string text = TextNoContent;
-            return string.IsNullOrWhiteSpace(text) || (GetPlaceholderPart() == null && text == DefaultNoContentText) ? fallback : text;
+            return string.IsNullOrWhiteSpace(text) || (GetPlaceholderPart().IsNone && text == DefaultNoContentText) ? fallback : text;
         }
 
         private static Paragraph CreateTitleParagraph(string text) {
@@ -583,77 +519,37 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static (int Level, bool ApplyLevelRange)? GetHeadingLevel(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels, TocSourceOptions sourceOptions) {
-            int? outlineLevel = paragraph.ParagraphProperties?.OutlineLevel?.Val?.Value;
-            if (sourceOptions.IncludeOutlineLevels && outlineLevel >= 0 && outlineLevel <= 8) {
-                return (outlineLevel.Value + 1, true);
-            }
+        private static (int Level, bool ApplyLevelRange)? GetHeadingLevel(OfficeXmlNode paragraph,
+            IReadOnlyDictionary<string, int> customStyleLevels, TocSourceOptions sourceOptions,
+            IReadOnlyDictionary<string, OfficeXmlNode> styles) {
+            const int W = TocNamespace;
+            OfficeXmlNode properties = paragraph.Child(W, "pPr");
+            int? outline = OfficeXmlViewValues.ParseInt32(properties.Child(W, "outlineLvl").Attribute(W, "val"));
+            if (sourceOptions.IncludeOutlineLevels && outline is >= 0 and <= 8) return (outline.Value + 1, true);
 
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(styleId) &&
-                sourceOptions.IncludeCustomStyles &&
-                customStyleLevels.TryGetValue(styleId!, out int customLevel)) {
+            string? styleId = properties.Child(W, "pStyle").Attribute(W, "val");
+            if (string.IsNullOrWhiteSpace(styleId)) return null;
+            if (sourceOptions.IncludeCustomStyles && customStyleLevels.TryGetValue(styleId!, out int customLevel))
                 return (customLevel, false);
-            }
 
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return null;
-            }
+            if (sourceOptions.IncludeHeadingStyles && styleId!.Length == 8 &&
+                styleId.StartsWith("Heading", StringComparison.Ordinal) && styleId[7] is >= '1' and <= '9')
+                return (styleId[7] - '0', true);
+            if (!styles.TryGetValue(styleId!, out OfficeXmlNode style)) return null;
 
-            if (sourceOptions.IncludeHeadingStyles) {
-                Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$");
-                if (match.Success && int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
-                    return (level, true);
-                }
-            }
-
-            return GetStyleHeadingLevel(paragraph, styleId!, sourceOptions);
-        }
-
-        /// <summary>
-        /// Resolves heading levels defined by the paragraph style: a heading style copied under a new name when documents
-        /// were merged (for example <c>heading 1_0</c>), or an outline level set in the style or the styles it is based on.
-        /// </summary>
-        private static (int Level, bool ApplyLevelRange)? GetStyleHeadingLevel(Paragraph paragraph, string styleId, TocSourceOptions sourceOptions) {
-            Styles? styles = paragraph.Ancestors<Document>().FirstOrDefault()?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return null;
-            }
-
-            Style? FindStyle(string id) => styles.Elements<Style>()
-                .FirstOrDefault(_ => string.Equals(_.StyleId?.Value, id, StringComparison.Ordinal));
-
-            Style? current = FindStyle(styleId);
-            if (current == null) {
-                return null;
-            }
-
-            if (sourceOptions.IncludeHeadingStyles && current.StyleName?.Val?.Value is string name) {
+            if (sourceOptions.IncludeHeadingStyles && style.Child(W, "name").Attribute(W, "val") is { } name) {
                 Match match = Regex.Match(name, "^heading (?<level>[1-9])(_[0-9]+)?$", RegexOptions.IgnoreCase);
-                if (match.Success && int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
-                    return (level, true);
-                }
+                if (match.Success) return (match.Groups["level"].Value[0] - '0', true);
             }
-
-            if (!sourceOptions.IncludeOutlineLevels) {
-                return null;
-            }
+            if (!sourceOptions.IncludeOutlineLevels) return null;
 
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            while (current != null && current.StyleId?.Value is string currentId && visited.Add(currentId)) {
-                int? outlineLevel = current.StyleParagraphProperties?.OutlineLevel?.Val?.Value;
-                if (outlineLevel != null) {
-                    if (outlineLevel >= 0 && outlineLevel <= 8) {
-                        return (outlineLevel.Value + 1, true);
-                    }
-
-                    return null;
-                }
-
-                string? basedOn = current.BasedOn?.Val?.Value;
-                current = basedOn == null ? null : FindStyle(basedOn);
+            while (style.Exists && style.Attribute(W, "styleId") is { } id && visited.Add(id)) {
+                outline = OfficeXmlViewValues.ParseInt32(style.Child(W, "pPr").Child(W, "outlineLvl").Attribute(W, "val"));
+                if (outline.HasValue) return outline is >= 0 and <= 8 ? (outline.Value + 1, true) : null;
+                if (style.Child(W, "basedOn").Attribute(W, "val") is not { } parent || !styles.TryGetValue(parent, out style))
+                    break;
             }
-
             return null;
         }
 
@@ -680,14 +576,14 @@ namespace OfficeIMO.Word {
             return parsed.Switches.Any(item => item.Trim().StartsWith(switchName, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static string GetParagraphText(Paragraph paragraph) {
-            if (paragraph.Ancestors<TextBoxContent>().Any()) {
-                return string.Concat(paragraph.Descendants<Text>().Select(text => text.Text));
-            }
+        private static string GetParagraphText(Paragraph paragraph) => GetParagraphText(OfficeXmlNode.FromSdk(paragraph));
 
-            return string.Concat(paragraph.Descendants<Text>()
-                .Where(text => !text.Ancestors<TextBoxContent>().Any())
-                .Select(text => text.Text));
+        private static string GetParagraphText(OfficeXmlNode paragraph) {
+            const int W = TocNamespace;
+            bool inTextBox = paragraph.AncestorOrSelf(W, "txbxContent").Exists;
+            return string.Concat(WordFieldInventory.EnumerateFieldContent(paragraph)
+                .Where(node => node.Is(W, "t") && (inTextBox || !node.AncestorOrSelf(W, "txbxContent").Exists))
+                .Select(node => node.InnerText));
         }
 
         private static string? GetSingleSwitchValue(WordFieldInventory.ParsedFieldInstruction parsed, string switchName, bool normalizeQuotes) {
@@ -717,86 +613,94 @@ namespace OfficeIMO.Word {
             return trimmed;
         }
 
-        private string EnsureBookmark(Paragraph paragraph, HashSet<string> existingBookmarkNames, int headingIndex) {
-            bool paragraphInTextBox = paragraph.Ancestors<TextBoxContent>().Any();
-            BookmarkStart? existing = paragraph.Descendants<BookmarkStart>()
-                .Where(bookmark => paragraphInTextBox || !bookmark.Ancestors<TextBoxContent>().Any())
-                .FirstOrDefault(bookmark => !string.IsNullOrWhiteSpace(bookmark.Name?.Value));
-
-            string? existingName = existing?.Name?.Value;
-            if (existing != null && existingName != null && existingName.Trim().Length > 0) {
-                return existingName;
+        private string EnsureBookmark(OfficeXmlNode paragraph, TocBookmarkState bookmarks, int headingIndex) {
+            const int W = TocNamespace;
+            bool paragraphInTextBox = paragraph.AncestorOrSelf(W, "txbxContent").Exists;
+            foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(paragraph)) {
+                if (!node.Is(W, "bookmarkStart") || (!paragraphInTextBox && node.AncestorOrSelf(W, "txbxContent").Exists))
+                    continue;
+                if (node.Attribute(W, "name") is { } name && !string.IsNullOrWhiteSpace(name)) return name;
             }
 
-            string bookmarkName;
-            do {
-                bookmarkName = "_OfficeIMO_Toc_" + headingIndex.ToString(CultureInfo.InvariantCulture) + "_" + existingBookmarkNames.Count.ToString(CultureInfo.InvariantCulture);
-            } while (!existingBookmarkNames.Add(bookmarkName));
-
-            int nextId = GetNextBookmarkId(paragraph);
+            string bookmarkName = bookmarks.AllocateName(headingIndex);
+            int nextId = bookmarks.AllocateId();
             _document.ObserveBookmarkId(nextId);
             string bookmarkId = nextId.ToString(CultureInfo.InvariantCulture);
-            var bookmarkStart = new BookmarkStart {
-                Name = bookmarkName,
-                Id = bookmarkId
-            };
-            var bookmarkEnd = new BookmarkEnd {
-                Id = bookmarkId
-            };
+            OfficeXmlNode start = paragraph.CreateElement(W, "bookmarkStart");
+            start.SetAttribute(W, "name", bookmarkName);
+            start.SetAttribute(W, "id", bookmarkId);
+            OfficeXmlNode properties = paragraph.Child(W, "pPr");
+            paragraph.InsertBefore(start, properties.Exists ? properties.NextSibling : paragraph.FirstChild);
 
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
-            if (properties != null) {
-                paragraph.InsertAfter(bookmarkStart, properties);
-            } else {
-                paragraph.PrependChild(bookmarkStart);
-            }
-
-            paragraph.Append(bookmarkEnd);
+            AppendTocChild(paragraph, "bookmarkEnd").SetAttribute(W, "id", bookmarkId);
             return bookmarkName;
         }
 
-        private static int GetNextBookmarkId(Paragraph paragraph) {
-            Body? body = paragraph.Ancestors<Body>().FirstOrDefault();
-            OpenXmlElement root = body != null ? body : paragraph;
-            int maxId = 0;
-            foreach (OpenXmlElement bookmark in root.Descendants<BookmarkStart>().Cast<OpenXmlElement>().Concat(root.Descendants<BookmarkEnd>())) {
-                string? value = bookmark switch {
-                    BookmarkStart start => start.Id?.Value,
-                    BookmarkEnd end => end.Id?.Value,
-                    _ => null
-                };
-                if (int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int id) && id > maxId) {
-                    maxId = id;
-                }
-            }
+        private static void RemoveImportedTableTocBookmarks(OfficeXmlNode paragraph, TocBookmarkState bookmarks) {
+            const int W = TocNamespace;
+            OfficeXmlNode table = paragraph.AncestorOrSelf(W, "tbl");
+            if (table.IsNone) return;
 
-            return maxId + 1;
+            foreach (OfficeXmlNode start in WordFieldInventory.EnumerateFieldContent(paragraph)
+                .Where(node => node.Is(W, "bookmarkStart")).ToArray()) {
+                string? name = start.Attribute(W, "name");
+                string? id = start.Attribute(W, "id");
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(id) ||
+                    !name!.StartsWith("_Toc", StringComparison.Ordinal)) continue;
+
+                OfficeXmlNode end = WordFieldInventory.EnumerateFieldContent(table).FirstOrDefault(node =>
+                    node.Is(W, "bookmarkEnd") && node.Attribute(W, "id") == id);
+                if (end.IsNone) continue;
+
+                start.Remove();
+                end.Remove();
+                bookmarks.Remove(name);
+            }
         }
 
-        private static void RemoveImportedTableTocBookmarks(Paragraph paragraph, HashSet<string> existingBookmarkNames) {
-            Table? table = paragraph.Ancestors<Table>().FirstOrDefault();
-            if (table == null) {
-                return;
+        private sealed class TocBookmarkState {
+            private readonly OfficeXmlNode _body;
+            private readonly HashSet<string> _names = new(StringComparer.Ordinal);
+            private int? _maxId;
+
+            internal TocBookmarkState(OfficeXmlNode body) {
+                _body = body;
+                _maxId = Scan(includeNames: true);
             }
 
-            foreach (BookmarkStart bookmarkStart in paragraph.Descendants<BookmarkStart>().ToArray()) {
-                string? bookmarkName = bookmarkStart.Name?.Value;
-                string? bookmarkId = bookmarkStart.Id?.Value;
-                if (string.IsNullOrWhiteSpace(bookmarkName) ||
-                    string.IsNullOrWhiteSpace(bookmarkId) ||
-                    !bookmarkName!.StartsWith("_Toc", StringComparison.Ordinal)) {
-                    continue;
-                }
+            internal string AllocateName(int headingIndex) {
+                string prefix = "_OfficeIMO_Toc_" + headingIndex.ToString(CultureInfo.InvariantCulture) + "_";
+                int suffix = _names.Count;
+                string name;
+                do {
+                    name = prefix + (suffix++).ToString(CultureInfo.InvariantCulture);
+                } while (!_names.Add(name));
+                return name;
+            }
 
-                BookmarkEnd? bookmarkEnd = table.Descendants<BookmarkEnd>()
-                    .FirstOrDefault(end => end.Id?.Value == bookmarkId);
-                if (bookmarkEnd == null) {
-                    continue;
-                }
+            internal int AllocateId() {
+                int id = (_maxId ?? Scan(includeNames: false)) + 1;
+                _maxId = id;
+                return id;
+            }
 
-                bookmarkStart.Remove();
-                bookmarkEnd.Remove();
-                existingBookmarkNames.Remove(bookmarkName);
+            internal void Remove(string name) {
+                _names.Remove(name);
+                _maxId = null;
+            }
+
+            private int Scan(bool includeNames) {
+                const int W = TocNamespace;
+                int maxId = 0;
+                foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(_body, reserveInactiveCompatibilityIds: true)) {
+                    bool isStart = node.Is(W, "bookmarkStart");
+                    if (!isStart && !node.Is(W, "bookmarkEnd")) continue;
+                    if (isStart && includeNames && node.Attribute(W, "name") is { } name && !string.IsNullOrWhiteSpace(name))
+                        _names.Add(name);
+                    if (int.TryParse(node.Attribute(W, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out int id) && id > maxId)
+                        maxId = id;
+                }
+                return maxId;
             }
         }
 
