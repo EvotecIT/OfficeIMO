@@ -96,7 +96,7 @@ public static class ZstandardArchive {
         long end = source.CanSeek ? source.Length : 0;
         // A position past the end, which MemoryStream allows, is empty input like a position at the end.
         long start = source.CanSeek ? Math.Min(source.Position, end) : 0;
-        using Stream? admitted = snapshot == null ? Admit(source, start, end - start, limits) : null;
+        using Stream? admitted = snapshot == null ? Admit(source, start, end - start, limits, cancellationToken) : null;
         Stream input = snapshot ?? admitted!;
         bool entryLimit = limits.Entry <= limits.Expanded;
         var settings = new ZstandardDecoderSettings(
@@ -113,11 +113,11 @@ public static class ZstandardArchive {
         return new ZstandardReadResult(result.Frames, result.SkippableFrames, result.Length);
     }
 
-    private static Stream Admit(Stream source, long start, long length, ArchiveLimits limits) {
+    private static Stream Admit(Stream source, long start, long length, ArchiveLimits limits, CancellationToken cancellationToken) {
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         limits.Operation.AdmitInput(length);
         try {
-            return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length);
+            return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length, cancellationToken: cancellationToken);
         } catch (ArgumentOutOfRangeException) {
             // The source shrank between measuring it and opening the view.
             throw new ArchiveCorruptionException(ZstandardDecoder.FormatName, 0, $"the {length} bytes of input measured when decoding started");

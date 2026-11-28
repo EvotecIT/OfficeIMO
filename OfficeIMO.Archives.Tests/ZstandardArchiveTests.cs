@@ -284,6 +284,22 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void CancellationStopsSeekableReadsInsideABlock() {
+        // A 1 KiB window and one raw 1 KiB block, read one byte at a time; cancellation arrives with the first payload byte.
+        var frame = new List<byte> { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x01, 0x20, 0x00 };
+        frame.AddRange(Enumerable.Repeat((byte)0x41, 1024));
+        using var cancellation = new CancellationTokenSource();
+        var source = new TrickleStream(frame.ToArray(), 10, cancellation);
+        var output = new MemoryStream();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            ZstandardArchive.Decompress(source, output, cancellationToken: cancellation.Token));
+
+        Assert.Equal(0, output.Length);
+        Assert.True(source.ReadsAfterCancellation <= 1);
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
@@ -427,6 +443,23 @@ public sealed class ZstandardArchiveTests {
         public override void Write(byte[] buffer, int offset, int count) {
             base.Write(buffer, offset, count);
             if (_source.Length > _length) _source.SetLength(_length);
+        }
+    }
+
+    /// <summary>Returns one byte per read and cancels once the byte at a given offset has been read.</summary>
+    private sealed class TrickleStream : MemoryStream {
+        private readonly long _cancelAt;
+        private readonly CancellationTokenSource _cancellation;
+        public TrickleStream(byte[] data, long cancelAt, CancellationTokenSource cancellation) : base(data, writable: false) {
+            _cancelAt = cancelAt;
+            _cancellation = cancellation;
+        }
+        public int ReadsAfterCancellation { get; private set; }
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (_cancellation.IsCancellationRequested) ReadsAfterCancellation++;
+            int read = base.Read(buffer, offset, Math.Min(count, 1));
+            if (Position >= _cancelAt) _cancellation.Cancel();
+            return read;
         }
     }
 }
