@@ -2,6 +2,218 @@
 
 This guide covers the `OfficeIMO.PowerPoint` API beyond the common tasks in the [package README](../OfficeIMO.PowerPoint/README.md), which also shows installation. Exact coverage and limits are in the [generated operation contract](Compatibility/generated/package-operations.md).
 
+## Create a deck
+
+
+Positions and sizes are `OfficeLength` values. `SlideSize.GetContentBox` gives the area inside a margin, and a `PowerPointLayoutBox` splits it into rows, columns or a title band, so slides line up without hand-computed coordinates:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var deck = PowerPointDocument.Create("Review.pptx");
+PowerPointLayoutBox page = deck.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
+PowerPointLayoutBox titleBand = page.TakeTop(OfficeLength.Centimeters(2.5));
+PowerPointLayoutBox body = page.Inset(OfficeLength.Zero, OfficeLength.Centimeters(3.5), OfficeLength.Zero, OfficeLength.Zero);
+
+deck.AddSlide().AddTitle("Quarterly business review", titleBand);
+
+PowerPointSlide agenda = deck.AddSlide();
+agenda.AddTitle("Agenda", titleBand);
+agenda.AddTextBox(body).AddBullets(["Results", "Risks", "Decisions", "Next steps"]);
+agenda.Notes.Text = "Keep the agenda under two minutes.";
+
+deck.Save();
+```
+
+`Create` starts with no slides; each `AddSlide()` adds one.
+
+## Tables and charts from your data
+
+
+`AddTable` and `AddChart` take any `IEnumerable<T>`, the same way as in Word and Excel, and return the native table or chart:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+Region[] regions = [new("North", 5.7m, 0.36), new("South", 4.1m, 0.31), new("West", 2.9m, 0.27)];
+
+using var deck = PowerPointDocument.Create("Regions.pptx");
+PowerPointLayoutBox page = deck.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
+PowerPointLayoutBox titleBand = page.TakeTop(OfficeLength.Centimeters(2.5));
+PowerPointLayoutBox[] halves = page.Inset(OfficeLength.Zero, OfficeLength.Centimeters(3.5), OfficeLength.Zero, OfficeLength.Zero)
+    .SplitColumns(2, OfficeLength.Centimeters(1));
+
+PowerPointSlide slide = deck.AddSlide();
+slide.AddTitle("Revenue by region", titleBand);
+
+PowerPointTable table = slide.AddTable(regions);
+halves[0].ApplyTo(table);
+
+slide.AddChart(OfficeChartType.Column, regions, nameof(Region.Name), new PowerPointChartOptions {
+    Title = "Revenue (USD m)",
+    Left = halves[1].Left, Top = halves[1].Top, Width = halves[1].Width, Height = halves[1].Height
+}, nameof(Region.Revenue));
+
+deck.Save();
+
+record Region(string Name, decimal Revenue, double Margin);
+```
+
+## Images
+
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var deck = PowerPointDocument.Create("Logo.pptx");
+PowerPointSlide slide = deck.AddSlide();
+slide.AddTitle("Northwind Traders");
+slide.AddImage("logo.png", left: OfficeLength.Centimeters(2), top: OfficeLength.Centimeters(5),
+    width: OfficeLength.Centimeters(6), height: OfficeLength.Centimeters(6));
+deck.Save();
+```
+
+A picture added several times, for example a logo on every slide, is stored once in the file and shared by the
+slides that show it. An SVG picture also keeps one PNG fallback for repeated additions.
+
+## Masters, layouts and connectors
+
+
+Shapes and placeholders on a slide master or layout show on every slide that uses them. Connectors stay glued to
+their shapes when the shapes move.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
+
+using var deck = PowerPointDocument.Create("Flow.pptx");
+PowerPointSlideMaster master = deck.SlideMasters[0];
+master.AddImage("logo.png", OfficeLength.Centimeters(29), OfficeLength.Centimeters(17.5),
+    OfficeLength.Centimeters(4), OfficeLength.Centimeters(1.2));
+
+PowerPointSlideLayout layout = master.AddLayout("Process");
+layout.AddPlaceholder(PowerPointPlaceholderType.Title, new PowerPointLayoutBox(
+    OfficeLength.Centimeters(1.5), OfficeLength.Centimeters(1), OfficeLength.Centimeters(31), OfficeLength.Centimeters(2)));
+
+PowerPointSlide slide = deck.AddSlide(layout);
+slide.AddTextBox("Approval flow").BindToPlaceholder(PowerPointPlaceholderType.Title);
+PowerPointAutoShape draft = slide.AddRectangle(OfficeLength.Centimeters(2), OfficeLength.Centimeters(6),
+    OfficeLength.Centimeters(5), OfficeLength.Centimeters(2));
+PowerPointAutoShape done = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeLength.Centimeters(14),
+    OfficeLength.Centimeters(10), OfficeLength.Centimeters(5), OfficeLength.Centimeters(2.5));
+slide.AddConnector(draft, done, PowerPointConnectorKind.Elbow).SetLineEnds(null, OfficeLineMarkerKind.Triangle);
+deck.Save();
+```
+
+Pictures, tables and charts go into layout placeholders with `BindToPlaceholder` too. The [PowerPoint guide](../Docs/officeimo.powerpoint-guide.md#slide-masters-and-layouts) covers duplicating and removing layouts, adding masters and choosing connection sites.
+
+## Edit an existing deck
+
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using var deck = PowerPointDocument.Load("Review.pptx");
+int replaced = deck.ReplaceAll("Quarterly", "Annual", new PowerPointTextSearchOptions { IncludeNotes = true });
+foreach (PowerPointSlide slide in deck.Slides) {
+    Console.WriteLine(slide.Notes.Text);
+}
+deck.Save("Review-annual.pptx");
+```
+
+`ReplaceAll` matches ordinally and ignores case by default, like Word and PDF. Use `MatchCase` for case-sensitive matching or `WholeWords` to require word boundaries. Matches in textboxes and tables can span adjacent runs within one paragraph. Replacement text takes the formatting of the run where the match starts. Matches stop at line breaks and dynamic fields. Tables are included by default and speaker notes only with `IncludeNotes`.
+
+For files from outside your organization, load with `PowerPointLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
+
+## Read large decks slide by slide
+
+
+`PowerPointSlideReader` reads one slide at a time without loading the presentation model, so memory stays near the size of one slide and the first slide is ready before the rest of the deck is read. Each slide comes with its title, shapes in drawing order with their paragraphs, tables, image references and speaker notes.
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using var reader = PowerPointSlideReader.Open("Review.pptx");
+foreach (PowerPointSlideContent slide in reader.ReadSlides()) {
+    Console.WriteLine($"{slide.Number}: {slide.Title}");
+    foreach (PowerPointTableContent table in slide.Tables) {
+        Console.WriteLine($"  Table with {table.Rows.Count} rows");
+    }
+    foreach (PowerPointImageReference image in slide.Images) {
+        Console.WriteLine($"  Image {image.PartUri} ({image.ContentType})");
+    }
+    if (slide.Notes != null) Console.WriteLine($"  Notes: {slide.Notes}");
+}
+
+foreach (PowerPointExtractChunk chunk in reader.ExtractMarkdownChunks(sourcePath: "Review.pptx")) {
+    Console.WriteLine(chunk.Markdown);
+}
+```
+
+`ExtractMarkdownChunks` on the reader returns the same chunks as on a loaded `PowerPointDocument`. Text is read as written on each slide: empty placeholders don't take prompt text from their layout, list markers come from the paragraph itself, and text inside SmartArt and charts isn't read. Pass `PowerPointLoadOptions` to `Open` to apply the same input size, package security and part size limits as a load. Encrypted presentations and binary `.ppt` files need `PowerPointDocument.Load`.
+
+## Save as PDF or images
+
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+
+using var deck = PowerPointDocument.Load("Regions.pptx");
+OfficeConversionReport pdf = deck.SaveAsPdf("Regions.pdf");
+Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
+
+File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage().Bytes);
+
+int number = 0;
+foreach (PowerPointChart chart in deck.Slides.SelectMany(slide => slide.AllCharts)) {
+    chart.SaveAsImage($"Regions-chart-{++number}.svg", new OfficeIMO.Drawing.OfficeChartImageExportOptions {
+        Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
+}
+```
+
+`slide.AllCharts` includes charts inside groups; `slide.Charts` lists only the charts placed directly on the slide. `chart.ToImage(options)` and `SaveAsImage` render one chart without the rest of the slide, with the same `OfficeChartImageExportOptions` used for Word and Excel charts. The chart keeps its frame size unless `Width` and `Height` are set, colours resolve against the theme of the chart's slide, and the result carries the rendering diagnostics. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason.
+
+## Validate package signatures from a stream
+
+
+Pass the original PPTX/PPTM package stream and an explicit security provider.
+The managed provider is available in the optional `OfficeIMO.Security` package:
+
+```csharp
+using System.IO;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.Security;
+
+static OfficePackageSignatureValidationReport ValidateUpload(Stream upload) =>
+    PowerPointDocument.ValidateSignatures(upload, OfficeSecurityProvider.Default);
+```
+
+The stream stays open on success and failure. Seekable streams are read from the
+beginning and their original position is restored; non-seekable streams are read
+from the current position. The existing validation options control certificate
+policy and package limits, including the maximum bytes buffered from the stream.
+
+## Before sharing
+
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var presentation = PowerPointDocument.Load("Pitch.pptx");
+OfficeHiddenDataReport report = presentation.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+presentation.Save("Pitch-shared.pptx");
+```
+
+`RemoveHiddenData()` removes properties, comments, speaker notes, custom XML, image metadata and the thumbnail, and reports each item. Hidden slides, hidden shapes and off-slide shapes are removed only when `OfficeHiddenDataKind.HiddenContent` is selected. Comments you keep can have their authors anonymized. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless `OfficeHiddenDataKind.Provenance` is selected; `PowerPointDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## Inspection without export payloads
 
 `PowerPointExtractOptions.IncludeMarkdown = false` makes `ExtractMarkdownChunks`

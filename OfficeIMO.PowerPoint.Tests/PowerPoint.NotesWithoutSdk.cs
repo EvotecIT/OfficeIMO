@@ -127,6 +127,56 @@ public class PowerPointNotesWithoutSdkTests {
     }
 
     [Fact]
+    public void WritingNotesReplacesANotesRelationshipToAPartThatIsNotNotes() {
+        byte[] source = CreateDeck();
+        var output = new MemoryStream();
+        output.Write(source, 0, source.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            Rewrite(archive, "ppt/slides/_rels/slide1.xml.rels", root => root.Add(new XElement(root.GetDefaultNamespace() + "Relationship",
+                new XAttribute("Id", "rId90"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"),
+                new XAttribute("Target", "slide2.xml"))));
+        }
+
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(output.ToArray()))) {
+            presentation.Slides[0].Notes.Text = "Notes";
+            Assert.False(presentation.IsSdkLoaded, string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+            saved = presentation.ToBytes();
+        }
+
+        using var archiveOut = new ZipArchive(new MemoryStream(saved));
+        XElement relationships;
+        using (Stream stream = archiveOut.GetEntry("ppt/slides/_rels/slide1.xml.rels")!.Open()) relationships = XElement.Load(stream);
+        XElement notes = Assert.Single(relationships.Elements(), element => ((string?)element.Attribute("Type"))?.EndsWith("/notesSlide", StringComparison.Ordinal) == true);
+        Assert.Contains("notesSlide", (string)notes.Attribute("Target")!, StringComparison.Ordinal);
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved));
+        Assert.Equal("Notes", reopened.Slides[0].Notes.Text);
+        Assert.Equal(3, reopened.Slides.Count);
+    }
+
+    [Fact]
+    public void AMisdirectedNotesRelationshipIsKeptWhenTheNotesMasterIsUnlisted() {
+        byte[] source = CreateDeck();
+        var output = new MemoryStream();
+        output.Write(source, 0, source.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            Rewrite(archive, "ppt/slides/_rels/slide1.xml.rels", root => root.Add(new XElement(root.GetDefaultNamespace() + "Relationship",
+                new XAttribute("Id", "rId90"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"),
+                new XAttribute("Target", "slide2.xml"))));
+            Rewrite(archive, "ppt/presentation.xml", root => root.Elements(root.Name.Namespace + "notesMasterIdLst").Elements().Remove());
+        }
+        byte[] edited = output.ToArray();
+
+        // Nothing can add the notes here, so the package path backs off and leaves the slide's relationships as they were.
+        using var presentation = PowerPointDocument.Load(new MemoryStream(edited));
+        PowerPointSlide slide = presentation.Slides[0];
+        Assert.Null(presentation.TryCreatePackageNotes(slide.PackagePartName!));
+        Assert.False(slide.PartRef.RelatedPart(OfficeIMO.PowerPoint.OpenXml.PowerPointPartRef.NotesSlideRelationshipType).IsNone);
+    }
+
+    [Fact]
     public void NotesTooLargeForThePackageReadTheSameEverywhere() {
         string text = new('x', 17 * 1024 * 1024);
         byte[] source;

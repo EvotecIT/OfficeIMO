@@ -1,4 +1,6 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -9,82 +11,108 @@ namespace OfficeIMO.Word {
     /// </summary>
     /// <remarks>When creating an edge, assign its style before its colour, spacing or size; Word requires a style on each border descriptor.</remarks>
     public class WordTableCellBorder {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
+
+        internal enum Edge { Left, Right, Top, Bottom, InsideHorizontal, InsideVertical, Start, End, TopLeftToBottomRight, TopRightToBottomLeft }
+
+        // Element names in the order of Edge.
+        private static readonly string[] EdgeNames = { "left", "right", "top", "bottom", "insideH", "insideV", "start", "end", "tl2br", "tr2bl" };
+
+        // The schema lists w:start before w:left, but cells have always been written with w:left first (and w:right
+        // before w:end) when both are present; keep that order so documents stay byte-for-byte the same.
+        private static readonly OfficeXmlChildOrder BorderOrder = new(
+            new[] { W, W, W, W, W, W, W, W, W, W },
+            new[] { "top", "left", "start", "bottom", "right", "end", "insideH", "insideV", "tl2br", "tr2bl" });
+
         private readonly WordTableCell _wordTableCell;
-        private readonly WordTableRow _wordTableRow;
-        private readonly WordTable _wordTable;
         private readonly WordDocument _document;
-        // Do not force-create TableCellProperties on construction; keep read-only access non-mutating.
-        // All writes ensure properties exist via helpers below.
-        private TableCellProperties? TcPr => _wordTableCell._tableCellProperties;
-        private TableCellProperties EnsurePr() {
+
+        internal WordTableCellBorder(WordDocument wordDocument, WordTableCell wordTableCell) {
+            _document = wordDocument;
+            _wordTableCell = wordTableCell;
+            // Reading never creates cell properties; only the setters add them.
+        }
+
+        // The edge is a direct child of the cell's own w:tcBorders, never one inside extension markup.
+        private OfficeXmlNode Border(Edge edge) =>
+            OfficeXmlNode.FromSdk(_wordTableCell._tableCellProperties).Child(W, "tcBorders").Child(W, EdgeNames[(int)edge]);
+
+        private OfficeXmlNode EnsureBorder(Edge edge) {
             if (_wordTableCell._tableCellProperties == null) {
                 _wordTableCell.AddTableCellProperties();
             }
-            return _wordTableCell._tableCellProperties!;
-        }
-        /// <summary>A literal color replaces theme color references, as Word's direct color selection does.</summary>
-        private static void SetLiteralColor(BorderType border, string? value) {
-            border.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
-            border.ThemeColor = null;
-            border.ThemeTint = null;
-            border.ThemeShade = null;
-        }
-
-        private TableCellBorders? BordersOrNull => TcPr?.TableCellBorders;
-        private TableCellBorders EnsureBorders() {
-            var pr = EnsurePr();
-            if (pr.TableCellBorders == null) {
-                pr.TableCellBorders = new TableCellBorders();
+            OfficeXmlNode properties = OfficeXmlNode.FromSdk(_wordTableCell._tableCellProperties);
+            OfficeXmlNode borders = properties.Child(W, "tcBorders");
+            if (borders.IsNone) {
+                borders = properties.AddOrdered(W, "tcBorders", WTcPrView.Order);
                 _wordTableCell.NormalizeTableCellPropertiesOrder();
             }
-
-            return pr.TableCellBorders;
-        }
-        private LeftBorder EnsureLeft() { var b = EnsureBorders(); return b.LeftBorder ??= new LeftBorder(); }
-        private RightBorder EnsureRight() { var b = EnsureBorders(); return b.RightBorder ??= new RightBorder(); }
-        private TopBorder EnsureTop() { var b = EnsureBorders(); return b.TopBorder ??= new TopBorder(); }
-        private BottomBorder EnsureBottom() { var b = EnsureBorders(); return b.BottomBorder ??= new BottomBorder(); }
-        private InsideHorizontalBorder EnsureInsideHorizontal() { var b = EnsureBorders(); return b.InsideHorizontalBorder ??= new InsideHorizontalBorder(); }
-        private InsideVerticalBorder EnsureInsideVertical() { var b = EnsureBorders(); return b.InsideVerticalBorder ??= new InsideVerticalBorder(); }
-        private StartBorder EnsureStart() { var b = EnsureBorders(); return b.StartBorder ??= new StartBorder(); }
-        private EndBorder EnsureEnd() { var b = EnsureBorders(); return b.EndBorder ??= new EndBorder(); }
-        private TopLeftToBottomRightCellBorder EnsureTLBR() { var b = EnsureBorders(); return b.TopLeftToBottomRightCellBorder ??= new TopLeftToBottomRightCellBorder(); }
-        private TopRightToBottomLeftCellBorder EnsureTRBL() { var b = EnsureBorders(); return b.TopRightToBottomLeftCellBorder ??= new TopRightToBottomLeftCellBorder(); }
-
-        internal WordTableCellBorder(WordDocument wordDocument, WordTable wordTable, WordTableRow wordTableRow, WordTableCell wordTableCell) {
-            _document = wordDocument;
-            _wordTable = wordTable;
-            _wordTableRow = wordTableRow;
-            _wordTableCell = wordTableCell;
-            // Intentionally do not create TableCellProperties here.
+            return borders.GetOrAddChild(W, EdgeNames[(int)edge], BorderOrder);
         }
 
-        /// <summary>
-        /// Get or set left table cell border style
-        /// </summary>
+        internal WordBorderStyle? GetStyle(Edge edge) =>
+            Border(edge).Attribute(W, "val") is string token && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordBorderStyle style) ? style : null;
+
+        internal void SetStyle(Edge edge, WordBorderStyle? value) {
+            string? token = value?.ToOpenXmlToken();
+            EnsureBorder(edge).SetAttribute(W, "val", token);
+        }
+
+        private string? GetColorValue(Edge edge) {
+            OfficeXmlNode border = Border(edge);
+            if (border.IsNone) return null;
+            // One pass over the attributes: asking for each one in turn is slower when most of them are absent.
+            string? color = null, themeColor = null, themeTint = null, themeShade = null;
+            foreach (OfficeXmlAttribute attribute in border.Attributes()) {
+                if (!OfficeXmlNamespaces.TryGetKnownId(attribute.NamespaceUri, out int namespaceId) || namespaceId != W) continue;
+                switch (attribute.LocalName) {
+                    case "color": color = attribute.Value; break;
+                    case "themeColor": themeColor = attribute.Value; break;
+                    case "themeTint": themeTint = attribute.Value; break;
+                    case "themeShade": themeShade = attribute.Value; break;
+                }
+            }
+            string? resolved = (themeColor == null ? null : WordRunFormatting.ResolveThemeColorHex(themeColor, themeTint, themeShade, _document)) ?? color;
+            return resolved == null ? null : Helpers.NormalizeOpenXmlColor(resolved);
+        }
+
+        /// <summary>A literal color replaces theme color references, as Word's direct color selection does.</summary>
+        internal void SetColorValue(Edge edge, string? value) {
+            string? color = value == null ? null : Helpers.NormalizeOpenXmlColor(value);
+            OfficeXmlNode border = EnsureBorder(edge);
+            border.SetAttribute(W, "color", color);
+            border.SetAttribute(W, "themeColor", null);
+            border.SetAttribute(W, "themeTint", null);
+            border.SetAttribute(W, "themeShade", null);
+        }
+
+        private OfficeLength? GetSpace(Edge edge) => WordBorderLengths.FromSpace(OfficeXmlViewValues.ParseUInt32(Border(edge).Attribute(W, "space")));
+
+        internal void SetSpace(Edge edge, OfficeLength? value) {
+            uint? nativeValue = WordBorderLengths.ToSpace(value);
+            EnsureBorder(edge).SetAttribute(W, "space", OfficeXmlViewValues.Format(nativeValue));
+        }
+
+        private OfficeLength? GetSize(Edge edge) => WordBorderLengths.FromSize(OfficeXmlViewValues.ParseUInt32(Border(edge).Attribute(W, "sz")));
+
+        internal void SetSize(Edge edge, OfficeLength? value) {
+            uint? nativeValue = WordBorderLengths.ToSize(value);
+            EnsureBorder(edge).SetAttribute(W, "sz", OfficeXmlViewValues.Format(nativeValue));
+        }
+
+        /// <summary>Gets or sets the left cell border style.</summary>
         public WordBorderStyle? LeftStyle {
-            get {
-                return BordersOrNull?.LeftBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var lb = EnsureLeft();
-                lb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.Left);
+            set => SetStyle(Edge.Left, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? LeftColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.LeftBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureLeft(), value);
-            }
+            get => GetColorValue(Edge.Left);
+            set => SetColorValue(Edge.Left, value);
         }
 
-        /// <summary>
-        /// Get or set left table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the left cell border color.</summary>
         public OfficeIMO.OfficeColor? LeftColor {
             get => Helpers.ParseNativeColor(LeftColorValue);
             set => LeftColorValue = value?.ToRgbHex();
@@ -93,56 +121,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the left cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? LeftSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.LeftBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var lb = EnsureLeft();
-                lb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.Left);
+            set => SetSpace(Edge.Left, value);
         }
 
         /// <summary>Gets or sets the left cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? LeftSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.LeftBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var lb = EnsureLeft();
-                lb.Size = nativeValue;
-            }
+            get => GetSize(Edge.Left);
+            set => SetSize(Edge.Left, value);
         }
 
-
-        /// <summary>
-        /// Get or set right table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the right cell border style.</summary>
         public WordBorderStyle? RightStyle {
-            get {
-                return BordersOrNull?.RightBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var rb = EnsureRight();
-                rb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.Right);
+            set => SetStyle(Edge.Right, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? RightColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.RightBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureRight(), value);
-            }
+            get => GetColorValue(Edge.Right);
+            set => SetColorValue(Edge.Right, value);
         }
 
-        /// <summary>
-        /// Get or set right table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the right cell border color.</summary>
         public OfficeIMO.OfficeColor? RightColor {
             get => Helpers.ParseNativeColor(RightColorValue);
             set => RightColorValue = value?.ToRgbHex();
@@ -151,58 +153,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the right cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? RightSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.RightBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var rb = EnsureRight();
-                rb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.Right);
+            set => SetSpace(Edge.Right, value);
         }
 
         /// <summary>Gets or sets the right cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? RightSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.RightBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var rb = EnsureRight();
-                rb.Size = nativeValue;
-            }
+            get => GetSize(Edge.Right);
+            set => SetSize(Edge.Right, value);
         }
 
-
-
-
-        /// <summary>
-        /// Get or set top table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the top cell border style.</summary>
         public WordBorderStyle? TopStyle {
-            get {
-                return BordersOrNull?.TopBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var tb = EnsureTop();
-                tb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.Top);
+            set => SetStyle(Edge.Top, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureTop(), value);
-            }
+            get => GetColorValue(Edge.Top);
+            set => SetColorValue(Edge.Top, value);
         }
 
-        /// <summary>
-        /// Get or set top table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the top cell border color.</summary>
         public OfficeIMO.OfficeColor? TopColor {
             get => Helpers.ParseNativeColor(TopColorValue);
             set => TopColorValue = value?.ToRgbHex();
@@ -211,61 +185,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the top cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.TopBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var tb = EnsureTop();
-                tb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.Top);
+            set => SetSpace(Edge.Top, value);
         }
 
         /// <summary>Gets or sets the top cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.TopBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var tb = EnsureTop();
-                tb.Size = nativeValue;
-            }
+            get => GetSize(Edge.Top);
+            set => SetSize(Edge.Top, value);
         }
 
-
-
-
-
-
-
-        /// <summary>
-        /// Get or set bottom table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the bottom cell border style.</summary>
         public WordBorderStyle? BottomStyle {
-            get {
-                return BordersOrNull?.BottomBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var bb = EnsureBottom();
-                bb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.Bottom);
+            set => SetStyle(Edge.Bottom, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? BottomColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.BottomBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureBottom(), value);
-            }
+            get => GetColorValue(Edge.Bottom);
+            set => SetColorValue(Edge.Bottom, value);
         }
 
-        /// <summary>
-        /// Get or set bottom table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the bottom cell border color.</summary>
         public OfficeIMO.OfficeColor? BottomColor {
             get => Helpers.ParseNativeColor(BottomColorValue);
             set => BottomColorValue = value?.ToRgbHex();
@@ -274,63 +217,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the bottom cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? BottomSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.BottomBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var bb = EnsureBottom();
-                bb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.Bottom);
+            set => SetSpace(Edge.Bottom, value);
         }
 
         /// <summary>Gets or sets the bottom cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? BottomSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.BottomBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var bb = EnsureBottom();
-                bb.Size = nativeValue;
-            }
+            get => GetSize(Edge.Bottom);
+            set => SetSize(Edge.Bottom, value);
         }
 
-
-
-
-
-
-
-
-
-        /// <summary>
-        /// Get or set inside horizontal table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the inside horizontal cell border style.</summary>
         public WordBorderStyle? InsideHorizontalStyle {
-            get {
-                return BordersOrNull?.InsideHorizontalBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var hb = EnsureInsideHorizontal();
-                hb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.InsideHorizontal);
+            set => SetStyle(Edge.InsideHorizontal, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? InsideHorizontalColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.InsideHorizontalBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureInsideHorizontal(), value);
-            }
+            get => GetColorValue(Edge.InsideHorizontal);
+            set => SetColorValue(Edge.InsideHorizontal, value);
         }
 
-        /// <summary>
-        /// Get or set inside horizontal table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the inside horizontal cell border color.</summary>
         public OfficeIMO.OfficeColor? InsideHorizontalColor {
             get => Helpers.ParseNativeColor(InsideHorizontalColorValue);
             set => InsideHorizontalColorValue = value?.ToRgbHex();
@@ -339,63 +249,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the inside horizontal cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? InsideHorizontalSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.InsideHorizontalBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var hb = EnsureInsideHorizontal();
-                hb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.InsideHorizontal);
+            set => SetSpace(Edge.InsideHorizontal, value);
         }
 
         /// <summary>Gets or sets the inside horizontal cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? InsideHorizontalSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.InsideHorizontalBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var hb = EnsureInsideHorizontal();
-                hb.Size = nativeValue;
-            }
+            get => GetSize(Edge.InsideHorizontal);
+            set => SetSize(Edge.InsideHorizontal, value);
         }
 
-
-
-
-
-
-
-
-
-        /// <summary>
-        /// Get or set inside vertical table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the inside vertical cell border style.</summary>
         public WordBorderStyle? InsideVerticalStyle {
-            get {
-                return BordersOrNull?.InsideVerticalBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var vb = EnsureInsideVertical();
-                vb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.InsideVertical);
+            set => SetStyle(Edge.InsideVertical, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? InsideVerticalColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.InsideVerticalBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureInsideVertical(), value);
-            }
+            get => GetColorValue(Edge.InsideVertical);
+            set => SetColorValue(Edge.InsideVertical, value);
         }
 
-        /// <summary>
-        /// Get or set inside vertical table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the inside vertical cell border color.</summary>
         public OfficeIMO.OfficeColor? InsideVerticalColor {
             get => Helpers.ParseNativeColor(InsideVerticalColorValue);
             set => InsideVerticalColorValue = value?.ToRgbHex();
@@ -404,60 +281,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the inside vertical cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? InsideVerticalSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.InsideVerticalBorder?.Space?.Value);
-            }
-                set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var vb = EnsureInsideVertical();
-                vb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.InsideVertical);
+            set => SetSpace(Edge.InsideVertical, value);
         }
 
         /// <summary>Gets or sets the inside vertical cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? InsideVerticalSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.InsideVerticalBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var vb = EnsureInsideVertical();
-                vb.Size = nativeValue;
-            }
+            get => GetSize(Edge.InsideVertical);
+            set => SetSize(Edge.InsideVertical, value);
         }
 
-
-
-
-
-
-        /// <summary>
-        /// Get or set start table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the start cell border style.</summary>
         public WordBorderStyle? StartStyle {
-            get {
-                return BordersOrNull?.StartBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var sb = EnsureStart();
-                sb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.Start);
+            set => SetStyle(Edge.Start, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? StartColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.StartBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureStart(), value);
-            }
+            get => GetColorValue(Edge.Start);
+            set => SetColorValue(Edge.Start, value);
         }
 
-        /// <summary>
-        /// Get or set start table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the start cell border color.</summary>
         public OfficeIMO.OfficeColor? StartColor {
             get => Helpers.ParseNativeColor(StartColorValue);
             set => StartColorValue = value?.ToRgbHex();
@@ -466,60 +313,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the start cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? StartSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.StartBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var sb = EnsureStart();
-                sb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.Start);
+            set => SetSpace(Edge.Start, value);
         }
 
         /// <summary>Gets or sets the start cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? StartSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.StartBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var sb = EnsureStart();
-                sb.Size = nativeValue;
-            }
+            get => GetSize(Edge.Start);
+            set => SetSize(Edge.Start, value);
         }
 
-
-
-
-
-
-        /// <summary>
-        /// Get or set end table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the end cell border style.</summary>
         public WordBorderStyle? EndStyle {
-            get {
-                return BordersOrNull?.EndBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var eb = EnsureEnd();
-                eb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.End);
+            set => SetStyle(Edge.End, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? EndColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.EndBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureEnd(), value);
-            }
+            get => GetColorValue(Edge.End);
+            set => SetColorValue(Edge.End, value);
         }
 
-        /// <summary>
-        /// Get or set end table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the end cell border color.</summary>
         public OfficeIMO.OfficeColor? EndColor {
             get => Helpers.ParseNativeColor(EndColorValue);
             set => EndColorValue = value?.ToRgbHex();
@@ -528,67 +345,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the end cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? EndSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.EndBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var eb = EnsureEnd();
-                eb.Space = nativeValue;
-            }
+            get => GetSpace(Edge.End);
+            set => SetSpace(Edge.End, value);
         }
 
         /// <summary>Gets or sets the end cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? EndSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.EndBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var eb = EnsureEnd();
-                eb.Size = nativeValue;
-            }
+            get => GetSize(Edge.End);
+            set => SetSize(Edge.End, value);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-        /// <summary>
-        /// Get or set top left to bottom right table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the top-left to bottom-right cell border style.</summary>
         public WordBorderStyle? TopLeftToBottomRightStyle {
-            get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var d = EnsureTLBR();
-                d.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.TopLeftToBottomRight);
+            set => SetStyle(Edge.TopLeftToBottomRight, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopLeftToBottomRightColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopLeftToBottomRightCellBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureTLBR(), value);
-            }
+            get => GetColorValue(Edge.TopLeftToBottomRight);
+            set => SetColorValue(Edge.TopLeftToBottomRight, value);
         }
 
-        /// <summary>
-        /// Get or set top left to bottom right table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the top-left to bottom-right cell border color.</summary>
         public OfficeIMO.OfficeColor? TopLeftToBottomRightColor {
             get => Helpers.ParseNativeColor(TopLeftToBottomRightColorValue);
             set => TopLeftToBottomRightColorValue = value?.ToRgbHex();
@@ -597,58 +377,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the top-left to bottom-right cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopLeftToBottomRightSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.TopLeftToBottomRightCellBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var d = EnsureTLBR();
-                d.Space = nativeValue;
-            }
+            get => GetSpace(Edge.TopLeftToBottomRight);
+            set => SetSpace(Edge.TopLeftToBottomRight, value);
         }
 
         /// <summary>Gets or sets the top-left to bottom-right cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopLeftToBottomRightSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.TopLeftToBottomRightCellBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var d = EnsureTLBR();
-                d.Size = nativeValue;
-            }
+            get => GetSize(Edge.TopLeftToBottomRight);
+            set => SetSize(Edge.TopLeftToBottomRight, value);
         }
 
-
-
-
-        /// <summary>
-        /// Get or set top right to bottom left table cell border style
-        /// </summary>
+        /// <summary>Gets or sets the top-right to bottom-left cell border style.</summary>
         public WordBorderStyle? TopRightToBottomLeftStyle {
-            get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Val?.Value.ToOfficeEnum();
-            }
-            set {
-                var d = EnsureTRBL();
-                d.Val = value.HasValue ? value.Value.ToOpenXml() : null;
-            }
+            get => GetStyle(Edge.TopRightToBottomLeft);
+            set => SetStyle(Edge.TopRightToBottomLeft, value);
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopRightToBottomLeftColorValue {
-            get {
-                return WordRunFormatting.ResolveBorderColorHex(BordersOrNull?.TopRightToBottomLeftCellBorder, _document) is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
-            }
-            set {
-                SetLiteralColor(EnsureTRBL(), value);
-            }
+            get => GetColorValue(Edge.TopRightToBottomLeft);
+            set => SetColorValue(Edge.TopRightToBottomLeft, value);
         }
 
-        /// <summary>
-        /// Get or set top right to bottom left table cell border color using named colors
-        /// </summary>
+        /// <summary>Gets or sets the top-right to bottom-left cell border color.</summary>
         public OfficeIMO.OfficeColor? TopRightToBottomLeftColor {
             get => Helpers.ParseNativeColor(TopRightToBottomLeftColorValue);
             set => TopRightToBottomLeftColorValue = value?.ToRgbHex();
@@ -657,28 +409,15 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the top-right to bottom-left cell border spacing.</summary>
         /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopRightToBottomLeftSpace {
-            get {
-                return WordBorderLengths.FromSpace(BordersOrNull?.TopRightToBottomLeftCellBorder?.Space?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var d = EnsureTRBL();
-                d.Space = nativeValue;
-            }
+            get => GetSpace(Edge.TopRightToBottomLeft);
+            set => SetSpace(Edge.TopRightToBottomLeft, value);
         }
 
         /// <summary>Gets or sets the top-right to bottom-left cell border width.</summary>
         /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopRightToBottomLeftSize {
-            get {
-                return WordBorderLengths.FromSize(BordersOrNull?.TopRightToBottomLeftCellBorder?.Size?.Value);
-            }
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var d = EnsureTRBL();
-                d.Size = nativeValue;
-            }
+            get => GetSize(Edge.TopRightToBottomLeft);
+            set => SetSize(Edge.TopRightToBottomLeft, value);
         }
-
     }
 }

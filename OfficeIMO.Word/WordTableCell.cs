@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to the border configuration of the cell.
         /// </summary>
-        public WordTableCellBorder Borders => _borders ??= new WordTableCellBorder(_document, _wordTable, _wordTableRow, this);
+        public WordTableCellBorder Borders => _borders ??= new WordTableCellBorder(_document, this);
 
         internal TableCell _tableCell;
         // Read live so wrappers never hold a stale tcPr and reads never create one.

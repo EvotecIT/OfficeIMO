@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
             AssignSlideToNearestSection(newId, LoadedSlides.Count);
 
             PowerPointSlide slide = new(slidePart, this);
-            slide.RememberSlideId(slideId);
+            slide.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
             LoadedSlides.Add(slide);
             return slide;
         }
@@ -351,7 +351,7 @@ namespace OfficeIMO.PowerPoint {
                 targetIndex);
 
             PowerPointSlide duplicate = new(slidePart, this);
-            duplicate.RememberSlideId(slideId);
+            duplicate.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
             // Serialized copies already carry the source show attribute; Save() only defers loading when no legacy value exists.
             if (!copiedSerializedSlide) duplicate.Hidden = sourceSlide.Hidden;
             LoadedSlides.Insert(targetIndex, duplicate);

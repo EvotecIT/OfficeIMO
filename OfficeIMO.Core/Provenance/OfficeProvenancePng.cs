@@ -60,10 +60,10 @@ internal static class OfficeProvenancePng {
         List<OfficeProvenanceChange>? changes,
         bool? inspectedStructureValid) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validChunkStructure);
+        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out int generatorCount, out bool validChunkStructure);
         // Decoding only establishes carrier validity, so carrier-free images are never decoded.
         bool validStructure = inspectedStructureValid ?? (
-            (c2paCount != 0 || xmpCount != 0) && validChunkStructure && ValidateDecodedPayload(data, options, context!));
+            (c2paCount != 0 || xmpCount != 0 || generatorCount != 0) && validChunkStructure && ValidateDecodedPayload(data, options, context!));
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
@@ -114,6 +114,21 @@ internal static class OfficeProvenancePng {
                 } else {
                     output?.Write(data, offset, total);
                 }
+            } else if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out string? keyword)) {
+                // Text chunks are ancillary and position-independent, so dropping one leaves the image and every other chunk intact.
+                bool valid = validStructure && foundHeader && HasValidCrc(data, offset, payloadLength);
+                string location = $"PNG/{type}-{keyword}@{offset}";
+                context?.Add(new OfficeProvenanceEvidence(
+                    OfficeProvenanceCarrierKind.AiGeneratorMetadata,
+                    location,
+                    valid,
+                    payloadLength,
+                    keyword,
+                    OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
+                bool remove = output != null && removalOptions != null && changes != null && removalOptions.RemoveAiSourceMetadata &&
+                    (valid || !removalOptions.RequireStructurallyValidCarrier);
+                if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.AiGeneratorMetadata, location, total));
+                else output?.Write(data, offset, total);
             } else {
                 output?.Write(data, offset, total);
             }
@@ -133,11 +148,13 @@ internal static class OfficeProvenancePng {
         byte[] data,
         OfficeProvenanceOptions options,
         out int xmpCount,
+        out int generatorCount,
         out bool validStructure) {
         int offset = SignatureLength;
         int chunkCount = 0;
         int c2paCount = 0;
         xmpCount = 0;
+        generatorCount = 0;
         int headerCount = 0;
         bool validLeadingHeader = false;
         bool validEnd = false;
@@ -169,6 +186,7 @@ internal static class OfficeProvenancePng {
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
+            if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out _)) generatorCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
@@ -212,10 +230,19 @@ internal static class OfficeProvenancePng {
         // The container check is part of the budget calculation; an image whose decode cannot be bounded is not decoded.
         // Malformed structure is rejected by the chunk pre-pass before this point, so a container that preserves a
         // malformed nested image never discards a charge already made here.
-        if (!OfficePngReader.TryGetProvenanceDecodeBudget(
-                data, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) return false;
-        context.ReserveExpandedBytes(decodedBytes, "PNG decoding exceeds the configured expanded-byte limit.");
-        return OfficePngReader.TryValidateDecodedPayload(data, options.CancellationToken);
+        // Text chunks are inflated during container validation, so the decoded text draws from the same budget and
+        // compressed text is never inflated past what remains of it.
+        long remainingBytes = Math.Max(0, options.MaxExpandedContainerBytes - context.ExpandedInspectionBytes);
+        bool budgeted = OfficePngReader.TryGetProvenanceDecodeBudget(
+            data, options.CancellationToken, options.MaxContainerEntries, remainingBytes, out long decodedBytes, out long textBytes,
+            out OfficePngContainerValidation containerValidation);
+        const string limitMessage = "PNG decoding exceeds the configured expanded-byte limit.";
+        if (textBytes > remainingBytes) throw OfficeProvenanceLimitException.Create(limitMessage);
+        context.ReserveExpandedBytes(textBytes, limitMessage);
+        if (!budgeted) return false;
+        context.ReserveExpandedBytes(decodedBytes, limitMessage);
+        // The container was just validated within the budget; the scanline check reuses that instead of inflating text again.
+        return OfficePngReader.TryValidateDecodedPayload(data, options.CancellationToken, containerValidation: containerValidation);
     }
 
     private static bool IsValidChunkType(byte[] data, int offset) {
@@ -252,6 +279,31 @@ internal static class OfficeProvenancePng {
             data[payloadOffset + 10] == 0 &&
             data[payloadOffset + 11] == 0 &&
             data[payloadOffset + 12] is 0 or 1;
+    }
+
+    /// <summary>
+    /// Text-chunk keywords that AI image tools use for their generation settings: <c>parameters</c> (Stable Diffusion web UIs),
+    /// <c>prompt</c> and <c>workflow</c> (ComfyUI graphs), and <c>invokeai_metadata</c>, <c>invokeai_graph</c> and <c>sd-metadata</c>
+    /// (InvokeAI). PNG keywords are case-sensitive, so only these exact spellings match.
+    /// </summary>
+    private static readonly string[] AiGeneratorKeywords = {
+        "parameters", "prompt", "workflow", "invokeai_metadata", "invokeai_graph", "sd-metadata"
+    };
+
+    private static bool TryGetAiGeneratorKeyword(byte[] data, int typeOffset, int payloadOffset, int payloadLength, out string? keyword) {
+        keyword = null;
+        if (!OfficeProvenanceBinary.MatchesAscii(data, typeOffset, "tEXt") &&
+            !OfficeProvenanceBinary.MatchesAscii(data, typeOffset, "zTXt") &&
+            !OfficeProvenanceBinary.MatchesAscii(data, typeOffset, "iTXt")) return false;
+        foreach (string candidate in AiGeneratorKeywords) {
+            if (payloadLength > candidate.Length &&
+                OfficeProvenanceBinary.MatchesAscii(data, payloadOffset, candidate) &&
+                data[payloadOffset + candidate.Length] == 0) {
+                keyword = candidate;
+                return true;
+            }
+        }
+        return false;
     }
 
     private static bool HasXmpKeyword(byte[] data, int payloadOffset, int payloadLength) {

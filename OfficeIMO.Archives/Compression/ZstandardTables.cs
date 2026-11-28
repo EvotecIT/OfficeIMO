@@ -156,6 +156,8 @@ internal sealed class ZstandardHuffmanTable {
         // Two interleaved states share one stream; decoding stops once an update reads past its start.
         int first = (int)reader.Read(table.AccuracyLog);
         int second = (int)reader.Read(table.AccuracyLog);
+        // Reading past the start is how the stream ends, but only after both states have been initialized.
+        if (reader.Overflowed) throw ZstandardDecoder.Corrupt(inputOffset, "initial states for both Huffman weight decoders");
         int count = 0;
         while (true) {
             Emit(table.Symbols[first]);
@@ -192,6 +194,10 @@ internal sealed class ZstandardHuffmanTable {
         if (maxBits > MaxBitsLimit || (leftover & (leftover - 1)) != 0)
             throw ZstandardDecoder.Corrupt(inputOffset, "Huffman weights that complete a prefix code");
         weights[count++] = (byte)(ZstandardDecoder.HighBit((uint)leftover) + 1);
+        // The shortest codes come in pairs, so a complete tree has an even number of weight-1 symbols, at least two.
+        int ones = 0;
+        for (int index = 0; index < count; index++) if (weights[index] == 1) ones++;
+        if (ones < 2 || (ones & 1) != 0) throw ZstandardDecoder.Corrupt(inputOffset, "an even number of at least two weight-1 Huffman symbols");
         int size = 1 << maxBits;
         var symbols = new byte[size];
         var lengths = new byte[size];

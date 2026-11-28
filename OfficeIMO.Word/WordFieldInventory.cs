@@ -156,30 +156,47 @@ namespace OfficeIMO.Word {
         }
 
         internal static IEnumerable<FieldRoot> EnumerateFieldRoots(MainDocumentPart mainPart) {
-            if (mainPart.Document?.Body != null) {
-                yield return new FieldRoot(mainPart.Document.Body, WordFieldLocationKind.Body, mainPart.Uri.ToString());
+            OfficeIMO.Word.OpenXml.WordPartView? main = OfficeIMO.Word.OpenXml.WordPackageView.ForSdkPackage(mainPart.OpenXmlPackage).Main;
+            if (main == null) yield break;
+            foreach (NodeFieldRoot root in EnumerateFieldRoots(main)) {
+                yield return new FieldRoot((OpenXmlCompositeElement)root.Root.SdkElement!, root.LocationKind, root.PartUri);
+            }
+        }
+
+        /// <summary>The body, headers, footers, footnotes and endnotes of a package, in the order fields are inspected.</summary>
+        internal static IEnumerable<NodeFieldRoot> EnumerateFieldRoots(OfficeIMO.Word.OpenXml.WordPartView mainPart) {
+            const int W = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.WordprocessingML;
+            OfficeXmlNode body = mainPart.RootNamed(W, "document").Child(W, "body");
+            if (!body.IsNone) {
+                yield return new NodeFieldRoot(body, WordFieldLocationKind.Body, mainPart.PartName, mainPart);
             }
 
-            foreach (HeaderPart headerPart in mainPart.HeaderParts.OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal)) {
-                if (headerPart.Header != null) {
-                    yield return new FieldRoot(headerPart.Header, WordFieldLocationKind.Header, headerPart.Uri.ToString());
+            foreach (OfficeIMO.Word.OpenXml.WordPartView headerPart in mainPart.Parts(OfficeIMO.Word.OpenXml.WordPackageView.HeaderRelationshipType)
+                .OrderBy(part => part.PartName, StringComparer.Ordinal)) {
+                OfficeXmlNode header = headerPart.RootNamed(W, "hdr");
+                if (!header.IsNone) {
+                    yield return new NodeFieldRoot(header, WordFieldLocationKind.Header, headerPart.PartName, headerPart);
                 }
             }
 
-            foreach (FooterPart footerPart in mainPart.FooterParts.OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal)) {
-                if (footerPart.Footer != null) {
-                    yield return new FieldRoot(footerPart.Footer, WordFieldLocationKind.Footer, footerPart.Uri.ToString());
+            foreach (OfficeIMO.Word.OpenXml.WordPartView footerPart in mainPart.Parts(OfficeIMO.Word.OpenXml.WordPackageView.FooterRelationshipType)
+                .OrderBy(part => part.PartName, StringComparer.Ordinal)) {
+                OfficeXmlNode footer = footerPart.RootNamed(W, "ftr");
+                if (!footer.IsNone) {
+                    yield return new NodeFieldRoot(footer, WordFieldLocationKind.Footer, footerPart.PartName, footerPart);
                 }
             }
 
-            FootnotesPart? footnotesPart = mainPart.FootnotesPart;
-            if (footnotesPart?.Footnotes != null) {
-                yield return new FieldRoot(footnotesPart.Footnotes, WordFieldLocationKind.Footnote, footnotesPart.Uri.ToString());
+            OfficeIMO.Word.OpenXml.WordPartView? footnotesPart = mainPart.FirstPart(OfficeIMO.Word.OpenXml.WordPackageView.FootnotesRelationshipType);
+            OfficeXmlNode footnotes = footnotesPart?.RootNamed(W, "footnotes") ?? default;
+            if (!footnotes.IsNone) {
+                yield return new NodeFieldRoot(footnotes, WordFieldLocationKind.Footnote, footnotesPart!.PartName, footnotesPart);
             }
 
-            EndnotesPart? endnotesPart = mainPart.EndnotesPart;
-            if (endnotesPart?.Endnotes != null) {
-                yield return new FieldRoot(endnotesPart.Endnotes, WordFieldLocationKind.Endnote, endnotesPart.Uri.ToString());
+            OfficeIMO.Word.OpenXml.WordPartView? endnotesPart = mainPart.FirstPart(OfficeIMO.Word.OpenXml.WordPackageView.EndnotesRelationshipType);
+            OfficeXmlNode endnotes = endnotesPart?.RootNamed(W, "endnotes") ?? default;
+            if (!endnotes.IsNone) {
+                yield return new NodeFieldRoot(endnotes, WordFieldLocationKind.Endnote, endnotesPart!.PartName, endnotesPart);
             }
         }
 
@@ -307,6 +324,24 @@ namespace OfficeIMO.Word {
             internal WordFieldLocationKind LocationKind { get; }
 
             internal string PartUri { get; }
+        }
+
+        /// <summary>A field root read through <see cref="OfficeIMO.Word.OpenXml.WordPartView"/>, with the part that holds it.</summary>
+        internal sealed class NodeFieldRoot {
+            internal NodeFieldRoot(OfficeXmlNode root, WordFieldLocationKind locationKind, string partUri, OfficeIMO.Word.OpenXml.WordPartView part) {
+                Root = root;
+                LocationKind = locationKind;
+                PartUri = partUri;
+                Part = part;
+            }
+
+            internal OfficeXmlNode Root { get; }
+
+            internal WordFieldLocationKind LocationKind { get; }
+
+            internal string PartUri { get; }
+
+            internal OfficeIMO.Word.OpenXml.WordPartView Part { get; }
         }
 
         internal sealed class FieldInfoCandidate {

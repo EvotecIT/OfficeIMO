@@ -1,55 +1,52 @@
+using System.Xml;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using Dsp = DocumentFormat.OpenXml.Office.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordSmartArt {
+        private const string PersistedDrawingNamespace = "http://schemas.microsoft.com/office/drawing/2008/diagram";
+
         internal IReadOnlyList<WordSmartArtPersistedShape> GetPersistedLayoutShapes() {
             try {
-                DiagramDataPart dataPart = GetDiagramDataPart();
+                object dataPart = GetDiagramDataPart();
                 XDocument data = LoadDiagramXDocument(dataPart);
                 string? persistRelationshipId = GetPersistedLayoutRelationshipId(data);
                 if (string.IsNullOrWhiteSpace(persistRelationshipId)) {
                     return Array.Empty<WordSmartArtPersistedShape>();
                 }
 
-                OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
-                if (owner.GetPartById(persistRelationshipId!) is not DiagramPersistLayoutPart persistPart) {
-                    return Array.Empty<WordSmartArtPersistedShape>();
-                }
-
-                Dsp.Drawing? drawing = persistPart.Drawing;
-                if (drawing == null) {
+                object owner = WordPartOwnership.ResolveOwner(_document, _drawing);
+                OfficeXmlNode drawing = WordPartOwnership.GetDiagramPersistedLayout(owner, persistRelationshipId!);
+                if (drawing.IsNone) {
                     return Array.Empty<WordSmartArtPersistedShape>();
                 }
 
                 Dictionary<string, string> nodeTextById = GetNodeTextByModelId(data);
                 Dictionary<string, string> sourceByPresentationId = GetPresentationSourceByDestinationId(data);
                 var shapes = new List<WordSmartArtPersistedShape>();
-                foreach (Dsp.Shape shape in drawing.Descendants<Dsp.Shape>()) {
-                    string? modelId = shape.ModelId?.Value;
+                foreach (OfficeXmlNode shape in PersistedShapes(drawing)) {
+                    string? modelId = shape.Attribute("modelId");
                     if (string.IsNullOrWhiteSpace(modelId)) {
                         continue;
                     }
 
                     string shapeModelId = modelId!;
 
-                    Dsp.ShapeProperties? shapeProperties = shape.GetFirstChild<Dsp.ShapeProperties>();
-                    A.Transform2D? transform = shapeProperties?.GetFirstChild<A.Transform2D>();
-                    A.Offset? offset = transform?.GetFirstChild<A.Offset>();
-                    A.Extents? extents = transform?.GetFirstChild<A.Extents>();
-                    if (offset?.X?.Value == null ||
-                        offset.Y?.Value == null ||
-                        extents?.Cx?.Value == null ||
-                        extents.Cy?.Value == null ||
-                        extents.Cx.Value <= 0L ||
-                        extents.Cy.Value <= 0L) {
+                    OfficeXmlNode shapeProperties = shape.Child(PersistedDrawingNamespace, "spPr");
+                    OfficeXmlNode transform = shapeProperties.IsNone ? default : shapeProperties.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+                    OfficeXmlNode offset = transform.IsNone ? default : transform.Child(OfficeXmlNamespaces.DrawingML, "off");
+                    OfficeXmlNode extents = transform.IsNone ? default : transform.Child(OfficeXmlNamespaces.DrawingML, "ext");
+                    long? x = ReadInt64(offset, "x");
+                    long? y = x == null ? null : ReadInt64(offset, "y");
+                    long? cx = y == null ? null : ReadInt64(extents, "cx");
+                    long? cy = cx == null ? null : ReadInt64(extents, "cy");
+                    if (x == null || y == null || cx == null || cy == null || cx.Value <= 0L || cy.Value <= 0L) {
                         continue;
                     }
 
-                    A.PresetGeometry? geometry = shapeProperties?.GetFirstChild<A.PresetGeometry>();
-                    string preset = geometry?.Preset?.InnerText ?? string.Empty;
+                    OfficeXmlNode geometry = shapeProperties.IsNone ? default : shapeProperties.Child(OfficeXmlNamespaces.DrawingML, "prstGeom");
+                    string preset = (geometry.IsNone ? null : geometry.Attribute("prst")) ?? string.Empty;
                     if (preset.Length == 0) {
                         continue;
                     }
@@ -62,24 +59,50 @@ namespace OfficeIMO.Word {
                         text = sourceText;
                     }
 
-                    double rotation = transform?.Rotation?.Value is int rotationValue
-                        ? rotationValue / 60000D
+                    string? rotationText = transform.IsNone ? null : transform.Attribute("rot");
+                    double rotation = rotationText != null
+                        ? XmlConvert.ToInt32(rotationText) / 60000D
                         : 0D;
 
                     shapes.Add(new WordSmartArtPersistedShape(
                         shapeModelId,
                         preset,
                         text ?? string.Empty,
-                        Helpers.ConvertEmusToPoints(offset.X.Value),
-                        Helpers.ConvertEmusToPoints(offset.Y.Value),
-                        Helpers.ConvertEmusToPoints(extents.Cx.Value),
-                        Helpers.ConvertEmusToPoints(extents.Cy.Value),
+                        Helpers.ConvertEmusToPoints(x.Value),
+                        Helpers.ConvertEmusToPoints(y.Value),
+                        Helpers.ConvertEmusToPoints(cx.Value),
+                        Helpers.ConvertEmusToPoints(cy.Value),
                         rotation));
                 }
 
                 return shapes;
             } catch {
                 return Array.Empty<WordSmartArtPersistedShape>();
+            }
+        }
+
+        // An integer attribute as the SDK's typed value reads it: null when absent, a FormatException when malformed.
+        private static long? ReadInt64(OfficeXmlNode element, string localName) {
+            string? value = element.IsNone ? null : element.Attribute(localName);
+            return value == null ? null : XmlConvert.ToInt64(value);
+        }
+
+        /// <summary>The <c>dsp:sp</c> shapes of a persisted layout drawing, in document order.</summary>
+        /// <summary>
+        /// The shapes of a persisted layout drawing in document order: the <c>dsp:sp</c> children of its shape tree and
+        /// of nested groups. Extension lists and other markup are not searched, as a shape there is not part of the layout.
+        /// </summary>
+        private static List<OfficeXmlNode> PersistedShapes(OfficeXmlNode root) {
+            var shapes = new List<OfficeXmlNode>();
+            OfficeXmlNode tree = root.Child(PersistedDrawingNamespace, "spTree");
+            if (!tree.IsNone) CollectPersistedShapes(tree, shapes);
+            return shapes;
+        }
+
+        private static void CollectPersistedShapes(OfficeXmlNode container, List<OfficeXmlNode> shapes) {
+            for (OfficeXmlNode child = container.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (child.Is(PersistedDrawingNamespace, "sp")) shapes.Add(child);
+                else if (child.Is(PersistedDrawingNamespace, "grpSp")) CollectPersistedShapes(child, shapes);
             }
         }
 

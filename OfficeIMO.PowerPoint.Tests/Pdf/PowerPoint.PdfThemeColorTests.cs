@@ -9,6 +9,11 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointPdfThemeColorTests {
+    private static A.FormatScheme GetNativeFormatScheme(PowerPointSlide slide) {
+        _ = slide.SlidePart;
+        return (A.FormatScheme)PowerPointThemeScope.For(slide.PartRef).FormatScheme.SdkElement!;
+    }
+
     [Fact]
     public void PdfThemeColors_ResolveTransformedShapeFrameAndLineColors() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
@@ -61,7 +66,7 @@ public class PowerPointPdfThemeColorTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "5078A0");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-        A.FormatScheme format = slide.ResolvedFormatScheme!;
+        A.FormatScheme format = GetNativeFormatScheme(slide);
         A.FillStyleList fills = format.GetFirstChild<A.FillStyleList>()!;
         fills.ReplaceChild(new A.SolidFill(new A.SchemeColor(new A.Shade { Val = 50000 }) {
             Val = A.SchemeColorValues.PhColor
@@ -227,7 +232,7 @@ public class PowerPointPdfThemeColorTests {
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
-        A.ColorScheme colors = (A.ColorScheme)slide.ResolvedColorScheme!.CloneNode(true);
+        A.ColorScheme colors = (A.ColorScheme)((A.ColorScheme)PowerPointThemeScope.For(slide.PartRef).ColorScheme.SdkElement!).CloneNode(true);
         colors.GetFirstChild<A.Accent2Color>()!.RemoveAllChildren();
         colors.GetFirstChild<A.Accent2Color>()!.Append(new A.RgbColorModelHex { Val = "5078A0" });
         slide.SlidePart.AddNewPart<ThemeOverridePart>().ThemeOverride = new A.ThemeOverride(colors);
@@ -304,14 +309,14 @@ public class PowerPointPdfThemeColorTests {
             : slide.AddShape(OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60));
         Shape native = Assert.IsType<Shape>(source.Element);
         SetFill(native, null);
-        A.FillStyleList fills = slide.ResolvedFormatScheme!.GetFirstChild<A.FillStyleList>()!;
+        A.FillStyleList fills = GetNativeFormatScheme(slide).GetFirstChild<A.FillStyleList>()!;
         fills.ReplaceChild(new A.GradientFill(new A.GradientStopList(
             new A.GradientStop(new A.SchemeColor(new A.Shade { Val = 50000 }) {
                 Val = A.SchemeColorValues.PhColor
             }) { Position = 0 },
             new A.GradientStop(new A.RgbColorModelHex { Val = "A05028" }) { Position = 100000 }),
             new A.LinearGradientFill { Angle = 0 }), fills.ChildElements[0]);
-        A.LineStyleList lines = slide.ResolvedFormatScheme.GetFirstChild<A.LineStyleList>()!;
+        A.LineStyleList lines = GetNativeFormatScheme(slide).GetFirstChild<A.LineStyleList>()!;
         lines.ReplaceChild(new A.Outline(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor }),
             new A.HeadEnd { Type = A.LineEndValues.Triangle }) { Width = 25400 }, lines.ChildElements[0]);
         native.ShapeStyle = Style(1U, new A.SchemeColor(new A.Alpha { Val = 0 }) { Val = A.SchemeColorValues.Text1 },
@@ -362,7 +367,7 @@ public class PowerPointPdfThemeColorTests {
                 new A.GradientStop(new A.RgbColorModelHex { Val = "0000FF" }) { Position = 100000 }),
                 new A.PathGradientFill { Path = A.PathShadeValues.Rectangle });
         }
-        A.FillStyleList fills = slide.ResolvedFormatScheme!.GetFirstChild<A.FillStyleList>()!;
+        A.FillStyleList fills = GetNativeFormatScheme(slide).GetFirstChild<A.FillStyleList>()!;
         fills.ReplaceChild(fill, fills.ChildElements[0]);
         native.ShapeStyle = Style(1U, new A.RgbColorModelHex { Val = "FF0000" });
         var options = new PowerPointPdfExportOptions();

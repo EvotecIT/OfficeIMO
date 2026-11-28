@@ -55,8 +55,8 @@ public sealed class WordSmartArtStoryOwnershipTests {
         WordSmartArt footer = document.PageSetup.Footer.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt2);
         foreach (var item in new[] { (body, "Body"), (header, "Header"), (footer, "Footer") }) {
             item.Item1.SetNodeText(0, item.Item2);
-            OpenXmlPart owner = WordPartOwnership.Resolve(document, item.Item1._drawing);
-            RelationshipIds ids = item.Item1._drawing.Descendants<RelationshipIds>().Single();
+            OpenXmlPart owner = WordPartOwnership.Resolve(document, item.Item1.SdkDrawing());
+            RelationshipIds ids = item.Item1.SdkDrawing().Descendants<RelationshipIds>().Single();
             StringValue[] values = { ids.DataPart!, ids.LayoutPart!, ids.StylePart!, ids.ColorPart! };
             for (int i = 0; i < values.Length; i++) {
                 OpenXmlPart part = owner.GetPartById(values[i].Value!);
@@ -90,10 +90,10 @@ public sealed class WordSmartArtStoryOwnershipTests {
         : Assert.IsType<WordHeader>(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Default));
 
     private static void AssertStoryParts(WordDocument document, WordSmartArt smartArt, bool footer, WordSmartArtType type) {
-        OpenXmlPart owner = WordPartOwnership.Resolve(document, smartArt._drawing);
+        OpenXmlPart owner = WordPartOwnership.Resolve(document, smartArt.SdkDrawing());
         if (footer) Assert.IsType<FooterPart>(owner);
         else Assert.IsType<HeaderPart>(owner);
-        RelationshipIds ids = smartArt._drawing.Descendants<RelationshipIds>().Single();
+        RelationshipIds ids = smartArt.SdkDrawing().Descendants<RelationshipIds>().Single();
         Assert.IsType<DiagramDataPart>(owner.GetPartById(ids.DataPart!.Value!));
         Assert.IsType<DiagramLayoutDefinitionPart>(owner.GetPartById(ids.LayoutPart!.Value!));
         Assert.IsType<DiagramStylePart>(owner.GetPartById(ids.StylePart!.Value!));

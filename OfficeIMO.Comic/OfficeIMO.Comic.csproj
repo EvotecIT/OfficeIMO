@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Read CBZ and CB7 page images and ComicInfo metadata as a fixed-layout publication.</Description>
+    <Description>Read CBZ, CB7 and stored RAR5 CBR page images and ComicInfo metadata as a fixed-layout publication.</Description>
     <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -8,7 +8,7 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>ebook;cbz;cb7;officeimo</PackageTags>
+    <PackageTags>ebook;cbz;cb7;cbr;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

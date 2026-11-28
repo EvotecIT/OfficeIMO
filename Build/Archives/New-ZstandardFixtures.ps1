@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 <#
 .SYNOPSIS
 Regenerates the independent Zstandard fixtures with the reference zstd command-line tool.

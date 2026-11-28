@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeComments(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeComments(ComparedDocument source, ComparedDocument target, WordComparisonResult result, WordComparisonOptions options) {
             AddFeatureRangeFindings(
                 GetCommentSnapshots(source, options),
                 GetCommentSnapshots(target, options),
@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
                 result);
         }
 
-        private static void AnalyzeRevisions(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeRevisions(ComparedDocument source, ComparedDocument target, WordComparisonResult result, WordComparisonOptions options) {
             AddFeatureRangeFindings(
                 GetRevisionSnapshots(source, options),
                 GetRevisionSnapshots(target, options),
@@ -20,8 +20,9 @@ namespace OfficeIMO.Word {
                 result);
         }
 
-        private static List<CommentSnapshot> GetCommentSnapshots(WordDocument document, WordComparisonOptions options) {
-            return document.InspectReview().Comments
+        private static List<CommentSnapshot> GetCommentSnapshots(ComparedDocument document, WordComparisonOptions options) {
+            if (!document.InspectsReview) return new List<CommentSnapshot>();
+            return document.Document.InspectReview().Comments
                 .Where(comment => options.CompareCommentReplies || !comment.IsReply)
                 .Select(comment => new CommentSnapshot(
                     comment.Index,
@@ -88,8 +89,9 @@ namespace OfficeIMO.Word {
                 comment.IsInTextBox ? "text-box" : string.Empty);
         }
 
-        private static List<RevisionSnapshot> GetRevisionSnapshots(WordDocument document, WordComparisonOptions options) {
-            return document.InspectReview().Revisions
+        private static List<RevisionSnapshot> GetRevisionSnapshots(ComparedDocument document, WordComparisonOptions options) {
+            if (!document.InspectsReview) return new List<RevisionSnapshot>();
+            return document.Document.InspectReview().Revisions
                 .Select(revision => new RevisionSnapshot(
                     revision.Index,
                     GetRevisionMatchKey(revision, options),

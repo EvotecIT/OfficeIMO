@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)SdkPresentationPart.GetPartById(relId!);
                         PowerPointSlide slide = TakePackageSlide(slidePart) ?? new PowerPointSlide(slidePart, this);
-                        slide.RememberSlideId(slideId);
+                        slide.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
                         LoadedSlides.Add(slide);
                     }
                 }

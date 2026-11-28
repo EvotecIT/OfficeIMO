@@ -58,7 +58,7 @@ public sealed partial class ProvenanceCoreContracts {
 
         Assert.True(OfficePngContainerValidator.TryValidate(apng, default, int.MaxValue, out _, out string? reason), reason);
         Assert.True(OfficePngAnimationValidator.TryValidateStructure(apng));
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(apng, default, int.MaxValue, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(apng, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _, out _));
         Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(200, 200, canvas[24], canvas[25], 0, null, out long canvasBytes));
         Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(1, 1, canvas[24], canvas[25], 0, null, out long frameBytes));
         Assert.Equal(canvasBytes + frameBytes, decodedBytes);
@@ -78,7 +78,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void EmbeddedPngDecodeWorkSharesThePackageBudget() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _, out _));
         byte[] package = CreateCompressedZip(("media/first.png", image), ("media/second.png", image));
         var options = new OfficeProvenanceOptions {
             MaxExpandedContainerBytes = 2L * (image.Length + decodedBytes) - 1L
@@ -92,7 +92,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void ExtensionlessZipImageReusesTheBudgetedSniffPayload() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
         byte[] package = CreateCompressedZip(("media/extensionless", image));
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _, out _));
         var inspectionOptions = new OfficeProvenanceOptions { MaxExpandedContainerBytes = image.Length + decodedBytes };
         var removalOptions = new OfficeProvenanceRemovalOptions();
         removalOptions.Limits.MaxExpandedContainerBytes = 1024 * 1024;
@@ -115,8 +115,8 @@ public sealed partial class ProvenanceCoreContracts {
             CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
-        Assert.False(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 4, out _));
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 20, out _));
+        Assert.False(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 4, long.MaxValue, out _, out _, out _));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 20, long.MaxValue, out _, out _, out _));
     }
 
     [Fact]
