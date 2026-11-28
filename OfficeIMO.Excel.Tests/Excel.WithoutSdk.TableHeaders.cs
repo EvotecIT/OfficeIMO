@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -88,11 +89,21 @@ namespace OfficeIMO.Tests {
             Assert.Contains("SUM(Orders[Total])", saved);
         }
 
-        private static byte[] RewriteWorksheet(byte[] package, Func<string, string> rewrite, System.Text.Encoding? encoding = null) {
+        [Fact]
+        public void APartTheOwnedReaderCannotDecodeGoesThroughTheModel() {
+            // A second worksheet in Latin-1, which the owned reader does not decode, holds text outside ASCII.
+            byte[] source = RewriteWorksheet(CreateWorkbook(latinSheet: true),
+                xml => "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!-- Café -->" + Regex.Replace(xml, "^\\s*<\\?xml[^>]*\\?>", string.Empty),
+                System.Text.Encoding.GetEncoding("ISO-8859-1"), "sheet2.xml");
+            AssertSavesAsTheModel(source, sheet => sheet.Cell(2, 3).SetValue("Total"), expectOwned: false, out string saved);
+            Assert.Contains("Orders|B2:D4|1:Customer,2:Total,3:Paid", saved);
+        }
+
+        private static byte[] RewriteWorksheet(byte[] package, Func<string, string> rewrite, System.Text.Encoding? encoding = null, string? part = null) {
             using var stream = new MemoryStream();
             stream.Write(package, 0, package.Length);
             using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
-                System.IO.Compression.ZipArchiveEntry entry = archive.Entries.Single(item => item.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal));
+                System.IO.Compression.ZipArchiveEntry entry = archive.Entries.Single(item => part == null ? item.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal) : item.FullName == "xl/worksheets/" + part);
                 string name = entry.FullName, text;
                 using (var reader = new StreamReader(entry.Open())) text = reader.ReadToEnd();
                 string rewritten = rewrite(text);
@@ -150,7 +161,7 @@ namespace OfficeIMO.Tests {
             return string.Join("\n", lines);
         }
 
-        private static byte[] CreateWorkbook(bool addCalculationChain = false, bool numericHeader = false, bool structuredReference = false, bool inlineHeader = false) {
+        private static byte[] CreateWorkbook(bool addCalculationChain = false, bool numericHeader = false, bool structuredReference = false, bool inlineHeader = false, bool latinSheet = false) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet data = document.AddSheet("Data");
@@ -165,6 +176,7 @@ namespace OfficeIMO.Tests {
                 data.Cell(4, 4).SetValue(false);
                 data.AddTable("B2:D4", hasHeader: true, name: "Orders", style: ExcelTableStyle.TableStyleLight9);
                 data.Cell(7, 2).SetFormula(structuredReference ? "SUM(Orders[Amount])" : "SUM(C3:C4)");
+                if (latinSheet) document.AddSheet("Notes").Cell(1, 1).SetValue("Notes");
                 document.Save();
             }
             if (!addCalculationChain && !numericHeader && !inlineHeader) return stream.ToArray();

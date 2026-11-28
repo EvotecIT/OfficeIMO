@@ -57,7 +57,12 @@ namespace OfficeIMO.Excel {
 
             // Each header cell becomes its column's name unless it already holds that text. Writing a shared string's
             // own text again leaves the cell as it was, so only text the cell holds inline needs reading.
-            HeaderCellKind[]? kinds = ReadHeaderCellKinds(packageBytes, entry.PartName, edit.Row, left, names.Length);
+            HeaderCellKind[]? kinds;
+            try {
+                kinds = ReadHeaderCellKinds(packageBytes, entry.PartName, edit.Row, left, names.Length);
+            } catch (Exception exception) when (IsUnreadableMarkup(exception)) {
+                return false;
+            }
             if (kinds == null || Array.IndexOf(kinds, HeaderCellKind.Formula) >= 0) return false;
             var headerEdits = new List<ExcelDeferredCellEdit>(names.Length);
             ExcelFormulaSheetModel? model = null;
@@ -167,7 +172,15 @@ namespace OfficeIMO.Excel {
             using var source = new MemoryStream(packageBytes, writable: false);
             using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            bool Contains(string partName) => visited.Add(partName) && package.PartExists(partName) && FormulaLeavesContain(package, partName, columnName);
+            bool Contains(string partName) {
+                if (!visited.Add(partName) || !package.PartExists(partName)) return false;
+                try {
+                    return FormulaLeavesContain(package, partName, columnName);
+                } catch (Exception exception) when (IsUnreadableMarkup(exception)) {
+                    // A part the owned reader cannot decode is checked by the model.
+                    return true;
+                }
+            }
             bool DrawingContains(string sheetPartName) {
                 foreach (OfficeOpcRelationship drawing in Related(package, sheetPartName, DrawingRelationshipType)) {
                     foreach (OfficeOpcRelationship chart in package.GetRelationships(drawing.TargetPartName)) {
@@ -196,6 +209,9 @@ namespace OfficeIMO.Excel {
             }
             return false;
         }
+
+        private static bool IsUnreadableMarkup(Exception exception) =>
+            exception is System.Xml.XmlException or InvalidDataException or IOException or DecoderFallbackException or NotSupportedException;
 
         private static IEnumerable<OfficeOpcRelationship> Related(OfficeOpcPackage package, string? sourcePartName, string type) {
             if (sourcePartName == null) yield break;
