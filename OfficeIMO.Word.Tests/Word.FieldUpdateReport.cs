@@ -34,6 +34,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_NestedFieldCanChangeTheOuterCommandToAComputedStatistic() {
+            byte[] bytes;
+            using (WordDocument source = WordDocument.Create()) {
+                source.ApplicationProperties.Words = null;
+                source.AddParagraph("Two words");
+                AddNestedInstructionComplexField(source.AddParagraph()._paragraph, " ", " QUOTE \"NUMWORDS\" ",
+                    "TITLE", " ", "stale count");
+                bytes = source.ToBytes();
+            }
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+            WordFieldUpdateResult outer = Assert.Single(report.Results, result => result.FieldType == WordFieldType.NumWords);
+            Assert.Equal(WordFieldUpdateStatus.Updated, outer.Status);
+            Assert.True(int.TryParse(outer.ResultText, out int wordCount) && wordCount >= 2);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_ExposesStableDiagnosticCodesAndEvaluationBasis() {
             using WordDocument document = WordDocument.Create();
             document.Properties.Creator = "Ada";
@@ -129,6 +147,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordFieldUpdateStatus.ParseError, result.Status);
             Assert.Equal("FieldInstructionInvalid", result.DiagnosticCode);
             Assert.Equal(WordFieldEvaluationBasis.NotEvaluated, result.EvaluationBasis);
+        }
+
+        [Fact]
+        public void Test_FieldMetadataReadsStayOnOwnedPackage() {
+            byte[] bytes;
+            using (WordDocument document = WordDocument.Create()) {
+                document.Properties.Title = "Quarterly review";
+                document.CustomProperties["Amount"] = new WordCustomProperty(1234L);
+                document.DocumentVariables["Region"] = "North";
+                document.AddParagraph()._paragraph.Append(BuildSimpleField(" TITLE ", "stale"));
+                document.AddParagraph()._paragraph.Append(BuildSimpleField(" DOCPROPERTY Amount ", "stale"));
+                document.AddParagraph()._paragraph.Append(BuildSimpleField(" DOCVARIABLE Region ", "stale"));
+                bytes = document.ToBytes();
+            }
+
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
+            WordFieldUpdateReport report = loaded.UpdateFieldsAndGetReport();
+            Assert.Equal(new[] { "Quarterly review", "1234", "North" }, report.Results.Select(result => result.ResultText));
+#if NET
+            Assert.True(loaded.IsSdkDeferred);
+#endif
         }
 
         [Fact]
@@ -2373,6 +2412,30 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(new[] { "0.25", "25", "1", "25%" }, fields.Select(field => field.ResultText).ToArray());
             }
+        }
+
+        [Fact]
+        public void Test_TableFormulaSkipsExtensionTextWithoutOpeningSdk() {
+            byte[] bytes;
+            using (WordDocument document = WordDocument.Create()) {
+                WordTable table = document.AddTable(2, 1);
+                WordParagraph source = table.Rows[0].Cells[0].Paragraphs[0];
+                source.Text = "2";
+                var extension = new OpenXmlUnknownElement("w", "extLst",
+                    "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+                extension.Append(new Text("999"));
+                source._paragraph.Append(extension);
+                table.Rows[1].Cells[0].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) ", "stale"));
+                bytes = document.ToBytes();
+            }
+
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
+            WordFieldUpdateResult result = Assert.Single(loaded.UpdateFieldsAndGetReport().Results);
+            Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+            Assert.Equal("2", result.ResultText);
+#if NET
+            Assert.True(loaded.IsSdkDeferred);
+#endif
         }
 
         [Fact]

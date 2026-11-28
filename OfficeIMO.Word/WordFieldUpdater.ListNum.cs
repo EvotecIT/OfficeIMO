@@ -1,5 +1,5 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            int level = explicitLevel ?? GetListNumParagraphLevel(document, candidate.SdkAnchorElement);
+            int level = explicitLevel ?? GetListNumParagraphLevel(document, candidate.AnchorElement, state);
             string stateKey = candidate.PartUri + "|" + profileName;
             if (!state.ListNumSequences.TryGetValue(stateKey, out ListNumSequenceState? sequence)) {
                 sequence = new ListNumSequenceState();
@@ -164,27 +164,20 @@ namespace OfficeIMO.Word {
             return int.TryParse(rawValue, NumberStyles.None, CultureInfo.InvariantCulture, out value);
         }
 
-        private static int GetListNumParagraphLevel(WordDocument document, DocumentFormat.OpenXml.OpenXmlElement anchorElement) {
-            Paragraph? paragraph = anchorElement is Paragraph directParagraph
-                ? directParagraph
-                : anchorElement.Ancestors<Paragraph>().FirstOrDefault();
-            if (paragraph == null) {
-                return 1;
-            }
+        private static int GetListNumParagraphLevel(WordDocument document, OfficeXmlNode anchor, FieldEvaluationState state) {
+            const int W = FieldNamespace;
+            OfficeXmlNode paragraph = anchor.AncestorOrSelf(W, "p");
+            if (paragraph.IsNone) return 1;
 
-            int? directLevel = paragraph.ParagraphProperties?.NumberingProperties?.NumberingLevelReference?.Val?.Value;
-            if (directLevel is >= 0 and <= 8) {
-                return directLevel.Value + 1;
-            }
+            int? directLevel = ReadNumberingInt(paragraph.Child(W, "pPr").Child(W, "numPr"), "ilvl");
+            if (directLevel is >= 0 and <= 8) return directLevel.Value + 1;
 
-            Numbering? numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
-            if (numbering != null) {
-                IReadOnlyDictionary<string, ReferenceParagraphNumbering> styles = BuildReferenceParagraphStyleNumbering(document, numbering);
-                if (TryGetParagraphNumbering(paragraph, styles, out _, out int styleLevel) && styleLevel is >= 0 and <= 8) {
+            OfficeXmlNode numbering = ReadNumberingRoot(document);
+            if (numbering.Exists) {
+                IReadOnlyDictionary<string, ReferenceParagraphNumbering> styles = state.ReferenceStyleNumbering ??= BuildReferenceParagraphStyleNumbering(document, numbering);
+                if (TryGetParagraphNumbering(paragraph, styles, out _, out int styleLevel) && styleLevel is >= 0 and <= 8)
                     return styleLevel + 1;
-                }
             }
-
             return 1;
         }
 

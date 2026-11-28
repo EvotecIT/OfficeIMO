@@ -1,6 +1,5 @@
 using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -9,6 +8,7 @@ namespace OfficeIMO.Word {
             WordDocument document,
             MutableFieldCandidate candidate,
             WordFieldInventory.ParsedFieldInstruction parsed,
+            FieldEvaluationState state,
             out string? value,
             out WordFieldUpdateStatus status,
             out string message) {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
             }
 
             if (listSwitch.HasValue) {
-                if (!TryResolveReferenceListNumber(document, candidate, (BookmarkStart)bookmarkStart.SdkElement!, listSwitch.Value, parsed.Switches, out string? listNumber, out WordFieldUpdateStatus listStatus, out string listMessage)) {
+                if (!TryResolveReferenceListNumber(document, candidate, bookmarkStart, state, listSwitch.Value, parsed.Switches, out string? listNumber, out WordFieldUpdateStatus listStatus, out string listMessage)) {
                     status = listStatus;
                     message = listMessage;
                     return false;

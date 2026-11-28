@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -26,11 +26,11 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            if (!TryGetFieldTable(candidate, out Table? table, out diagnostic) || table == null) {
+            if (!TryGetFieldTable(candidate, out OfficeXmlNode table, out diagnostic)) {
                 return false;
             }
 
-            List<TableRow> rows = table.Elements<TableRow>().ToList();
+            List<OfficeXmlNode> rows = table.Children(FieldNamespace, "tr").ToList();
             var builder = new StringBuilder();
             int startIndex = 0;
 

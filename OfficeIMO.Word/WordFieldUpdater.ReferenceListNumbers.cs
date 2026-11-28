@@ -1,4 +1,6 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -12,7 +14,8 @@ namespace OfficeIMO.Word {
         private static bool TryResolveReferenceListNumber(
             WordDocument document,
             MutableFieldCandidate candidate,
-            BookmarkStart bookmarkStart,
+            OfficeXmlNode bookmarkStart,
+            FieldEvaluationState state,
             ReferenceListSwitch listSwitch,
             IReadOnlyList<string> switches,
             out string? value,
@@ -21,26 +24,26 @@ namespace OfficeIMO.Word {
             value = null;
             status = WordFieldUpdateStatus.Unsupported;
 
-            Paragraph? targetParagraph = bookmarkStart.Ancestors<Paragraph>().FirstOrDefault();
-            if (targetParagraph == null) {
+            OfficeXmlNode targetParagraph = bookmarkStart.AncestorOrSelf(FieldNamespace, "p");
+            if (targetParagraph.IsNone) {
                 message = "REF paragraph-number switch needs a bookmark inside a paragraph.";
                 return false;
             }
 
-            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            if (body == null || !targetParagraph.Ancestors<Body>().Any()) {
+            OfficeXmlNode body = WordFieldInventory.BodyNode(document);
+            if (body.IsNone || !targetParagraph.IsInside(body)) {
                 message = "REF paragraph-number switches are evaluated only for bookmarks in the main document body.";
                 return false;
             }
 
-            Numbering? numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
-            if (numbering == null) {
+            OfficeXmlNode numbering = ReadNumberingRoot(document);
+            if (numbering.IsNone) {
                 message = "REF paragraph-number switch needs numbering definitions in the document.";
                 return false;
             }
 
-            Dictionary<int, ReferenceNumberingDefinition> definitions = BuildReferenceNumberingDefinitions(numbering);
-            IReadOnlyDictionary<string, ReferenceParagraphNumbering> paragraphStyleNumbering = BuildReferenceParagraphStyleNumbering(document, numbering);
+            Dictionary<int, ReferenceNumberingDefinition> definitions = state.ReferenceNumberingDefinitions ??= BuildReferenceNumberingDefinitions(numbering);
+            IReadOnlyDictionary<string, ReferenceParagraphNumbering> paragraphStyleNumbering = state.ReferenceStyleNumbering ??= BuildReferenceParagraphStyleNumbering(document, numbering);
             if (!TryBuildReferenceListSnapshot(body, definitions, paragraphStyleNumbering, targetParagraph, out ReferenceListNumber? targetNumber, out string? diagnostic)) {
                 message = diagnostic ?? "REF paragraph-number switch could not resolve the bookmarked paragraph number.";
                 return false;
@@ -48,10 +51,8 @@ namespace OfficeIMO.Word {
 
             ReferenceListNumber? sourceNumber = null;
             if (listSwitch == ReferenceListSwitch.RelativeContext) {
-                Paragraph? sourceParagraph = candidate.SdkAnchorElement is Paragraph paragraph
-                    ? paragraph
-                    : candidate.SdkAnchorElement.Ancestors<Paragraph>().FirstOrDefault();
-                if (sourceParagraph != null) {
+                OfficeXmlNode sourceParagraph = candidate.AnchorElement.AncestorOrSelf(FieldNamespace, "p");
+                if (sourceParagraph.Exists) {
                     TryBuildReferenceListSnapshot(body, definitions, paragraphStyleNumbering, sourceParagraph, out sourceNumber, out _);
                 }
             }
@@ -64,80 +65,77 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static Dictionary<int, ReferenceNumberingDefinition> BuildReferenceNumberingDefinitions(Numbering numbering) {
-            Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
-                .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
-                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
-                .ToDictionary(group => group.Key, group => group.First());
+        private static OfficeXmlNode ReadNumberingRoot(WordDocument document) =>
+            WordPackageView.For(document).Main?.FirstPart(WordPackageView.NumberingRelationshipType)
+                ?.RootNamed(FieldNamespace, "numbering") ?? default;
 
+        private static Dictionary<int, OfficeXmlNode> ReadNumberingNodes(OfficeXmlNode root, string name, string idAttribute) {
+            const int W = FieldNamespace;
+            var values = new Dictionary<int, OfficeXmlNode>();
+            foreach (OfficeXmlNode node in root.Children(W, name)) {
+                if (OfficeXmlViewValues.ParseInt32(node.Attribute(W, idAttribute)) is int id && !values.ContainsKey(id))
+                    values.Add(id, node);
+            }
+            return values;
+        }
+
+        private static string? ReadNumberingValue(OfficeXmlNode parent, string name) =>
+            parent.Child(FieldNamespace, name).Attribute(FieldNamespace, "val");
+
+        private static int? ReadNumberingInt(OfficeXmlNode parent, string name) =>
+            OfficeXmlViewValues.ParseInt32(ReadNumberingValue(parent, name));
+
+        private static Dictionary<int, ReferenceNumberingDefinition> BuildReferenceNumberingDefinitions(OfficeXmlNode numbering) {
+            const int W = FieldNamespace;
+            Dictionary<int, OfficeXmlNode> abstracts = ReadNumberingNodes(numbering, "abstractNum", "abstractNumId");
             var result = new Dictionary<int, ReferenceNumberingDefinition>();
-            foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
-                if (instance.NumberID?.Value == null) {
-                    continue;
-                }
+            foreach (OfficeXmlNode instance in numbering.Children(W, "num")) {
+                if (OfficeXmlViewValues.ParseInt32(instance.Attribute(W, "numId")) is not int id ||
+                    ReadNumberingInt(instance, "abstractNumId") is not int abstractId ||
+                    !abstracts.TryGetValue(abstractId, out OfficeXmlNode abstractNum)) continue;
 
-                int numberId = instance.NumberID.Value;
-                int? abstractId = instance.AbstractNumId?.Val?.Value;
-                if (!abstractId.HasValue || !abstracts.TryGetValue(abstractId.Value, out AbstractNum? abstractNum)) {
-                    continue;
-                }
+                Dictionary<int, ReferenceLevelDefinition> levels = ReadNumberingNodes(abstractNum, "lvl", "ilvl")
+                    .ToDictionary(entry => entry.Key, entry => CreateReferenceLevelDefinition(entry.Value,
+                        ReadNumberingInt(entry.Value, "start") ?? 1));
 
-                Dictionary<int, ReferenceLevelDefinition> levels = abstractNum.Elements<Level>()
-                    .Where(level => level.LevelIndex?.Value != null)
-                    .GroupBy(level => level.LevelIndex!.Value)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => {
-                            Level level = group.First();
-                            return CreateReferenceLevelDefinition(level, level.StartNumberingValue?.Val?.Value ?? 1);
-                        });
-
-                foreach (LevelOverride levelOverride in instance.Elements<LevelOverride>()) {
-                    if (levelOverride.LevelIndex?.Value == null) {
-                        continue;
-                    }
-
-                    int levelIndex = levelOverride.LevelIndex.Value;
-                    int start = levelOverride.GetFirstChild<StartOverrideNumberingValue>()?.Val?.Value
-                        ?? levelOverride.GetFirstChild<Level>()?.StartNumberingValue?.Val?.Value
+                foreach (OfficeXmlNode levelOverride in instance.Children(W, "lvlOverride")) {
+                    if (OfficeXmlViewValues.ParseInt32(levelOverride.Attribute(W, "ilvl")) is not int levelIndex) continue;
+                    OfficeXmlNode overrideLevel = levelOverride.Child(W, "lvl");
+                    int start = ReadNumberingInt(levelOverride, "startOverride") ?? ReadNumberingInt(overrideLevel, "start")
                         ?? (levels.TryGetValue(levelIndex, out ReferenceLevelDefinition existingStartLevel) ? existingStartLevel.Start : 1);
-                    Level? overrideLevel = levelOverride.GetFirstChild<Level>();
-                    if (overrideLevel != null) {
+
+                    if (overrideLevel.Exists) {
                         levels[levelIndex] = CreateReferenceLevelDefinition(overrideLevel, start);
                     } else if (levels.TryGetValue(levelIndex, out ReferenceLevelDefinition existingLevel)) {
                         levels[levelIndex] = new ReferenceLevelDefinition(existingLevel.NumberFormat, existingLevel.LevelText, start);
                     }
                 }
 
-                result[numberId] = new ReferenceNumberingDefinition(levels);
+                result[id] = new ReferenceNumberingDefinition(levels);
             }
-
             return result;
         }
 
-        private static ReferenceLevelDefinition CreateReferenceLevelDefinition(Level level, int start) {
-            return new ReferenceLevelDefinition(
-                level.NumberingFormat?.Val?.Value,
-                level.LevelText?.Val?.Value,
-                start);
-        }
+        private static ReferenceLevelDefinition CreateReferenceLevelDefinition(OfficeXmlNode level, int start) =>
+            new(ReadNumberingValue(level, "numFmt"), ReadNumberingValue(level, "lvlText"), start);
 
         private static bool TryBuildReferenceListSnapshot(
-            Body body,
+            OfficeXmlNode body,
             IReadOnlyDictionary<int, ReferenceNumberingDefinition> definitions,
             IReadOnlyDictionary<string, ReferenceParagraphNumbering> paragraphStyleNumbering,
-            Paragraph targetParagraph,
+            OfficeXmlNode targetParagraph,
             out ReferenceListNumber? targetNumber,
             out string? diagnostic) {
             targetNumber = null;
             diagnostic = null;
             var countersByNumberId = new Dictionary<int, Dictionary<int, int>>();
-            var formatsByNumberId = new Dictionary<int, Dictionary<int, NumberFormatValues?>>();
+            var formatsByNumberId = new Dictionary<int, Dictionary<int, string?>>();
             var levelTextByNumberId = new Dictionary<int, Dictionary<int, string?>>();
 
-            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
+            foreach (OfficeXmlNode paragraph in WordFieldInventory.EnumerateFieldContent(body)) {
+                if (!paragraph.Is(FieldNamespace, "p")) continue;
                 if (!TryGetParagraphNumbering(paragraph, paragraphStyleNumbering, out int numberId, out int level)) {
-                    if (ReferenceEquals(paragraph, targetParagraph)) {
+                    if (paragraph == targetParagraph) {
                         diagnostic = "REF paragraph-number switch needs a bookmark in a directly or style-numbered paragraph.";
                         return false;
                     }
@@ -147,7 +145,7 @@ namespace OfficeIMO.Word {
 
                 if (!definitions.TryGetValue(numberId, out ReferenceNumberingDefinition definition) ||
                     !definition.Levels.TryGetValue(level, out ReferenceLevelDefinition levelDefinition)) {
-                    if (ReferenceEquals(paragraph, targetParagraph)) {
+                    if (paragraph == targetParagraph) {
                         diagnostic = "REF paragraph-number switch could not resolve the numbering definition for the bookmarked paragraph.";
                         return false;
                     }
@@ -156,8 +154,10 @@ namespace OfficeIMO.Word {
                 }
 
                 if (!IsSupportedReferenceNumberFormat(levelDefinition.NumberFormat)) {
-                    if (ReferenceEquals(paragraph, targetParagraph)) {
-                        diagnostic = $"REF paragraph-number switch does not support numbering format {levelDefinition.NumberFormat?.ToString() ?? "unknown"}.";
+                    if (paragraph == targetParagraph) {
+                        // Keep the report text returned for known and missing formats.
+                        string reportFormat = levelDefinition.NumberFormat == null ? "unknown" : "NumberFormatValues { }";
+                        diagnostic = $"REF paragraph-number switch does not support numbering format {reportFormat}.";
                         return false;
                     }
 
@@ -167,11 +167,11 @@ namespace OfficeIMO.Word {
                 if (!countersByNumberId.TryGetValue(numberId, out Dictionary<int, int>? counters)) {
                     counters = new Dictionary<int, int>();
                     countersByNumberId[numberId] = counters;
-                    formatsByNumberId[numberId] = new Dictionary<int, NumberFormatValues?>();
+                    formatsByNumberId[numberId] = new Dictionary<int, string?>();
                     levelTextByNumberId[numberId] = new Dictionary<int, string?>();
                 }
 
-                Dictionary<int, NumberFormatValues?> formats = formatsByNumberId[numberId];
+                Dictionary<int, string?> formats = formatsByNumberId[numberId];
                 Dictionary<int, string?> levelTexts = levelTextByNumberId[numberId];
                 foreach (int deeperLevel in counters.Keys.Where(existingLevel => existingLevel > level).ToArray()) {
                     counters.Remove(deeperLevel);
@@ -186,12 +186,12 @@ namespace OfficeIMO.Word {
                 formats[level] = levelDefinition.NumberFormat;
                 levelTexts[level] = levelDefinition.LevelText;
 
-                if (ReferenceEquals(paragraph, targetParagraph)) {
+                if (paragraph == targetParagraph) {
                     targetNumber = new ReferenceListNumber(
                         numberId,
                         level,
                         new Dictionary<int, int>(counters),
-                        new Dictionary<int, NumberFormatValues?>(formats),
+                        new Dictionary<int, string?>(formats),
                         new Dictionary<int, string?>(levelTexts));
                     return true;
                 }
@@ -201,21 +201,23 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static IReadOnlyDictionary<string, ReferenceParagraphNumbering> BuildReferenceParagraphStyleNumbering(WordDocument document, Numbering numbering) {
+        private static IReadOnlyDictionary<string, ReferenceParagraphNumbering> BuildReferenceParagraphStyleNumbering(
+            WordDocument document, OfficeXmlNode numbering) {
+            const int W = FieldNamespace;
             var resolved = new Dictionary<string, ReferenceParagraphNumbering>(StringComparer.Ordinal);
-            Styles? styles = document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-
-            if (styles != null) {
-                Dictionary<string, Style> paragraphStyles = styles.Elements<Style>()
-                    .Where(style => style.Type?.Value == StyleValues.Paragraph && !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
-                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            OfficeXmlNode styles = WordPackageView.For(document).Main?.FirstPart(WordPackageView.StylesRelationshipType)
+                ?.RootNamed(W, "styles") ?? default;
+            if (styles.Exists) {
+                var paragraphStyles = new Dictionary<string, OfficeXmlNode>(StringComparer.Ordinal);
+                foreach (OfficeXmlNode style in styles.Children(W, "style")) {
+                    if (style.Attribute(W, "type") == "paragraph" && style.Attribute(W, "styleId") is { } id &&
+                        !string.IsNullOrWhiteSpace(id) && !paragraphStyles.ContainsKey(id)) paragraphStyles.Add(id, style);
+                }
 
                 var cache = new Dictionary<string, ReferenceParagraphNumbering?>(StringComparer.Ordinal);
                 foreach (string styleId in paragraphStyles.Keys) {
-                    if (TryResolveReferenceStyleNumbering(styleId, paragraphStyles, cache, new HashSet<string>(StringComparer.Ordinal), out ReferenceParagraphNumbering styleNumbering)) {
+                    if (ResolveReferenceStyleNumbering(styleId, paragraphStyles, cache) is { } styleNumbering)
                         resolved[styleId] = styleNumbering;
-                    }
                 }
             }
 
@@ -223,107 +225,67 @@ namespace OfficeIMO.Word {
             return resolved;
         }
 
-        private static void AddReferenceNumberingLevelParagraphStyles(
-            Numbering numbering,
+        private static void AddReferenceNumberingLevelParagraphStyles(OfficeXmlNode numbering,
             IDictionary<string, ReferenceParagraphNumbering> resolved) {
-            Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
-                .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
-                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
-                .ToDictionary(group => group.Key, group => group.First());
+            const int W = FieldNamespace;
+            Dictionary<int, OfficeXmlNode> abstracts = ReadNumberingNodes(numbering, "abstractNum", "abstractNumId");
+            foreach (OfficeXmlNode instance in numbering.Children(W, "num")) {
+                if (OfficeXmlViewValues.ParseInt32(instance.Attribute(W, "numId")) is not int id ||
+                    ReadNumberingInt(instance, "abstractNumId") is not int abstractId ||
+                    !abstracts.TryGetValue(abstractId, out OfficeXmlNode abstractNum)) continue;
 
-            foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
-                if (instance.NumberID?.Value == null) {
-                    continue;
-                }
-
-                int? abstractId = instance.AbstractNumId?.Val?.Value;
-                if (!abstractId.HasValue || !abstracts.TryGetValue(abstractId.Value, out AbstractNum? abstractNum)) {
-                    continue;
-                }
-
-                foreach (Level level in abstractNum.Elements<Level>()) {
-                    int? levelIndex = level.LevelIndex?.Value;
-                    string? paragraphStyleId = level.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value;
-                    if (!levelIndex.HasValue || string.IsNullOrWhiteSpace(paragraphStyleId) || resolved.ContainsKey(paragraphStyleId!)) {
-                        continue;
-                    }
-
-                    resolved[paragraphStyleId!] = new ReferenceParagraphNumbering(instance.NumberID.Value, levelIndex.Value);
+                foreach (OfficeXmlNode level in abstractNum.Children(W, "lvl")) {
+                    string? styleId = ReadNumberingValue(level, "pStyle");
+                    if (OfficeXmlViewValues.ParseInt32(level.Attribute(W, "ilvl")) is int index &&
+                        !string.IsNullOrWhiteSpace(styleId) && !resolved.ContainsKey(styleId!))
+                        resolved[styleId!] = new ReferenceParagraphNumbering(id, index);
                 }
             }
         }
 
-        private static bool TryResolveReferenceStyleNumbering(
-            string styleId,
-            IReadOnlyDictionary<string, Style> paragraphStyles,
-            IDictionary<string, ReferenceParagraphNumbering?> cache,
-            ISet<string> visiting,
-            out ReferenceParagraphNumbering numbering) {
-            numbering = default;
+        private static ReferenceParagraphNumbering? ResolveReferenceStyleNumbering(string styleId,
+            IReadOnlyDictionary<string, OfficeXmlNode> styles, IDictionary<string, ReferenceParagraphNumbering?> cache) {
+            const int W = FieldNamespace;
+            if (cache.TryGetValue(styleId, out ReferenceParagraphNumbering? value)) return value;
 
-            if (cache.TryGetValue(styleId, out ReferenceParagraphNumbering? cached)) {
-                if (cached.HasValue) {
-                    numbering = cached.Value;
-                    return true;
+            var pending = new List<KeyValuePair<string, OfficeXmlNode>>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            string? current = styleId;
+            while (!string.IsNullOrWhiteSpace(current)) {
+                if (cache.TryGetValue(current!, out value)) break;
+                if (!styles.TryGetValue(current!, out OfficeXmlNode style) || !seen.Add(current!)) break;
+                pending.Add(new KeyValuePair<string, OfficeXmlNode>(current!, style));
+                current = ReadNumberingValue(style, "basedOn");
+            }
+
+            for (int i = pending.Count - 1; i >= 0; i--) {
+                var entry = pending[i];
+                OfficeXmlNode numbering = entry.Value.Child(W, "pPr").Child(W, "numPr");
+                int? id = ReadNumberingInt(numbering, "numId");
+                int? level = ReadNumberingInt(numbering, "ilvl");
+                if ((id ?? value?.NumberId) is int effectiveId) {
+                    value = new ReferenceParagraphNumbering(effectiveId, level ?? value?.Level ?? 0);
                 }
-
-                return false;
+                cache[entry.Key] = value;
             }
-
-            if (!paragraphStyles.TryGetValue(styleId, out Style? style) || !visiting.Add(styleId)) {
-                cache[styleId] = null;
-                return false;
-            }
-
-            ReferenceParagraphNumbering? inherited = null;
-            string? baseStyleId = style.BasedOn?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(baseStyleId) &&
-                TryResolveReferenceStyleNumbering(baseStyleId!, paragraphStyles, cache, visiting, out ReferenceParagraphNumbering baseNumbering)) {
-                inherited = baseNumbering;
-            }
-
-            NumberingProperties? numberingProperties = style.GetFirstChild<StyleParagraphProperties>()?.NumberingProperties;
-            int? numberId = numberingProperties?.NumberingId?.Val?.Value;
-            int? level = numberingProperties?.NumberingLevelReference?.Val?.Value;
-
-            visiting.Remove(styleId);
-
-            if (numberId.HasValue || level.HasValue) {
-                if (!numberId.HasValue && !inherited.HasValue) {
-                    cache[styleId] = null;
-                    return false;
-                }
-
-                numbering = new ReferenceParagraphNumbering(
-                    numberId ?? inherited!.Value.NumberId,
-                    level ?? inherited?.Level ?? 0);
-                cache[styleId] = numbering;
-                return true;
-            }
-
-            if (inherited.HasValue) {
-                numbering = inherited.Value;
-                cache[styleId] = numbering;
-                return true;
-            }
-
-            cache[styleId] = null;
-            return false;
+            return value;
         }
 
         private static bool TryGetParagraphNumbering(
-            Paragraph paragraph,
+            OfficeXmlNode paragraph,
             IReadOnlyDictionary<string, ReferenceParagraphNumbering> paragraphStyleNumbering,
             out int numberId,
             out int level) {
             numberId = 0;
             level = 0;
-            NumberingProperties? numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
-            int? directNumberId = numberingProperties?.NumberingId?.Val?.Value;
-            int? directLevel = numberingProperties?.NumberingLevelReference?.Val?.Value;
+            const int W = FieldNamespace;
+            OfficeXmlNode properties = paragraph.Child(W, "pPr");
+            OfficeXmlNode numberingProperties = properties.Child(W, "numPr");
+            int? directNumberId = ReadNumberingInt(numberingProperties, "numId");
+            int? directLevel = ReadNumberingInt(numberingProperties, "ilvl");
 
             ReferenceParagraphNumbering? styleNumbering = null;
-            string? paragraphStyleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            string? paragraphStyleId = ReadNumberingValue(properties, "pStyle");
             if (!string.IsNullOrWhiteSpace(paragraphStyleId) &&
                 paragraphStyleNumbering.TryGetValue(paragraphStyleId!, out ReferenceParagraphNumbering resolvedStyleNumbering)) {
                 styleNumbering = resolvedStyleNumbering;
@@ -357,7 +319,7 @@ namespace OfficeIMO.Word {
             bool suppressText) {
             if (listSwitch == ReferenceListSwitch.NoContext) {
                 int currentValue = targetNumber.Counters[targetNumber.Level];
-                targetNumber.Formats.TryGetValue(targetNumber.Level, out NumberFormatValues? format);
+                targetNumber.Formats.TryGetValue(targetNumber.Level, out string? format);
                 return FormatReferenceNumber(currentValue, format);
             }
 
@@ -403,12 +365,12 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                number.Formats.TryGetValue(level, out NumberFormatValues? format);
+                number.Formats.TryGetValue(level, out string? format);
                 parts.Add(FormatReferenceNumber(counter, format));
             }
 
             if (parts.Count == 0 && number.Counters.TryGetValue(number.Level, out int current)) {
-                number.Formats.TryGetValue(number.Level, out NumberFormatValues? format);
+                number.Formats.TryGetValue(number.Level, out string? format);
                 return FormatReferenceNumber(current, format);
             }
 
@@ -422,40 +384,40 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                number.Formats.TryGetValue(level, out NumberFormatValues? format);
+                number.Formats.TryGetValue(level, out string? format);
                 result = result.Replace("%" + (level + 1).ToString(CultureInfo.InvariantCulture), FormatReferenceNumber(counter, format));
             }
 
             return result;
         }
 
-        private static string FormatReferenceNumber(int value, NumberFormatValues? format) {
-            if (format == NumberFormatValues.UpperRoman) {
+        private static string FormatReferenceNumber(int value, string? format) {
+            if (format == "upperRoman") {
                 return ToRoman(value).ToUpperInvariant();
             }
 
-            if (format == NumberFormatValues.LowerRoman) {
+            if (format == "lowerRoman") {
                 return ToRoman(value).ToLowerInvariant();
             }
 
-            if (format == NumberFormatValues.UpperLetter) {
+            if (format == "upperLetter") {
                 return ToAlphabetic(value, uppercase: true);
             }
 
-            if (format == NumberFormatValues.LowerLetter) {
+            if (format == "lowerLetter") {
                 return ToAlphabetic(value, uppercase: false);
             }
 
             return value.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static bool IsSupportedReferenceNumberFormat(NumberFormatValues? format) {
+        private static bool IsSupportedReferenceNumberFormat(string? format) {
             return format == null ||
-                format == NumberFormatValues.Decimal ||
-                format == NumberFormatValues.UpperRoman ||
-                format == NumberFormatValues.LowerRoman ||
-                format == NumberFormatValues.UpperLetter ||
-                format == NumberFormatValues.LowerLetter;
+                format == "decimal" ||
+                format == "upperRoman" ||
+                format == "lowerRoman" ||
+                format == "upperLetter" ||
+                format == "lowerLetter";
         }
 
         private static string TrimTrailingReferenceDelimiters(string value) {
@@ -484,13 +446,13 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct ReferenceLevelDefinition {
-            internal ReferenceLevelDefinition(NumberFormatValues? numberFormat, string? levelText, int start) {
+            internal ReferenceLevelDefinition(string? numberFormat, string? levelText, int start) {
                 NumberFormat = numberFormat;
                 LevelText = levelText;
                 Start = start;
             }
 
-            internal NumberFormatValues? NumberFormat { get; }
+            internal string? NumberFormat { get; }
 
             internal string? LevelText { get; }
 
@@ -513,7 +475,7 @@ namespace OfficeIMO.Word {
                 int numberId,
                 int level,
                 IReadOnlyDictionary<int, int> counters,
-                IReadOnlyDictionary<int, NumberFormatValues?> formats,
+                IReadOnlyDictionary<int, string?> formats,
                 IReadOnlyDictionary<int, string?> levelTexts) {
                 NumberId = numberId;
                 Level = level;
@@ -528,7 +490,7 @@ namespace OfficeIMO.Word {
 
             internal IReadOnlyDictionary<int, int> Counters { get; }
 
-            internal IReadOnlyDictionary<int, NumberFormatValues?> Formats { get; }
+            internal IReadOnlyDictionary<int, string?> Formats { get; }
 
             internal IReadOnlyDictionary<int, string?> LevelTexts { get; }
         }
