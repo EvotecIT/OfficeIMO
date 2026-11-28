@@ -273,7 +273,7 @@ formatting can change. Input and output are bounded to 16 MiB, depth 128,
 4,096 characters. Dates accept existing CII format 102 or plain UBL `yyyy-MM-dd`.
 Completion establishes that the requested edits were applied, so validate the
 resulting business data and exact XML against the intended standards release.
-The [shared workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#invoice-inspection-conversion-and-rendering)
+The [shared workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.workflows-guide.md#invoice-inspection-conversion-and-rendering)
 compose these checks and safe file publication.
 
 Duplicate invoice-currency or accounting-currency VAT totals are reported as
