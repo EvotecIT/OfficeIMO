@@ -42,14 +42,14 @@ Reading accepts no-namespace DocBook 4 and namespaced DocBook 5 documents; canon
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 
-The [fixture corpus](../OfficeIMO.DocBook.Tests/Fixtures/README.md) includes independently produced common content. The [opt-in schema runner](../Build/StructuredFormatVerification/README.md) checks selected native outputs against the pinned official 5.2 RELAX NG schema. These tests qualify the recorded profile and cases.
+The [fixture corpus](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DocBook.Tests/Fixtures/README.md) includes independently produced common content. The [opt-in schema runner](https://github.com/EvotecIT/OfficeIMO/blob/master/Build/StructuredFormatVerification/README.md) checks selected native outputs against the pinned official 5.2 RELAX NG schema. These tests qualify the recorded profile and cases.
 
 ## Dependency footprint
 
 - **External:** None; schemas are identified but not downloaded at runtime.
 - **OfficeIMO:** `OfficeIMO.Core`.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 `Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; parsing text or loading a stream leaves the document detached.
 

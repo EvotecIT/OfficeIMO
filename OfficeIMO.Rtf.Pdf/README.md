@@ -12,11 +12,17 @@ Page-starting sections inherit document page defaults and apply their own size, 
 
 Equal-width section columns flow through the shared PDF layout engine, including column gaps, separator lines, and explicit column and page breaks. Continuous sections can switch between single-column and equal-width column flow on the current page. Unequal or right-to-left columns produce `SectionColumnsFlattened`; changes to page geometry, numbering, or running stories inside a continuous section produce `ContinuousSectionPageSettingsFlattened`. Column-starting section breaks use a new page and produce `ColumnSectionBreakFlattened` when multiple columns are involved. The report identifies these limits while retaining the body content.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Rtf.Pdf
+```
+
 ## Paragraph layout
 
 Pair kerning is disabled unless a run supplies a positive `KerningHalfPoints` threshold. The threshold is expressed in half-points; kerning applies when the effective font size meets or exceeds it. The size includes inherited RTF formatting or the PDF default when no run size resolves. Source `\kerning0` disables kerning.
 
-PDF export distinguishes minimum, exact, and multiple line spacing using the [RTF sign and unit rules](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). Body paragraphs, individual table-cell paragraphs, and appended note paragraphs retain supported alignment, indents, before/after spacing, line spacing, and tab stops. An ordinary RTF paragraph without after-spacing does not acquire the PDF builder's convenience gap.
+PDF export distinguishes minimum, exact, and multiple line spacing using the [RTF sign and unit rules](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). Body paragraphs, individual table-cell paragraphs, and appended note paragraphs retain supported alignment, indents, before/after spacing, line spacing, and tab stops. An ordinary RTF paragraph without after-spacing does not acquire the PDF builder's convenience gap.
 
 Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `ThrowIfLoss()` rejects both diagnostics.
 
@@ -28,7 +34,7 @@ When the selected font programs and resolved run sizes provide usable line metri
 
 Font admission uses effective character formatting from paragraph and character styles, including inherited styles, table cells, field results and referenced notes. Empty and control-only paragraphs retain their effective font for line-box measurement. Notes attached directly through the authoring APIs do not need a second entry in the document's note collection for their fonts to be available.
 
-Caller-supplied named fonts and planned substitutions in `RtfPdfExportOptions.PdfOptions` apply to supported rich text and its empty-line metrics. A named document-default font also supplies unformatted generated text, list markers and the existing appended note labels. Explicit PDF default-font assignments retain precedence. Use the same [font files and mappings](../Docs/officeimo.pdf-guide.md#supply-document-font-families) on Windows and Linux when consistent typography matters; fonts available only on one host can change widths, line heights and pagination.
+Caller-supplied named fonts and planned substitutions in `RtfPdfExportOptions.PdfOptions` apply to supported rich text and its empty-line metrics. A named document-default font also supplies unformatted generated text, list markers and the existing appended note labels. Explicit PDF default-font assignments retain precedence. Use the same [font files and mappings](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf-guide.md#supply-document-font-families) on Windows and Linux when consistent typography matters; fonts available only on one host can change widths, line heights and pagination.
 
 Footnotes, endnotes, and annotations are appended after the body with a label on each note's first paragraph. Their paragraph formatting is retained within that flow; this route does not place footnotes beside their reference pages or reproduce native endnote continuation. Nested tables remain delimited text with `NestedTableFlattened` diagnostics.
 
@@ -103,7 +109,7 @@ PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `R
 - **External:** None by default. Applications may provide an optional WMF/EMF rasterization callback.
 - **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own semantic mapping, rendering, logical import, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 ## Page images
 
@@ -126,7 +132,7 @@ IReadOnlyList<OfficeImageExportResult> pages = await source.ToImagesAsync(option
 OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
 ```
 
-Use `FailOnLoss` to reject conversion or rendering loss before publishing an affected image. Shared fonts and shaping options are applied before PDF layout. [Image options and diagnostics](../Docs/officeimo.image-export.md) describe the common contract.
+Use `FailOnLoss` to reject conversion or rendering loss before publishing an affected image. Shared fonts and shaping options are applied before PDF layout. [Image options and diagnostics](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.image-export.md) describe the common contract.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

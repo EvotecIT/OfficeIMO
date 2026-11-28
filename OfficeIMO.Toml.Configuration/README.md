@@ -1,6 +1,6 @@
 # OfficeIMO.Toml.Configuration
 
-A TOML configuration provider for `Microsoft.Extensions.Configuration`, built on the [OfficeIMO.Toml](../OfficeIMO.Toml/README.md) engine. It reads TOML 1.1, targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10, works in trimmed and NativeAOT applications, and depends only on `OfficeIMO.Toml` and `Microsoft.Extensions.Configuration.FileExtensions`.
+A TOML configuration provider for `Microsoft.Extensions.Configuration`, built on the [OfficeIMO.Toml](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml/README.md) engine. It reads TOML 1.1, targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10, works in trimmed and NativeAOT applications, and depends only on `OfficeIMO.Toml` and `Microsoft.Extensions.Configuration.FileExtensions`.
 
 ## Install
 

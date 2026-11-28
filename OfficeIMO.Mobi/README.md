@@ -31,4 +31,4 @@ The Reader preset handles PalmDOC `.pdb` and Mobipocket `.prc` files by default.
 Application handlers registered for either extension take precedence. MOBI
 imports check the Palm database signature before reading text.
 
-[Supported features and limits](SUPPORT.md)
+[Supported features and limits](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Mobi/SUPPORT.md)

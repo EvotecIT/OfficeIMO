@@ -14,6 +14,12 @@ AdfConversionResult<AdfDocument> fromMarkdown = AdfConverter.FromMarkdown("# Sta
 
 Unknown ADF nodes, marks, attributes, and extension properties remain in the parsed model and survive JSON round trips. A projection to Markdown or HTML reports unsupported constructs through `AdfConversionReport` instead of silently claiming full fidelity.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Adf
+```
+
 ## Validate the ADF contract
 
 `Validate()` checks recognized structural relationships while warning about unknown node and mark types. Select `FullSchema` when the caller needs the complete pinned Atlassian schema contract:
@@ -25,7 +31,7 @@ AdfValidationResult validation = document.Validate(new AdfValidationOptions {
 }, cancellationToken);
 ```
 
-The package embeds the unmodified ADF schema from `@atlaskit/adf-schema` 57.6.21. Its [provenance and license notices](THIRD-PARTY-NOTICES.md) identify the source and checksum. Validation checks required node/mark properties, attributes, child alternatives, and schema limits without another runtime package. A rule-budget exhaustion returns an invalid result with `ADF_SCHEMA_LIMIT`. Both profiles report invalid graph structure and resource-limit violations without recursing into unsafe graphs.
+The package embeds the unmodified ADF schema from `@atlaskit/adf-schema` 57.6.21. Its [provenance and license notices](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Adf/THIRD-PARTY-NOTICES.md) identify the source and checksum. Validation checks required node/mark properties, attributes, child alternatives, and schema limits without another runtime package. A rule-budget exhaustion returns an invalid result with `ADF_SCHEMA_LIMIT`. Both profiles report invalid graph structure and resource-limit violations without recursing into unsafe graphs.
 
 Schema validity and acceptance by a specific Jira or Confluence API are separate contracts. Product settings and destination capabilities can impose further restrictions.
 
@@ -65,7 +71,7 @@ string json = bounded.ToJson(limits);
 
 Writing and conversion reject limit violations without returning truncated content. Validation reports graph-limit failures as invalid results. Cycles and null nodes/marks are rejected. Markdown object input and resolver results are checked for depth, object count and cycles before recursive rendering. Cancellation is observed during traversal, validation and JSON writing; synchronous Markdown/HTML parsing is checked before and after its calls. The two-argument validation overload honors both its token and `AdfValidationOptions.CancellationToken`.
 
-Native `content`, `marks` and `attrs` properties retain explicit empty values through JSON round trips. Typed nodes with required content, including empty table rows, emit the required array. The [opt-in schema runner](../Build/StructuredFormatVerification/README.md) compares native output and both validation profiles against independent pinned validators.
+Native `content`, `marks` and `attrs` properties retain explicit empty values through JSON round trips. Typed nodes with required content, including empty table rows, emit the required array. The [opt-in schema runner](https://github.com/EvotecIT/OfficeIMO/blob/master/Build/StructuredFormatVerification/README.md) compares native output and both validation profiles against independent pinned validators.
 
 ## Project visible content with fidelity evidence
 

@@ -2,7 +2,7 @@
 
 Streaming conversions between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV. Data flows from each format's own reader to the target's writer as events, so a large file converts with bounded memory. Numbers keep their exact text (`1.10`, 23-digit integers), and everything a target cannot carry is reported in `OfficeConversionReport`.
 
-Worksheets are in [OfficeIMO.Data.Conversions.Excel](../OfficeIMO.Data.Conversions.Excel/README.md). The `OfficeIMO` package includes both, so `OfficeConverter.Convert("a.yaml", "a.json")` works with one reference.
+Worksheets are in [OfficeIMO.Data.Conversions.Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Data.Conversions.Excel/README.md). The `OfficeIMO` package includes both, so `OfficeConverter.Convert("a.yaml", "a.json")` works with one reference.
 
 ## Install
 
@@ -64,7 +64,7 @@ The input is read twice: once to find the columns and their types, then to strea
 - **XML** follows one convention: the root element is the single top-level key, attributes are `@name`, text beside attributes or elements is `#text`, repeated elements are arrays and `xsi:nil="true"` is null. DTDs are prohibited.
 - **YAML** follows the document's schema: YAML 1.1 timestamps and merge keys apply only under `%YAML 1.1` or a forced schema. Aliases are expanded within `MaxAliasExpansion`.
 
-The [structured-data conversions design](../Docs/officeimo.data-conversions-design.md) lists every mapping rule and loss code.
+The [structured-data conversions design](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.data-conversions-design.md) lists every mapping rule and loss code.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

@@ -2,6 +2,12 @@
 
 `OfficeIMO.Reader.OneNote` projects native, offline `OfficeIMO.OneNote` content into the shared `OfficeIMO.Reader.Core` contracts. It does not use Microsoft Graph, GraphEssentialsX, COM automation, or require OneNote to be installed.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.OneNote
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.OneNote;
@@ -39,3 +45,4 @@ Image metadata is emitted even when a native image payload cannot be resolved. R
 Before building chunks, tables, assets, links, or metadata, the adapter applies the shared bounded projection validation to the complete model graph. This includes conflict and version relationships because Reader counts them in metadata even when their content is not selected. Caller-created cycles, shared instances, or excessive section-group, related-page, and content depth therefore fail predictably instead of causing recursive traversal or repeated expansion.
 
 Current target frameworks are `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. The package is MIT licensed.
+

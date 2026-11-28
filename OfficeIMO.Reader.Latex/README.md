@@ -24,9 +24,15 @@ When `MaxChars` splits content, each chunk retains literal prose, protected code
 
 The handler enforces the smaller of Reader and native input limits for both seekable and non-seekable streams. Native loading reads the caller's stream directly and preserves its seekable position without an extra adapter snapshot. Parsing and writing remain owned by `OfficeIMO.Latex`.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Latex
+```
+
 ## Dependency footprint
 
 - **External:** None; no TeX runtime or compiler.
 - **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Latex`, and `OfficeIMO.Latex.Markdown`; parsing stays in the native LaTeX package.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

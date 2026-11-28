@@ -60,7 +60,7 @@ byte[] ubl = InvoiceSerializer.Write(invoice,
 
 Serialization checks model arithmetic and the supported target mapping. Identical
 models and options produce identical UTF-8 bytes. Use
-[OfficeIMO.Invoicing.Validation](../OfficeIMO.Invoicing.Validation/README.md) to
+[OfficeIMO.Invoicing.Validation](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Validation/README.md) to
 check the resulting bytes against an explicit XSD and Schematron release.
 Successful serialization alone does not establish standards compliance.
 
@@ -217,7 +217,7 @@ and attachments are reported as unmapped rather than discarded.
 `GetOriginalBytes()` returns unchanged source bytes even after common-model edits.
 `WriteCommonInvoice` blocks conversion when national semantics or unmapped fields
 would be lost. Reading is separate from FA(3) authoring, fiscal validation and
-KSeF acceptance. Use the offline [FA(3) schema validator](../OfficeIMO.Invoicing.Validation/README.md#validate-polish-fa3)
+KSeF acceptance. Use the offline [FA(3) schema validator](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Validation/README.md#validate-polish-fa3)
 to qualify exact source bytes against the official XSD.
 
 ## Read and edit safely
@@ -273,7 +273,7 @@ formatting can change. Input and output are bounded to 16 MiB, depth 128,
 4,096 characters. Dates accept existing CII format 102 or plain UBL `yyyy-MM-dd`.
 Completion establishes that the requested edits were applied, so validate the
 resulting business data and exact XML against the intended standards release.
-The [shared workflows](../OfficeIMO.Workflows/README.md#invoice-inspection-conversion-and-rendering)
+The [shared workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#invoice-inspection-conversion-and-rendering)
 compose these checks and safe file publication.
 
 Duplicate invoice-currency or accounting-currency VAT totals are reported as
@@ -387,14 +387,14 @@ Peppol BIS does not define Factur-X XMP metadata.
 The French profile identifier follows [AFNOR XP Z12-012](https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/specification_externes_b2b/afnor/norme-afnor-factures.pdf).
 Recognition does not establish French business-rule coverage.
 
-For visible hybrid PDFs, add the optional [OfficeIMO.Invoicing.Pdf adapter](../OfficeIMO.Invoicing.Pdf/README.md). The XML engine remains independent of PDF generation.
+For visible hybrid PDFs, add the optional [OfficeIMO.Invoicing.Pdf adapter](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Pdf/README.md). The XML engine remains independent of PDF generation.
 
 ## Measure equivalent workloads
 
-[`OfficeIMO.Invoicing.Benchmarks`](../OfficeIMO.Invoicing.Benchmarks/README.md)
+[`OfficeIMO.Invoicing.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Benchmarks/README.md)
 measures XML read, XML write, pinned rules validation and multilingual PDF
 generation separately over the same deterministic 25-line invoice. Correctness
 checks run outside measurement, and the suite owns explicit Windows, Linux and
 macOS elapsed/allocation ceilings.
 
-For contributor builds, use the repository's [build and release guide](../Docs/building-and-releasing.md).
+For contributor builds, use the repository's [build and release guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/building-and-releasing.md).

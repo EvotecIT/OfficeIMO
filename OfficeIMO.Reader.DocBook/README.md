@@ -30,4 +30,4 @@ Ordinary source text is escaped as literal Markdown, including text resembling e
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.DocBook`.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

@@ -4,9 +4,15 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Workflows
+```
+
 ## Opt-in Apple conversion
 
-[OfficeIMO.Workflows.IWork](../OfficeIMO.Workflows.IWork/README.md) supplies Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes. `IWorkWorkflow.CreateRunner()` shares this runner's source capture, limits, destination reopen validation, and publication contract. `IOfficeWorkflowRunner.ConversionRoutes` exposes the configured executable routes; the static `OfficeWorkflowCatalog` describes built-in executability. The default workflow package remains independent of iWork.
+[OfficeIMO.Workflows.IWork](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows.IWork/README.md) supplies Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes. `IWorkWorkflow.CreateRunner()` shares this runner's source capture, limits, destination reopen validation, and publication contract. `IOfficeWorkflowRunner.ConversionRoutes` exposes the configured executable routes; the static `OfficeWorkflowCatalog` describes built-in executability. The default workflow package remains independent of iWork.
 
 `OfficeWorkflowConversionRegistration` adds an implementation of an existing canonical route to a runner. It cannot replace built-in owners. Opt-in converters accept captured ZIP/file streams, write to a bounded caller-owned output stream, and return immutable `OfficeWorkflowConversionEvidence`. Current opt-in destination formats are DOCX, XLSX, and PPTX. `OfficeWorkflowResult.ConversionEvidence` retains fidelity categories and compact source facts; successful reopen does not establish visual equivalence.
 
@@ -73,7 +79,7 @@ destinations, replacement policy and referenced variables before running it.
 
 Job files stay outside source, output and checkpoint trees. Saving requires an
 existing parent directory and preserves an existing file unless replacement is
-explicit. See the [three runnable job examples](Examples/ConversionJobs/README.md)
+explicit. See the [three runnable job examples](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/Examples/ConversionJobs/README.md)
 for folder conversion, a delivery document, and recovery from partial failure.
 
 ### Durable run reports
@@ -138,9 +144,9 @@ var html = await OfficeConverter.ConvertAsync(
 
 `Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints. Receipts record only a slow derivation of the rendering settings, keyed by a random salt in the checkpoint manifest, so a checkpoint offers no cheap password check.
 
-Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
+Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
-VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioPdfExportOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
+VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioPdfExportOptions](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
 
 ```csharp
 using OfficeIMO;
@@ -185,7 +191,7 @@ The explicit semantic opt-out retains vector paint and markup-order Unicode.
 `Xps.PdfCreateOptions` accepts the PDF engine's output settings, including encryption;
 `CompressPdfOutput` uses the shared verified compression path. Native input limits
 and workflow byte limits both apply. PDF serialization is bounded before the
-runner reopens and publishes the artifact. See the [native preservation limits](../OfficeIMO.Xps/SUPPORT.md).
+runner reopens and publishes the artifact. See the [native preservation limits](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md).
 
 Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
@@ -660,7 +666,7 @@ supply and 250 unique codes per country list. The total XML byte limit still app
 
 The host supplies and owns the provenance of a compiled `XmlSchemaSet` declaring
 `ONIXMessage` in `http://ns.editeur.org/onix/3.1/reference`. OfficeIMO ships no ONIX
-schema files and fetches none during export. The [opt-in evidence runner](../Build/Epub/README.md#onix-fixtures)
+schema files and fetches none during export. The [opt-in evidence runner](https://github.com/EvotecIT/OfficeIMO/blob/master/Build/Epub/README.md#onix-fixtures)
 shows loading with a resolver restricted to three local schema files. The exporter
 enforces that schema and rejects validation findings; schema validation alone does
 not establish business-rule completeness or recipient acceptance.
@@ -1732,7 +1738,7 @@ findings can still contain errors. `Source` and `ModelValidation` describe the
 edited XML, or remain unavailable when its retained data exceeds the semantic
 mapper. Passing an explicit validation release and validator requires the exact
 edited XML to pass schema and business rules before any artifact is returned.
-See the [source-editing contract](../OfficeIMO.Invoicing/README.md#read-and-edit-safely)
+See the [source-editing contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing/README.md#read-and-edit-safely)
 for supported fields, representations and bounds.
 
 Standards validation requires both `validationRelease` and a configured
@@ -1841,7 +1847,7 @@ foreach (var table in projection.Tables)
     ProjectDataWorkflow.CreateCsv(table.Table).Save(table.Kind + ".csv");
 ```
 
-Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
+Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
 
 ## Review OCR before publication
 
@@ -1956,7 +1962,7 @@ OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
 
 The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the staged output through its format owner, and publishes a separate copy atomically. Source replacement and publication over any batch source are refused. `AnalyzeWordImages` returns per-media diagnostics without publishing a file. Diagnostics include dimensions, formats, candidate metadata removal and whether each change was applied. Metadata removal produces a warning, and the inventory exposes `requiredStagedBytes` for budgeting. `RunBatchAsync` accepts up to 250 requests, snapshots options before execution, and publishes each item independently.
 
-DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](../Docs/officeimo.word-guide.md#images) apply to every host.
+DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.word-guide.md#images) apply to every host.
 
 ## Convert a document
 
@@ -2130,7 +2136,7 @@ Every member that takes a printer name also takes an `ipp://` or `ipps://` print
 
 `PdfPrintDeliveryException` means submission began and retrying could duplicate pages; its `JobId` is set when the queue acknowledged the job. Any other exception from `SubmitAsync` means nothing was submitted: `IppException` carries the printer's IPP `StatusCode` when it refused the request. A printer that answers `server-error-busy` (0x0507) gets the job again a few times over about three seconds before that status is reported.
 
-To check placement without a printer, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](../OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan`, `print` and `print-job`.
+To check placement without a printer, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan`, `print` and `print-job`.
 
 ## Save protected or unencrypted PDF copies
 
@@ -2304,7 +2310,7 @@ PdfDocument filled = review.Apply(source, accepted, cancellationToken);
 The host owns undo and publication. A changed source, invalid value, unsupported
 script constraint or cancellation prevents application. Existing fields and
 choice export/display mappings use the PDF owner's validation and appearances;
-this workflow does not create fields. See [the form review contract](../OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+this workflow does not create fields. See [the form review contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
 for supported constraints and qualification limits.
 
 ## Review and apply PDF redactions

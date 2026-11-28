@@ -4,6 +4,12 @@
 
 This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Markup.Word
+```
+
 ## Quick start
 
 ```csharp
@@ -55,7 +61,7 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.Word`, and `OfficeIMO.Core`; the exporter maps semantic nodes to editable Word content.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

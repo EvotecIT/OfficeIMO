@@ -2,6 +2,12 @@
 
 `OfficeIMO.Reader.Web` is an explicit, bounded HTTP transport for an existing `OfficeDocumentReader`. It downloads bytes, then passes them to the same configured handlers and processors used for local files.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Web
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
@@ -35,3 +41,4 @@ Format selection stays with Reader. The logical source name comes from an explic
 `CreateWebReader(httpClient, options)` uses a caller-owned `HttpClient` instead. That client's handler owns DNS resolution, connection establishment, proxies, authentication, certificates, decompression, retries and automatic redirects, so Reader Web can screen only IP literals and localhost names for it, plus each redirect that reaches it and the final URI the response reports. For untrusted URIs, use the reader without a client, or configure the handler to check resolved addresses at connection time and not to follow redirects itself.
 
 This package is not registered by `OfficeIMO.Reader.All` and performs no implicit network access. It adds no HTTP SDK, HTML parser, browser, process, native binary, model, or cloud provider; `System.Net.Http` comes from the target framework.
+

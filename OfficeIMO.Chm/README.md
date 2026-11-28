@@ -2,6 +2,12 @@
 
 Read compiled HTML Help (`.chm`) in process on Windows, macOS, and Linux. `ChmDocument` exposes HTML topics, exact entry bytes, embedded resources, hierarchical contents, and the keyword index. Loading does not launch the Windows help viewer, execute scripts, or fetch external resources.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Chm
+```
+
 ## Read a book
 
 ```csharp
@@ -31,10 +37,10 @@ Topics follow contents order, then unlisted HTML topics in ordinal path order. C
 | Package | Entry point | Result |
 | --- | --- | --- |
 | `OfficeIMO.Chm` | `ToHtmlDocumentResult()` | Linked canonical HTML book and fidelity report |
-| [OfficeIMO.Chm.Markdown](../OfficeIMO.Chm.Markdown/README.md) | `ToMarkdown()`, `SaveAsMarkdown()` | Linked Markdown book and fidelity report |
-| [OfficeIMO.Chm.Epub](../OfficeIMO.Chm.Epub/README.md) | `ToEpub()`, `SaveAsEpub()` | Reflowable EPUB with contents and embedded resources |
-| [OfficeIMO.Chm.Pdf](../OfficeIMO.Chm.Pdf/README.md) | `ToPdf()` / `SaveAsPdf()` | Independently rendered topic pages and combined fidelity evidence |
-| [OfficeIMO.Reader.Chm](../OfficeIMO.Reader.Chm/README.md) | `AddChmHandler()` | Reader chunks, tables, links, assets, hashes, and topic citations |
+| [OfficeIMO.Chm.Markdown](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm.Markdown/README.md) | `ToMarkdown()`, `SaveAsMarkdown()` | Linked Markdown book and fidelity report |
+| [OfficeIMO.Chm.Epub](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm.Epub/README.md) | `ToEpub()`, `SaveAsEpub()` | Reflowable EPUB with contents and embedded resources |
+| [OfficeIMO.Chm.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm.Pdf/README.md) | `ToPdf()` / `SaveAsPdf()` | Independently rendered topic pages and combined fidelity evidence |
+| [OfficeIMO.Reader.Chm](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Chm/README.md) | `AddChmHandler()` | Reader chunks, tables, links, assets, hashes, and topic citations |
 
 ```csharp
 ChmConversionResult<OfficeIMO.Html.HtmlConversionDocument> htmlBook =
@@ -58,7 +64,7 @@ Linked books retain each topic's language, reading direction, and inert containe
 
 The package references `OfficeIMO.Core` and `OfficeIMO.Html`. LZX decoding is shared with OneNote in Core; HTML parsing and charset services retain their existing provider boundary. There is no CHMLib, Windows API, external executable, or new third-party codec dependency in the product.
 
-See [supported profiles and qualification](SUPPORT.md) for exact format and export boundaries.
+See [supported profiles and qualification](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md) for exact format and export boundaries.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

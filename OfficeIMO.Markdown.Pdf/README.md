@@ -229,9 +229,9 @@ Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, 
 
 ## Related packages
 
-- [OfficeIMO.Markdown](../OfficeIMO.Markdown/README.md) - Markdown document model.
-- [OfficeIMO.Pdf](../OfficeIMO.Pdf/README.md) - PDF engine.
-- [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) - HTML/PDF bridge.
+- [OfficeIMO.Markdown](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markdown/README.md) - Markdown document model.
+- [OfficeIMO.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf/README.md) - PDF engine.
+- [OfficeIMO.Html.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Html.Pdf/README.md) - HTML/PDF bridge.
 
 ## Targets and license
 
@@ -244,7 +244,7 @@ Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Markdown`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own parsing, themes, layout, rendering, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

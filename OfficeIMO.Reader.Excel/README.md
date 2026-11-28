@@ -20,6 +20,12 @@ To read Excel 2003 XML SpreadsheetML, register `AddExcelHandler()` and set
 recognizes the SpreadsheetML `Workbook` namespace and uses the existing
 spreadsheet importer. For editable migration, use `ExcelDocument.ImportSpreadsheetXml`.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Excel
+```
+
 ## Select a worksheet
 
 Set `ReaderExcelOptions.SheetName` to a literal worksheet name, or `SheetNumber`
@@ -103,7 +109,7 @@ retried as password failures. These are package admission bounds, not a hard
 limit on process memory or every decoder's actual work.
 
 
-The standard Excel handler also reads raw BIFF2–4 XLS worksheets and BIFF4 XLW workbooks in the full projection. The result carries the early BIFF import profile and loss warnings. See the [Excel 2–4 worksheet guide](../Docs/officeimo.excel-guide.md#recover-excel-24-worksheets) for the supported values and workbook boundaries.
+The standard Excel handler also reads raw BIFF2–4 XLS worksheets and BIFF4 XLW workbooks in the full projection. The result carries the early BIFF import profile and loss warnings. See the [Excel 2–4 worksheet guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.excel-guide.md#recover-excel-24-worksheets) for the supported values and workbook boundaries.
 
 Selected Lotus 1-2-3, Quattro Pro, Multiplan, Works, SYLK (`.slk`), and DIF (`.dif`) spreadsheet sources are included in `OfficeIMO.Excel` but remain opt-in at the Reader registration boundary:
 
@@ -121,7 +127,7 @@ The combined registration applies the same immutable legacy options to every leg
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes macros or refreshes external links.
 
-SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../Docs/officeimo.excel-guide.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
+SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.excel-guide.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
 
 Rows are read in blocks of `ReaderExcelOptions.ChunkRows`. When a block's Markdown table would exceed
 `ReaderOptions.MaxChars`, it is split between rows into several chunks that each repeat the title and header,
@@ -174,7 +180,7 @@ sheet, row and column definitions for the selected sheets.
 Package and content-safety inspection use the loaded owner and original-package
 capture. Payload and VBA records remain inert. Inspection metadata is available on
 rich or structured reads; incremental row chunks do not carry a complete inspection
-record collection. [Reader Core](../OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+record collection. [Reader Core](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
 defines the shared budgets and terminal resource failures.
 
 ## Targets and dependencies

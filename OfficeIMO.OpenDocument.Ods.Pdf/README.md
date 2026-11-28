@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.OpenDocument.Ods.Pdf)](https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.OpenDocument.Ods.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf)
 
-Bidirectional ODS and PDF conversion without Word or PowerPoint dependencies. ODS to PDF converts the spreadsheet through [OfficeIMO.Excel.OpenDocument](../OfficeIMO.Excel.OpenDocument/README.md) and prints it with the [Excel PDF engine](../OfficeIMO.Excel.Pdf/README.md). PDF to ODS reconstructs detected tables through the PDF-to-Excel and Excel-to-ODS adapters.
+Bidirectional ODS and PDF conversion without Word or PowerPoint dependencies. ODS to PDF converts the spreadsheet through [OfficeIMO.Excel.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.OpenDocument/README.md) and prints it with the [Excel PDF engine](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.Pdf/README.md). PDF to ODS reconstructs detected tables through the PDF-to-Excel and Excel-to-ODS adapters.
 
 ## Install
 
@@ -43,10 +43,10 @@ Forward conversion takes `OdsPdfExportOptions` (`ConversionOptions` for the Open
 
 - Each visible sheet with content prints through the Excel PDF engine, with searchable cell text, cell styles, merges, column widths and row heights.
 - Sheet print ranges (`OdsSheet.PrintRanges`) on the same sheet become the print area.
-- Charts, pivot tables, validations and conditional formatting follow the [ODS-to-Excel mapping](../OfficeIMO.Excel.OpenDocument/README.md); content outside that mapping is reported, not dropped silently.
+- Charts, pivot tables, validations and conditional formatting follow the [ODS-to-Excel mapping](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.OpenDocument/README.md); content outside that mapping is reported, not dropped silently.
 - The blank styled run that LibreOffice and Excel write to pad each row to the sheet edge does not become printed pages.
 
-PDF imports accept `PdfExcelExportOptions.PreserveColumnProportions` through `PdfOdsExportOptions.PdfOptions`. This optional policy retains detected relative column widths, with the [shared import settings and fallback behavior](../OfficeIMO.Excel.Pdf/README.md#import-structured-pdf-data). ODS widths use the spreadsheet adapter's approximate unit conversion; physical PDF dimensions and exact printer geometry are not guaranteed. `PdfOdsConversionReport.PdfReport.Entries` exposes whether each table applied the proportions.
+PDF imports accept `PdfExcelExportOptions.PreserveColumnProportions` through `PdfOdsExportOptions.PdfOptions`. This optional policy retains detected relative column widths, with the [shared import settings and fallback behavior](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.Pdf/README.md#import-structured-pdf-data). ODS widths use the spreadsheet adapter's approximate unit conversion; physical PDF dimensions and exact printer geometry are not guaranteed. `PdfOdsConversionReport.PdfReport.Entries` exposes whether each table applied the proportions.
 
 ## Current limits
 
@@ -56,9 +56,9 @@ PDF imports accept `PdfExcelExportOptions.PreserveColumnProportions` through `Pd
 
 ## Related packages
 
-- [OfficeIMO.OpenDocument](../OfficeIMO.OpenDocument/README.md) reads, edits and writes ODS.
-- [OfficeIMO.Excel.OpenDocument](../OfficeIMO.Excel.OpenDocument/README.md) converts between ODS and XLSX.
-- [OfficeIMO.OpenDocument.Odt.Pdf](../OfficeIMO.OpenDocument.Odt.Pdf/README.md) and [OfficeIMO.OpenDocument.Odp.Pdf](../OfficeIMO.OpenDocument.Odp.Pdf/README.md) cover ODT and ODP.
+- [OfficeIMO.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument/README.md) reads, edits and writes ODS.
+- [OfficeIMO.Excel.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.OpenDocument/README.md) converts between ODS and XLSX.
+- [OfficeIMO.OpenDocument.Odt.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument.Odt.Pdf/README.md) and [OfficeIMO.OpenDocument.Odp.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument.Odp.Pdf/README.md) cover ODT and ODP.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

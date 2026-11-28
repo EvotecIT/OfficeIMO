@@ -22,6 +22,12 @@ Each cue becomes a source-ordered chunk with readable timestamp Markdown, source
 
 The adapter is local and BCL-only. It does not download media, call YouTube, transcribe audio, run Whisper, or add an audio codec. Applications compose those provider capabilities explicitly outside this package. `OfficeIMO.Reader.All` registers this handler.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Subtitles
+```
+
 ## Registration
 
 | Item | Value |
