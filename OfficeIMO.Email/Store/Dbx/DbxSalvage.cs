@@ -379,8 +379,8 @@ internal sealed class DbxSalvage {
         try {
             ChainResult chain;
             try {
-                using FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false);
-                spillPath = spill.Name;
+                using FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false, out string createdPath);
+                spillPath = createdPath;
                 chain = CopyChain(firstFragment, spill, carving: isChain, declared);
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", exception.Message,

@@ -507,9 +507,9 @@ public sealed class OlmSalvageTests {
         DbxStoreReaderTests.WithDestination(destination => {
             Directory.CreateDirectory(destination);
             var writer = new EmailStoreSalvageWriter(destination, new EmailStoreSalvageOptions(), sourcePath: null);
-            using FileStream spill = writer.CreateSpill(".olm", deleteOnClose: true);
+            using FileStream spill = writer.CreateSpill(".olm", deleteOnClose: true, out string path);
 
-            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(spill.Name));
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
         });
     }
 #endif
