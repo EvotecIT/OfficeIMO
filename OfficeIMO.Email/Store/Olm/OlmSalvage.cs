@@ -33,6 +33,8 @@ internal sealed class OlmSalvage {
     private readonly Dictionary<string, long> _damagedEntries = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Repair> _repairedEntries = new Dictionary<string, Repair>(StringComparer.OrdinalIgnoreCase);
     private readonly List<EmailStoreSalvageEntry> _results = new List<EmailStoreSalvageEntry>();
+    // Entries that could not supply records; they join the item outcomes in source order before the outcome bound.
+    private readonly List<EmailStoreSalvageEntry> _failures = new List<EmailStoreSalvageEntry>();
     private long _decodedBytes;
     private int _itemsAdmitted;
     private long _rebuiltBytes;
@@ -55,6 +57,8 @@ internal sealed class OlmSalvage {
     }
 
     internal EmailStoreSalvageReport Run() {
+        // Offsets are absolute within the archive, so scanning starts at its origin whatever the caller's position.
+        _source.Position = 0;
         List<ZipEntry> entries = ReadCentralDirectory() ?? ScanLocalHeaders();
         using (FileStream rebuilt = _output.CreateSpill(".olm", deleteOnClose: true)) {
             using (var archive = new ZipArchive(rebuilt, ZipArchiveMode.Create, leaveOpen: true)) {
@@ -66,8 +70,7 @@ internal sealed class OlmSalvage {
             rebuilt.Position = 0;
             ExportItems(rebuilt);
         }
-        // Unreadable entries are found before projection; report every outcome in archive order.
-        EmailStoreSalvageEntry[] ordered = _results.OrderBy(entry => entry.SourceOffset ?? long.MaxValue).ToArray();
+        EmailStoreSalvageEntry[] ordered = _results.ToArray();
         string? manifest = _output.WriteManifest(ordered, _diagnostics);
         return new EmailStoreSalvageReport(EmailStoreFormat.Olm, _output.Root, manifest, _stoppedAtLimit,
             Array.AsReadOnly(ordered), _diagnostics.ToArray(), _discoveryCompleted);
@@ -182,29 +185,30 @@ internal sealed class OlmSalvage {
         }
         if (!_entryOffsets.ContainsKey(normalized)) _entryOffsets.Add(normalized, entry.LocalHeaderOffset);
         bool isDirectory = entry.Name.EndsWith("/", StringComparison.Ordinal) || entry.Name.EndsWith("\\", StringComparison.Ordinal);
+        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
         if (isDirectory) {
             archive.CreateEntry(entry.Name.Replace('\\', '/'));
             return;
         }
         if ((entry.Flags & 0x41) != 0 || (entry.Method != 0 && entry.Method != 8)) {
             Damaged(normalized, entry, "EMAIL_STORE_OLM_SALVAGE_ENTRY_UNSUPPORTED",
-                "The entry is encrypted or uses an unsupported compression method.");
+                "The entry is encrypted or uses an unsupported compression method.", isXml);
             return;
         }
         long dataOffset;
         try {
             dataOffset = ResolveDataOffset(entry);
         } catch (InvalidDataException exception) {
-            Damaged(normalized, entry, "EMAIL_STORE_OLM_SALVAGE_LOCAL_HEADER_INVALID", exception.Message);
+            Damaged(normalized, entry, "EMAIL_STORE_OLM_SALVAGE_LOCAL_HEADER_INVALID", exception.Message, isXml);
             return;
         }
         if (entry.ExpandedSize > _limits.MaxArchiveEntryBytes) {
+            _stoppedAtLimit = true;
             Damaged(normalized, entry, "EMAIL_STORE_OLM_SALVAGE_ENTRY_LIMIT",
-                "The entry is larger than " + nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes) + ".");
+                "The entry is larger than " + nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes) + ".", isXml);
             return;
         }
 
-        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
         if (isXml && _admittedXml.Contains(normalized)) {
             // The reader keeps the first copy of a path, so a later copy is skipped before it costs any decoding.
             Add("EMAIL_STORE_OLM_DUPLICATE_ENTRY",
@@ -216,6 +220,8 @@ internal sealed class OlmSalvage {
         long remaining = _limits.MaxArchiveDecodedBytes - _decodedBytes;
         if (entry.ExpandedSize > remaining) {
             DecodedLimit(entry);
+            if (isXml) EntryNotRecovered(normalized, entry, "EMAIL_STORE_OLM_SALVAGE_DECODED_LIMIT",
+                "The archive reached " + nameof(EmailStoreReaderOptions.MaxArchiveDecodedBytes) + " before this entry.");
             return;
         }
         string? failure = Verify(entry, dataOffset, out long decoded);
@@ -224,7 +230,7 @@ internal sealed class OlmSalvage {
         int count = failure == null && isXml ? CountXmlItems(entry, dataOffset) : 0;
         // A checksum-valid entry that is not well-formed XML goes through repair instead of being admitted empty,
         // so a later readable copy of the same path stays eligible when repair keeps nothing.
-        if (count < 0) failure = "The entry is not well-formed XML.";
+        if (count < 0) failure = "The entry is not well-formed XML or exceeds the XML reading limits.";
 
         if (failure == null) {
             if (isXml) {
@@ -275,15 +281,15 @@ internal sealed class OlmSalvage {
             return;
         }
         Damaged(normalized, entry, isXml ? "EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE" : "EMAIL_STORE_OLM_SALVAGE_ENTRY_DAMAGED",
-            failure);
-        if (isXml) {
-            TryAddResult(new EmailStoreSalvageEntry("olm:entry:" + normalized, EmailStoreSalvageStatus.NotRecovered,
-                normalized, entry.LocalHeaderOffset, 0, entry.ExpandedSize >= 0 ? entry.ExpandedSize : null, null,
-                entry.LocalHeaderOffset, "EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE", null, null, null, 0,
-                new[] { new EmailStoreDiagnostic("EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE", failure,
-                    EmailStoreDiagnosticSeverity.Error, normalized) }));
-        }
+            failure, isXml);
     }
+
+    /// <summary>Records an item-bearing entry that supplied no records, so its loss has a manifest row.</summary>
+    private void EntryNotRecovered(string normalized, ZipEntry entry, string code, string message) =>
+        _failures.Add(new EmailStoreSalvageEntry("olm:entry:" + normalized, EmailStoreSalvageStatus.NotRecovered,
+            normalized, entry.LocalHeaderOffset, 0, entry.ExpandedSize >= 0 ? entry.ExpandedSize : null, null,
+            entry.LocalHeaderOffset, code, null, null, null, 0,
+            new[] { new EmailStoreDiagnostic(code, message, EmailStoreDiagnosticSeverity.Error, normalized) }));
 
     /// <summary>Records that this copy of an XML path supplies the recovered records, including its offset.</summary>
     private void Admit(string normalized, ZipEntry entry) {
@@ -320,7 +326,8 @@ internal sealed class OlmSalvage {
     private int CountXmlItems(ZipEntry entry, long dataOffset) {
         try {
             using Stream input = OpenPayload(entry, dataOffset);
-            using XmlReader reader = XmlReader.Create(input, CreateXmlSettings());
+            using XmlReader inner = XmlReader.Create(input, CreateXmlSettings());
+            using XmlReader reader = CreateLimitingReader(inner);
             if (reader.MoveToContent() != XmlNodeType.Element) return 0;
             string rootName = reader.LocalName;
             int count = 0;
@@ -343,14 +350,32 @@ internal sealed class OlmSalvage {
         }
     }
 
+    private const string RecoveryXmlName = "OLM recovery XML";
+
+    /// <summary>The OLM reader's XML settings, so recovery admits and materializes no more than a normal read.</summary>
     private XmlReaderSettings CreateXmlSettings() => new XmlReaderSettings {
         DtdProcessing = DtdProcessing.Prohibit,
         XmlResolver = null,
-        MaxCharactersInDocument = _limits.MaxArchiveEntryBytes,
+        MaxCharactersInDocument = _limits.MaxXmlCharactersPerItem,
         MaxCharactersFromEntities = 0,
         IgnoreComments = true,
         CloseInput = false
     };
+
+    /// <summary>Applies the OLM reader's depth, element and attribute bounds.</summary>
+    private XmlReader CreateLimitingReader(XmlReader inner) {
+        long nodes = (long)_limits.MaxPropertiesPerItem * _limits.MaxItemCount;
+        return new OfficeXmlLimitingReader(inner, RecoveryXmlName, _limits.MaxBTreeDepth,
+            (int)Math.Min(int.MaxValue, nodes + 1), (int)Math.Min(int.MaxValue, nodes), _cancellationToken);
+    }
+
+    /// <summary>
+    /// Whether reading stopped at a configured XML bound rather than at damage. A UTF-8 document has at least as
+    /// many bytes as characters, so an XML error after more bytes than the character bound is that bound.
+    /// </summary>
+    private bool IsXmlLimit(Exception exception, long bytesRead) =>
+        (exception is InvalidDataException && exception.Message.StartsWith(RecoveryXmlName, StringComparison.Ordinal)) ||
+        (exception is XmlException && bytesRead > _limits.MaxXmlCharactersPerItem);
 
     private string? Verify(ZipEntry entry, long dataOffset, out long decoded) {
         decoded = 0;
@@ -404,7 +429,8 @@ internal sealed class OlmSalvage {
             Math.Min(_limits.MaxArchiveEntryBytes, maxRead));
         try {
             using (counting)
-            using (XmlReader reader = XmlReader.Create(counting, settings))
+            using (XmlReader inner = XmlReader.Create(counting, settings))
+            using (XmlReader reader = CreateLimitingReader(inner))
             using (XmlWriter writer = XmlWriter.Create(spill, new XmlWriterSettings {
                        Encoding = new UTF8Encoding(false), CloseOutput = false, OmitXmlDeclaration = true })) {
                 bool started = false;
@@ -420,12 +446,27 @@ internal sealed class OlmSalvage {
                             _cancellationToken.ThrowIfCancellationRequested();
                             if (reader.NodeType == XmlNodeType.Element) {
                                 bool isItem = IsItemElement(rootName, reader.LocalName);
-                                XNode node = XNode.ReadFrom(reader);
+                                // The record is read through a subtree reader, so it is kept as soon as its end tag
+                                // is read; damage right after it no longer discards it.
+                                XNode node;
+                                using (XmlReader record = reader.ReadSubtree()) {
+                                    record.MoveToContent();
+                                    node = XNode.ReadFrom(record);
+                                }
                                 node.WriteTo(writer);
                                 if (isItem && ++items >= maxItems) {
-                                    limited = reader.MoveToContent() == XmlNodeType.Element;
+                                    try {
+                                        reader.Read();
+                                        limited = reader.MoveToContent() == XmlNodeType.Element;
+                                    } catch (Exception exception) when (exception is XmlException ||
+                                                                         exception is InvalidDataException ||
+                                                                         exception is IOException) {
+                                        // What follows the last kept record is unknown, so the bound counts as reached.
+                                        limited = true;
+                                    }
                                     break;
                                 }
+                                reader.Read();
                             } else {
                                 reader.Read();
                             }
@@ -434,6 +475,7 @@ internal sealed class OlmSalvage {
                 } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException ||
                                                      exception is IOException) {
                     stopReason = exception.Message;
+                    if (IsXmlLimit(exception, counting.BytesRead)) _stoppedAtLimit = true;
                 }
                 if (started) writer.WriteEndElement();
             }
@@ -448,42 +490,83 @@ internal sealed class OlmSalvage {
     }
 
     private void ExportItems(Stream rebuilt) {
-        EmailStoreSession session;
+        OlmStoreSessionBackend backend;
         try {
             // The source-length and archive bounds were enforced on the original input. The rebuilt archive is
             // stored uncompressed, and re-serialized XML can be a few bytes longer than its source entry, so it is
-            // opened with bounds that cover exactly what was written; every other limit is unchanged.
+            // opened with bounds that cover exactly what was written; every other limit is unchanged. One item
+            // that cannot be projected is reported on its own instead of failing the catalog.
             EmailStoreReaderOptions rebuiltLimits = _limits.WithArchiveLimits(
                 Math.Max(_limits.MaxInputBytes, rebuilt.Length),
                 Math.Max(_limits.MaxArchiveEntryBytes, _largestRebuiltEntry),
                 Math.Max(_limits.MaxArchiveDecodedBytes, _rebuiltBytes));
-            session = EmailStoreSession.Open(rebuilt, _archiveName, rebuiltLimits, leaveOpen: true, _cancellationToken);
+            backend = new OlmStoreSessionBackend(rebuilt, _archiveName, rebuiltLimits, _cancellationToken,
+                isolateItemFailures: true);
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
                                              exception is EmailStoreLimitExceededException) {
             Add("EMAIL_STORE_OLM_SALVAGE_REBUILD_UNREADABLE", exception.Message, EmailStoreDiagnosticSeverity.Error, null);
             _discoveryCompleted = false;
+            ReportOutcomes(_failures.Select(failure => new Outcome(failure.SourceOffset, -1, failure, null)).ToList(),
+                null, null, default);
             return;
         }
-        using (session) {
-            var paths = new EmailStoreExportPathBuilder(_output.Root, session.Folders, preserveHierarchy: true);
-            EmailFileFormat format = _options.Format ?? EmailFileFormat.OutlookMsg;
-            foreach (EmailStoreItemReference reference in session.EnumerateItems(cancellationToken: _cancellationToken)) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                if (AtItemLimit()) break;
-                _results.Add(ExportItem(session, reference, paths, format));
-            }
-            foreach (EmailStoreDiagnostic diagnostic in session.Diagnostics) {
+        using (backend) {
+            var outcomes = new List<Outcome>(_failures.Count);
+            foreach (EmailStoreSalvageEntry failure in _failures) outcomes.Add(new Outcome(failure.SourceOffset, -1, failure, null));
+            foreach (EmailStoreDiagnostic diagnostic in backend.Diagnostics) {
                 if (diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID" && diagnostic.Location != null &&
                     OlmStoreReader.TryNormalizeArchivePath(diagnostic.Location, out string entryPath)) {
-                    long? offset = _entryOffsets.TryGetValue(entryPath, out long value) ? value : null;
-                    if (!TryAddResult(new EmailStoreSalvageEntry("olm:entry:" + entryPath, EmailStoreSalvageStatus.NotRecovered,
-                            entryPath, offset, 0, null, null, offset, diagnostic.Code, null, null, null, 0, new[] { diagnostic })))
-                        _diagnostics.Add(diagnostic);
+                    long? offset = EntryOffset(entryPath);
+                    outcomes.Add(new Outcome(offset, -1, new EmailStoreSalvageEntry("olm:entry:" + entryPath,
+                        EmailStoreSalvageStatus.NotRecovered, entryPath, offset, 0, null, null, offset, diagnostic.Code,
+                        null, null, null, 0, new[] { diagnostic }), null));
+                } else if (diagnostic.Code == "EMAIL_STORE_OLM_ITEM_UNREADABLE" && diagnostic.Location != null &&
+                           TrySplitItemLocation(diagnostic.Location, out string itemEntry, out int index)) {
+                    long? offset = EntryOffset(itemEntry);
+                    string location = itemEntry + "#" + index.ToString(CultureInfo.InvariantCulture);
+                    outcomes.Add(new Outcome(offset, index, new EmailStoreSalvageEntry(ItemPrefix + location,
+                        EmailStoreSalvageStatus.NotRecovered, location, offset, 0, null, null, offset, diagnostic.Code,
+                        null, null, null, 0, new[] { diagnostic }), null));
                 } else if (diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING") {
                     _diagnostics.Add(diagnostic);
                 }
             }
+            foreach (EmailStoreItemReference reference in backend.References) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                TrySplitItemLocation(reference.Id.Substring(ItemPrefix.Length), out string itemEntry, out int index);
+                outcomes.Add(new Outcome(EntryOffset(itemEntry), index, null, reference));
+            }
+            var paths = new EmailStoreExportPathBuilder(_output.Root, backend.Folders, preserveHierarchy: true);
+            ReportOutcomes(outcomes, backend, paths, _options.Format ?? EmailFileFormat.OutlookMsg);
         }
+    }
+
+    /// <summary>
+    /// Applies the outcome bound to successes and failures together in source order, so a later unreadable entry
+    /// cannot take the place of an earlier readable record.
+    /// </summary>
+    private void ReportOutcomes(List<Outcome> outcomes, OlmStoreSessionBackend? backend,
+        EmailStoreExportPathBuilder? paths, EmailFileFormat format) {
+        IEnumerable<Outcome> ordered = outcomes.Select((outcome, position) => (outcome, position))
+            .OrderBy(pair => pair.outcome.Offset ?? long.MaxValue).ThenBy(pair => pair.outcome.Index)
+            .ThenBy(pair => pair.position).Select(pair => pair.outcome);
+        foreach (Outcome outcome in ordered) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (AtItemLimit()) break;
+            _results.Add(outcome.Entry ?? ExportItem(backend!, outcome.Reference!, paths!, format));
+        }
+    }
+
+    private long? EntryOffset(string entryPath) =>
+        OlmStoreReader.TryNormalizeArchivePath(entryPath, out string normalized) &&
+        _entryOffsets.TryGetValue(normalized, out long value) ? value : null;
+
+    /// <summary>Splits an item location such as <c>path/Contacts.xml#3</c> into its entry path and record index.</summary>
+    private static bool TrySplitItemLocation(string location, out string entryPath, out int index) {
+        int hash = location.LastIndexOf('#');
+        index = -1;
+        entryPath = hash < 0 ? location : location.Substring(0, hash).Replace('\\', '/');
+        return hash >= 0 && int.TryParse(location.Substring(hash + 1), NumberStyles.None, CultureInfo.InvariantCulture, out index);
     }
 
     /// <summary>Applies the outcome bound; the stop diagnostic is reported once.</summary>
@@ -496,22 +579,17 @@ internal sealed class OlmSalvage {
         return true;
     }
 
-    private bool TryAddResult(EmailStoreSalvageEntry entry) {
-        if (AtItemLimit()) return false;
-        _results.Add(entry);
-        return true;
-    }
-
-    private EmailStoreSalvageEntry ExportItem(EmailStoreSession session, EmailStoreItemReference reference,
+    private EmailStoreSalvageEntry ExportItem(OlmStoreSessionBackend backend, EmailStoreItemReference reference,
         EmailStoreExportPathBuilder paths, EmailFileFormat format) {
         var diagnostics = new List<EmailStoreDiagnostic>();
         string entryPath = GetEntryPath(reference.Id);
         string location = reference.Id.StartsWith(ItemPrefix, StringComparison.Ordinal)
             ? reference.Id.Substring(ItemPrefix.Length) : reference.Id;
-        long? sourceOffset = _entryOffsets.TryGetValue(entryPath, out long offset) ? offset : null;
+        long? sourceOffset = EntryOffset(entryPath);
         long? damageOffset = null;
         string? damageCode = null;
-        if (_repairedEntries.TryGetValue(entryPath, out Repair repair)) {
+        if (OlmStoreReader.TryNormalizeArchivePath(entryPath, out string normalizedEntry) &&
+            _repairedEntries.TryGetValue(normalizedEntry, out Repair repair)) {
             damageOffset = repair.Offset;
             damageCode = "EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED";
             diagnostics.Add(new EmailStoreDiagnostic(damageCode,
@@ -520,8 +598,10 @@ internal sealed class OlmSalvage {
         }
         OutlookItemKind? kind = null;
         string? subject = null;
+        EmailReadWorkspace? workspace = null;
         try {
-            EmailStoreItem item = session.ReadItem(reference, _cancellationToken);
+            // Attachment content is staged in files that live only while this item is written.
+            EmailStoreItem item = backend.ReadItemWithWorkspace(reference, out workspace, _cancellationToken);
             kind = item.Document.OutlookItemKind;
             subject = item.Document.Subject;
             foreach (EmailAttachment attachment in item.Document.Attachments.ToArray()) {
@@ -557,6 +637,8 @@ internal sealed class OlmSalvage {
             return new EmailStoreSalvageEntry(reference.Id, EmailStoreSalvageStatus.NotRecovered, location,
                 sourceOffset, 0, null, null, damageOffset, damageCode ?? "EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED",
                 kind, subject, null, 0, diagnostics.AsReadOnly());
+        } finally {
+            workspace?.Dispose();
         }
     }
 
@@ -614,9 +696,10 @@ internal sealed class OlmSalvage {
         if (OfficePngCrc32.Complete(crc) != expectedCrc) throw new IOException("The OLM source changed during recovery.");
     }
 
-    private void Damaged(string normalized, ZipEntry entry, string code, string message) {
+    private void Damaged(string normalized, ZipEntry entry, string code, string message, bool isXml) {
         _damagedEntries[normalized] = entry.LocalHeaderOffset;
         Add(code, message, EmailStoreDiagnosticSeverity.Error, entry.LocalHeaderOffset, normalized);
+        if (isXml) EntryNotRecovered(normalized, entry, code, message);
     }
 
     /// <summary>
@@ -808,6 +891,20 @@ internal sealed class OlmSalvage {
         internal long ExpandedSize { get; }
         internal long LocalHeaderOffset { get; }
         internal long? DataOffset { get; }
+    }
+
+    private readonly struct Outcome {
+        internal Outcome(long? offset, int index, EmailStoreSalvageEntry? entry, EmailStoreItemReference? reference) {
+            Offset = offset;
+            Index = index;
+            Entry = entry;
+            Reference = reference;
+        }
+
+        internal long? Offset { get; }
+        internal int Index { get; }
+        internal EmailStoreSalvageEntry? Entry { get; }
+        internal EmailStoreItemReference? Reference { get; }
     }
 
     private readonly struct Repair {

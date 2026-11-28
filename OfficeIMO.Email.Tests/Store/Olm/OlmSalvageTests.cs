@@ -66,8 +66,8 @@ public sealed class OlmSalvageTests {
                 diagnostic.ByteOffset == MessageEntryOffset);
             Assert.True(report.HasErrors);
             string[] manifest = File.ReadAllLines(report.ManifestPath!);
-            Assert.Equal(4, manifest.Length);
             Assert.StartsWith("olm:entry:" + MessageEntry + "\tNotRecovered\t\t", manifest[3], StringComparison.Ordinal);
+            Assert.All(manifest.Skip(4), line => Assert.StartsWith("source:", line, StringComparison.Ordinal));
         });
     }
 
@@ -270,6 +270,140 @@ public sealed class OlmSalvageTests {
             Assert.Equal(new[] { OutlookItemKind.Contact, OutlookItemKind.Contact },
                 report.Entries.Skip(1).Select(entry => entry.Kind!.Value));
             Assert.All(report.Entries.Skip(1), entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
+        });
+    }
+
+    [Fact]
+    public void KeepsACompleteRecordWhenTheNextTagIsCutOff() {
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml",
+                "<contacts><contact><OPFContactCopyDisplayName>First</OPFContactCopyDisplayName></contact><conta").Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination);
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(EmailStoreSalvageStatus.Partial, contact.Status);
+            Assert.Equal("EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED", contact.DamageCode);
+            using EmailReadResult exported = new EmailDocumentReader().ReadDocument(contact.DestinationPath!);
+            Assert.Equal("First", exported.Document.Contact!.DisplayName);
+        });
+    }
+
+    [Fact]
+    public void ReportsOneRecordOverThePropertyLimitAndExportsTheOthers() {
+        const string contacts = "<contacts>" +
+            "<contact><OPFContactCopyDisplayName>First</OPFContactCopyDisplayName></contact>" +
+            "<contact><OPFContactCopyDisplayName>Large</OPFContactCopyDisplayName><a/><b/><c/></contact>" +
+            "<contact><OPFContactCopyDisplayName>Third</OPFContactCopyDisplayName></contact></contacts>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", contacts).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxPropertiesPerItem: 2)));
+
+            Assert.Collection(report.Entries,
+                first => Assert.Equal(EmailStoreSalvageStatus.Recovered, first.Status),
+                large => {
+                    Assert.Equal("olm:item:Local/Contacts/Contacts.xml#1", large.ItemId);
+                    Assert.Equal(EmailStoreSalvageStatus.NotRecovered, large.Status);
+                    Assert.Equal("EMAIL_STORE_OLM_ITEM_UNREADABLE", large.DamageCode);
+                    Assert.Equal(0, large.SourceOffset);
+                },
+                third => {
+                    Assert.Equal(EmailStoreSalvageStatus.Recovered, third.Status);
+                    using EmailReadResult exported = new EmailDocumentReader().ReadDocument(third.DestinationPath!);
+                    Assert.Equal("Third", exported.Document.Contact!.DisplayName);
+                });
+        });
+    }
+
+    [Fact]
+    public void AppliesTheOutcomeBoundInSourceOrder() {
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/A/Contacts.xml", TwoContacts)
+                .AddText("Local/B/Contacts.xml", "<contacts><contact>")
+                .Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(maxRecoveredItems: 1));
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(OutlookItemKind.Contact, contact.Kind);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, contact.Status);
+            Assert.True(report.StoppedAtLimit);
+        });
+    }
+
+    [Fact]
+    public void ReportsAnOversizedCollectionAsNotRecoveredAndIncomplete() {
+        string large = "<contacts><contact><OPFContactCopyDisplayName>" + new string('a', 512) +
+            "</OPFContactCopyDisplayName></contact></contacts>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/A/Contacts.xml", TwoContacts)
+                .AddText("Local/B/Contacts.xml", large)
+                .Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxArchiveEntryBytes: 256)));
+
+            Assert.Equal(3, report.Entries.Count);
+            EmailStoreSalvageEntry skipped = report.Entries[2];
+            Assert.Equal("olm:entry:Local/B/Contacts.xml", skipped.ItemId);
+            Assert.Equal(EmailStoreSalvageStatus.NotRecovered, skipped.Status);
+            Assert.Equal("EMAIL_STORE_OLM_SALVAGE_ENTRY_LIMIT", skipped.DamageCode);
+            Assert.True(report.StoppedAtLimit);
+            Assert.False(report.IsComplete);
+            string[] manifest = File.ReadAllLines(report.ManifestPath!);
+            Assert.StartsWith("olm:entry:Local/B/Contacts.xml\tNotRecovered\t", manifest[3], StringComparison.Ordinal);
+            Assert.Contains(manifest.Skip(4), line =>
+                line.StartsWith("source:EMAIL_STORE_OLM_SALVAGE_ENTRY_LIMIT\tError\t", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void KeepsTheRecordsReadBeforeTheXmlCharacterLimit() {
+        string contacts = "<contacts><contact><OPFContactCopyDisplayName>First</OPFContactCopyDisplayName></contact>" +
+            "<contact><OPFContactCopyDisplayName>" + new string('a', 40_000) + "</OPFContactCopyDisplayName></contact></contacts>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", contacts).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxXmlCharactersPerItem: 20_000)));
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(EmailStoreSalvageStatus.Partial, contact.Status);
+            Assert.True(report.StoppedAtLimit);
+            using EmailReadResult exported = new EmailDocumentReader().ReadDocument(contact.DestinationPath!);
+            Assert.Equal("First", exported.Document.Contact!.DisplayName);
+        });
+    }
+
+    [Fact]
+    public void RecoversFromAStreamPositionedAwayFromTheStart() {
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new FileStream(DbxStoreReaderTests.DamagedFixture("native-outlook-no-central-directory.olm"),
+                FileMode.Open, FileAccess.Read);
+            input.Position = 11;
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination);
+
+            Assert.Equal(11, input.Position);
+            Assert.Equal(3, report.RecoveredCount);
+            Assert.All(report.Entries, entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
         });
     }
 

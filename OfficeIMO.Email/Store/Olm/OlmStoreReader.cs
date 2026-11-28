@@ -9,6 +9,7 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Reads Outlook for Mac archives through bounded ZIP and XML primitives.</summary>
 internal sealed partial class OlmStoreReader {
     private readonly EmailStoreReaderOptions _options;
+    private readonly bool _isolateItemFailures;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
     private readonly Dictionary<string, EmailStoreFolder> _folders =
         new Dictionary<string, EmailStoreFolder>(StringComparer.OrdinalIgnoreCase);
@@ -25,8 +26,15 @@ internal sealed partial class OlmStoreReader {
     private string? _selectedEntryPath;
     private XDocument? _selectedXml;
 
-    internal OlmStoreReader(EmailStoreReaderOptions options) {
+    /// <param name="options">Reader limits.</param>
+    /// <param name="isolateItemFailures">
+    /// When true, an item that cannot be projected within the per-item limits, or an XML entry over the XML
+    /// limits, is reported with a diagnostic and skipped instead of failing the whole catalog. Recovery uses this;
+    /// normal reads stay strict.
+    /// </param>
+    internal OlmStoreReader(EmailStoreReaderOptions options, bool isolateItemFailures = false) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _isolateItemFailures = isolateItemFailures;
     }
 
     internal EmailStoreReadResult ReadArchive(ZipArchive archive, string? sourceName, long sourceLength,
@@ -162,6 +170,10 @@ internal sealed partial class OlmStoreReader {
                     "This XML entry is outside the supported OLM item collections and was not projected.",
                     EmailStoreDiagnosticSeverity.Warning, location));
             }
+        } catch (EmailStoreLimitExceededException exception) when (_isolateItemFailures &&
+                                                                 exception.LimitName != nameof(EmailStoreReaderOptions.MaxItemCount)) {
+            _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_XML_INVALID", exception.Message,
+                EmailStoreDiagnosticSeverity.Error, location));
         } catch (EmailStoreLimitExceededException) {
             throw;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException ||
@@ -188,7 +200,18 @@ internal sealed partial class OlmStoreReader {
 
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
-            EmailStoreItem projected = CreateItem(item, kind, id, folder.Id, location);
+            EmailStoreItem projected;
+            try {
+                projected = CreateItem(item, kind, id, folder.Id, location);
+            } catch (Exception exception) when (_isolateItemFailures && (exception is EmailStoreLimitExceededException ||
+                                                                         exception is InvalidDataException ||
+                                                                         exception is FormatException ||
+                                                                         exception is XmlException)) {
+                _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_ITEM_UNREADABLE", exception.Message,
+                    EmailStoreDiagnosticSeverity.Error, location));
+                index++;
+                continue;
+            }
             if (_catalogItem != null) _catalogItem(projected, entry.FullName, index, kind);
             else folder.MutableItems.Add(projected);
             index++;

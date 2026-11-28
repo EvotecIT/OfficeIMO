@@ -350,7 +350,7 @@ public sealed partial class EmailStoreSession {
         File.Replace(temporary, destination, destinationBackupFileName: null);
     }
 
-    private static EmailStoreDiagnostic ConvertDiagnostic(EmailDiagnostic diagnostic, string itemId) =>
+    internal static EmailStoreDiagnostic ConvertDiagnostic(EmailDiagnostic diagnostic, string itemId) =>
         new EmailStoreDiagnostic(
             diagnostic.Code,
             diagnostic.Message,

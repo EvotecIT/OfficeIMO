@@ -725,8 +725,10 @@ export reports an omitted arrival time or loss of sub-second EMLX precision.
 `EmailStoreSalvage` recovers readable items from a DBX message database or an OLM archive that the normal
 readers reject, for example after truncation, a broken index or a missing ZIP central directory. Each item is
 written on its own, and a tab-separated manifest records whether it came back fully, partially or not at all,
-with the source offset and the offset of the damage that stopped it. The source is never modified and nothing is
-written outside the destination folder.
+with the source offset and the offset of the damage that stopped it. Rows whose `ItemId` starts with `source:`
+follow the items and record source-level findings, such as a limit that stopped recovery or a damaged index; their
+`Status` column holds the severity. The source is never modified and nothing is written outside the destination
+folder.
 
 ```csharp
 using OfficeIMO.Email.Store;
@@ -741,13 +743,17 @@ EmailStoreSalvageReport archive = EmailStoreSalvage.RecoverOlmToDirectory("Outlo
 
 DBX recovery scans for message records and fragments instead of trusting the active index, so it still finds
 messages when the index or header is damaged. A broken fragment chain yields the readable prefix as a partial
-EML; fragment chains that no surviving record references are rebuilt when they start with a message header.
-Recovered DBX MIME bytes are written unchanged by default.
+EML, and a chain stops where a link reaches another message's fragments rather than splicing them in. Fragment
+chains that no surviving record references, including closed loops, are rebuilt when they start with a message
+header. Recovered DBX MIME bytes are written unchanged by default; when converting to MSG, OFT or TNEF, content the
+MIME reader could not decode marks the item partial.
 
 OLM recovery reads entries from the central directory, or from local entry headers when the directory is missing
 or damaged, and checks each entry against its CRC-32. A damaged XML entry is skipped and reported; when it is
 truncated or fails its checksum, its complete records are still recovered and marked partial because they cannot
-be verified. A message whose attachment entry is damaged is recovered without that attachment and marked partial.
+be verified. XML is read under the same limits as a normal read, and a record that exceeds a per-item limit is
+reported on its own while the other records are exported. A message whose attachment entry is damaged is
+recovered without that attachment and marked partial.
 OLM items are written as MSG by default. Conversion loss is reported in each item's diagnostics rather than
 rejecting the item. To reject lossy items instead, pass
 `new EmailStoreSalvageOptions(writerOptions: new EmailWriterOptions(EmailConversionLossPolicy.Block))`.

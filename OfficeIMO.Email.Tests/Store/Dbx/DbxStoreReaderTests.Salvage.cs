@@ -52,10 +52,11 @@ public sealed partial class DbxStoreReaderTests {
             Assert.True(report.HasLoss);
 
             string[] manifest = File.ReadAllLines(report.ManifestPath!);
-            Assert.Equal(2, manifest.Length);
+            Assert.Equal(3, manifest.Length);
             string[] row = manifest[1].Split('\t');
             Assert.Equal(new[] { WelcomeItem, "Partial", "Message", "record 0x2e10", "0x2e10", "3684", "10139", "", "0xf9b8",
                 "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_TRUNCATED" }, row.Take(10));
+            Assert.StartsWith("source:EMAIL_STORE_DBX_SALVAGE_INDEX_DAMAGED\tWarning\t", manifest[2], StringComparison.Ordinal);
             AssertOnlyArtifactsInside(destination, report);
         });
     }
@@ -254,6 +255,113 @@ public sealed partial class DbxStoreReaderTests {
         WithDestination(destination => Assert.Throws<InvalidDataException>(() =>
             EmailStoreSalvage.RecoverDbxToDirectory(
                 Path.Combine(CorpusRoot, "dbx-metadata-unknown-producer", "Folders.dbx"), destination)));
+    }
+
+    [Fact]
+    public void StopsAChainThatLinksIntoAnotherMessageInsteadOfSplicingIt() {
+        byte[] database = CreateDatabase();
+        // The first message's link is damaged so it points at the body the second record owns.
+        UInt32(database, FirstFragment + 12, OtherMessage);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            Assert.Collection(report.Entries,
+                first => {
+                    Assert.Equal(EmailStoreSalvageStatus.Partial, first.Status);
+                    Assert.Equal(512, first.RecoveredBytes);
+                    Assert.Equal(OtherMessage, first.DamageOffset);
+                    Assert.Equal("EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT", first.DamageCode);
+                    Assert.Equal(database.AsSpan(FirstFragment + 16, 512).ToArray(), File.ReadAllBytes(first.DestinationPath!));
+                },
+                second => {
+                    Assert.Equal(EmailStoreSalvageStatus.Recovered, second.Status);
+                    Assert.Equal("Subject: Other message\r\n\r\nBody\r\n", File.ReadAllText(second.DestinationPath!));
+                });
+        });
+    }
+
+    [Fact]
+    public void ReadsAnIndexedBodyWhoseOptionalPropertyIsDamaged() {
+        byte[] database = CreateDatabase();
+        // Give the second record a subject whose value offset lies outside the record.
+        UInt32(database, SecondRecord + 4, 16);
+        database[SecondRecord + 10] = 3;
+        UInt32(database, SecondRecord + 20, (0xffff << 8) | 0x05);
+        UInt32(database, SecondRecord + 24, OtherMessage);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination,
+                new EmailStoreSalvageOptions(includeUnindexedFragmentChains: false));
+
+            EmailStoreSalvageEntry second = report.Entries[1];
+            Assert.Equal("dbx:item:00003140", second.ItemId);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, second.Status);
+            Assert.Equal(true, second.IsInActiveIndex);
+            Assert.Equal("Subject: Other message\r\n\r\nBody\r\n", File.ReadAllText(second.DestinationPath!));
+            Assert.Contains(second.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_DBX_SALVAGE_PROPERTY_UNREADABLE");
+        });
+    }
+
+    [Fact]
+    public void RecoversAnOrphanWhoseLinkPointsAtItself() {
+        byte[] database = CreateDatabase();
+        database[SecondRecord + 16] = 0x03;
+        UInt32(database, OtherMessage + 12, OtherMessage);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            EmailStoreSalvageEntry orphan = report.Entries[2];
+            Assert.Equal("dbx:chain:00003720", orphan.ItemId);
+            Assert.Equal(EmailStoreSalvageStatus.Partial, orphan.Status);
+            Assert.Equal("EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CYCLE", orphan.DamageCode);
+            Assert.Equal("Subject: Other message\r\n\r\nBody\r\n", File.ReadAllText(orphan.DestinationPath!));
+        });
+    }
+
+    [Fact]
+    public void RecoversOrphansFoundBeforeTheScanStopsAtTheNodeBound() {
+        byte[] database = CreateDatabase();
+        database[SecondRecord + 16] = 0x03;
+        byte[] filler = Encoding.ASCII.GetBytes("freed space");
+        WriteFragment(database, 0x3a00, filler, 0, filler.Length, 0);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            // Two records and three fragments fit; the fragment after them stops the scan.
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxNodeCount: 5)));
+
+            Assert.Equal("dbx:chain:00003720", report.Entries[2].ItemId);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, report.Entries[2].Status);
+            Assert.False(report.DiscoveryCompleted);
+            Assert.Contains(report.NativeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_SALVAGE_NODE_LIMIT" && diagnostic.ByteOffset == 0x3a00);
+            Assert.Contains(File.ReadAllLines(report.ManifestPath!), line =>
+                line.StartsWith("source:EMAIL_STORE_SALVAGE_NODE_LIMIT\tWarning\t", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void MarksAConvertedMessageWithUndecodableContentAsPartial() {
+        byte[] database = CreateDatabase();
+        byte[] damaged = Encoding.ASCII.GetBytes("Subject: Other message\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=part\r\n\r\n--part\r\nContent-Type: text/plain\r\n\r\nBody\r\n" +
+            "--part\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+            "@@@@ not base64 @@@@\r\n--part--\r\n");
+        WriteFragment(database, OtherMessage, damaged, 0, damaged.Length, 0);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination,
+                new EmailStoreSalvageOptions(format: EmailFileFormat.OutlookMsg));
+
+            EmailStoreSalvageEntry second = report.Entries[1];
+            Assert.Equal(EmailStoreSalvageStatus.Partial, second.Status);
+            Assert.Equal("EMAIL_STORE_DBX_SALVAGE_MIME_DAMAGED", second.DamageCode);
+            Assert.NotNull(second.DestinationPath);
+            Assert.Contains(second.Diagnostics, diagnostic => diagnostic.Severity == EmailStoreDiagnosticSeverity.Error &&
+                diagnostic.Location!.StartsWith("item/dbx:item:00003140", StringComparison.Ordinal));
+        });
     }
 
     internal static string CorpusRoot => Path.Combine(EmailTestRepository.FindRoot(), "OfficeIMO.Email.Tests", "Corpora");

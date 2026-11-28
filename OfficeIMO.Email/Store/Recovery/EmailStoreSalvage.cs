@@ -183,6 +183,9 @@ internal sealed class EmailStoreSalvageWriter {
                 EmailStoreDiagnosticSeverity.Warning, path));
             return null;
         }
+        // Source-level findings (limits, unreadable structures, incomplete discovery) follow the item rows.
+        EmailStoreDiagnostic[] source = diagnostics.Where(static diagnostic =>
+            diagnostic.Severity != EmailStoreDiagnosticSeverity.Information).ToArray();
         string? temporaryPath = OfficeFileCommit.CreateStagingPath(path);
         try {
             using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
@@ -203,6 +206,17 @@ internal sealed class EmailStoreSalvageWriter {
                         entry.BytesWritten.ToString(CultureInfo.InvariantCulture),
                         Escape(entry.DestinationPath == null ? string.Empty : RelativePath(entry.DestinationPath)),
                         entry.Diagnostics.Count.ToString(CultureInfo.InvariantCulture)));
+                }
+                foreach (EmailStoreDiagnostic diagnostic in source) {
+                    writer.WriteLine(string.Join("\t",
+                        Escape("source:" + diagnostic.Code),
+                        diagnostic.Severity.ToString(),
+                        string.Empty,
+                        Escape(diagnostic.Location ?? string.Empty),
+                        string.Empty, string.Empty, string.Empty, string.Empty,
+                        Offset(diagnostic.ByteOffset),
+                        diagnostic.Code,
+                        string.Empty, string.Empty, "1"));
                 }
             }
             OfficeFileCommit.CommitTemporaryFile(temporaryPath, path, _options.OverwriteExisting

@@ -33,7 +33,10 @@ internal sealed class DbxSalvage {
     private readonly List<uint> _records = new List<uint>();
     private readonly Dictionary<uint, Fragment> _fragments = new Dictionary<uint, Fragment>();
     private readonly HashSet<uint> _consumedFragments = new HashSet<uint>();
+    // First fragments that an independent record or message header identifies; a link into one is a conflict.
+    private readonly HashSet<uint> _bodyHeads = new HashSet<uint>();
     private bool _stoppedAtLimit;
+    private bool _itemLimitReached;
     private bool _scanStopped;
 
     internal DbxSalvage(Stream source, string? sourceName, EmailStoreSalvageOptions options,
@@ -55,6 +58,7 @@ internal sealed class DbxSalvage {
         // An indexed record that the scan did not recognize is still reported, so its loss is visible.
         var scanned = new HashSet<uint>(_records);
         foreach (uint address in active) if (scanned.Add(address)) _records.Add(address);
+        CollectBodyHeads(active);
 
         var paths = new EmailStoreExportPathBuilder(_output.Root,
             new[] { new EmailStoreFolderInfo(FolderId, null, _displayName, 0, 0) }, preserveHierarchy: false);
@@ -71,12 +75,14 @@ internal sealed class DbxSalvage {
             if (entry != null) entries.Add(entry);
         }
 
-        if (_options.IncludeUnindexedFragmentChains && !_stoppedAtLimit) {
-            var referenced = new HashSet<uint>(_fragments.Values.Where(fragment => fragment.Next != 0)
-                .Select(fragment => fragment.Next));
+        // A scan stopped at the node bound still recovers the chains it found; only the item bound ends the pass.
+        if (_options.IncludeUnindexedFragmentChains && !_itemLimitReached) {
+            HashSet<uint> referenced = ReferencedFragments();
+            HashSet<uint> cyclic = FindCycleMembers();
             foreach (KeyValuePair<uint, Fragment> head in _fragments.OrderBy(pair => pair.Key)) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                if (referenced.Contains(head.Key) || firstFragments.Contains(head.Key) ||
+                // A closed cycle has no unreferenced member, so its first header-bearing fragment is the head.
+                if ((referenced.Contains(head.Key) && !cyclic.Contains(head.Key)) || firstFragments.Contains(head.Key) ||
                     _consumedFragments.Contains(head.Key) || !StartsWithHeader(head.Key, head.Value)) continue;
                 if (AtItemLimit(entries.Count)) { StopAtItemLimit(); break; }
                 entries.Add(RecoverChain(head.Key, indexComplete ? false : null, paths));
@@ -89,6 +95,65 @@ internal sealed class DbxSalvage {
         string? manifest = _output.WriteManifest(ordered, _diagnostics);
         return new EmailStoreSalvageReport(EmailStoreFormat.Dbx, _output.Root, manifest, _stoppedAtLimit,
             Array.AsReadOnly(ordered), _diagnostics.ToArray(), discoveryCompleted: !_scanStopped);
+    }
+
+    /// <summary>Fragments another fragment links to; a fragment that links to itself does not count.</summary>
+    private HashSet<uint> ReferencedFragments() =>
+        new HashSet<uint>(_fragments.Where(pair => pair.Value.Next != 0 && pair.Value.Next != pair.Key)
+            .Select(pair => pair.Value.Next));
+
+    /// <summary>Fragments that lie on a closed chain of links, found in one pass over the link graph.</summary>
+    private HashSet<uint> FindCycleMembers() {
+        var cyclic = new HashSet<uint>();
+        var finished = new HashSet<uint>();
+        var path = new List<uint>();
+        var onPath = new Dictionary<uint, int>();
+        foreach (uint start in _fragments.Keys) {
+            if (finished.Contains(start)) continue;
+            path.Clear();
+            onPath.Clear();
+            uint current = start;
+            while (_fragments.TryGetValue(current, out Fragment fragment) && !finished.Contains(current)) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                if (onPath.TryGetValue(current, out int first)) {
+                    for (int index = first; index < path.Count; index++) cyclic.Add(path[index]);
+                    break;
+                }
+                onPath.Add(current, path.Count);
+                path.Add(current);
+                if (fragment.Next == 0) break;
+                current = fragment.Next;
+            }
+            foreach (uint member in path) finished.Add(member);
+        }
+        return cyclic;
+    }
+
+    /// <summary>
+    /// Records the first fragment of every message that something independent identifies: an indexed record, a
+    /// stale record whose body starts with a message header, or an unreferenced fragment that does. A chain that
+    /// links into one of them stops there instead of splicing another message's bytes into its own.
+    /// </summary>
+    private void CollectBodyHeads(HashSet<uint> active) {
+        var database = new DbxDatabase(_source, _limits);
+        foreach (uint address in _records) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            bool indexed = active.Contains(address);
+            if (!TryReadRecordTable(address, requireAscending: !indexed, out byte[] table) || !HasProperty(table, 0x04)) continue;
+            uint head;
+            try {
+                head = database.ReadIndexedRecord(address, _cancellationToken).ReadUInt32(0x04, _cancellationToken) ?? 0;
+            } catch (Exception exception) when (exception is InvalidDataException || exception is EmailStoreLimitExceededException) {
+                continue;
+            }
+            if (head != 0 && _fragments.TryGetValue(head, out Fragment fragment) &&
+                (indexed || StartsWithHeader(head, fragment))) _bodyHeads.Add(head);
+        }
+        HashSet<uint> referenced = ReferencedFragments();
+        foreach (KeyValuePair<uint, Fragment> pair in _fragments) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (!referenced.Contains(pair.Key) && StartsWithHeader(pair.Key, pair.Value)) _bodyHeads.Add(pair.Key);
+        }
     }
 
     /// <summary>Both the outcome bound and the source item bound stop recovery.</summary>
@@ -183,12 +248,16 @@ internal sealed class DbxSalvage {
                 uint second = UInt32(buffer, index + 4);
                 uint third = UInt32(buffer, index + 8);
                 uint fourth = UInt32(buffer, index + 12);
-                if (second >= 1 && second <= MaximumFragmentAllocation && third >= 1 && third <= second &&
-                    fourth != address && (fourth == 0 || (fourth >= HeaderLength && fourth % 4 == 0))) {
+                bool fragmentShape = second >= 1 && second <= MaximumFragmentAllocation && third >= 1 && third <= second;
+                bool linkValid = fourth != address && (fourth == 0 || (fourth >= HeaderLength && fourth % 4 == 0));
+                bool recordShape = buffer[index + 10] > 0 && buffer[index + 10] * 4L <= second &&
+                    second <= _limits.MaxDecodedPropertyBytesPerItem;
+                // A fragment with a broken link still holds readable bytes; the chain walk reports the link. The
+                // link only decides the shape when the header could also be a message record.
+                if (fragmentShape && (linkValid || !recordShape)) {
                     if (_fragments.Count + _records.Count >= _limits.MaxNodeCount) { StopAtNodeLimit(address); return; }
                     _fragments[address] = new Fragment(second, third, fourth);
-                } else if (buffer[index + 10] > 0 && buffer[index + 10] * 4L <= second &&
-                           second <= _limits.MaxDecodedPropertyBytesPerItem) {
+                } else if (recordShape) {
                     if (_fragments.Count + _records.Count >= _limits.MaxNodeCount) { StopAtNodeLimit(address); return; }
                     _records.Add(address);
                 }
@@ -289,6 +358,8 @@ internal sealed class DbxSalvage {
                     chain.DamageMessage ?? "The message body is empty.", diagnostics, subject, declared);
 
             EmailFileFormat format = _options.Format ?? EmailFileFormat.Eml;
+            long? damageOffset = chain.DamageOffset;
+            string? damageCode = chain.DamageCode;
             string? destination = null;
             long written = 0;
             try {
@@ -310,6 +381,10 @@ internal sealed class DbxSalvage {
                     using EmailReadResult result = EmailStoreMessageReader.Read(input, _limits, _cancellationToken,
                         includeAttachmentContent: true);
                     EmailDocument document = result.Document;
+                    // A converted artifact carries what decoding lost; the raw EML path keeps the bytes unchanged.
+                    foreach (EmailDiagnostic diagnostic in result.Diagnostics)
+                        diagnostics.Add(EmailStoreSession.ConvertDiagnostic(diagnostic, id));
+                    if (result.HasErrors) damageCode ??= "EMAIL_STORE_DBX_SALVAGE_MIME_DAMAGED";
                     if (document.Subject == null && subject != null) document.Subject = subject;
                     document.ReceivedDate ??= received;
                     if (flags.HasValue) {
@@ -332,11 +407,11 @@ internal sealed class DbxSalvage {
             }
             if (destination == null)
                 return new EmailStoreSalvageEntry(id, EmailStoreSalvageStatus.NotRecovered, location, sourceOffset,
-                    chain.Bytes, declared, indexed, chain.DamageOffset, chain.DamageCode ?? "EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED",
+                    chain.Bytes, declared, indexed, damageOffset, damageCode ?? "EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED",
                     OutlookItemKind.Message, subject, null, 0, diagnostics.AsReadOnly());
             return new EmailStoreSalvageEntry(id,
-                chain.DamageCode == null ? EmailStoreSalvageStatus.Recovered : EmailStoreSalvageStatus.Partial,
-                location, sourceOffset, chain.Bytes, declared, indexed, chain.DamageOffset, chain.DamageCode,
+                damageCode == null ? EmailStoreSalvageStatus.Recovered : EmailStoreSalvageStatus.Partial,
+                location, sourceOffset, chain.Bytes, declared, indexed, damageOffset, damageCode,
                 OutlookItemKind.Message, subject, destination, written, diagnostics.AsReadOnly());
         } finally {
             OfficeFileCommit.DeleteIfExists(spillPath);
@@ -386,6 +461,9 @@ internal sealed class DbxSalvage {
                     "The file ends inside a message fragment.");
             uint next = UInt32(header, 12);
             if (next == 0) return new ChainResult(bytes, null, null, null);
+            if (!seen.Contains(next) && (_bodyHeads.Contains(next) || _consumedFragments.Contains(next)))
+                return ChainResult.Damaged(bytes, next, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT",
+                    "A message fragment links into another message's fragments, so the chain stops before them.");
             address = next;
         }
     }
@@ -431,7 +509,9 @@ internal sealed class DbxSalvage {
             int property = bytes[entry] & 0x7f;
             if (requireAscending && property <= previous) return false;
             previous = property;
-            if ((bytes[entry] & 0x80) == 0 && (UInt32(bytes, entry) >> 8) >= bodyLength - bytes.Length) return false;
+            // Index-listed records only need a readable body pointer; a damaged optional value is reported when read.
+            if ((bytes[entry] & 0x80) == 0 && (requireAscending || property == 0x04) &&
+                (UInt32(bytes, entry) >> 8) >= bodyLength - bytes.Length) return false;
         }
         table = bytes;
         return true;
@@ -480,6 +560,7 @@ internal sealed class DbxSalvage {
 
     private void StopAtItemLimit() {
         _stoppedAtLimit = true;
+        _itemLimitReached = true;
         Add("EMAIL_STORE_SALVAGE_ITEM_LIMIT", "Recovery stopped at the configured item bound.",
             EmailStoreDiagnosticSeverity.Warning, null);
     }
