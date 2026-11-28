@@ -2,7 +2,7 @@
 
 `OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer, and for projecting supported diagram semantics into native editable Visio. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
-The bridge uses ChartForgeX 3.1. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` when composing stories or animation scenes; GIF and APNG encoding is available in the ChartForgeX core package. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
+The bridge uses ChartForgeX 4.0.2. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` when composing stories or animation scenes; GIF and APNG encoding is available in the ChartForgeX core package. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
@@ -11,6 +11,22 @@ For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming p
 ```sh
 dotnet add package OfficeIMO.ChartForgeX
 ```
+
+## Supported delivery path
+
+Every destination takes the same `VisualArtifact` and needs no Office installation, network access or browser. Charts, topology and flow or sequence diagrams all use this path.
+
+| Destination | Call | What is placed | Fallback |
+| --- | --- | --- | --- |
+| Word (.docx) | `paragraph.AddVisualArtifact(artifact)` | SVG picture with a PNG fallback image for older readers | PNG picture when SVG import is incomplete |
+| Excel (.xlsx) | `sheet.AddVisualArtifact("B4:I18", artifact)` | SVG picture with a PNG fallback image, fitted to the range | PNG picture when SVG import is incomplete |
+| PowerPoint (.pptx) | `slide.AddVisualArtifact(artifact, layoutBox)` | SVG picture with a PNG fallback image, fitted to the box | PNG picture when SVG import is incomplete |
+| PDF | `content.AddVisualArtifact(artifact)` | Vector drawing: paths and real text, no image XObject | Embedded PNG when the drawing contains effects the PDF writer can't express |
+| Visio (.vsdx) | `artifact.ToOfficeVisio()` | Native editable shapes and connectors, see [native editable Visio](#native-editable-visio) | None: unsupported families throw `NotSupportedException` |
+
+The default `OfficeVisualSvgPolicy.RasterizeWhenNeeded` picks vector output and falls back to PNG only when the SVG importer reports an incomplete conversion; the fallback is a reported approximation in `Report.Diagnostics`. Choose `RequireVector` to reject that fallback instead. Placed pictures carry the artifact's title and accessible description as alternative text.
+
+The [document delivery example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX.Examples/README.md) writes all five formats from one light and dark chart, topology and flow diagram. Its tests reopen each saved file with OfficeIMO's readers, check that every visual is present and that the Word, Excel and PowerPoint packages validate without errors.
 
 ## Put a chart in Word
 
@@ -118,7 +134,16 @@ Decoration retains the semantic model. Native Visio reports `WatermarkNotProject
 
 ## Native editable Visio
 
-Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Visio diagrams. Nodes, containers, connectors, Shape Data, hyperlinks, sequence messages, activations, notes, and fragments remain editable after saving to VSDX. The conversion result includes the document, generated page, validated CFX interchange envelope, and a fidelity report.
+Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Visio diagrams.
+
+| ChartForgeX family | Native shapes | Native connectors | Shape Data | Layout | Typical loss diagnostics |
+| --- | --- | --- | --- | --- | --- |
+| Topology (`TopologyChart`) | Nodes and groups as containers | Edges, glued to both ends, with prepared routes and labels | `CFX.Kind`, `CFX.TopologyNodeKind`, `CFX.Status`, `CFX.Role`, `CFX.Icon`, metrics, details, ports, extensions; hyperlinks from `Href` | Prepared bounds and routes preserved (`Preserve` or `Auto`) | `ArtworkNotProjected` (icons, symbols, badges), `EdgePresentationNormalized`, `AccessibilityNotProjected` |
+| Flow (`FlowArtifact`) | Steps, lanes as containers | Connectors between steps | `CFX.FlowStepKind`, `CFX.FlowConnectorKind`, `CFX.Status`, `CFX.Role`, extensions | Native Visio layout | `LayoutRecomputed`, `NodeKindNormalized` (step kinds without a matching stencil), `ArtworkNotProjected` |
+| Sequence (`SequenceArtifact`) | Participants, lifelines, activations, notes, fragments | Messages | `CFX.Id`, `CFX.SequenceParticipantKind`, `CFX.SequenceParticipantOrder`, `CFX.SequenceMessageKind`, fragment and activation fields | Native Visio layout | `LayoutRecomputed`, `EndpointLabelsNotRendered`, `ActivationNotProjected` |
+| Charts, tables, KPI cards, canvases, stories | Not projected | Not projected | Not projected | | `ToOfficeVisio` throws `NotSupportedException`; place the SVG or PNG picture in Word, Excel, PowerPoint or PDF instead |
+
+OfficeIMO.Visio has no public picture-insertion API yet, so non-semantic families have no in-Visio picture fallback. Nodes, containers, connectors, Shape Data, hyperlinks, sequence messages, activations, notes, and fragments remain editable after saving to VSDX. The conversion result includes the document, generated page, validated CFX interchange envelope, and a fidelity report.
 
 ```csharp
 using ChartForgeX.VisualArtifacts;

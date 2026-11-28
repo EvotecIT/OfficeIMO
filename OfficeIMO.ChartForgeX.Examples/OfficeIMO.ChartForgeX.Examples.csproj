@@ -3,8 +3,10 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
-
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.ChartForgeX.Tests" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="../Build/Verification/PowerPoint/PowerPointDesktopReferenceRenderer.cs" Link="Verification/PowerPointDesktopReferenceRenderer.cs" />
   </ItemGroup>

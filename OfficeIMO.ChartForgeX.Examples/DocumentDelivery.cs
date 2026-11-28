@@ -50,14 +50,14 @@ internal static class DocumentDelivery {
             for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.Range("B1:I2").Merge();
             sheet.Cell(1, 2).SetValue(Heading(specimen));
-            sheet.Cell(1, 2).SetFontName(Style.FontFamily); sheet.Cell(1, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
+            sheet.Cell(1, 2).SetFontFamily(Style.FontFamily); sheet.Cell(1, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
             // The picture remains within the authored Letter print width after the half-inch margins.
             sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
             sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
             sheet.Range("B21:I23").Merge();
             sheet.Cell(21, 2).SetValue(specimen.Caption);
-            sheet.Cell(21, 2).SetFontName(Style.FontFamily); sheet.Cell(21, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
+            sheet.Cell(21, 2).SetFontFamily(Style.FontFamily); sheet.Cell(21, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
             sheet.Cell(21, 2).SetWrapText();
         }
         document.Save();
@@ -70,7 +70,7 @@ internal static class DocumentDelivery {
         foreach (var specimen in specimens) {
             var slide = presentation.AddSlide();
             var colors = VisualTheme.Graphite().Resolve(specimen.Mode);
-            slide.BackgroundColor = colors.Background.ToHex().TrimStart('#');
+            slide.BackgroundColor = OfficeIMO.OfficeColor.Parse(colors.Background.ToHex());
             Text(slide, Heading(specimen), 36D, 16D, slideWidth - 72D, 30D, Style.HeadingSizePoints, colors.Foreground.ToHex());
             slide.AddVisualArtifact(specimen.Artifact,
                 new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(36D),OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(slideWidth - 72D),OfficeIMO.OfficeLength.Points(slideHeight - 130D)));
@@ -95,9 +95,10 @@ internal static class DocumentDelivery {
     }
 
     private static void WriteVisio(string output, IReadOnlyList<VisualSpecimen> specimens) {
-        var diagrams = specimens.Where(item => item.EditableTopology).ToArray();
+        var diagrams = specimens.Where(item => item.EditableDiagram).ToArray();
+        // Auto keeps prepared topology bounds and routes; flow pages use native Visio layout and report LayoutRecomputed.
         var book = diagrams.Select(item => item.Artifact.ToInterchangeEnvelope()).ToOfficeVisioBook(
-            new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Preserve, PixelsPerInch = 96D });
+            new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Auto, PixelsPerInch = 96D });
         book.Document.Save(Path.Combine(output, "service-delivery.vsdx"));
         DeliveryEvidence.SaveJson(Path.Combine(output, "native-visio-fidelity.json"), book.Pages.Select((page, index) => new {
             diagrams[index].Name, page.Report, page.Page.Width, page.Page.Height,
