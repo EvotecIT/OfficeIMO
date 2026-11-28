@@ -1,22 +1,24 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
-        private static void RegenerateTablesOfContents(WordDocument document, FieldEvaluationState state) {
-            IReadOnlyList<WordTableOfContent> tables = WordTableOfContent.GetTablesOfContents(document);
+        private static void RegenerateTablesOfContents(WordDocument document, FieldEvaluationState state,
+            IReadOnlyList<WordTableOfContent> tables) {
             if (tables.Count == 0) {
                 return;
             }
 
             bool anyLocked = false;
             foreach (WordTableOfContent table in tables) {
-                bool locked = state.LockedTocFields.Any(field => field.AnchorElement.Ancestors<SdtBlock>().Contains(table.SdtBlock));
+                OfficeXmlNode control = table.SdtNode;
+                bool locked = state.LockedTocFields.Any(field => field.AnchorElement.IsInside(control));
                 if (locked) {
                     anyLocked = true;
                     continue;
                 }
                 table.RegenerateFieldResult();
-                state.RegeneratedTablesOfContents.Add(table.SdtBlock);
+                state.RegeneratedTablesOfContents.Add(control);
             }
 
             // The entries are final, so an open-time rebuild that OfficeIMO turned on for these tables is no longer
@@ -34,11 +36,11 @@ namespace OfficeIMO.Word {
         private static bool IsInsideLockedToc(MutableFieldCandidate candidate, IEnumerable<MutableFieldCandidate> lockedFields) {
             foreach (MutableFieldCandidate locked in lockedFields) {
                 if (!string.Equals(candidate.PartUri, locked.PartUri, StringComparison.Ordinal)) continue;
-                if (ReferenceEquals(candidate.AnchorElement, locked.AnchorElement)) return true;
-                if (locked.SimpleField != null && candidate.AnchorElement.Ancestors<SimpleField>().Contains(locked.SimpleField)) return true;
-                if (locked.EndRun != null && candidate.NestingLevel > locked.NestingLevel
-                    && candidate.AnchorElement.IsAfter(locked.AnchorElement)
-                    && (ReferenceEquals(candidate.AnchorElement, locked.EndRun) || candidate.AnchorElement.IsBefore(locked.EndRun))) return true;
+                if (candidate.AnchorElement == locked.AnchorElement) return true;
+                if (locked.SimpleField.Exists && candidate.AnchorElement.IsInside(locked.SimpleField)) return true;
+                if (locked.EndRun.Exists && candidate.NestingLevel > locked.NestingLevel
+                    && IsBefore(locked.AnchorElement, candidate.AnchorElement)
+                    && (candidate.AnchorElement == locked.EndRun || IsBefore(candidate.AnchorElement, locked.EndRun))) return true;
             }
             return false;
         }
@@ -48,8 +50,9 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            foreach (SdtBlock block in candidate.AnchorElement.Ancestors<SdtBlock>()) {
-                if (state.RegeneratedTablesOfContents.Contains(block)) {
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            for (OfficeXmlNode node = candidate.AnchorElement.Parent; node.Exists; node = node.Parent) {
+                if (node.Is(W, "sdt") && state.RegeneratedTablesOfContents.Contains(node)) {
                     return true;
                 }
             }

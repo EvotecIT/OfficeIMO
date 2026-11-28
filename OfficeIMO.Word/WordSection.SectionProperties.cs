@@ -1,4 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     // Provides access to section property settings.
@@ -13,74 +15,38 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <exception cref="OverflowException">The rounded gap exceeds the signed 32-bit twip range.</exception>
         public OfficeLength? ColumnsSpace {
-            get {
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    return null;
-                }
-
-                return int.TryParse(columns.Space?.Value, out int spacing)
-                    ? OfficeLength.Points(spacing / 20D) : (OfficeLength?)null;
-            }
+            get => int.TryParse(SectionNode.Child(SectionNamespace, "cols").Attribute(SectionNamespace, "space"), out int spacing)
+                ? OfficeLength.Points(spacing / 20D) : (OfficeLength?)null;
             set {
                 int? spacing = checked((int?)(value?.ToTwips()));
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    columns = new Columns();
-                    _sectionProperties.Append(columns);
-                }
-                columns.Space = spacing.HasValue ? new DocumentFormat.OpenXml.StringValue(spacing.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                EditSectionColumns().SetAttribute(SectionNamespace, "space", spacing?.ToString(CultureInfo.InvariantCulture));
             }
         }
 
-        /// <summary>
-        /// Gets or sets the number of columns in the section.
-        /// </summary>
+        /// <summary>Gets or sets the number of columns in the section.</summary>
         public int? ColumnCount {
             get {
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    return null;
-                }
-
-                if (columns.ColumnCount != null) {
-                    return (int)columns.ColumnCount!.Value!;
-                }
-
-                return columns.EqualWidth?.Value == false && columns.Elements<Column>().Any()
-                    ? columns.Elements<Column>().Count() : null;
+                OfficeXmlNode columns = SectionNode.Child(SectionNamespace, "cols");
+                if (columns.Attribute(SectionNamespace, "num") is { } token)
+                    return short.Parse(token, CultureInfo.InvariantCulture);
+                int count = HasExplicitColumnWidths(columns) ? CountDeclaredColumns(columns) : 0;
+                return count > 0 ? count : (int?)null;
             }
             set {
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                if (value.HasValue && columns?.EqualWidth?.Value == false &&
-                    columns.Elements<Column>().Any() && columns.Elements<Column>().Count() != value.Value) {
-                    throw new InvalidOperationException("Replace or clear ColumnDefinitions before changing the explicit section column count.");
+                OfficeXmlNode columns = SectionNode.Child(SectionNamespace, "cols");
+                if (value.HasValue && HasExplicitColumnWidths(columns)) {
+                    int count = CountDeclaredColumns(columns);
+                    if (count != 0 && count != value.Value)
+                        throw new InvalidOperationException("Replace or clear ColumnDefinitions before changing the explicit section column count.");
                 }
-                if (columns == null) {
-                    columns = new Columns();
-                    _sectionProperties.Append(columns);
-                }
-                columns.ColumnCount = value.HasValue ? (Int16Value)value.Value : null;
+                EditSectionColumns().SetAttribute(SectionNamespace, "num", ((short?)value)?.ToString(CultureInfo.InvariantCulture));
             }
         }
 
-        /// <summary>
-        /// Gets or sets whether a separator line is shown between section columns.
-        /// </summary>
+        /// <summary>Gets or sets whether a separator line is shown between section columns.</summary>
         public bool HasColumnSeparator {
-            get {
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                return columns?.Separator?.Value ?? false;
-            }
-            set {
-                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    columns = new Columns();
-                    _sectionProperties.Append(columns);
-                }
-
-                columns.Separator = value;
-            }
+            get => SectionNode.Child(SectionNamespace, "cols").Attribute(SectionNamespace, "sep") is "true" or "1" or "on";
+            set => EditSectionColumns().SetAttribute(SectionNamespace, "sep", value ? "true" : "false");
         }
 
         /// <summary>

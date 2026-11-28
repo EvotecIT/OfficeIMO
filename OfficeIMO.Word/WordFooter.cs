@@ -38,6 +38,12 @@ namespace OfficeIMO.Word {
     public partial class WordFooter : WordHeaderFooter {
         private readonly WordSection _section;
 
+        internal WordFooter(WordDocument document, WordSection section, string? ownedPartName) {
+            _document = document;
+            _section = section;
+            _ownedPartName = ownedPartName;
+        }
+
         internal WordFooter(WordDocument document, FooterReference footerReference, WordSection section) {
             _document = document;
             _id = footerReference.Id;

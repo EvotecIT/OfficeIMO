@@ -64,20 +64,29 @@ internal sealed class WordPackageModel : IDisposable {
     internal bool BodyPrepared { get; set; }
 
     private WordOwnedStyles? _styles;
-    // The owned layer never changes the styles part, so packages loaded from the same bytes, such as every new document
-    // made from the default package, share what was read from it.
+    // Unedited styles are shared by packages opened from the same source bytes.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], WordOwnedStyles> StylesBySource = new();
 
-    /// <summary>The style definitions of the package, read on first use. The owned layer doesn't change them.</summary>
-    internal WordOwnedStyles Styles => _styles ??= StylesBySource.GetValue(SourceBytes, _ => WordOwnedStyles.Read(this));
+    private bool _stylesEdited;
+
+    /// <summary>The style definitions of the package, read on first use.</summary>
+    internal WordOwnedStyles Styles => _styles ??= _stylesEdited ? WordOwnedStyles.Read(this)
+        : StylesBySource.GetValue(SourceBytes, _ => WordOwnedStyles.Read(this));
+
+    internal void InvalidateOwnedStyles() {
+        _stylesEdited = true;
+        _styles = null;
+    }
 
     private bool? _bodyHasFieldsOrContentControls;
 
     /// <summary>
     /// Whether the main part holds a content control or a field, either of which may be a table of contents in the body.
-    /// Checked once: owned edits never add either.
+    /// Cached until field authoring changes the body.
     /// </summary>
     internal bool BodyHasFieldsOrContentControls => _bodyHasFieldsOrContentControls ??= ContainsFieldOrContentControl(Document);
+
+    internal void NoteBodyFieldAdded() => _bodyHasFieldsOrContentControls = true;
 
     private static bool ContainsFieldOrContentControl(OfficeXmlTree tree) {
         foreach (int node in ElementsInOrder(tree)) {
@@ -105,10 +114,11 @@ internal sealed class WordPackageModel : IDisposable {
     /// <summary>
     /// The position of every element of the main part in document order, indexed by node, or -1 for other nodes. A copy
     /// of the package written from this tree and parsed again holds the same elements in the same order, so paragraphs
-    /// find their elements in it through <see cref="ElementsByPosition"/>.
+    /// find their elements in it through <see cref="ElementsByPosition()"/>.
     /// </summary>
-    internal int[] ElementPositions() {
-        OfficeXmlTree tree = Document;
+    internal int[] ElementPositions() => ElementPositions(Document);
+
+    internal static int[] ElementPositions(OfficeXmlTree tree) {
         var positions = new int[tree.NodeCount];
         for (int index = 0; index < positions.Length; index++) positions[index] = -1;
         int position = 0;
@@ -116,9 +126,10 @@ internal sealed class WordPackageModel : IDisposable {
         return positions;
     }
 
-    /// <summary>The elements of the main part in document order, the inverse of <see cref="ElementPositions"/>.</summary>
-    internal int[] ElementsByPosition() {
-        OfficeXmlTree tree = Document;
+    /// <summary>The elements of the main part in document order, the inverse of <see cref="ElementPositions()"/>.</summary>
+    internal int[] ElementsByPosition() => ElementsByPosition(Document);
+
+    internal static int[] ElementsByPosition(OfficeXmlTree tree) {
         var nodes = new List<int>(tree.NodeCount);
         foreach (int node in ElementsInOrder(tree)) nodes.Add(node);
         return nodes.ToArray();
@@ -153,7 +164,10 @@ internal sealed class WordPackageModel : IDisposable {
     }
 
     /// <summary>Records an edit, so the package is written from the model instead of copied.</summary>
-    internal void MarkChanged() => IsChanged = true;
+    internal void MarkChanged() {
+        IsChanged = true;
+        LastSavedBytes = null;
+    }
 
     /// <summary>
     /// Opens a plain, unsigned Transitional Word document: the usual main content type, a main part named as Word names

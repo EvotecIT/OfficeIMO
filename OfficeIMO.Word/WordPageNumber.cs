@@ -1,17 +1,11 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word;
 
 /// <summary>
 /// Inserts and controls page-number elements.
 /// </summary>
 public partial class WordPageNumber {
-    private WordDocument _document = null!;
-    private SdtBlock _sdtBlock = null!;
-    private WordHeader? _wordHeader;
-    private WordFooter? _wordFooter;
-    private WordParagraph _wordParagraph = null!;
-    private readonly List<WordParagraph> _listParagraphs = new();
+    private readonly WordParagraph _wordParagraph;
+    private readonly List<WordParagraph> _listParagraphs;
 
     /// <summary>
     /// Gets or sets the alignment of the page-number paragraph.

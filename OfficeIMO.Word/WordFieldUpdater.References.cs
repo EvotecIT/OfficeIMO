@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 
@@ -26,14 +27,14 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            BookmarkStart? bookmarkStart = FindBookmarkStart(document, bookmarkName!);
-            if (bookmarkStart == null) {
+            OfficeXmlNode bookmarkStart = FindBookmarkStart(document, bookmarkName!);
+            if (bookmarkStart.IsNone) {
                 message = $"Bookmark {bookmarkName} was not found.";
                 return false;
             }
 
             if (listSwitch.HasValue) {
-                if (!TryResolveReferenceListNumber(document, candidate, bookmarkStart, listSwitch.Value, parsed.Switches, out string? listNumber, out WordFieldUpdateStatus listStatus, out string listMessage)) {
+                if (!TryResolveReferenceListNumber(document, candidate, (BookmarkStart)bookmarkStart.SdkElement!, listSwitch.Value, parsed.Switches, out string? listNumber, out WordFieldUpdateStatus listStatus, out string listMessage)) {
                     status = listStatus;
                     message = listMessage;
                     return false;
@@ -47,8 +48,9 @@ namespace OfficeIMO.Word {
 
             string bookmarkText = GetBookmarkRangeText(bookmarkStart);
             if (string.IsNullOrEmpty(bookmarkText)) {
-                Paragraph? paragraph = bookmarkStart.Ancestors<Paragraph>().FirstOrDefault();
-                bookmarkText = paragraph == null ? string.Empty : GetVisibleParagraphText(paragraph);
+                OfficeXmlNode paragraph = bookmarkStart.AncestorOrSelf(OfficeXmlNamespaces.WordprocessingML, "p");
+                bookmarkText = string.Concat(WordFieldInventory.EnumerateFieldContent(paragraph)
+                    .Where(node => node.Is(OfficeXmlNamespaces.WordprocessingML, "t")).Select(node => node.InnerText));
             }
 
             if (string.IsNullOrEmpty(bookmarkText)) {
@@ -94,13 +96,13 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            BookmarkStart? bookmarkStart = FindBookmarkStart(document, bookmarkName!);
-            if (bookmarkStart == null) {
+            OfficeXmlNode bookmarkStart = FindBookmarkStart(document, bookmarkName!);
+            if (bookmarkStart.IsNone) {
                 message = $"Bookmark {bookmarkName} was not found.";
                 return false;
             }
 
-            if (!bookmarkStart.Ancestors<Body>().Any()) {
+            if (bookmarkStart.AncestorOrSelf(OfficeXmlNamespaces.WordprocessingML, "body").IsNone) {
                 message = "PAGEREF fields outside the document body need Word layout context and were left unchanged.";
                 return false;
             }
@@ -108,7 +110,7 @@ namespace OfficeIMO.Word {
             int? page = null;
             string? layoutLabel = null;
             if (layout != null) {
-                if (!layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage, out layoutLabel)) {
+                if (!layout.TryGetBookmarkPage(bookmarkStart.Attribute(OfficeXmlNamespaces.WordprocessingML, "name") ?? bookmarkName!, out int laidOutPage, out layoutLabel)) {
                     // A page-break estimate would contradict the laid out pages, so keep the existing result.
                     message = $"Bookmark {bookmarkName} could not be placed on a page by OfficeIMO layout; the PAGEREF result was left unchanged.";
                     return false;
@@ -338,69 +340,55 @@ namespace OfficeIMO.Word {
             return new string(chars);
         }
 
-        private static BookmarkStart? FindBookmarkStart(WordDocument document, string bookmarkName) {
-            var mainPart = document._wordprocessingDocument.MainDocumentPart;
-            if (mainPart == null) {
-                return null;
-            }
-
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                BookmarkStart? bookmarkStart = root.Root
-                    .Descendants<BookmarkStart>()
-                    .FirstOrDefault(bookmark =>
-                        string.Equals(bookmark.Name?.Value, bookmarkName, StringComparison.OrdinalIgnoreCase));
-                if (bookmarkStart != null) {
-                    return bookmarkStart;
+        private static OfficeXmlNode FindBookmarkStart(WordDocument document, string bookmarkName) {
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            foreach (var story in WordFieldInventory.EnumerateStories(document)) {
+                foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(story.Root)) {
+                    if (node.Is(W, "bookmarkStart") &&
+                        string.Equals(node.Attribute(W, "name"), bookmarkName, StringComparison.OrdinalIgnoreCase))
+                        return node;
                 }
             }
-
-            return null;
+            return default;
         }
 
-        private static string GetBookmarkRangeText(BookmarkStart bookmarkStart) {
-            string? bookmarkId = bookmarkStart.Id?.Value;
-            if (string.IsNullOrWhiteSpace(bookmarkId)) {
-                return string.Empty;
-            }
+        private static string GetBookmarkRangeText(OfficeXmlNode bookmarkStart) {
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            string? bookmarkId = bookmarkStart.Attribute(W, "id");
+            if (string.IsNullOrWhiteSpace(bookmarkId)) return string.Empty;
 
-            OpenXmlElement root = bookmarkStart.Ancestors().LastOrDefault() ?? bookmarkStart;
+            OfficeXmlNode root = bookmarkStart;
+            while (root.Parent.Exists) root = root.Parent;
             var text = new List<string>();
             bool inRange = false;
-            Paragraph? lastParagraph = null;
-            TableCell? lastCell = null;
+            OfficeXmlNode lastParagraph = default;
+            OfficeXmlNode lastCell = default;
 
-            foreach (OpenXmlElement element in root.Descendants()) {
-                if (ReferenceEquals(element, bookmarkStart)) {
+            foreach (OfficeXmlNode element in WordFieldInventory.EnumerateFieldContent(root)) {
+                if (element == bookmarkStart) {
                     inRange = true;
                     continue;
                 }
 
-                if (element is BookmarkEnd bookmarkEnd && bookmarkEnd.Id?.Value == bookmarkId) {
-                    break;
-                }
+                if (element.Is(W, "bookmarkEnd") && element.Attribute(W, "id") == bookmarkId) break;
+                if (!inRange || !element.Is(W, "t")) continue;
 
-                if (inRange && element is Text textElement) {
-                    Paragraph? paragraph = textElement.Ancestors<Paragraph>().FirstOrDefault();
-                    TableCell? cell = textElement.Ancestors<TableCell>().FirstOrDefault();
-                    if (text.Count > 0) {
-                        if (lastCell != null && cell != null && !ReferenceEquals(lastCell, cell)) {
-                            text.Add("\t");
-                        } else if (lastParagraph != null && paragraph != null && !ReferenceEquals(lastParagraph, paragraph)) {
-                            text.Add("\n");
-                        }
+                OfficeXmlNode paragraph = element.AncestorOrSelf(W, "p");
+                OfficeXmlNode cell = element.AncestorOrSelf(W, "tc");
+                if (text.Count > 0) {
+                    if (lastCell.Exists && cell.Exists && lastCell != cell) {
+                        text.Add("\t");
+                    } else if (lastParagraph.Exists && paragraph.Exists && lastParagraph != paragraph) {
+                        text.Add("\n");
                     }
-
-                    text.Add(textElement.Text);
-                    lastParagraph = paragraph;
-                    lastCell = cell;
                 }
+
+                text.Add(element.InnerText);
+                lastParagraph = paragraph;
+                lastCell = cell;
             }
 
             return string.Concat(text);
-        }
-
-        private static string GetVisibleParagraphText(Paragraph paragraph) {
-            return string.Concat(paragraph.Descendants<Text>().Select(text => text.Text));
         }
     }
 }
