@@ -64,12 +64,8 @@ internal sealed partial class OfficeXmlTree {
         if (prefixes == null) return;
         foreach (string prefix in prefixes) {
             if (FindAttribute(copy, OfficeXmlNamespaces.Xmlns, prefix) >= 0) continue;
-            for (int scope = _nodes[element].Parent; scope != NoNode && scope >= 0; scope = _nodes[scope].Parent) {
-                if (_nodes[scope].Kind != OfficeXmlTreeNodeKind.Element) continue;
-                int declaration = FindAttribute(scope, OfficeXmlNamespaces.Xmlns, prefix);
-                if (declaration < 0) continue;
-                DeclareNamespace(copy, prefix, AttributeValue(ref _attrs[declaration]));
-                break;
+            if (TryFindBinding(element, prefix, out int namespaceId, out int uriId) && namespaceId != OfficeXmlNamespaces.None) {
+                DeclareNamespace(copy, prefix, Namespaces.GetUriById(uriId));
             }
         }
     }
@@ -107,6 +103,9 @@ internal sealed partial class OfficeXmlTree {
         // copy is written does not bind is declared there.
         int copy = CreateElement(name.NamespaceId, name.LocalName);
         _nodes[copy].Name = source._nodes[element].Name;
+        if (source.CarriedBindingsOf(element) is { Count: > 0 } bindings) {
+            (_carried ??= new Dictionary<int, List<CarriedBinding>>()).Add(copy, new List<CarriedBinding>(bindings));
+        }
         int first = source._nodes[element].AttrFirst, count = source._nodes[element].AttrCount;
         for (int index = first; index < first + count; index++) {
             OfficeXmlName attribute = source.Namespaces.GetName(source._attrs[index].Name);

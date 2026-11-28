@@ -17,6 +17,8 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
+            if (TryDuplicatePackageShape(shape, index, offsetX, offsetY) is { } packageShape) return packageShape;
+
             OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
 
             OpenXmlElement clone = shape.Element.CloneNode(true);
