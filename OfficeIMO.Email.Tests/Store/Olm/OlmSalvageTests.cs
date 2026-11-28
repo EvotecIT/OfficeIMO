@@ -154,6 +154,39 @@ public sealed class OlmSalvageTests {
     }
 
     [Fact]
+    public void RecoversALaterReadableCopyWhenTheFirstIsNotWellFormed() {
+        // The first copy has a valid checksum but is cut off mid-record; the second copy compresses well, so the
+        // uncompressed rebuilt archive is larger than the source-length bound that admits the source.
+        string name = new string('a', 4000);
+        string contacts = "<contacts><contact><OPFContactCopyDisplayName>" + name +
+            "</OPFContactCopyDisplayName></contact></contacts>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", "<contacts><contact>")
+                .AddText("Local/Contacts/Contacts.xml", contacts)
+                .Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxInputBytes: archive.Length)));
+
+            Assert.Collection(report.Entries,
+                unreadable => {
+                    Assert.Equal("olm:entry:Local/Contacts/Contacts.xml", unreadable.ItemId);
+                    Assert.Equal(EmailStoreSalvageStatus.NotRecovered, unreadable.Status);
+                    Assert.Equal(0, unreadable.SourceOffset);
+                },
+                contact => {
+                    Assert.Equal(OutlookItemKind.Contact, contact.Kind);
+                    Assert.Equal(EmailStoreSalvageStatus.Recovered, contact.Status);
+                    Assert.True(contact.SourceOffset > 0);
+                });
+            Assert.True(report.DiscoveryCompleted);
+        });
+    }
+
+    [Fact]
     public void FindsSignaturelessZip64DescriptorsWhenTheDirectoryIsMissing() {
         byte[] source = File.ReadAllBytes(Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook",
             "native-outlook.olm"));

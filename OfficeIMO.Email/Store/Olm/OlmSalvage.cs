@@ -219,23 +219,26 @@ internal sealed class OlmSalvage {
         string? failure = Verify(entry, dataOffset, out long decoded);
         _decodedBytes += decoded;
         int itemsRemaining = _limits.MaxItemCount - _itemsAdmitted;
+        int count = failure == null && isXml ? CountXmlItems(entry, dataOffset) : 0;
+        // A checksum-valid entry that is not well-formed XML goes through repair instead of being admitted empty,
+        // so a later readable copy of the same path stays eligible when repair keeps nothing.
+        if (count < 0) failure = "The entry is not well-formed XML.";
 
         if (failure == null) {
             if (isXml) {
-                int count = CountXmlItems(entry, dataOffset);
                 if (count > itemsRemaining) {
                     // Keep the records that fit the source item bound; the rest of the entry is not examined.
                     if (itemsRemaining > 0 && TryRepairXml(entry, dataOffset, itemsRemaining, out FileStream? subset,
                             out int kept, out _, out _, out _)) {
                         using (subset) WriteSpill(archive, entry.Name, subset!);
                         _itemsAdmitted += kept;
-                        _admittedXml.Add(normalized);
+                        Admit(normalized, entry);
                     }
                     SourceItemLimit(entry);
                     return;
                 }
                 _itemsAdmitted += count;
-                _admittedXml.Add(normalized);
+                Admit(normalized, entry);
             }
             ZipArchiveEntry target = archive.CreateEntry(entry.Name, CompressionLevel.NoCompression);
             using Stream input = OpenPayload(entry, dataOffset);
@@ -250,7 +253,7 @@ internal sealed class OlmSalvage {
             _decodedBytes += consumed;
             using (repaired) WriteSpill(archive, entry.Name, repaired!);
             _itemsAdmitted += items;
-            _admittedXml.Add(normalized);
+            Admit(normalized, entry);
             _repairedEntries[normalized] = new Repair(entry.LocalHeaderOffset, failure);
             Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED",
                 failure + " " + items.ToString(CultureInfo.InvariantCulture) +
@@ -272,6 +275,12 @@ internal sealed class OlmSalvage {
         }
     }
 
+    /// <summary>Records that this copy of an XML path supplies the recovered records, including its offset.</summary>
+    private void Admit(string normalized, ZipEntry entry) {
+        _admittedXml.Add(normalized);
+        _entryOffsets[normalized] = entry.LocalHeaderOffset;
+    }
+
     private static void WriteSpill(ZipArchive archive, string name, FileStream spill) {
         ZipArchiveEntry target = archive.CreateEntry(name, CompressionLevel.NoCompression);
         spill.Position = 0;
@@ -290,7 +299,7 @@ internal sealed class OlmSalvage {
         rootName != null && ItemElements.TryGetValue(rootName, out string? item) &&
         string.Equals(item, localName, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Counts an XML entry's top-level records; malformed XML counts as none and is reported by the reader.</summary>
+    /// <summary>Counts an XML entry's top-level records, or returns -1 when the entry is not well-formed XML.</summary>
     private int CountXmlItems(ZipEntry entry, long dataOffset) {
         try {
             using Stream input = OpenPayload(entry, dataOffset);
@@ -310,7 +319,7 @@ internal sealed class OlmSalvage {
             }
             return count;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException) {
-            return 0;
+            return -1;
         }
     }
 
@@ -418,7 +427,11 @@ internal sealed class OlmSalvage {
     private void ExportItems(Stream rebuilt) {
         EmailStoreSession session;
         try {
-            session = EmailStoreSession.Open(rebuilt, _archiveName, _limits, leaveOpen: true, _cancellationToken);
+            // The rebuilt archive is stored uncompressed and already bounded by MaxArchiveDecodedBytes, so the
+            // source-length bound (checked on the original input) is not applied to it again.
+            EmailStoreReaderOptions rebuiltLimits = rebuilt.Length > _limits.MaxInputBytes
+                ? _limits.WithMaxInputBytes(rebuilt.Length) : _limits;
+            session = EmailStoreSession.Open(rebuilt, _archiveName, rebuiltLimits, leaveOpen: true, _cancellationToken);
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
                                              exception is EmailStoreLimitExceededException) {
             Add("EMAIL_STORE_OLM_SALVAGE_REBUILD_UNREADABLE", exception.Message, EmailStoreDiagnosticSeverity.Error, null);
