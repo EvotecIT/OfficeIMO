@@ -25,18 +25,8 @@ namespace OfficeIMO.PowerPoint {
 
             /// <summary>The presentation part and its slide list node, without reading the entries.</summary>
             internal static PackageSlideList? ReadPresentation(OfficeOpcEditablePackage package) {
-                string? main = null;
-                OfficeXmlTree packageRelationships = package.GetRelationships(null);
-                for (int node = packageRelationships.FindChild(packageRelationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
-                     node != OfficeXmlTree.NoNode;
-                     node = packageRelationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
-                    string? type = packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                    if (type != null && OfficeXmlNamespaces.NormalizeRelationshipType(type) == OfficeOpcPackage.OfficeDocumentRelationshipType) {
-                        main = OfficeOpcPartNames.ResolveRelationshipTarget("/_rels/.rels", packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                        break;
-                    }
-                }
-                if (main == null || !package.PartExists(main)) return null;
+                string? main = FirstRelated(package, null, OfficeOpcPackage.OfficeDocumentRelationshipType, out _);
+                if (main == null) return null;
                 OfficeXmlTree presentation = package.GetXml(main);
                 return new PackageSlideList(main, presentation, presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst"));
             }

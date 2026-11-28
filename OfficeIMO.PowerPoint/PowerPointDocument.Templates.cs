@@ -90,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Removes all slides while preserving reusable template masters, layouts, themes, and assets.</summary>
         public void ClearSlides() {
             ThrowIfDisposed();
+            if (TryClearPackageSlides()) return;
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList != null) {
                 foreach (SlideId slideId in slideIdList.Elements<SlideId>().ToList()) {

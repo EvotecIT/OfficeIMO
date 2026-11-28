@@ -70,6 +70,27 @@ public sealed class PowerPointEmbeddedPayloadTests {
 
     [Fact]
     public void InterleavedRelationshipsStillExposeTheOriginalEmbeddedPayload() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateInterleavedFixture(), writable: false));
+        OfficeEmbeddedPayloadInfo info = Assert.Single(presentation.GetEmbeddedPayloads());
+        Assert.Equal(PayloadIdentity, info.Id);
+        Assert.Equal(256, info.Length);
+    }
+
+    [Fact]
+    public void ClearingSlidesRemovesAssetsOwnedByAnInterleavedRelationshipPart() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateInterleavedFixture(), writable: false));
+        Assert.Single(presentation.Slides);
+
+        presentation.ClearSlides();
+        byte[] saved = presentation.ToBytes();
+
+        using var package = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+        Assert.False(package.PartExists(Slide));
+        Assert.False(package.PartExists(PackagePart));
+        Assert.False(package.HasInterleavedParts);
+    }
+
+    private static byte[] CreateInterleavedFixture() {
         byte[] fixture = CreateFixture(256);
         using var bytes = new MemoryStream();
         bytes.Write(fixture, 0, fixture.Length);
@@ -88,10 +109,7 @@ public sealed class PowerPointEmbeddedPayloadTests {
                 last.Write(content, middle, content.Length - middle);
         }
 
-        using var presentation = PowerPointDocument.Load(new MemoryStream(bytes.ToArray(), writable: false));
-        OfficeEmbeddedPayloadInfo info = Assert.Single(presentation.GetEmbeddedPayloads());
-        Assert.Equal(PayloadIdentity, info.Id);
-        Assert.Equal(256, info.Length);
+        return bytes.ToArray();
     }
 
     [Theory]

@@ -1,12 +1,186 @@
+using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.OpenXml;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointTemplateWorkflowTests {
+        [Fact]
+        public void ClearsTheSlideListAndRetainsTheTemplateAndExtensionMarkup() {
+            const string showName = "Template show";
+            const string decoy = "RelationshipInsideExtension";
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide first = source.AddSlide();
+            first.AddTextBox("Template slide");
+            PowerPointSlide second = source.AddSlide();
+            source.AddCustomShow(showName, new[] { first, second });
+            source.AddSection("Template section", 0);
+            byte[] seed = source.ToBytes();
+            using var original = OfficeOpcPackage.Open(new MemoryStream(seed, writable: false));
+            string main = original.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(seed, writable: false));
+            OfficeXmlTree root = edit.GetXml(main);
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            int extensions = root.FindChild(root.Root, ns, "extLst");
+            int extension = root.CreateElement(ns, "ext");
+            root.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "urn:officeimo:fixture:slide-list");
+            root.Append(extensions, extension);
+            int shadow = root.CreateElement(ns, "sldIdLst");
+            root.Append(extension, shadow);
+            int item = root.CreateElement(ns, "sldId");
+            root.SetAttribute(item, OfficeXmlNamespaces.Relationships, "id", decoy);
+            root.Append(shadow, item);
+            using var bytes = new MemoryStream();
+            edit.Save(bytes);
+            byte[] fixture = bytes.ToArray();
+
+            using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            baseline.AddSlide();
+            _ = baseline.OpenXmlDocument;
+            baseline.ClearSlides();
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            PowerPointSlide held = presentation.Slides[0];
+            presentation.AddSlide();
+            presentation.ClearSlides();
+            Assert.Empty(presentation.Slides);
+            Assert.True(held.RemovedFromPackage);
+            Assert.Equal(baseline.GetSections().Select(section => section.Name), presentation.GetSections().Select(section => section.Name));
+            byte[] saved = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+
+            using var actual = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+            Assert.DoesNotContain(actual.GetRelationships(main), edge => edge.Type == OfficeOpcPackage.SlideRelationshipType);
+            const string masterType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slideMaster";
+            Assert.Equal(original.GetRelatedPartName(main, masterType), actual.GetRelatedPartName(main, masterType));
+            using var expected = OfficeOpcPackage.Open(new MemoryStream(baseline.ToBytes(), writable: false));
+            using var expectedMain = expected.ReadPart(main);
+            using var actualMain = actual.ReadPart(main);
+            var expectedXml = XElement.Parse(Encoding.UTF8.GetString(expectedMain.Array, 0, expectedMain.Length));
+            var actualXml = XElement.Parse(Encoding.UTF8.GetString(actualMain.Array, 0, actualMain.Length));
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            XElement expectedShow = Assert.Single(expectedXml.Element(p + "custShowLst")!.Elements(p + "custShow"));
+            XElement actualShow = Assert.Single(actualXml.Element(p + "custShowLst")!.Elements(p + "custShow"));
+            Assert.Equal(showName, (string?)actualShow.Attribute("name"));
+            Assert.Equal((uint?)expectedShow.Attribute("id"), (uint?)actualShow.Attribute("id"));
+            Assert.Equal(expectedShow.Descendants(p + "sld").Select(slide => (string?)slide.Attribute(r + "id")),
+                actualShow.Descendants(p + "sld").Select(slide => (string?)slide.Attribute(r + "id")));
+            Assert.Contains(actualXml.Descendants(p + "sldId"), element => element.Attributes().Any(attribute => attribute.Value == decoy));
+
+            baseline.AddSlide();
+            presentation.AddSlide();
+            using var expectedReuse = OfficeOpcPackage.Open(new MemoryStream(baseline.ToBytes(), writable: false));
+            using var actualReuse = OfficeOpcPackage.Open(new MemoryStream(presentation.ToBytes(), writable: false));
+            OfficeOpcRelationship expectedSlide = Assert.Single(expectedReuse.GetRelationships(main), edge => edge.Type == OfficeOpcPackage.SlideRelationshipType);
+            OfficeOpcRelationship actualSlide = Assert.Single(actualReuse.GetRelationships(main), edge => edge.Type == OfficeOpcPackage.SlideRelationshipType);
+            Assert.Equal(expectedSlide.Id, actualSlide.Id);
+            Assert.Equal(expectedSlide.TargetPartName, actualSlide.TargetPartName);
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ClearingSlidesKeepsTheTextOfHeldContent(bool holdParagraph) {
+            using var source = PowerPointDocument.Create();
+            source.AddSlide().AddTextBox("Held text");
+            using var presentation = PowerPointDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
+            PowerPointTextBox held = Assert.Single(presentation.Slides[0].TextBoxes);
+            PowerPointParagraph? paragraph = holdParagraph ? Assert.Single(held.Paragraphs) : null;
+            Assert.False(presentation.IsSdkLoaded);
+
+            presentation.ClearSlides();
+
+            Assert.Empty(presentation.Slides);
+            Assert.Equal("Held text", held.Text);
+            if (paragraph != null) Assert.Equal("Held text", paragraph.Text);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ClearsTheInternalMainPartAndDeletesItsLastRelationship(bool leadingExternalMain) {
+            const string main = "/ppt/presentation.xml";
+            const string slide = "/ppt/slides/slide1.xml";
+            const int p = OfficeXmlNamespaces.PresentationML;
+            const int r = OfficeXmlNamespaces.Relationships;
+            using var package = OfficeOpcEditablePackage.Create();
+            OfficeXmlTree presentationRoot = package.CreateXmlPart(main,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml", p, "presentation");
+            presentationRoot.DeclareNamespace(presentationRoot.Root, "p", "http://schemas.openxmlformats.org/presentationml/2006/main");
+            presentationRoot.DeclareNamespace(presentationRoot.Root, "r", OfficeXmlNamespaces.TransitionalRelationshipTypePrefix.TrimEnd('/'));
+            int list = PowerPointDocument.Append(presentationRoot, presentationRoot.Root, p, "sldIdLst");
+            int entry = PowerPointDocument.Append(presentationRoot, list, p, "sldId");
+            presentationRoot.SetAttribute(entry, OfficeXmlNamespaces.None, "id", "256");
+            presentationRoot.SetAttribute(entry, r, "id", "slideRel");
+            int p14 = package.Namespaces.GetId(PowerPointTreeSections.P14Namespace);
+            presentationRoot.DeclareNamespace(presentationRoot.Root, "p14", PowerPointTreeSections.P14Namespace);
+            int extensions = PowerPointDocument.Append(presentationRoot, presentationRoot.Root, p, "extLst");
+            int extension = PowerPointDocument.Append(presentationRoot, extensions, p, "ext");
+            presentationRoot.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", PowerPointTreeSections.SectionListUri);
+            int sections = PowerPointDocument.Append(presentationRoot, extension, p14, "sectionLst");
+            int section = PowerPointDocument.Append(presentationRoot, sections, p14, "section");
+            presentationRoot.SetAttribute(section, OfficeXmlNamespaces.None, "name", "Waiting section");
+            presentationRoot.SetAttribute(section, OfficeXmlNamespaces.None, "id", "{61E3A0F1-5F9A-4B60-B953-6C3F35C66ACA}");
+            PowerPointDocument.Append(presentationRoot, section, p14, "sldIdLst");
+            OfficeXmlTree slideRoot = package.CreateXmlPart(slide,
+                "application/vnd.openxmlformats-officedocument.presentationml.slide+xml", p, "sld");
+            slideRoot.DeclareNamespace(slideRoot.Root, "p", "http://schemas.openxmlformats.org/presentationml/2006/main");
+            int content = PowerPointDocument.Append(slideRoot, slideRoot.Root, p, "cSld");
+            PowerPointDocument.Append(slideRoot, content, p, "spTree");
+            if (leadingExternalMain) {
+                package.CreateXmlPart("/other.xml", "application/xml", p, "presentation");
+                package.AddRelationship(null, OfficeOpcPackage.OfficeDocumentRelationshipType, "other.xml", external: true);
+            }
+            package.AddRelationship(null, OfficeOpcPackage.OfficeDocumentRelationshipType, main);
+            package.AddRelationship(main, OfficeOpcPackage.SlideRelationshipType, slide, id: "slideRel");
+            using var fixture = new MemoryStream();
+            package.Save(fixture);
+            fixture.Position = 0;
+            using var document = PowerPointDocument.Load(fixture);
+            Assert.Single(document.Slides);
+
+            document.ClearSlides();
+            Assert.Equal("Waiting section", Assert.Single(document.GetSections()).Name);
+            byte[] saved = document.ToBytes();
+
+            Assert.False(document.IsSdkLoaded);
+            using var actual = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+            Assert.False(actual.PartExists(OfficeOpcPartNames.GetRelationshipsPartName(main)));
+            Assert.False(actual.PartExists(slide));
+            using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            Assert.Empty(reopened.Slides);
+        }
+
+        [Fact]
+        public void ClearingAnEmptyDeckKeepsTheSdkErrorForAMissingMaster() {
+            using var source = PowerPointDocument.Create();
+            byte[] seed = source.ToBytes();
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(seed, writable: false));
+            const string masterType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slideMaster";
+            edit.AddRelationship("/ppt/presentation.xml", masterType, "/ppt/slideMasters/missing.xml");
+            using var output = new MemoryStream();
+            edit.Save(output);
+            byte[] fixture = output.ToArray();
+            using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Exception expected = Assert.ThrowsAny<Exception>(() => {
+                _ = baseline.OpenXmlDocument;
+                baseline.ClearSlides();
+                _ = baseline.ToBytes();
+            });
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Assert.IsType(expected.GetType(), Record.Exception(() => {
+                presentation.ClearSlides();
+                _ = presentation.ToBytes();
+            }));
+        }
+
         [Fact]
         public void InspectTemplate_MapsLayoutPlaceholdersThemeAndBrandTokens() {
             string templatePath = CreateTemplatePresentation();
