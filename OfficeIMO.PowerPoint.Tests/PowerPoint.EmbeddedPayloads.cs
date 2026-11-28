@@ -131,18 +131,23 @@ public sealed class PowerPointEmbeddedPayloadTests {
         SetDeclaredPayloadSize(fixture, 1);
         using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
         _ = baseline.OpenXmlDocument;
-        OfficeEmbeddedPayloadInfo expected = Assert.Single(baseline.GetEmbeddedPayloads(includeSha256: true));
         using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
-
         OfficeEmbeddedPayloadInfo metadata = Assert.Single(presentation.GetEmbeddedPayloads());
+        Assert.Equal(1, metadata.Length);
+#if NETFRAMEWORK
+        Exception? baselineFailure = Record.Exception(() => baseline.GetEmbeddedPayloads(includeSha256: true));
+        Assert.Equal("System.IO.FileFormatException", baselineFailure?.GetType().FullName);
+        Assert.Throws<InvalidDataException>(() => presentation.GetEmbeddedPayloads(includeSha256: true));
+        Assert.Throws<InvalidDataException>(() => presentation.OpenEmbeddedPayload(PayloadIdentity, 1));
+#else
+        OfficeEmbeddedPayloadInfo expected = Assert.Single(baseline.GetEmbeddedPayloads(includeSha256: true));
         OfficeEmbeddedPayloadInfo hashed = Assert.Single(presentation.GetEmbeddedPayloads(includeSha256: true));
         using Stream payload = presentation.OpenEmbeddedPayload(PayloadIdentity, 1);
-        Assert.Equal(1, expected.Length);
-        Assert.Equal(expected.Length, metadata.Length);
         Assert.Equal(expected.Length, hashed.Length);
         Assert.Equal(expected.Sha256, hashed.Sha256);
         Assert.Equal(1, payload.Length);
         Assert.Equal(29, payload.ReadByte());
+#endif
         Assert.False(presentation.IsSdkLoaded);
     }
 

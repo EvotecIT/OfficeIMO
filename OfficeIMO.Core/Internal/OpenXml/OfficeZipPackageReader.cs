@@ -121,8 +121,19 @@ internal sealed class OfficeZipPackageReader : IDisposable {
             ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count)
                 throw new ArgumentOutOfRangeException(nameof(count));
-            if (_remaining == 0) return 0;
+            if (_remaining == 0) {
+#if NETFRAMEWORK
+                // The framework packaging reader rejects an inconsistent decoded size.
+                if (count != 0 && _decoder.ReadByte() >= 0)
+                    throw new InvalidDataException("Compressed part has inconsistent data length.");
+#endif
+                return 0;
+            }
             int read = _decoder.Read(buffer, offset, (int)Math.Min(count, _remaining));
+#if NETFRAMEWORK
+            if (count != 0 && read == 0)
+                throw new InvalidDataException("Compressed part has inconsistent data length.");
+#endif
             _remaining -= read;
             return read;
         }
