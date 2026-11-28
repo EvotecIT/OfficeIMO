@@ -223,15 +223,15 @@ public static partial class WordRtfConverterExtensions {
         AddWordParagraphLayoutDiagnostics(document, storyRoots, report);
         var footnoteIds = new HashSet<long>(storyRoots
             .Select(candidate => candidate.Root)
-            .Where(note => note.IsW("footnote") && WordXml.ParseInt64(note.WAttr("id")) != null)
+            .Where(note => note.IsW("footnote") && note.IsModelElement() && WordXml.ParseInt64(note.WAttr("id")) != null)
             .Select(note => WordXml.ParseInt64(note.WAttr("id"))!.Value));
         var endnoteIds = new HashSet<long>(storyRoots
             .Select(candidate => candidate.Root)
-            .Where(note => note.IsW("endnote") && WordXml.ParseInt64(note.WAttr("id")) != null)
+            .Where(note => note.IsW("endnote") && note.IsModelElement() && WordXml.ParseInt64(note.WAttr("id")) != null)
             .Select(note => WordXml.ParseInt64(note.WAttr("id"))!.Value));
         var commentIds = new HashSet<string>(storyRoots
             .Select(candidate => candidate.Root)
-            .Where(comment => comment.IsW("comment") && !string.IsNullOrWhiteSpace(comment.WAttr("id")))
+            .Where(comment => comment.IsW("comment") && comment.IsModelElement() && !string.IsNullOrWhiteSpace(comment.WAttr("id")))
             .Select(comment => comment.WAttr("id")!), StringComparer.Ordinal);
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
@@ -369,15 +369,15 @@ public static partial class WordRtfConverterExtensions {
     private static int CountImageElements(OfficeXmlNode run) {
         int count = 0;
         foreach (OfficeXmlNode element in EnumerateEffectiveRunContent(run)) {
-            IEnumerable<OfficeXmlNode> drawings = element.IsW("drawing")
+            IEnumerable<OfficeXmlNode> drawings = element.IsW("drawing") && element.IsModelElement()
                 ? new[] { element }
                 : element.ModelDescendants("drawing");
             count += drawings.Count(drawing => drawing.DescendantElements(WordXml.Pic, "pic").Any(WordConverterNodes.IsModelElement));
 
-            IEnumerable<OfficeXmlNode> shapes = element.Is(WordXml.V, "shape")
+            IEnumerable<OfficeXmlNode> shapes = element.Is(WordXml.V, "shape") && element.IsModelElement()
                 ? new[] { element }
                 : element.DescendantElements(WordXml.V, "shape").Where(WordConverterNodes.IsModelElement);
-            count += shapes.Count(shape => shape.Child(WordXml.V, "imagedata").Exists);
+            count += shapes.Count(shape => shape.Elements(WordXml.V, "imagedata").Any(WordConverterNodes.IsModelElement));
         }
         return count;
     }
@@ -426,11 +426,11 @@ public static partial class WordRtfConverterExtensions {
         var convertedRelationshipIds = new HashSet<string>(StringComparer.Ordinal);
         if (document.Sections.Count > 0) {
             OfficeXmlNode sectionProperties = document.Sections[0].Node();
-            foreach (OfficeXmlNode reference in sectionProperties.WElements("headerReference")) {
+            foreach (OfficeXmlNode reference in sectionProperties.ModelChildren("headerReference")) {
                 string? id = reference.Attribute(WordXml.R, "id");
                 if (!string.IsNullOrWhiteSpace(id)) convertedRelationshipIds.Add(id!);
             }
-            foreach (OfficeXmlNode reference in sectionProperties.WElements("footerReference")) {
+            foreach (OfficeXmlNode reference in sectionProperties.ModelChildren("footerReference")) {
                 string? id = reference.Attribute(WordXml.R, "id");
                 if (!string.IsNullOrWhiteSpace(id)) convertedRelationshipIds.Add(id!);
             }
@@ -457,17 +457,17 @@ public static partial class WordRtfConverterExtensions {
                 }
             }
 
-            foreach (OfficeXmlNode comment in document.CommentsNode().WElements("comment")) {
+            foreach (OfficeXmlNode comment in document.CommentsNode().ModelChildren("comment")) {
                 if (comment.WAttr("id") is string id && referencedCommentIds.TryGetValue(id, out bool omitted)) {
                     added |= RecordStoryRoot(rootOmissions, comment, omitted);
                 }
             }
-            foreach (OfficeXmlNode note in document.FootnotesNode().WElements("footnote")) {
+            foreach (OfficeXmlNode note in document.FootnotesNode().ModelChildren("footnote")) {
                 if (WordXml.ParseInt64(note.WAttr("id")) is long id && referencedFootnoteIds.TryGetValue(id, out bool omitted)) {
                     added |= RecordStoryRoot(rootOmissions, note, omitted);
                 }
             }
-            foreach (OfficeXmlNode note in document.EndnotesNode().WElements("endnote")) {
+            foreach (OfficeXmlNode note in document.EndnotesNode().ModelChildren("endnote")) {
                 if (WordXml.ParseInt64(note.WAttr("id")) is long id && referencedEndnoteIds.TryGetValue(id, out bool omitted)) {
                     added |= RecordStoryRoot(rootOmissions, note, omitted);
                 }
@@ -575,7 +575,7 @@ public static partial class WordRtfConverterExtensions {
         for (int index = 0; index < candidates.Count; index++) {
             (OfficeXmlNode Run, bool OmittedByConverter) candidate = candidates[index];
             OfficeXmlNode run = candidate.Run;
-            string? markerType = run.WChild("fldChar").WAttr("fldCharType");
+            string? markerType = run.ModelChild("fldChar").WAttr("fldCharType");
             bool omitted = candidate.OmittedByConverter;
             if (markerType == "begin") {
                 omitted = true;

@@ -10,9 +10,9 @@ public static partial class WordRtfConverterExtensions {
         }
 
         OfficeXmlNode scopedProperties = wordRun.ScopedRunPropertiesNode();
-        run.DirectBold = ReadToggle(scopedProperties.WChild("b"));
-        run.DirectItalic = ReadToggle(scopedProperties.WChild("i"));
-        run.DirectUnderlineStyle = scopedProperties.WChild("u").Exists
+        run.DirectBold = ReadToggle(scopedProperties.ModelChild("b"));
+        run.DirectItalic = ReadToggle(scopedProperties.ModelChild("i"));
+        run.DirectUnderlineStyle = scopedProperties.ModelChild("u").Exists
             ? ToRtfUnderlineStyle(wordRun.Underline) : null;
         if (TryGetUnderlineColor(wordRun, out byte underlineRed, out byte underlineGreen, out byte underlineBlue)) {
             run.UnderlineColorIndex = GetOrAddColor(rtfDocument, underlineRed, underlineGreen, underlineBlue);
@@ -20,7 +20,7 @@ public static partial class WordRtfConverterExtensions {
 
         run.Strikethrough = wordRun.Strikethrough;
         run.DoubleStrikethrough = wordRun.DoubleStrikethrough;
-        run.DirectHidden = ReadToggle(scopedProperties.WChild("vanish"));
+        run.DirectHidden = ReadToggle(scopedProperties.ModelChild("vanish"));
         run.Outline = wordRun.Outline;
         run.Shadow = wordRun.Shadow;
         run.Emboss = wordRun.Emboss;
@@ -46,7 +46,7 @@ public static partial class WordRtfConverterExtensions {
         run.CharacterScalePercent = GetCharacterScale(wordRun);
         run.KerningHalfPoints = GetKerningHalfPoints(wordRun);
         run.CharacterOffsetHalfPoints = GetCharacterOffsetHalfPoints(wordRun);
-        run.LanguageId = ToRtfLanguageId(DirectRunProperties(wordRun).WChild("lang").WVal());
+        run.LanguageId = ToRtfLanguageId(DirectRunProperties(wordRun).ModelChild("lang").WVal());
         run.Direction = IsRightToLeftWordRun(wordRun) ? RtfTextDirection.RightToLeft : null;
 
         run.VerticalPosition = wordRun.VerticalTextAlignment == WordVerticalTextPosition.Superscript
@@ -250,11 +250,11 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static bool IsImprintWordRun(WordParagraph wordRun) {
-        return DirectRunProperties(wordRun).WChild("imprint").Exists;
+        return DirectRunProperties(wordRun).ModelChild("imprint").Exists;
     }
 
     private static bool IsRightToLeftWordRun(WordParagraph wordRun) {
-        return DirectRunProperties(wordRun).WChild("rtl").Exists;
+        return DirectRunProperties(wordRun).ModelChild("rtl").Exists;
     }
 
     private static void SetRunDirection(WordParagraph wordRun, RtfTextDirection direction) {
@@ -282,7 +282,7 @@ public static partial class WordRtfConverterExtensions {
         red = 0;
         green = 0;
         blue = 0;
-        string? color = DirectRunProperties(wordRun).WChild("u").WAttr("color");
+        string? color = DirectRunProperties(wordRun).ModelChild("u").WAttr("color");
         if (string.IsNullOrWhiteSpace(color) ||
             string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)) {
             return false;
@@ -300,7 +300,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetCharacterScale(WordParagraph wordRun) {
-        long? value = WordXml.ParseInt64(DirectRunProperties(wordRun).WChild("w").WVal());
+        long? value = WordXml.ParseInt64(DirectRunProperties(wordRun).ModelChild("w").WVal());
         if (!value.HasValue || value.Value == 100 || value.Value > int.MaxValue || value.Value < int.MinValue) {
             return null;
         }
@@ -309,7 +309,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetKerningHalfPoints(WordParagraph wordRun) {
-        uint? value = WordXml.ParseUInt32(DirectRunProperties(wordRun).WChild("kern").WVal());
+        uint? value = WordXml.ParseUInt32(DirectRunProperties(wordRun).ModelChild("kern").WVal());
         if (!value.HasValue || value.Value == 0 || value.Value > int.MaxValue) {
             return null;
         }
@@ -318,7 +318,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetCharacterOffsetHalfPoints(WordParagraph wordRun) {
-        string? value = DirectRunProperties(wordRun).WChild("position").WVal();
+        string? value = DirectRunProperties(wordRun).ModelChild("position").WVal();
         if (!int.TryParse(value, out int offset) || offset == 0) {
             return null;
         }

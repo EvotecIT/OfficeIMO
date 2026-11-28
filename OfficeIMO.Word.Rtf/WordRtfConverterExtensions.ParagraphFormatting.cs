@@ -15,7 +15,7 @@ public static partial class WordRtfConverterExtensions {
             destination.BackgroundColorIndex = GetOrAddColor(document, red, green, blue);
         }
 
-        string? foreground = source.ParagraphPropertiesNode().WChild("shd").WAttr("color");
+        string? foreground = source.ParagraphPropertiesNode().ModelChild("shd").WAttr("color");
         if (!string.IsNullOrWhiteSpace(foreground) &&
             !string.Equals(foreground, "auto", StringComparison.OrdinalIgnoreCase) &&
             TryParseHexColor(foreground!, out red, out green, out blue)) {

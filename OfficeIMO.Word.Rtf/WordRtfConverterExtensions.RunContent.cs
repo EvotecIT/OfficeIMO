@@ -5,9 +5,10 @@ public static partial class WordRtfConverterExtensions {
         bool hasContent = false;
         var textChildren = new List<OfficeXmlNode>();
         foreach (OfficeXmlNode child in wordRun.EffectiveRunContentNodes()) {
-            if (child.IsW("rPr")) continue;
+            bool modelChild = child.IsModelElement();
+            if (modelChild && child.IsW("rPr")) continue;
 
-            if (child.IsW("br")) {
+            if (modelChild && child.IsW("br")) {
                 hasContent |= AppendWordRunTextSpan(wordRun, textChildren, paragraph, ref previousRun, rtfDocument, revisionKind, revisionAuthorIndex);
                 paragraph.AddBreak(ToRtfBreakKind(child.WAttr("type")));
                 previousRun = null;
@@ -15,7 +16,7 @@ public static partial class WordRtfConverterExtensions {
                 continue;
             }
 
-            if (child.IsW("footnoteReference") || child.IsW("endnoteReference")) {
+            if (modelChild && (child.IsW("footnoteReference") || child.IsW("endnoteReference"))) {
                 hasContent |= AppendWordRunTextSpan(wordRun, textChildren, paragraph, ref previousRun, rtfDocument, revisionKind, revisionAuthorIndex);
                 RtfNote note = child.IsW("footnoteReference")
                     ? CopyNote(wordRun.FootNoteView(child).Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes)
@@ -58,7 +59,7 @@ public static partial class WordRtfConverterExtensions {
         // Projection owns cloned text; the original run retains formatting and part identity.
         OfficeXmlNode visible = WordConverterNodes.CreateDetachedRun();
         var sourceChildren = new List<OfficeXmlNode>();
-        OfficeXmlNode properties = source.RunNode().WChild("rPr");
+        OfficeXmlNode properties = source.RunNode().ModelChild("rPr");
         if (properties.Exists) {
             visible.Append(properties.Clone());
             sourceChildren.Add(properties);

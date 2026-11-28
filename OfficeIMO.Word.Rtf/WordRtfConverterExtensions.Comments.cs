@@ -66,7 +66,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AttachCommentReference(WordParagraph wordRun, string commentId) {
         OfficeXmlNode paragraph = wordRun.Node();
-        OfficeXmlNode firstRun = paragraph.WChild("r");
+        OfficeXmlNode firstRun = paragraph.ModelChild("r");
         if (firstRun.IsNone) {
             firstRun = paragraph.Append(paragraph.CreateElement(WordXml.W, "r"));
         }
@@ -75,7 +75,7 @@ public static partial class WordRtfConverterExtensions {
         rangeStart.SetAttribute(WordXml.W, "id", commentId);
         paragraph.InsertBefore(rangeStart, firstRun);
 
-        OfficeXmlNode lastRun = paragraph.WElements("r").Last();
+        OfficeXmlNode lastRun = paragraph.ModelChildren("r").Last();
         OfficeXmlNode rangeEnd = paragraph.CreateElement(WordXml.W, "commentRangeEnd");
         rangeEnd.SetAttribute(WordXml.W, "id", commentId);
         OfficeXmlNode commentEnd = lastRun.InsertAfterSelf(rangeEnd);

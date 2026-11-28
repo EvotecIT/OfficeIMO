@@ -18,13 +18,14 @@ public static partial class WordRtfConverterExtensions {
 
     private static bool TryCopyImageBlocks(WordParagraph source, Func<RtfImage, RtfImage> addImage) {
         OfficeXmlNode sourceParagraph = source.Node();
-        if (sourceParagraph.Elements().Any(child => !child.IsW("pPr") && !child.IsW("r"))) {
+        if (WordConverterNodes.ChildNodesIncludingMarkup(sourceParagraph).Any(child =>
+                !child.IsModelElement() || (!child.IsW("pPr") && !child.IsW("r")))) {
             return false;
         }
 
-        List<OfficeXmlNode> runs = sourceParagraph.WElements("r").ToList();
-        if (runs.Any(run => run.WElements("footnoteReference").Any() ||
-                            run.WElements("endnoteReference").Any())) {
+        List<OfficeXmlNode> runs = sourceParagraph.ModelChildren("r").ToList();
+        if (runs.Any(run => run.ModelChildren("footnoteReference").Any() ||
+                            run.ModelChildren("endnoteReference").Any())) {
             return false;
         }
         if (runs.Any(run => !string.IsNullOrEmpty(

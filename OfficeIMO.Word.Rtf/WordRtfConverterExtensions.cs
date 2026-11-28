@@ -470,7 +470,8 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static bool IsCommentReferenceOnlyRun(OfficeXmlNode run) =>
-        run.Elements().All(element => element.IsW("rPr") || element.IsW("commentReference"));
+        WordConverterNodes.ChildNodesIncludingMarkup(run).All(element =>
+            element.IsModelElement() && (element.IsW("rPr") || element.IsW("commentReference")));
 
     private static bool TryAppendComplexFieldRun(
         WordParagraph wordParagraph,
@@ -481,7 +482,7 @@ public static partial class WordRtfConverterExtensions {
         Stack<ComplexFieldCapture> captures,
         RtfRevisionKind revisionKind = RtfRevisionKind.None,
         int? revisionAuthorIndex = null) {
-        OfficeXmlNode fieldChar = runElement.WChild("fldChar");
+        OfficeXmlNode fieldChar = runElement.ModelChild("fldChar");
         string? fieldCharType = fieldChar.WAttr("fldCharType");
         if (fieldCharType == "begin") {
             captures.Push(new ComplexFieldCapture(revisionKind != RtfRevisionKind.None));
@@ -493,7 +494,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         ComplexFieldCapture capture = captures.Peek();
-        OfficeXmlNode fieldCode = runElement.WChild("instrText");
+        OfficeXmlNode fieldCode = runElement.ModelChild("instrText");
         if (revisionKind != RtfRevisionKind.None && (fieldChar.Exists || fieldCode.Exists)) {
             capture.RestrictToEquationFields = true;
         }
@@ -746,6 +747,7 @@ public static partial class WordRtfConverterExtensions {
 
         var builder = new StringBuilder();
         foreach (OfficeXmlNode child in wordRun.ProjectedRunChildNodes()) {
+            if (!child.IsModelElement()) continue;
             if (child.IsW("t") || child.IsW("delText")) {
                 builder.Append(child.LeafText());
             } else if (child.IsW("tab")) {
@@ -1065,7 +1067,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     /// <summary>The run's own <c>w:rPr</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
-    private static OfficeXmlNode DirectRunProperties(WordParagraph run) => run.RunNode().WChild("rPr");
+    private static OfficeXmlNode DirectRunProperties(WordParagraph run) => run.RunNode().ModelChild("rPr");
 
     /// <summary>The run's <c>w:rPr</c>, added first among its children when missing.</summary>
     private static OfficeXmlNode GetOrAddRunProperties(WordParagraph run) =>

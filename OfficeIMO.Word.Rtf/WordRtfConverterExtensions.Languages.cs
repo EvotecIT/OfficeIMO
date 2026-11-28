@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     private static void CopyDefaultLanguage(WordDocument source, RtfDocument destination) {
         string? language = source.HasStylesPart()
-            ? source.DocumentDefaultsNode().WChild("rPrDefault").WChild("rPr").WChild("lang").WVal()
+            ? source.DocumentDefaultsNode().ModelChild("rPrDefault").ModelChild("rPr").ModelChild("lang").WVal()
             : null;
 
         destination.Settings.DefaultLanguageId = ToRtfLanguageId(language);

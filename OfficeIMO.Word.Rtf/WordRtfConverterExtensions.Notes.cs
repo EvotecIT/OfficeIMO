@@ -45,9 +45,9 @@ public static partial class WordRtfConverterExtensions {
         }
 
         OfficeXmlNode noteElement = projectedKind == RtfNoteKind.Endnote
-            ? referenceRun._document.EndnotesNode().WElements("endnote")
+            ? referenceRun._document.EndnotesNode().ModelChildren("endnote")
                 .FirstOrDefault(item => WordXml.ParseInt64(item.WAttr("id")) == referenceId.Value)
-            : referenceRun._document.FootnotesNode().WElements("footnote")
+            : referenceRun._document.FootnotesNode().ModelChildren("footnote")
                 .FirstOrDefault(item => WordXml.ParseInt64(item.WAttr("id")) == referenceId.Value);
         if (noteElement.IsNone) return;
 

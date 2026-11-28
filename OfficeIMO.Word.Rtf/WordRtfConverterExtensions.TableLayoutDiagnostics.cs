@@ -5,7 +5,7 @@ public static partial class WordRtfConverterExtensions {
     private static void AddWordTableCellSpacingDiagnostics(IEnumerable<WordElement> elements, RtfConversionReport report) {
         int count = elements.OfType<WordTable>().Select(table => table.PropertiesNode())
             .Where(properties => properties.Exists).Distinct()
-            .Count(properties => GetWordTableCellSpacingWidth(properties.WChild("tblCellSpacing").WAttr("w")) != 0);
+            .Count(properties => GetWordTableCellSpacingWidth(properties.ModelChild("tblCellSpacing").WAttr("w")) != 0);
         if (count == 0) return;
         report.Add(RtfConversionSeverity.Warning, "WordRtfTableCellSpacingOmitted",
             "Word spacing between separated table cells is not represented by the RTF bridge and is omitted; it is not an RTF row half-gap.",

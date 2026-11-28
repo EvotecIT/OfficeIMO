@@ -26,11 +26,11 @@ public static partial class WordRtfConverterExtensions {
         rtf.PageSetup.SetLandscape(document.PageSetup.Orientation == OfficePageOrientation.Landscape);
         rtf.PageSetup.SetDifferentFirstPageHeaderFooter(document.PageSetup.DifferentFirstPage);
         OfficeXmlNode sectionProperties = document.Sections[0].Node();
-        CopyPageNumbering(sectionProperties.WChild("pgNumType"), rtf.PageSetup);
-        CopyPageBorders(sectionProperties.WChild("pgBorders"), rtf.PageSetup.PageBorders, rtf);
+        CopyPageNumbering(sectionProperties.ModelChild("pgNumType"), rtf.PageSetup);
+        CopyPageBorders(sectionProperties.ModelChild("pgBorders"), rtf.PageSetup.PageBorders, rtf);
         CopyNoteSettings(
-            sectionProperties.WChild("footnotePr"),
-            sectionProperties.WChild("endnotePr"),
+            sectionProperties.ModelChild("footnotePr"),
+            sectionProperties.ModelChild("endnotePr"),
             rtf.NoteSettings);
     }
 
@@ -166,10 +166,10 @@ public static partial class WordRtfConverterExtensions {
         destination.Scope = ToRtfPageBorderScope(source.WAttr("display"));
         destination.DisplayBehindText = ToRtfPageBorderZOrder(source.WAttr("zOrder"));
         destination.OffsetFrom = ToRtfPageBorderOffset(source.WAttr("offsetFrom"));
-        CopyPageBorder(source.WChild("top"), destination.Top, document);
-        CopyPageBorder(source.WChild("bottom"), destination.Bottom, document);
-        CopyPageBorder(source.WChild("left"), destination.Left, document);
-        CopyPageBorder(source.WChild("right"), destination.Right, document);
+        CopyPageBorder(source.ModelChild("top"), destination.Top, document);
+        CopyPageBorder(source.ModelChild("bottom"), destination.Bottom, document);
+        CopyPageBorder(source.ModelChild("left"), destination.Left, document);
+        CopyPageBorder(source.ModelChild("right"), destination.Right, document);
     }
 
     private static void CopyPageBorder(OfficeXmlNode source, RtfPageBorder destination, RtfDocument document) {
@@ -210,7 +210,7 @@ public static partial class WordRtfConverterExtensions {
         ApplyPageBorder(source.Bottom, pageBorders, "bottom", document);
         ApplyPageBorder(source.Right, pageBorders, "right", document);
 
-        sectionProperties.WChild("pgBorders").Remove();
+        sectionProperties.ModelChild("pgBorders").Remove();
         sectionProperties.Append(pageBorders);
     }
 

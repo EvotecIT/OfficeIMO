@@ -18,8 +18,8 @@ public static partial class WordRtfConverterExtensions {
         private RtfWordNumberingPlan(RtfDocument source, OfficeXmlNode numbering) {
             _source = source;
             _numbering = numbering;
-            _abstractId = numbering.WElements("abstractNum").Select(item => WordXml.ParseInt32(item.WAttr("abstractNumId")) ?? 0).DefaultIfEmpty().Max();
-            _instanceId = numbering.WElements("num").Select(item => WordXml.ParseInt32(item.WAttr("numId")) ?? 0).DefaultIfEmpty().Max();
+            _abstractId = numbering.ModelChildren("abstractNum").Select(item => WordXml.ParseInt32(item.WAttr("abstractNumId")) ?? 0).DefaultIfEmpty().Max();
+            _instanceId = numbering.ModelChildren("num").Select(item => WordXml.ParseInt32(item.WAttr("numId")) ?? 0).DefaultIfEmpty().Max();
         }
 
         internal static RtfWordNumberingPlan Create(RtfDocument source, WordDocument destination, RtfConversionReport? report) {
@@ -76,10 +76,10 @@ public static partial class WordRtfConverterExtensions {
                 // a new Word instance rather than restarting every \pnstart1 item.
                 // The resolved current value, not each paragraph's legacy
                 // start hint, decides whether this destination instance restarts.
-                level.WChild("start").SetAttribute(WordXml.W, "val", "1");
+                level.ModelChild("start").SetAttribute(WordXml.W, "val", "1");
                 string signature = marker.Formatting.Identity + "|" + Encoding.UTF8.GetString(level.OuterXml());
                 if (sequence.Signature != signature || marker.Value != sequence.LastValue + 1) {
-                    level.WChild("start").SetAttribute(WordXml.W, "val", FormatInt(checked((int)marker.Value)));
+                    level.ModelChild("start").SetAttribute(WordXml.W, "val", FormatInt(checked((int)marker.Value)));
                     int abstractId = checked(++_abstractId);
                     int instanceId = checked(++_instanceId);
                     OfficeXmlNode definition = _numbering.CreateElement(WordXml.W, "abstractNum");
@@ -92,7 +92,7 @@ public static partial class WordRtfConverterExtensions {
                     OfficeXmlNode abstractReference = instance.CreateElement(WordXml.W, "abstractNumId");
                     abstractReference.SetAttribute(WordXml.W, "val", FormatInt(abstractId));
                     instance.Append(abstractReference);
-                    _numbering.InsertBefore(instance, _numbering.WChild("numIdMacAtCleanup"));
+                    _numbering.InsertBefore(instance, _numbering.ModelChild("numIdMacAtCleanup"));
                     sequence.InstanceId = instanceId;
                     sequence.Signature = signature;
                 }
@@ -130,7 +130,7 @@ public static partial class WordRtfConverterExtensions {
             if (legacy.ForegroundColorIndex is > 0 && color == null) return false;
 
             result = CreateWordListLevel(_numbering.CreateElement(WordXml.W, "abstractNum"), source);
-            result.WChild("lvlText").SetAttribute(WordXml.W, "val", template);
+            result.ModelChild("lvlText").SetAttribute(WordXml.W, "val", template);
             // Paragraph-level \li/\fi remain separate direct overrides.
             // The list-level values are the canonical resolved fallback.
             if (legacy.Alignment.HasValue) WordXmlEdits.ReplaceChild(result, "lvlJc", WordXml.LevelOrder,

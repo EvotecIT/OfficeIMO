@@ -9,7 +9,7 @@ public static partial class WordRtfConverterExtensions {
     private static void CopyWordStylesAndNumbering(WordDocument source, RtfDocument destination) {
         OfficeXmlNode styles = source.StylesNode();
         if (styles.Exists) {
-            OfficeXmlNode[] definitions = styles.WElements("style").Where(style => style.WAttr("styleId") != null).ToArray();
+            OfficeXmlNode[] definitions = styles.ModelChildren("style").Where(style => style.WAttr("styleId") != null).ToArray();
             string? defaultParagraphId = definitions.LastOrDefault(style =>
                 (style.WAttr("type") ?? "paragraph") == "paragraph" && WordXml.ParseOnOff(style.WAttr("default")) == true).WAttr("styleId");
             var ids = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -28,12 +28,12 @@ public static partial class WordRtfConverterExtensions {
                 target.BasedOnStyleId = ResolveStyleReference(style.ChildVal("basedOn"), ids);
                 target.NextStyleId = ResolveStyleReference(style.ChildVal("next"), ids);
                 target.LinkedStyleId = ResolveStyleReference(style.ChildVal("link"), ids);
-                target.AutoUpdate = style.WChild("autoRedefine").Exists;
-                target.Hidden = style.WChild("hidden").Exists;
-                target.Locked = style.WChild("locked").Exists;
-                target.SemiHidden = style.WChild("semiHidden").Exists;
-                target.UnhideWhenUsed = style.WChild("unhideWhenUsed").Exists;
-                target.QuickFormat = style.WChild("qFormat").Exists;
+                target.AutoUpdate = style.ModelChild("autoRedefine").Exists;
+                target.Hidden = style.ModelChild("hidden").Exists;
+                target.Locked = style.ModelChild("locked").Exists;
+                target.SemiHidden = style.ModelChild("semiHidden").Exists;
+                target.UnhideWhenUsed = style.ModelChild("unhideWhenUsed").Exists;
+                target.QuickFormat = style.ModelChild("qFormat").Exists;
                 target.Priority = WordXml.ParseInt32(style.ChildVal("uiPriority"));
                 CopyWordStyleFormatting(style, target, destination);
             }
@@ -43,20 +43,20 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyWordStyleFormatting(OfficeXmlNode source, RtfStyle destination, RtfDocument document) {
-        OfficeXmlNode run = source.WChild("rPr");
+        OfficeXmlNode run = source.ModelChild("rPr");
         if (run.Exists) {
-            destination.Bold = ReadToggle(run.WChild("b"));
-            destination.Italic = ReadToggle(run.WChild("i"));
-            destination.TextHidden = ReadToggle(run.WChild("vanish"));
+            destination.Bold = ReadToggle(run.ModelChild("b"));
+            destination.Italic = ReadToggle(run.ModelChild("i"));
+            destination.TextHidden = ReadToggle(run.ModelChild("vanish"));
             if (ParseUnderlineToken(run.ChildVal("u")) is WordUnderlineStyle underline) destination.UnderlineStyle = ToRtfUnderlineStyle(underline);
             if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(run.ChildVal("sz"), NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) destination.FontSize = halfPoints / 2d;
-            OfficeXmlNode runFonts = run.WChild("rFonts");
+            OfficeXmlNode runFonts = run.ModelChild("rFonts");
             string? font = runFonts.WAttr("ascii") ?? runFonts.WAttr("hAnsi") ?? runFonts.WAttr("eastAsia");
             if (!string.IsNullOrWhiteSpace(font)) destination.FontId = document.AddFont(font!);
             string? color = run.ChildVal("color");
             if (string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)) destination.ForegroundColorIndex = 0;
             else if (color != null && TryParseHexColor(color, out byte red, out byte green, out byte blue)) destination.ForegroundColorIndex = GetOrAddColor(document, red, green, blue);
-            OfficeXmlNode characterShading = run.WChild("shd");
+            OfficeXmlNode characterShading = run.ModelChild("shd");
             string? fill = characterShading.WAttr("fill");
             string? pattern = characterShading.WVal();
             if (pattern == "clear" || pattern == "solid") {
@@ -65,26 +65,26 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        OfficeXmlNode paragraph = source.WChild("pPr");
+        OfficeXmlNode paragraph = source.ModelChild("pPr");
         if (paragraph.IsNone) return;
         destination.ParagraphAlignment = ToRtfTextAlignment(paragraph.ChildVal("jc"));
-        OfficeXmlNode numberingProperties = paragraph.WChild("numPr");
+        OfficeXmlNode numberingProperties = paragraph.ModelChild("numPr");
         destination.ListId = WordXml.ParseInt32(numberingProperties.ChildVal("numId"));
         destination.ListLevel = WordXml.ParseInt32(numberingProperties.ChildVal("ilvl"));
-        OfficeXmlNode indentation = paragraph.WChild("ind");
+        OfficeXmlNode indentation = paragraph.ModelChild("ind");
         destination.LeftIndentTwips = ParseInt(indentation.WAttr("left"));
         destination.RightIndentTwips = ParseInt(indentation.WAttr("right"));
         destination.FirstLineIndentTwips = ParseInt(indentation.WAttr("firstLine")) ?? Negate(ParseInt(indentation.WAttr("hanging")));
-        OfficeXmlNode spacing = paragraph.WChild("spacing");
+        OfficeXmlNode spacing = paragraph.ModelChild("spacing");
         destination.SpaceBeforeTwips = ParseInt(spacing.WAttr("before"));
         destination.SpaceAfterTwips = ParseInt(spacing.WAttr("after"));
         int? lineSpacing = ParseInt(spacing.WAttr("line"));
         string? lineSpacingRule = spacing.WAttr("lineRule");
         destination.LineSpacingTwips = ToRtfLineSpacingValue(lineSpacing, lineSpacingRule);
         destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(lineSpacing, lineSpacingRule);
-        OfficeXmlNode tabs = paragraph.WChild("tabs");
+        OfficeXmlNode tabs = paragraph.ModelChild("tabs");
         if (tabs.Exists) {
-            foreach (OfficeXmlNode tabStop in tabs.WElements("tab")) {
+            foreach (OfficeXmlNode tabStop in tabs.ModelChildren("tab")) {
                 string? alignment = tabStop.WVal();
                 if (alignment == "clear") continue;
                 if (WordXml.ParseInt32(tabStop.WAttr("pos")) is int position && position >= 0) {
@@ -93,21 +93,21 @@ public static partial class WordRtfConverterExtensions {
                 }
             }
         }
-        destination.PageBreakBefore = ReadToggle(paragraph.WChild("pageBreakBefore"));
-        destination.KeepWithNext = ReadToggle(paragraph.WChild("keepNext"));
-        destination.KeepLinesTogether = ReadToggle(paragraph.WChild("keepLines"));
+        destination.PageBreakBefore = ReadToggle(paragraph.ModelChild("pageBreakBefore"));
+        destination.KeepWithNext = ReadToggle(paragraph.ModelChild("keepNext"));
+        destination.KeepLinesTogether = ReadToggle(paragraph.ModelChild("keepLines"));
         destination.OutlineLevel = WordXml.ParseInt32(paragraph.ChildVal("outlineLvl"));
     }
 
     private static void CopyWordNumbering(WordDocument source, RtfDocument destination) {
         OfficeXmlNode numbering = source.NumberingNode();
         if (numbering.IsNone) return;
-        foreach (OfficeXmlNode abstractNum in numbering.WElements("abstractNum")) {
+        foreach (OfficeXmlNode abstractNum in numbering.ModelChildren("abstractNum")) {
             int? id = WordXml.ParseInt32(abstractNum.WAttr("abstractNumId"));
             if (!id.HasValue) continue;
             RtfListDefinition definition = destination.AddListDefinition(id.Value);
             var seenLevels = new HashSet<int>();
-            foreach (OfficeXmlNode wordLevel in abstractNum.WElements("lvl").OrderBy(level => WordXml.ParseInt32(level.WAttr("ilvl")) ?? 0)) {
+            foreach (OfficeXmlNode wordLevel in abstractNum.ModelChildren("lvl").OrderBy(level => WordXml.ParseInt32(level.WAttr("ilvl")) ?? 0)) {
                 int levelIndex = WordXml.ParseInt32(wordLevel.WAttr("ilvl")) ?? definition.Levels.Count;
                 ValidateWordListLevel(levelIndex);
                 if (!seenLevels.Add(levelIndex)) {
@@ -120,20 +120,20 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        foreach (OfficeXmlNode instance in numbering.WElements("num")) {
+        foreach (OfficeXmlNode instance in numbering.ModelChildren("num")) {
             int? id = WordXml.ParseInt32(instance.WAttr("numId"));
             int? abstractId = WordXml.ParseInt32(instance.ChildVal("abstractNumId"));
             if (!id.HasValue || !abstractId.HasValue) continue;
             RtfListOverride item = destination.AddListOverride(id.Value, abstractId.Value);
             int overrideIndex = 0;
-            foreach (OfficeXmlNode wordOverride in instance.WElements("lvlOverride")) {
+            foreach (OfficeXmlNode wordOverride in instance.ModelChildren("lvlOverride")) {
                 int effectiveLevelIndex = WordXml.ParseInt32(wordOverride.WAttr("ilvl")) ?? overrideIndex;
                 ValidateWordListLevel(effectiveLevelIndex);
                 RtfListLevelOverride levelOverride = item.AddLevelOverride();
                 levelOverride.LevelIndex = effectiveLevelIndex;
                 levelOverride.StartAt = WordXml.ParseInt32(wordOverride.ChildVal("startOverride"));
                 levelOverride.OverrideStartAt = levelOverride.StartAt.HasValue;
-                OfficeXmlNode overrideLevel = wordOverride.WChild("lvl");
+                OfficeXmlNode overrideLevel = wordOverride.ModelChild("lvl");
                 if (overrideLevel.Exists) {
                     levelOverride.OverrideFormat = true;
                     levelOverride.Formatting = ReadWordListLevel(overrideLevel, effectiveLevelIndex);
@@ -145,7 +145,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static RtfListLevel ReadWordListLevel(OfficeXmlNode source, int index) {
         string? format = source.ChildVal("numFmt");
-        OfficeXmlNode indentation = source.WChild("pPr").WChild("ind");
+        OfficeXmlNode indentation = source.ModelChild("pPr").ModelChild("ind");
         return new RtfListLevel(index, format == "bullet" ? RtfListKind.Bullet : RtfListKind.Decimal) {
             NumberFormat = ToRtfNumberFormat(format),
             StartAt = WordXml.ParseInt32(source.ChildVal("start")),
@@ -153,10 +153,10 @@ public static partial class WordRtfConverterExtensions {
             LeftIndentTwips = ParseInt(indentation.WAttr("left")),
             FirstLineIndentTwips = ParseInt(indentation.WAttr("firstLine"))
                 ?? Negate(ParseInt(indentation.WAttr("hanging"))),
-            Alignment = ToRtfListAlignment(WordListLevel.ReadLevelJustification(source.WChild("lvlJc").WVal())),
+            Alignment = ToRtfListAlignment(WordListLevel.ReadLevelJustification(source.ModelChild("lvlJc").WVal())),
             FollowCharacter = ToRtfFollowCharacter(source.ChildVal("suff")),
             NoRestart = WordXml.ParseInt32(source.ChildVal("lvlRestart")) == 0 ? true : (bool?)null,
-            LegalNumbering = ReadToggle(source.WChild("isLgl"))
+            LegalNumbering = ReadToggle(source.ModelChild("isLgl"))
         };
     }
 
@@ -187,7 +187,7 @@ public static partial class WordRtfConverterExtensions {
         OfficeXmlNode styles = destination.GetOrAddStylesNode();
         if (styles.IsNone) return;
         var stylesById = new Dictionary<string, OfficeXmlNode>(StringComparer.Ordinal);
-        foreach (OfficeXmlNode existingStyle in styles.WElements("style").ToList()) {
+        foreach (OfficeXmlNode existingStyle in styles.ModelChildren("style").ToList()) {
             string? existingId = existingStyle.WAttr("styleId");
             if (!string.IsNullOrEmpty(existingId)) stylesById[existingId!] = existingStyle;
         }

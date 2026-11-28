@@ -56,7 +56,7 @@ public static partial class WordRtfConverterExtensions {
         int? tableLeftPadding = cellGap.HasValue ? null : GetWordTableLeftPadding(source);
         int? tableRightPadding = cellGap.HasValue ? null : GetWordTableRightPadding(source);
         RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment);
-        OfficeXmlNode tableWidthNode = source.PropertiesNode().WChild("tblW");
+        OfficeXmlNode tableWidthNode = source.PropertiesNode().ModelChild("tblW");
         RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(tableWidthNode);
         int? tableWidth = ToRtfPreferredWidthValue(tableWidthNode);
         foreach (WordTableRow wordRow in source.Rows) {
@@ -90,8 +90,8 @@ public static partial class WordRtfConverterExtensions {
         destination.VerticalAlignment = ToRtfCellVerticalAlignment(source.VerticalAlignment);
         destination.TextFlow = ToRtfCellTextFlow(source.TextDirection);
         OfficeXmlNode cellProperties = source.PropertiesNode();
-        destination.PreferredWidthUnit = ToRtfTableWidthUnit(cellProperties.WChild("tcW"));
-        destination.PreferredWidth = ToRtfPreferredWidthValue(cellProperties.WChild("tcW"));
+        destination.PreferredWidthUnit = ToRtfTableWidthUnit(cellProperties.ModelChild("tcW"));
+        destination.PreferredWidth = ToRtfPreferredWidthValue(cellProperties.ModelChild("tcW"));
         destination.NoWrap = !source.WrapText;
         destination.FitText = source.FitText;
 
@@ -100,7 +100,7 @@ public static partial class WordRtfConverterExtensions {
             destination.BackgroundColorIndex = GetOrAddColor(document, red, green, blue);
         }
 
-        string? foreground = WordConverterNodes.ResolveShadingForegroundColorHex(cellProperties.WChild("shd"), source.Document);
+        string? foreground = WordConverterNodes.ResolveShadingForegroundColorHex(cellProperties.ModelChild("shd"), source.Document);
         if (!string.IsNullOrWhiteSpace(foreground) &&
             !string.Equals(foreground, "auto", StringComparison.OrdinalIgnoreCase) &&
             TryParseHexColor(foreground!, out red, out green, out blue)) {
@@ -161,6 +161,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopyCellParagraphs(WordTableCell source, RtfTableCell destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes, int tableDepth) {
         foreach (OfficeXmlNode child in source.Node().Elements()) {
+            if (!child.IsModelElement()) continue;
             if (child.IsW("p")) {
                 WordParagraph wordParagraph = source.Document.ParagraphView(child);
                 RtfParagraph paragraph = destination.AddParagraph();
@@ -221,7 +222,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetWordTableLeftIndent(WordTable table) {
-        OfficeXmlNode indentation = table.PropertiesNode().WChild("tblInd");
+        OfficeXmlNode indentation = table.PropertiesNode().ModelChild("tblInd");
         if (indentation.WAttr("type") != "dxa") {
             return null;
         }
@@ -237,7 +238,7 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
-        OfficeXmlNode indentation = table.PropertiesNode().WChild("tblInd");
+        OfficeXmlNode indentation = table.PropertiesNode().ModelChild("tblInd");
         if (indentation.Exists &&
             (indentation.WAttr("type") != "dxa" || indentation.WAttr("w") == null)) {
             return null;
@@ -253,12 +254,12 @@ public static partial class WordRtfConverterExtensions {
             ? gap : 0;
 
     private static int? GetWordTableLeftPadding(WordTable table) {
-        OfficeXmlNode margin = table.PropertiesNode().WChild("tblCellMar").WChild("left");
+        OfficeXmlNode margin = table.PropertiesNode().ModelChild("tblCellMar").ModelChild("left");
         return margin.WAttr("type") == "dxa" ? WordXml.ParseInt16(margin.WAttr("w")) : null;
     }
 
     private static int? GetWordTableRightPadding(WordTable table) {
-        OfficeXmlNode margin = table.PropertiesNode().WChild("tblCellMar").WChild("right");
+        OfficeXmlNode margin = table.PropertiesNode().ModelChild("tblCellMar").ModelChild("right");
         return margin.WAttr("type") == "dxa" ? WordXml.ParseInt16(margin.WAttr("w")) : null;
     }
 
@@ -278,7 +279,7 @@ public static partial class WordRtfConverterExtensions {
     private static void ApplyTableCellGap(WordTable destination, int? gap) {
         destination.CheckTableProperties();
         OfficeXmlNode properties = destination.PropertiesNode();
-        properties.WChild("tblCellSpacing").Remove();
+        properties.ModelChild("tblCellSpacing").Remove();
         OfficeXmlNode margins = properties.GetOrAddChild(WordXml.W, "tblCellMar", WordXml.TablePropertiesOrder);
         string width = ((short)(gap ?? 0)).ToString(CultureInfo.InvariantCulture);
         OfficeXmlNode left = WordXmlEdits.ReplaceChild(margins, "left", WordXml.TableCellMarginsOrder);
@@ -306,7 +307,7 @@ public static partial class WordRtfConverterExtensions {
         destination.CheckTableProperties();
         OfficeXmlNode properties = destination.PropertiesNode();
         if (indent == 0) {
-            properties.WChild("tblInd").Remove();
+            properties.ModelChild("tblInd").Remove();
             return;
         }
         OfficeXmlNode indentation = WordXmlEdits.ReplaceChild(properties, "tblInd", WordXml.TablePropertiesOrder);
@@ -345,7 +346,7 @@ public static partial class WordRtfConverterExtensions {
     private static void ApplyNativeTablePreference(WordTable destination, RtfTableWidthUnit? unit, int? value) {
         destination.CheckTableProperties();
         OfficeXmlNode properties = destination.PropertiesNode();
-        OfficeXmlNode existing = properties.WChild("tblW");
+        OfficeXmlNode existing = properties.ModelChild("tblW");
         OfficeXmlNode native = existing.Exists ? existing.Clone() : properties.CreateElement(WordXml.W, "tblW");
         string? type = ToWordTableWidthUnit(unit);
         if (type != null) native.SetAttribute(WordXml.W, "type", type);
@@ -411,7 +412,7 @@ public static partial class WordRtfConverterExtensions {
         if (!source.PreferredWidthUnit.HasValue && !source.PreferredWidth.HasValue) return;
         destination.AddTableCellProperties();
         OfficeXmlNode properties = destination.PropertiesNode();
-        OfficeXmlNode existing = properties.WChild("tcW");
+        OfficeXmlNode existing = properties.ModelChild("tcW");
         OfficeXmlNode native = existing.Exists ? existing.Clone() : properties.CreateElement(WordXml.W, "tcW");
         string? type = ToWordTableWidthUnit(source.PreferredWidthUnit);
         if (type != null) native.SetAttribute(WordXml.W, "type", type);

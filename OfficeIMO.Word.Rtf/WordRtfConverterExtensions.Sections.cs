@@ -9,10 +9,10 @@ public static partial class WordRtfConverterExtensions {
                 section.ColumnCount.HasValue ||
                 section.ColumnsSpace.HasValue ||
                 section.HasColumnSeparator ||
-                section.Node().WChild("cols").WElements("col").Any() ||
-                section.Node().WChild("vAlign").Exists ||
-                section.Node().WChild("lnNumType").Exists ||
-                section.Node().WChild("type").Exists);
+                section.Node().ModelChild("cols").ModelChildren("col").Any() ||
+                section.Node().ModelChild("vAlign").Exists ||
+                section.Node().ModelChild("lnNumType").Exists ||
+                section.Node().ModelChild("type").Exists);
     }
 
     private static void CopySections(WordDocument document, RtfDocument rtf, Dictionary<string, int> revisionAuthorIndexes) {
@@ -27,7 +27,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static RtfSectionBreakKind ToRtfSectionBreakKind(WordDocument document, int sectionIndex) {
         WordSection section = document.Sections[sectionIndex];
-        string? sectionMark = section.Node().WChild("type").WVal();
+        string? sectionMark = section.Node().ModelChild("type").WVal();
         if (sectionMark == "continuous") return RtfSectionBreakKind.Continuous;
         if (sectionMark == "nextColumn") return RtfSectionBreakKind.Column;
         if (sectionMark == "evenPage") return RtfSectionBreakKind.EvenPage;
@@ -57,18 +57,18 @@ public static partial class WordRtfConverterExtensions {
         destination.PageSetup.SetLandscape(source.PageSetup.Orientation == OfficePageOrientation.Landscape);
         destination.PageSetup.SetDifferentFirstPageHeaderFooter(source.PageSetup.DifferentFirstPage);
         OfficeXmlNode sectionProperties = source.Node();
-        CopyPageNumbering(sectionProperties.WChild("pgNumType"), destination.PageSetup);
-        CopyPageBorders(sectionProperties.WChild("pgBorders"), destination.PageSetup.PageBorders, document);
+        CopyPageNumbering(sectionProperties.ModelChild("pgNumType"), destination.PageSetup);
+        CopyPageBorders(sectionProperties.ModelChild("pgBorders"), destination.PageSetup.PageBorders, document);
         CopyNoteSettings(
-            sectionProperties.WChild("footnotePr"),
-            sectionProperties.WChild("endnotePr"),
+            sectionProperties.ModelChild("footnotePr"),
+            sectionProperties.ModelChild("endnotePr"),
             destination.NoteSettings);
-        CopyLineNumbering(sectionProperties.WChild("lnNumType"), destination.LineNumbering);
-        destination.VerticalAlignment = ToRtfSectionVerticalAlignment(sectionProperties.WChild("vAlign").WVal());
+        CopyLineNumbering(sectionProperties.ModelChild("lnNumType"), destination.LineNumbering);
+        destination.VerticalAlignment = ToRtfSectionVerticalAlignment(sectionProperties.ModelChild("vAlign").WVal());
         destination.ColumnCount = source.ColumnCount;
         destination.ColumnSpaceTwips = checked((int?)(source.ColumnsSpace?.ToTwips()));
         destination.ColumnSeparator = source.HasColumnSeparator;
-        CopySectionColumns(sectionProperties.WChild("cols"), destination);
+        CopySectionColumns(sectionProperties.ModelChild("cols"), destination);
     }
 
     private static void ApplySections(RtfDocument rtfDocument, WordDocument document, RtfWordNumberingPlan numbering) {
@@ -163,7 +163,7 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        foreach (OfficeXmlNode column in source.WElements("col")) {
+        foreach (OfficeXmlNode column in source.ModelChildren("col")) {
             destination.AddColumn(ToInt32(column.WAttr("w")), ToInt32(column.WAttr("space")));
         }
 
@@ -178,7 +178,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         OfficeXmlNode sectionProperties = destination.Node();
-        OfficeXmlNode columns = sectionProperties.WChild("cols");
+        OfficeXmlNode columns = sectionProperties.ModelChild("cols");
         if (columns.IsNone) {
             columns = sectionProperties.Append(sectionProperties.CreateElement(WordXml.W, "cols"));
         }

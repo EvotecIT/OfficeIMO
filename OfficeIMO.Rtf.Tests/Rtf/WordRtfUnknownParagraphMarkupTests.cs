@@ -54,6 +54,79 @@ public sealed class WordRtfUnknownParagraphMarkupTests {
         Assert.DoesNotContain("Hidden", actualRtf, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("run", "<w:fldChar w:fldCharType=\"begin\"/>")]
+    [InlineData("run", "<w:footnoteReference w:id=\"1\"/>")]
+    [InlineData("run", "<w:endnoteReference w:id=\"1\"/>")]
+    [InlineData("run", "<w:br w:type=\"page\"/>")]
+    [InlineData("table cell", "<w:p><w:r><w:t>Hidden</w:t></w:r></w:p>")]
+    [InlineData("table cell", "<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Hidden</w:t></w:r></w:p></w:tc></w:tr></w:tbl>")]
+    [InlineData("section", "<w:pgNumType w:start=\"47\"/>")]
+    [InlineData("table properties", "<w:tblW w:w=\"1234\" w:type=\"dxa\"/>")]
+    public void UntypedWordMarkupInsideTheModelIsSkipped(string parent, string markup) {
+        (string expectedRtf, string expectedReport) = ExportWithUntypedMarkup(parent, markup: null);
+
+        (string actualRtf, string actualReport) = ExportWithUntypedMarkup(parent, markup);
+
+        Assert.Equal(expectedRtf, actualRtf);
+        Assert.Equal(expectedReport, actualReport);
+    }
+
+    [Fact]
+    public void AnXmlCommentKeepsAnImageInsideItsParagraph() {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph();
+        using (var stream = new MemoryStream(OnePixelPng(), writable: false)) {
+            paragraph.AddImage(stream, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16),
+                options: new WordImageOptions { AltText = "Inline image" });
+        }
+        Assert.IsType<RtfImage>(Assert.Single(document.ToRtf().Blocks));
+
+        paragraph._paragraph.AppendChild(new OpenXmlMiscNode(System.Xml.XmlNodeType.Comment, "<!--note-->"));
+
+        RtfParagraph converted = Assert.IsType<RtfParagraph>(Assert.Single(document.ToRtf().Blocks));
+        Assert.Equal("Inline image", Assert.IsType<RtfImage>(Assert.Single(converted.Inlines)).Description);
+    }
+
+    private static (string Rtf, string Report) ExportWithUntypedMarkup(string parent, string? markup) {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Body text");
+        paragraph.AddFootNote("Note text");
+        paragraph.AddEndNote("End text");
+        paragraph.AddText(" after");
+        WordTable table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell text";
+        if (markup != null) {
+            OpenXmlElement target = parent switch {
+                "run" => paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Run>().First(),
+                "table cell" => table.Rows[0].Cells[0]._tableCell,
+                "section" => document._wordprocessingDocument!.MainDocumentPart!.Document!.Body!
+                    .Elements<DocumentFormat.OpenXml.Wordprocessing.SectionProperties>().Last(),
+                _ => table._table.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableProperties>()!
+            };
+            OpenXmlElement element = UntypedWordElement(markup);
+            target.PrependChild(element);
+        }
+
+        RtfDocument rtf = document.ToRtf(null, out OfficeConversionReport report);
+        string diagnostics = string.Join("\n", report.Diagnostics.Select(diagnostic =>
+            diagnostic.Code + " " + diagnostic.Message));
+        return (rtf.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), diagnostics);
+    }
+
+    // Word markup parsed inside a vendor group keeps no SDK type; detached, it stays untyped.
+    private static OpenXmlElement UntypedWordElement(string markup) {
+        var wrapper = new OpenXmlUnknownElement("x", "wrapper", VendorNamespace) {
+            InnerXml = $"<x:group xmlns:x=\"{VendorNamespace}\" xmlns:w=\"{WordNamespace}\">{markup}</x:group>"
+        };
+        OpenXmlElement element = wrapper.FirstChild!.FirstChild!;
+        element.Remove();
+        return element;
+    }
+
+    private static byte[] OnePixelPng() => Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+
     private static (string Rtf, string Report) ExportWithUntypedChild(string parent, string? element) {
         using var document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Body text");
