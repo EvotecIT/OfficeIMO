@@ -124,13 +124,43 @@ public partial class ExcelDocument {
         styles?.Write();
 
         token.ThrowIfCancellationRequested();
-        using var output = new MemoryStream(16 * 1024);
+        using var output = new MemoryStream(sheet.Cells.Count <= 64 ? 4 * 1024 : 16 * 1024);
         package.Save(output);
         bytes = output.ToArray();
-        workbook = new ExcelDeferredWorkbook(CreatedWorkbookPartName,
-            new List<ExcelDeferredSheet> { new(name, 1, relationship, worksheetPart, isWorksheet: true) },
-            source.Uses1904DateSystem);
+        var entryData = new ExcelDeferredSheet(name, 1, relationship, worksheetPart, isWorksheet: true) {
+            TableHeadersRead = true,
+            TableHeaders = new List<(int, int, int)>(0)
+        };
+        workbook = new ExcelDeferredWorkbook(CreatedWorkbookPartName, new List<ExcelDeferredSheet> { entryData }, source.Uses1904DateSystem);
         return true;
+    }
+
+    internal bool TryReadUneditedLegacyXlsCell(ExcelDeferredSheet sheet, int row, int column, out string? text) {
+        text = null;
+        if (_legacyXlsDeferredPreservation is not { } original || !ReferenceEquals(original.Projection, _deferredPackageBytes)
+            || sheet.Cells != null) return false;
+
+        LegacyXlsCell? cell = FindPlainLegacyXlsCell(original.Workbook.Worksheets[0].Cells, row, column);
+        text = cell?.Value switch {
+            string value => value,
+            double value => OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture),
+            bool value => value ? "1" : "0",
+            _ => null
+        };
+        return true;
+    }
+
+    private static LegacyXlsCell? FindPlainLegacyXlsCell(IReadOnlyList<LegacyXlsCell> cells, int row, int column) {
+        int first = 0, last = cells.Count - 1;
+        while (first <= last) {
+            int middle = first + ((last - first) >> 1);
+            LegacyXlsCell cell = cells[middle];
+            int comparison = row == cell.Row ? column.CompareTo(cell.Column) : row.CompareTo(cell.Row);
+            if (comparison == 0) return cell;
+            if (comparison < 0) last = middle - 1;
+            else first = middle + 1;
+        }
+        return null;
     }
 
     private static OfficeXmlNode AddLegacySpreadsheetElement(OfficeXmlNode parent, string name) =>
@@ -166,11 +196,16 @@ public partial class ExcelDocument {
                 if (offset != sheetOffset) return false;
             } else {
                 // Some compound files include sector padding in the recorded Workbook stream size.
+#if NET8_0_OR_GREATER
+                token.ThrowIfCancellationRequested();
+                return stream.AsSpan(offset).IndexOfAnyExcept((byte)0) < 0;
+#else
                 for (; offset < stream.Length; offset++) {
                     if ((offset & 4095) == 0) token.ThrowIfCancellationRequested();
                     if (stream[offset] != 0) return false;
                 }
                 return true;
+#endif
             }
         }
         return false;

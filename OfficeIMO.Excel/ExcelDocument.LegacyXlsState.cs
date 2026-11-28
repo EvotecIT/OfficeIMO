@@ -201,6 +201,7 @@ namespace OfficeIMO.Excel {
                     filePath: null, sourceStream: null, leaveSourceStreamOpen: true, DocumentPersistenceMode.Explicit);
                 document._deferredCreated = true;
                 document._deferredPackageWrittenHere = true;
+                document._deferredHasCellMetadata = false;
                 document._unchangedPackageBytes = null;
             } else {
                 document = workbook.ToExcelDocument(cancellationToken);
