@@ -243,6 +243,8 @@ internal sealed class ZstandardDecoder {
     }
 
     private void StartFrame(long window, long contentSize, ZstandardDictionaryData? dictionary) {
+        // Cancellation can arrive with the last header byte; check before charging or copying the dictionary.
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         byte[] content = dictionary?.Content ?? Array.Empty<byte>();
         _dictionaryLength = content.Length;
         _window = window;

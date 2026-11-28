@@ -332,6 +332,21 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void CancellationWithTheLastHeaderByteChargesNoDictionaryWork() {
+        byte[] frame = ReadFixture("message-raw-dict.zst");
+        ZstandardDictionary dictionary = ZstandardDictionary.Load(ReadFixture("raw-content.dict"));
+        var budget = new ArchiveOperationBudget();
+        using var cancellation = new CancellationTokenSource();
+        // The raw-dictionary frame's header ends at byte 6 (magic, descriptor and a 1-byte content size).
+        var source = new TrickleStream(frame, 6, cancellation);
+
+        Assert.ThrowsAny<OperationCanceledException>(() => ZstandardArchive.DecompressWithDictionary(source, new MemoryStream(), dictionary,
+            new ArchiveReadOptions { OperationBudget = budget }, cancellation.Token));
+
+        Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
