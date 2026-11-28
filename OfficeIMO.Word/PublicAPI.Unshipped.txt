@@ -717,3 +717,5 @@ OfficeIMO.Word.WordChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions
 OfficeIMO.Word.WordDocument.AllCharts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordChart!>!
 OfficeIMO.Word.WordDocument.OpenXmlSdkFallbacks.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static OfficeIMO.Word.WordFontResolver.ToDocumentFont(string? fontFamily) -> string?
+*REMOVED*OfficeIMO.Word.WordHeaderFooter._footer -> DocumentFormat.OpenXml.Wordprocessing.Footer?
+*REMOVED*OfficeIMO.Word.WordHeaderFooter._header -> DocumentFormat.OpenXml.Wordprocessing.Header?

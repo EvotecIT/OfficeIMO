@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            int level = explicitLevel ?? GetListNumParagraphLevel(document, candidate.AnchorElement);
+            int level = explicitLevel ?? GetListNumParagraphLevel(document, candidate.SdkAnchorElement);
             string stateKey = candidate.PartUri + "|" + profileName;
             if (!state.ListNumSequences.TryGetValue(stateKey, out ListNumSequenceState? sequence)) {
                 sequence = new ListNumSequenceState();

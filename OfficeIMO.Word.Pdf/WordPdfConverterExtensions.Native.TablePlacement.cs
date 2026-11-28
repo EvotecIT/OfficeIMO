@@ -2,13 +2,14 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
     /// <summary>Resolves Word's inline grid origin after effective cell margins and borders are known.</summary>
     private static void ApplyNativeInlineTablePlacement(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults, bool containedTable = false) {
         if (layout.Rows.Count == 0 || layout.Rows[0].Count == 0 || style.CellSpacing.ToPoints() > 0D ||
             style.BorderFrame?.Border != null ||
-            table._tableProperties?.TablePositionProperties != null) return;
+            table.PropertiesNode().WChild("tblpPr").Exists) return;
 
         // Body legacy placement translates its text margin into a page grid.
         // A contained table already receives its physical cell content frame.

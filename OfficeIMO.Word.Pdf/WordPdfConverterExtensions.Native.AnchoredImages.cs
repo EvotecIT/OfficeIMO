@@ -3,6 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
     private readonly record struct NativeAnchoredImagePlacement(double X, double Y, bool MarginX, bool ParagraphY);
 
@@ -29,9 +30,8 @@ public static partial class WordPdfConverterExtensions {
         bool paragraphY = layout.VerticalRelativeFrom == "paragraph";
         if ((marginX || marginY) && section == null) return false;
         // A flowing multi-column position needs the actual column chosen by pagination.
-        if (layout.HorizontalRelativeFrom == "column" && section?._sectionProperties
-                .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Columns>() is { } columns &&
-            (columns.ColumnCount?.Value > 1 || columns.ChildElements.Count > 1)) return false;
+        if (layout.HorizontalRelativeFrom == "column" && section?.Node().WChild("cols") is { IsNone: false } columns &&
+            (WordXml.ParseInt16(columns.WAttr("num")) > 1 || columns.Elements().Count() > 1)) return false;
         string? horizontal = marginX ? "margin" : layout.HorizontalRelativeFrom;
         string? vertical = paragraphY ? "paragraph" : layout.VerticalRelativeFrom;
         if (!TryGetNativeGroupAxis(horizontal, layout.HorizontalOffsetPoints, layout.HorizontalAlignment,
@@ -47,8 +47,9 @@ public static partial class WordPdfConverterExtensions {
         double width, double height, PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas? target,
         WordParagraph? paragraph, WordPdfExportOptions? options, string source, WordSection? anchorSection = null,
         bool runningStory = false) {
-        if (image._Image?.Anchor == null ||
-            !WordDrawingLayoutReader.TryRead(image._Image, out WordDrawingLayoutInfo layout))
+        OfficeXmlNode drawing = image.DrawingNode();
+        if (drawing.Child(WordXml.Wp, "anchor").IsNone ||
+            !WordConverterNodes.TryReadDrawingLayout(drawing, out WordDrawingLayoutInfo layout))
             return false;
 
         WordSection? section = paragraph?.GetBodySection() ?? anchorSection;
@@ -58,10 +59,10 @@ public static partial class WordPdfConverterExtensions {
         if (layout.Wrap != WordDrawingWrapKind.None) {
             // Visible run views retain their original source children, so the
             // drawing identity is stable across deferred story materializations.
-            if (!TryPrepareNativeAnchoredImageItem(image._Image, image, bytes, width, height, section,
+            if (!TryPrepareNativeAnchoredImageItem(drawing, image, bytes, width, height, section,
                     pdf.PageSize, margins, options, source, out PdfCore.PdfCanvasAnchoredImageItem? wrapped,
                     out string? unsupportedReason, runningStory)) {
-                RecordNativeImageWrapApproximation(options, image._Image, source,
+                RecordNativeImageWrapApproximation(options, drawing, source,
                     "The wrapped picture was placed in document flow. " + unsupportedReason);
                 return false;
             }
@@ -70,7 +71,7 @@ public static partial class WordPdfConverterExtensions {
             wrappedCanvas.AddItems(new PdfCore.PdfCanvasItem[] { wrapped! });
             if (target == null) style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(wrappedCanvas.Items);
             PdfCore.PdfAnchoredImagePosition position = wrapped!.Position;
-            RecordNativeWrappedImagePageClipping(options, image._Image, source, pdf.PageSize,
+            RecordNativeWrappedImagePageClipping(options, drawing, source, pdf.PageSize,
                 width, height, position);
             return true;
         }

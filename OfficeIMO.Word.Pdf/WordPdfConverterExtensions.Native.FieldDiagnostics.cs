@@ -1,34 +1,34 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf;
+
 
 /// <summary>Source-only field metadata scoped to one PDF conversion operation.</summary>
 internal sealed class NativeFieldResultDiagnosticIndex {
     internal NativeFieldResultDiagnosticIndex(WordDocument document) {
         FieldsByParagraph = WordFieldInventory.InspectWithSource(document)
-            .Where(field => !field.HasStoredResult && field.SourceElement.Ancestors<W.Paragraph>().Any())
-            .ToLookup(field => field.SourceElement.Ancestors<W.Paragraph>().First());
+            .Where(field => !field.HasStoredResult && field.SourceNode().Ancestor(WordXml.W, "p").Exists)
+            .ToLookup(field => field.SourceNode().Ancestor(WordXml.W, "p"));
     }
 
-    internal ILookup<W.Paragraph, WordFieldInventory.FieldInfoCandidate> FieldsByParagraph { get; }
-    internal HashSet<OpenXmlElement> DiagnosedSources { get; } = new();
+    internal ILookup<OfficeXmlNode, WordFieldInventory.FieldInfoCandidate> FieldsByParagraph { get; }
+    internal HashSet<OfficeXmlNode> DiagnosedSources { get; } = new();
 }
 
 public static partial class WordPdfConverterExtensions {
     private static void RecordNativeFieldResultDiagnostics(WordParagraph paragraph, WordPdfExportOptions options,
         string source, bool runningStory) {
-        if (paragraph._paragraph == null) return;
+        OfficeXmlNode paragraphNode = paragraph.Node();
+        if (paragraphNode.IsNone) return;
         NativeFieldResultDiagnosticIndex index = options.FieldResultDiagnostics ??=
             new NativeFieldResultDiagnosticIndex(paragraph._document);
-        foreach (WordFieldInventory.FieldInfoCandidate field in index.FieldsByParagraph[paragraph._paragraph]) {
-            if (!index.DiagnosedSources.Add(field.SourceElement) || !IsNativeDisplayResultField(field.Info.FieldType) ||
-                !WordComplexFieldRunVisibility.IsVisibleBefore(field.SourceElement)) continue;
+        foreach (WordFieldInventory.FieldInfoCandidate field in index.FieldsByParagraph[paragraphNode]) {
+            if (!index.DiagnosedSources.Add(field.SourceNode()) || !IsNativeDisplayResultField(field.Info.FieldType) ||
+                !WordConverterNodes.IsFieldVisibleBefore(field.SourceNode())) continue;
             // These running counters are calculated by the pagination owner even
             // when the source has no result separator or display cache.
             if (runningStory && TryGetNativeHeaderFooterFieldToken(field.Info.InstructionText, out _, out _)) continue;
-            W.Run formattingRun = field.SourceElement.Ancestors<W.Run>().FirstOrDefault() ?? new W.Run();
-            if (IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, formattingRun), paragraph)) continue;
+            OfficeXmlNode formattingRun = field.SourceNode().Ancestor(WordXml.W, "r");
+            if (formattingRun.IsNone) formattingRun = paragraphNode.CreateElement(WordXml.W, "r");
+            if (IsNativeHiddenTextRun(paragraph._document.RunView(paragraphNode, formattingRun), paragraph)) continue;
             AddNativeExportWarning(options, "native-field-result-unavailable",
                 source + " " + field.Info.PartUri + " field " + field.Info.Index.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "The visible " + field.Info.FieldType + " field has no stored display result. PDF conversion does not evaluate this field here, so its display result is omitted; the Word source is unchanged.");

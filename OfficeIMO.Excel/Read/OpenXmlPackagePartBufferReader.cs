@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using System.IO.Compression;
 using System.Buffers;
 
@@ -20,12 +21,12 @@ namespace OfficeIMO.Excel {
         // Opens another stream over the same package bytes, for a reader with its own archive cursor.
         private Func<Stream>? _openSiblingStream;
 
-        private OpenXmlPackagePartBufferReader(Stream stream, bool allowPipelining = false) {
+        private OpenXmlPackagePartBufferReader(Stream stream, bool allowPipelining = false, bool ignoreWhitespaceNames = false) {
             AllowsPipelining = allowPipelining;
             _stream = stream;
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             try {
-                _entries = BuildEntryIndex(_archive);
+                _entries = BuildEntryIndex(_archive, ignoreWhitespaceNames);
                 _archiveEntryCount = _archive.Entries.Count;
             } catch {
                 _archive.Dispose();
@@ -37,10 +38,10 @@ namespace OfficeIMO.Excel {
         /// Opens a ZIP reader that takes ownership of the supplied stream, including when
         /// the stream does not contain a readable ZIP archive.
         /// </summary>
-        internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream, bool allowPipelining = false) {
+        internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream, bool allowPipelining = false, bool ignoreWhitespaceNames = false) {
             ArgumentNullException.ThrowIfNull(stream);
             try {
-                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining) {
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining, ignoreWhitespaceNames) {
                     _openSiblingStream = SharedReadOnlyFileSnapshot.GetViewFactory(stream)
                 };
                 return reader;
@@ -65,11 +66,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static OpenXmlPackagePartBufferReader? TryOpen(byte[] bytes, bool allowPipelining = false) {
+        internal static OpenXmlPackagePartBufferReader? TryOpen(byte[] bytes, bool allowPipelining = false, bool ignoreWhitespaceNames = false) {
             MemoryStream? stream = null;
             try {
                 stream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
-                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining) {
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining, ignoreWhitespaceNames) {
                     _openSiblingStream = () => new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false)
                 };
                 stream = null;
@@ -283,23 +284,8 @@ namespace OfficeIMO.Excel {
             int maximumBufferedBytes = 8192,
             Func<byte[], int, bool>? acceptBufferedPrefix = null,
             string limitName = "MaxPackagePartBytes") {
-            if (_disposed) {
-                throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
-            }
-            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
-            cancellationToken.ThrowIfCancellationRequested();
-
             string normalizedPartName = NormalizePartName(partName);
-            if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
-                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' is missing.");
-            }
-            if (entry.Length < 0) {
-                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares a negative length.");
-            }
-            if (entry.Length > maximumBytes) {
-                throw ExcelReadLimitFailure.Create(limitName, maximumBytes,
-                    $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
-            }
+            ZipArchiveEntry entry = GetReadableEntry(normalizedPartName, maximumBytes, cancellationToken, limitName);
 
             // Small parts use the standard pool. Opted-in larger parts use the exact-size
             // part pool only when their prefix qualifies for the caller's indexed parser.
@@ -322,6 +308,42 @@ namespace OfficeIMO.Excel {
                 ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                 throw;
             }
+        }
+
+        internal OfficePooledBytes ReadMetadataPart(string partName, int maximumBytes, CancellationToken cancellationToken) {
+            string normalizedPartName = NormalizePartName(partName);
+            ZipArchiveEntry entry = GetReadableEntry(normalizedPartName, maximumBytes, cancellationToken,
+                nameof(ExcelReaderOptions.MaxMetadataPartBytes));
+            OfficePooledBytes content = OfficePooledBytes.Rent(checked((int)entry.Length));
+            try {
+                using Stream input = OpenEntry(entry, cancellationToken);
+                ReadPartContents(input, content.Array, content.Length, normalizedPartName, cancellationToken);
+                return content;
+            } catch {
+                content.Dispose();
+                throw;
+            }
+        }
+
+        private ZipArchiveEntry GetReadableEntry(string normalizedPartName, int maximumBytes, CancellationToken cancellationToken, string limitName) {
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+            }
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
+                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' is missing.");
+            }
+            if (entry.Length < 0) {
+                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares a negative length.");
+            }
+            if (entry.Length > maximumBytes) {
+                throw ExcelReadLimitFailure.Create(limitName, maximumBytes,
+                    $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
+            }
+
+            return entry;
         }
 
         private static void ReadPartContents(
@@ -359,10 +381,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(ZipArchive archive) {
+        internal IReadOnlyCollection<string> IndexedPartNames => _entries.Keys;
+
+        private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(ZipArchive archive, bool ignoreWhitespaceNames = false) {
             var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
             foreach (ZipArchiveEntry entry in archive.Entries) {
-                if (string.IsNullOrEmpty(entry.Name)) {
+                if (string.IsNullOrEmpty(entry.Name) || (ignoreWhitespaceNames && string.IsNullOrWhiteSpace(entry.FullName))) {
                     continue;
                 }
 

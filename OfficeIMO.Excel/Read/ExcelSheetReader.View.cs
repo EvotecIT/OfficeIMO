@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -6,9 +5,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Reads the first sheet view without materializing worksheet cells.</summary>
         internal bool ReadRightToLeft(CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_hasSdkWorksheetPart && _wsPart.IsRootElementLoaded) {
-                return SdkWorksheetPart.Worksheet?.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()
-                    ?.RightToLeft?.Value == true;
+            if (_hasLiveWorksheetPart && _worksheetPart.IsRootLoaded) {
+                return _worksheetPart.Root.Child(SpreadsheetXml, "sheetViews").Child(SpreadsheetXml, "sheetView")
+                    .BooleanAttribute("rightToLeft") == true;
             }
 
             using Stream stream = OpenReaderWorksheetStream(cancellationToken);

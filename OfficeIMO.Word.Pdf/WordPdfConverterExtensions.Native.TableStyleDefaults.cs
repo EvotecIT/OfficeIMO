@@ -1,11 +1,11 @@
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         // Shared immutable snapshots keep nested table projection off the thread stack.
-        private sealed record NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, global::OfficeIMO.OfficeColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (global::OfficeIMO.OfficeColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
+        private sealed record NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, global::OfficeIMO.OfficeColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (global::OfficeIMO.OfficeColor Color, double Width)? TableBorder, OfficeXmlNode Borders, OfficeXmlNode PreferredWidth, string? Layout, double? LeftIndent, double? CellSpacing, string? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, string? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, string? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public bool? SeparateCellBorders { get; init; }
@@ -18,10 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             public NativeTableConditionalStyleDefaults Band2VerticalStyle { get; init; }
             public int RowBandSize { get; init; }
             public int ColumnBandSize { get; init; }
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, default, default, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
-        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, global::OfficeIMO.OfficeColor? Color) {
+        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, string? Baseline, string? ColorHex, string? Highlight, global::OfficeIMO.OfficeColor? Color) {
             public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
-        private readonly record struct NativeTableConditionalStyleDefaults(global::OfficeIMO.OfficeColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, global::OfficeIMO.OfficeColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
+        private readonly record struct NativeTableConditionalStyleDefaults(global::OfficeIMO.OfficeColor? CellFill, OfficeXmlNode CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, global::OfficeIMO.OfficeColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, string? Baseline, string? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, string? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, string? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
             public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
@@ -39,16 +39,22 @@ namespace OfficeIMO.Word.Pdf {
             public NativeParagraphPaginationDefaults ParagraphPagination { get; init; }
             /// <summary>True when the condition declares a text color; a declared automatic color leaves <see cref="TextColor"/> null.</summary>
             public bool TextColorDeclared { get; init; }
-            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, default, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
+
+        // The w:tblStylePr type tokens of the conditional formats a table style can declare.
+        private const string NativeFirstRowStyle = "firstRow", NativeLastRowStyle = "lastRow",
+            NativeFirstColumnStyle = "firstCol", NativeLastColumnStyle = "lastCol",
+            NativeBand1HorizontalStyle = "band1Horz", NativeBand1VerticalStyle = "band1Vert",
+            NativeBand2HorizontalStyle = "band2Horz", NativeBand2VerticalStyle = "band2Vert";
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
             string? styleId = GetNativeTableStyleId(table);
             // An unnamed table may inherit an authored custom default. Resolve
             // that chain before applying the configured PDF fallback; built-in
             // Normal Table definitions already produce an empty chain.
-            IReadOnlyList<W.Style> styleChain = GetNativeTableStyleChain(table.Document, styleId);
-            bool rightToLeft = WordTableAlignmentResolver.IsRightToLeft(table._tableProperties);
+            IReadOnlyList<OfficeXmlNode> styleChain = GetNativeTableStyleChain(table.Document, styleId);
+            bool rightToLeft = WordConverterNodes.IsTableRightToLeft(table.PropertiesNode());
             if (styleChain.Count == 0) {
                 return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = ignoreFallbackTableStyle, RightToLeft = rightToLeft };
             }
@@ -60,22 +66,22 @@ namespace OfficeIMO.Word.Pdf {
             global::OfficeIMO.OfficeColor? cellFill = null;
             PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = null;
             (global::OfficeIMO.OfficeColor Color, double Width)? tableBorder = null;
-            W.TableBorders? tableBorders = null;
-            W.TableWidth? preferredWidth = null;
-            W.TableLayoutValues? layout = null;
+            OfficeXmlNode tableBorders = default;
+            OfficeXmlNode preferredWidth = default;
+            string? layout = null;
             double? leftIndent = null;
             double? cellSpacing = null;
             bool? separateCellBorders = null;
-            W.TableRowAlignmentValues? alignment = null;
+            string? alignment = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
-            W.LineSpacingRuleValues? paragraphLineSpacingRule = null;
+            string? paragraphLineSpacingRule = null;
             NativeLineSpacing authoredLineSpacing = default;
             NativeParagraphSpacing paragraphSpacing = default;
             NativeParagraphPaginationDefaults paragraphPagination = default;
             double? paragraphSpacingBefore = null;
             double? paragraphSpacingAfter = null;
-            W.JustificationValues? paragraphAlignment = null;
+            string? paragraphAlignment = null;
             double? paragraphLeftIndent = null;
             double? paragraphRightIndent = null;
             double? paragraphFirstLineIndent = null;
@@ -90,9 +96,9 @@ namespace OfficeIMO.Word.Pdf {
             OfficeTextDecorationStyle? strikeStyle = null;
             bool? allCaps = null;
             bool? smallCaps = null;
-            W.VerticalPositionValues? baseline = null;
+            string? baseline = null;
             string? colorHex = null;
-            W.HighlightColorValues? highlight = null;
+            string? highlight = null;
             NativeTableConditionalStyleDefaults firstRowStyle = NativeTableConditionalStyleDefaults.Empty;
             NativeTableConditionalStyleDefaults lastRowStyle = NativeTableConditionalStyleDefaults.Empty;
             NativeTableConditionalStyleDefaults firstColumnStyle = NativeTableConditionalStyleDefaults.Empty;
@@ -103,46 +109,40 @@ namespace OfficeIMO.Word.Pdf {
             NativeTableConditionalStyleDefaults band2VerticalStyle = NativeTableConditionalStyleDefaults.Empty;
             int rowBandSize = 1, columnBandSize = 1;
 
-            foreach (W.Style style in styleChain) {
-                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+            foreach (OfficeXmlNode style in styleChain) {
+                OfficeXmlNode runProperties = style.WChild("rPr");
                 complexScript = complexScript.Merge(runProperties);
                 textSpacing = textSpacing.Merge(runProperties);
                 fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
-                fontFamilies = GetNativeRunFontFamilies(table.Document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(fontFamilies);
+                fontFamilies = GetNativeRunFontFamilies(table.Document, runProperties.WChild("rFonts")).Inherit(fontFamilies);
                 fontFamily = fontFamilies.Primary;
-                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
-                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
+                bold = runProperties.WChild("b").OnOff() ?? bold;
+                italic = runProperties.WChild("i").OnOff() ?? italic;
+                underlineStyle = MapNativeUnderlineStyle(runProperties.WChild("u")) ?? underlineStyle;
                 strikeStyle = MapNativeStrikeStyle(runProperties) ?? strikeStyle;
-                allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
-                smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
-                baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
-                colorHex = WordRunFormatting.ResolveColorHex(runProperties?.GetFirstChild<W.Color>(), table.Document) ?? colorHex;
-                highlight = WordRunFormatting.ReadRunHighlight(runProperties) ?? highlight;
+                allCaps = runProperties.WChild("caps").OnOff() ?? allCaps;
+                smallCaps = runProperties.WChild("smallCaps").OnOff() ?? smallCaps;
+                baseline = runProperties.ChildVal("vertAlign") ?? baseline;
+                colorHex = WordConverterNodes.ResolveColorHex(runProperties.WChild("color"), table.Document) ?? colorHex;
+                highlight = WordConverterNodes.ReadRunHighlight(runProperties) ?? highlight;
 
-                W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
-                rowBandSize = tableProperties?.GetFirstChild<W.TableStyleRowBandSize>()?.Val?.Value ?? rowBandSize;
-                columnBandSize = tableProperties?.GetFirstChild<W.TableStyleColumnBandSize>()?.Val?.Value ?? columnBandSize;
-                preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
-                layout = tableProperties?.GetFirstChild<W.TableLayout>()?.Type?.Value ?? layout;
-                leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
-                W.TableCellSpacing? spacingDeclaration = tableProperties?.GetFirstChild<W.TableCellSpacing>();
+                OfficeXmlNode tableProperties = style.WChild("tblPr");
+                rowBandSize = WordXml.ParseInt32(tableProperties.ChildVal("tblStyleRowBandSize")) ?? rowBandSize;
+                columnBandSize = WordXml.ParseInt32(tableProperties.ChildVal("tblStyleColBandSize")) ?? columnBandSize;
+                OfficeXmlNode styleWidth = tableProperties.WChild("tblW");
+                if (styleWidth.Exists) preferredWidth = styleWidth;
+                layout = tableProperties.WChild("tblLayout").WAttr("type") ?? layout;
+                leftIndent = GetNativeTableLeftIndent(tableProperties.WChild("tblInd")) ?? leftIndent;
+                OfficeXmlNode spacingDeclaration = tableProperties.WChild("tblCellSpacing");
                 if (GetNativeTableCellSpacing(spacingDeclaration) is { } resolvedCellSpacing) {
                     cellSpacing = resolvedCellSpacing;
-                    separateCellBorders = spacingDeclaration!.Type?.Value == W.TableWidthUnitValues.Dxa;
+                    separateCellBorders = spacingDeclaration.WAttr("type") == "dxa";
                 }
-                alignment = WordTableAlignmentResolver.Read(tableProperties?.GetFirstChild<W.TableJustification>(), rightToLeft) ?? alignment;
+                alignment = WordConverterNodes.ReadTableAlignment(tableProperties.WChild("jc"), rightToLeft) ?? alignment;
 
-                W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
-                if (margins != null) {
-                    double? top = ConvertNativeTwipsToPoints(margins.TopMargin?.Width?.Value);
-                    double? bottom = ConvertNativeTwipsToPoints(margins.BottomMargin?.Width?.Value);
-                    double? left = margins.TableCellLeftMargin?.Width == null
-                        ? null
-                        : ConvertNativeTwipsToPoints(margins.TableCellLeftMargin.Width.Value);
-                    double? right = margins.TableCellRightMargin?.Width == null
-                        ? null
-                        : ConvertNativeTwipsToPoints(margins.TableCellRightMargin.Width.Value);
+                OfficeXmlNode margins = tableProperties.WChild("tblCellMar");
+                if (margins.Exists) {
+                    (double? top, double? bottom, double? left, double? right) = ReadNativeTableCellMarginDefault(margins);
 
                     marginTop = top ?? marginTop;
                     marginBottom = bottom ?? marginBottom;
@@ -150,30 +150,31 @@ namespace OfficeIMO.Word.Pdf {
                     marginRight = right ?? marginRight;
                 }
 
-                W.StyleTableCellProperties? tableCellProperties = style.GetFirstChild<W.StyleTableCellProperties>();
-                W.Shading? shading = tableCellProperties?.GetFirstChild<W.Shading>() ?? tableProperties?.GetFirstChild<W.Shading>();
-                if (shading != null) {
-                    cellFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(shading, table.Document));
+                OfficeXmlNode tableCellProperties = style.WChild("tcPr");
+                OfficeXmlNode shading = tableCellProperties.WChild("shd");
+                if (shading.IsNone) shading = tableProperties.WChild("shd");
+                if (shading.Exists) {
+                    cellFill = ParseNativeColor(WordConverterNodes.ResolveShadingFillColorHex(shading, table.Document));
                 }
 
-                cellVerticalAlignment = MapNativeNullableCellVerticalAlign(tableCellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value) ?? cellVerticalAlignment;
+                cellVerticalAlignment = MapNativeNullableCellVerticalAlign(tableCellProperties.ChildVal("vAlign")) ?? cellVerticalAlignment;
 
-                W.TableBorders? styleTableBorders = ResolveNativeTableBorderColors(tableProperties?.GetFirstChild<W.TableBorders>(), table.Document);
-                if (styleTableBorders != null) {
+                OfficeXmlNode styleTableBorders = ResolveNativeTableBorderColors(tableProperties.WChild("tblBorders"), table.Document);
+                if (styleTableBorders.Exists) {
                     tableBorder = GetNativeUniformTableBorder(styleTableBorders);
                     tableBorders = styleTableBorders;
                 }
 
-                W.StyleParagraphProperties? paragraphProperties = style.GetFirstChild<W.StyleParagraphProperties>();
+                OfficeXmlNode paragraphProperties = style.WChild("pPr");
                 paragraphSpacing = paragraphSpacing.Merge(paragraphProperties);
                 paragraphPagination = paragraphPagination.Merge(paragraphProperties);
-                W.Indentation? indentation = paragraphProperties?.GetFirstChild<W.Indentation>();
-                if (indentation != null) {
-                    paragraphLeftIndent = ConvertNativeTwipsToPoints(indentation.Left?.Value) ?? paragraphLeftIndent;
-                    paragraphRightIndent = ConvertNativeTwipsToPoints(indentation.Right?.Value) ?? paragraphRightIndent;
+                OfficeXmlNode indentation = paragraphProperties.WChild("ind");
+                if (indentation.Exists) {
+                    paragraphLeftIndent = ConvertNativeTwipsToPoints(indentation.WAttr("left")) ?? paragraphLeftIndent;
+                    paragraphRightIndent = ConvertNativeTwipsToPoints(indentation.WAttr("right")) ?? paragraphRightIndent;
 
-                    double? firstLine = ConvertNativeTwipsToPoints(indentation.FirstLine?.Value);
-                    double? hanging = ConvertNativeTwipsToPoints(indentation.Hanging?.Value);
+                    double? firstLine = ConvertNativeTwipsToPoints(indentation.WAttr("firstLine"));
+                    double? hanging = ConvertNativeTwipsToPoints(indentation.WAttr("hanging"));
                     if (hanging.HasValue) {
                         paragraphFirstLineIndent = -hanging.Value;
                     } else if (firstLine.HasValue) {
@@ -181,27 +182,27 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                W.SpacingBetweenLines? spacing = paragraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-                authoredLineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties?.GetFirstChild<W.TextAlignment>()).Inherit(authoredLineSpacing);
-                if (spacing != null) {
+                OfficeXmlNode spacing = paragraphProperties.WChild("spacing");
+                authoredLineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties.WChild("textAlignment")).Inherit(authoredLineSpacing);
+                if (spacing.Exists) {
                     double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily, nativeDefaults.FontFamily);
                     double? styleParagraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily, nativeDefaults.FontFamily);
                     double? styleParagraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     if (styleParagraphLineHeight.HasValue || styleParagraphLineSpacingPoints.HasValue) {
                         paragraphLineHeight = styleParagraphLineHeight;
                         paragraphLineSpacingPoints = styleParagraphLineSpacingPoints;
-                        paragraphLineSpacingRule = spacing.LineRule?.Value;
+                        paragraphLineSpacingRule = spacing.WAttr("lineRule");
                     }
 
                     double effectiveFontSize = fontSize ?? nativeDefaults.FontSize;
                     double effectiveLineHeight = styleParagraphLineSpacingPoints.HasValue && effectiveFontSize > 0D
-                        ? ResolveNativeLineSpacingHeight(styleParagraphLineSpacingPoints.Value, spacing.LineRule?.Value, effectiveFontSize, naturalLineHeight)
+                        ? ResolveNativeLineSpacingHeight(styleParagraphLineSpacingPoints.Value, spacing.WAttr("lineRule"), effectiveFontSize, naturalLineHeight)
                         : styleParagraphLineHeight ?? paragraphLineHeight ?? naturalLineHeight;
                     paragraphSpacingBefore = GetNativeSpacingBeforePoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingBefore;
                     paragraphSpacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingAfter;
                 }
 
-                paragraphAlignment = paragraphProperties?.GetFirstChild<W.Justification>()?.Val?.Value ?? paragraphAlignment;
+                paragraphAlignment = paragraphProperties.ChildVal("jc") ?? paragraphAlignment;
             }
 
             // Resolve relative conditional spacing after the complete table style chain,
@@ -212,15 +213,15 @@ namespace OfficeIMO.Word.Pdf {
                 FontFamilies = fontFamilies.Primary != null ? fontFamilies : nativeDefaults.FontFamilies
             };
             var conditionalFontDefaults = ResolveNativeConditionalFontDefaults(styleChain, table.Document, conditionalDefaults);
-            foreach (W.Style style in styleChain) {
-                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle, conditionalFontDefaults[W.TableStyleOverrideValues.FirstRow], table.Document);
-                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastRow, lastRowStyle, conditionalFontDefaults[W.TableStyleOverrideValues.LastRow], table.Document);
-                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstColumn, firstColumnStyle, conditionalFontDefaults[W.TableStyleOverrideValues.FirstColumn], table.Document);
-                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, conditionalFontDefaults[W.TableStyleOverrideValues.LastColumn], table.Document);
-                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Horizontal], table.Document);
-                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Vertical], table.Document);
-                band2HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band2Horizontal, band2HorizontalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band2Horizontal], table.Document);
-                band2VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band2Vertical, band2VerticalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band2Vertical], table.Document);
+            foreach (OfficeXmlNode style in styleChain) {
+                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, NativeFirstRowStyle, firstRowStyle, conditionalFontDefaults[NativeFirstRowStyle], table.Document);
+                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, NativeLastRowStyle, lastRowStyle, conditionalFontDefaults[NativeLastRowStyle], table.Document);
+                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, NativeFirstColumnStyle, firstColumnStyle, conditionalFontDefaults[NativeFirstColumnStyle], table.Document);
+                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, NativeLastColumnStyle, lastColumnStyle, conditionalFontDefaults[NativeLastColumnStyle], table.Document);
+                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, NativeBand1HorizontalStyle, band1HorizontalStyle, conditionalFontDefaults[NativeBand1HorizontalStyle], table.Document);
+                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, NativeBand1VerticalStyle, band1VerticalStyle, conditionalFontDefaults[NativeBand1VerticalStyle], table.Document);
+                band2HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, NativeBand2HorizontalStyle, band2HorizontalStyle, conditionalFontDefaults[NativeBand2HorizontalStyle], table.Document);
+                band2VerticalStyle = GetNativeTableConditionalStyleDefaults(style, NativeBand2VerticalStyle, band2VerticalStyle, conditionalFontDefaults[NativeBand2VerticalStyle], table.Document);
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -275,20 +276,20 @@ namespace OfficeIMO.Word.Pdf {
                     RowBandSize = rowBandSize, ColumnBandSize = columnBandSize };
         }
 
-        private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
-            IReadOnlyList<W.Style> styleChain, WordDocument document, NativeDocumentDefaults tableDefaults) {
-            var result = new Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults>();
-            foreach (W.TableStyleOverrideValues type in new[] {
-                W.TableStyleOverrideValues.FirstRow, W.TableStyleOverrideValues.LastRow,
-                W.TableStyleOverrideValues.FirstColumn, W.TableStyleOverrideValues.LastColumn,
-                W.TableStyleOverrideValues.Band1Horizontal, W.TableStyleOverrideValues.Band1Vertical,
-                W.TableStyleOverrideValues.Band2Horizontal, W.TableStyleOverrideValues.Band2Vertical
+        private static Dictionary<string, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
+            IReadOnlyList<OfficeXmlNode> styleChain, WordDocument document, NativeDocumentDefaults tableDefaults) {
+            var result = new Dictionary<string, NativeDocumentDefaults>(StringComparer.Ordinal);
+            foreach (string type in new[] {
+                NativeFirstRowStyle, NativeLastRowStyle,
+                NativeFirstColumnStyle, NativeLastColumnStyle,
+                NativeBand1HorizontalStyle, NativeBand1VerticalStyle,
+                NativeBand2HorizontalStyle, NativeBand2VerticalStyle
             }) {
                 NativeDocumentDefaults defaults = tableDefaults;
-                foreach (W.Style style in styleChain) {
-                    foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
-                        W.RunPropertiesBaseStyle? runs = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
-                        NativeLatinFontFamilies fonts = GetNativeRunFontFamilies(document, runs?.GetFirstChild<W.RunFonts>()).Inherit(defaults.FontFamilies);
+                foreach (OfficeXmlNode style in styleChain) {
+                    foreach (OfficeXmlNode properties in style.WElements("tblStylePr").Where(properties => properties.WAttr("type") == type)) {
+                        OfficeXmlNode runs = properties.WChild("rPr");
+                        NativeLatinFontFamilies fonts = GetNativeRunFontFamilies(document, runs.WChild("rFonts")).Inherit(defaults.FontFamilies);
                         defaults = defaults with {
                             FontSize = GetNativeRunPropertiesBaseStyleFontSize(runs) ?? defaults.FontSize,
                             FontFamily = fonts.Primary ?? defaults.FontFamily,
@@ -301,47 +302,47 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static NativeTableConditionalStyleDefaults GetNativeTableConditionalStyleDefaults(W.Style style, W.TableStyleOverrideValues type, NativeTableConditionalStyleDefaults inherited, NativeDocumentDefaults nativeDefaults, WordDocument document) {
+        private static NativeTableConditionalStyleDefaults GetNativeTableConditionalStyleDefaults(OfficeXmlNode style, string type, NativeTableConditionalStyleDefaults inherited, NativeDocumentDefaults nativeDefaults, WordDocument document) {
             NativeTableConditionalStyleDefaults result = inherited;
-            foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
-                W.TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>();
-                global::OfficeIMO.OfficeColor? cellFill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(cellProperties?.GetFirstChild<W.Shading>(), document));
-                W.TableCellBorders? cellBorders = ResolveNativeTableBorderColors(cellProperties?.GetFirstChild<W.TableCellBorders>(), document);
-                PdfCore.PdfCellPadding? cellPadding = CreateNativeConditionalTableCellPadding(cellProperties?.GetFirstChild<W.TableCellMargin>());
-                PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = MapNativeNullableCellVerticalAlign(cellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value);
+            foreach (OfficeXmlNode properties in style.WElements("tblStylePr").Where(properties => properties.WAttr("type") == type)) {
+                OfficeXmlNode cellProperties = properties.WChild("tcPr");
+                global::OfficeIMO.OfficeColor? cellFill = ParseNativeColor(WordConverterNodes.ResolveShadingFillColorHex(cellProperties.WChild("shd"), document));
+                OfficeXmlNode cellBorders = ResolveNativeTableBorderColors(cellProperties.WChild("tcBorders"), document);
+                PdfCore.PdfCellPadding? cellPadding = CreateNativeConditionalTableCellPadding(cellProperties.WChild("tcMar"));
+                PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = MapNativeNullableCellVerticalAlign(cellProperties.ChildVal("vAlign"));
 
-                W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
-                NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(result.FontFamilies);
+                OfficeXmlNode runProperties = properties.WChild("rPr");
+                NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, runProperties.WChild("rFonts")).Inherit(result.FontFamilies);
                 string? fontFamily = fontFamilies.Primary;
-                W.Color? textColorDeclaration = runProperties?.GetFirstChild<W.Color>();
-                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(WordRunFormatting.ResolveColorHex(textColorDeclaration, document));
+                OfficeXmlNode textColorDeclaration = runProperties.WChild("color");
+                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(WordConverterNodes.ResolveColorHex(textColorDeclaration, document));
                 double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
-                bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
-                bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());
-                OfficeTextDecorationStyle? underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
+                bool? bold = runProperties.WChild("b").OnOff();
+                bool? italic = runProperties.WChild("i").OnOff();
+                OfficeTextDecorationStyle? underlineStyle = MapNativeUnderlineStyle(runProperties.WChild("u"));
                 OfficeTextDecorationStyle? strikeStyle = MapNativeStrikeStyle(runProperties);
-                bool? allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>());
-                bool? smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>());
-                W.VerticalPositionValues? baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value;
-                W.HighlightColorValues? highlight = WordRunFormatting.ReadRunHighlight(runProperties);
+                bool? allCaps = runProperties.WChild("caps").OnOff();
+                bool? smallCaps = runProperties.WChild("smallCaps").OnOff();
+                string? baseline = runProperties.ChildVal("vertAlign");
+                string? highlight = WordConverterNodes.ReadRunHighlight(runProperties);
 
-                W.StyleParagraphProperties? paragraphProperties = properties.GetFirstChild<W.StyleParagraphProperties>();
-                W.SpacingBetweenLines? spacing = paragraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+                OfficeXmlNode paragraphProperties = properties.WChild("pPr");
+                OfficeXmlNode spacing = paragraphProperties.WChild("spacing");
                 double? paragraphLineHeight = null;
                 double? paragraphLineSpacingPoints = null;
-                W.LineSpacingRuleValues? paragraphLineSpacingRule = null;
+                string? paragraphLineSpacingRule = null;
                 double? paragraphSpacingBefore = null;
                 double? paragraphSpacingAfter = null;
                 double? paragraphLeftIndent = null;
                 double? paragraphRightIndent = null;
                 double? paragraphFirstLineIndent = null;
-                W.Indentation? indentation = paragraphProperties?.GetFirstChild<W.Indentation>();
-                if (indentation != null) {
-                    paragraphLeftIndent = ConvertNativeTwipsToPoints(indentation.Left?.Value);
-                    paragraphRightIndent = ConvertNativeTwipsToPoints(indentation.Right?.Value);
+                OfficeXmlNode indentation = paragraphProperties.WChild("ind");
+                if (indentation.Exists) {
+                    paragraphLeftIndent = ConvertNativeTwipsToPoints(indentation.WAttr("left"));
+                    paragraphRightIndent = ConvertNativeTwipsToPoints(indentation.WAttr("right"));
 
-                    double? firstLine = ConvertNativeTwipsToPoints(indentation.FirstLine?.Value);
-                    double? hanging = ConvertNativeTwipsToPoints(indentation.Hanging?.Value);
+                    double? firstLine = ConvertNativeTwipsToPoints(indentation.WAttr("firstLine"));
+                    double? hanging = ConvertNativeTwipsToPoints(indentation.WAttr("hanging"));
                     if (hanging.HasValue) {
                         paragraphFirstLineIndent = -hanging.Value;
                     } else if (firstLine.HasValue) {
@@ -349,29 +350,29 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                if (spacing != null) {
+                if (spacing.Exists) {
                     double naturalLineHeight = ResolveNativeWordSingleLineHeight(nativeDefaults.FontFamily);
                     paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, nativeDefaults.FontFamily);
                     paragraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     paragraphLineSpacingRule = paragraphLineHeight.HasValue || paragraphLineSpacingPoints.HasValue
-                        ? spacing.LineRule?.Value
+                        ? spacing.WAttr("lineRule")
                         : null;
 
                     double effectiveFontSize = nativeDefaults.FontSize;
                     double effectiveLineHeight = paragraphLineSpacingPoints.HasValue && effectiveFontSize > 0D
-                        ? ResolveNativeLineSpacingHeight(paragraphLineSpacingPoints.Value, spacing.LineRule?.Value, effectiveFontSize, naturalLineHeight)
+                        ? ResolveNativeLineSpacingHeight(paragraphLineSpacingPoints.Value, spacing.WAttr("lineRule"), effectiveFontSize, naturalLineHeight)
                         : paragraphLineHeight ?? result.ParagraphLineHeight ?? naturalLineHeight;
                     paragraphSpacingBefore = GetNativeSpacingBeforePoints(spacing, effectiveFontSize, effectiveLineHeight);
                     paragraphSpacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight);
                 }
 
-                W.JustificationValues? paragraphAlignment = paragraphProperties?.GetFirstChild<W.Justification>()?.Val?.Value;
+                string? paragraphAlignment = paragraphProperties.ChildVal("jc");
                 result = new NativeTableConditionalStyleDefaults(
                     cellFill ?? result.CellFill,
-                    cellBorders ?? result.CellBorders,
+                    cellBorders.Exists ? cellBorders : result.CellBorders,
                     MergeNativeCellPadding(result.CellPadding, cellPadding),
                     cellVerticalAlignment ?? result.CellVerticalAlignment,
-                    textColorDeclaration != null ? textColor : result.TextColor,
+                    textColorDeclaration.Exists ? textColor : result.TextColor,
                     fontSize ?? result.FontSize,
                     fontFamily ?? result.FontFamily,
                     bold ?? result.Bold,
@@ -394,25 +395,25 @@ namespace OfficeIMO.Word.Pdf {
                     FontFamilies = fontFamilies,
                     ComplexScript = result.ComplexScript.Merge(runProperties),
                     TextSpacing = result.TextSpacing.Merge(runProperties),
-                    LineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties?.GetFirstChild<W.TextAlignment>()).Inherit(result.LineSpacing),
+                    LineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties.WChild("textAlignment")).Inherit(result.LineSpacing),
                     ParagraphSpacing = result.ParagraphSpacing.Merge(paragraphProperties),
                     ParagraphPagination = result.ParagraphPagination.Merge(paragraphProperties),
-                    TextColorDeclared = textColorDeclaration != null || result.TextColorDeclared
+                    TextColorDeclared = textColorDeclaration.Exists || result.TextColorDeclared
                 };
             }
 
             return result;
         }
 
-        private static PdfCore.PdfCellPadding? CreateNativeConditionalTableCellPadding(W.TableCellMargin? margins) {
-            if (margins == null) {
+        private static PdfCore.PdfCellPadding? CreateNativeConditionalTableCellPadding(OfficeXmlNode margins) {
+            if (margins.IsNone) {
                 return null;
             }
 
-            double? top = ConvertNativeTwipsToPoints(margins.TopMargin?.Width?.Value);
-            double? bottom = ConvertNativeTwipsToPoints(margins.BottomMargin?.Width?.Value);
-            double? left = ConvertNativeTwipsToPoints(margins.LeftMargin?.Width?.Value);
-            double? right = ConvertNativeTwipsToPoints(margins.RightMargin?.Width?.Value);
+            double? top = ConvertNativeTwipsToPoints(margins.WChild("top").WAttr("w"));
+            double? bottom = ConvertNativeTwipsToPoints(margins.WChild("bottom").WAttr("w"));
+            double? left = ConvertNativeTwipsToPoints(margins.WChild("left").WAttr("w"));
+            double? right = ConvertNativeTwipsToPoints(margins.WChild("right").WAttr("w"));
             if (!top.HasValue && !bottom.HasValue && !left.HasValue && !right.HasValue) {
                 return null;
             }
@@ -425,8 +426,8 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static double? GetNativeRunPropertiesBaseStyleFontSize(W.RunPropertiesBaseStyle? runProperties) {
-            string? value = runProperties?.FontSize?.Val?.Value;
+        private static double? GetNativeRunPropertiesBaseStyleFontSize(OfficeXmlNode runProperties) {
+            string? value = runProperties.WChild("sz").WVal();
             if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
                 halfPoints <= 0D ||
                 double.IsNaN(halfPoints) ||
@@ -438,31 +439,34 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeTableStyleParagraphLineHeight(
-            W.SpacingBetweenLines spacing,
+            OfficeXmlNode spacing,
             params string?[] fontFamilies) {
-            if (WordLineSpacing.Read(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
+            if (ReadNativeTableStyleLineSpacing(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
             return Math.Max(0.01D, ResolveNativeWordSingleLineHeight(fontFamilies) * multiple);
         }
 
-        private static double? GetNativeTableStyleParagraphLineSpacingPoints(W.SpacingBetweenLines spacing) {
-            return WordLineSpacing.Read(spacing)?.Height?.ToPoints();
+        private static double? GetNativeTableStyleParagraphLineSpacingPoints(OfficeXmlNode spacing) {
+            return ReadNativeTableStyleLineSpacing(spacing)?.Height?.ToPoints();
         }
 
-        private static IReadOnlyList<W.Style> GetNativeTableStyleChain(WordDocument document, string? styleId) {
+        private static WordLineSpacing? ReadNativeTableStyleLineSpacing(OfficeXmlNode spacing) =>
+            spacing.IsNone ? null : WordLineSpacing.Read(spacing.WAttr("line"), spacing.WAttr("lineRule"));
+
+        private static IReadOnlyList<OfficeXmlNode> GetNativeTableStyleChain(WordDocument document, string? styleId) {
             NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
             string? resolvedStyleId = cache?.ResolveTableStyleId(styleId);
             if (cache == null || string.IsNullOrWhiteSpace(resolvedStyleId)) {
-                return Array.Empty<W.Style>();
+                return Array.Empty<OfficeXmlNode>();
             }
 
-            if (cache.TableChains.TryGetValue(resolvedStyleId!, out IReadOnlyList<W.Style>? cachedChain)) {
-                return cachedChain;
+            if (cache.TableChains.TryGetValue(resolvedStyleId!, out IReadOnlyList<OfficeXmlNode>? cachedChain)) {
+                return cachedChain.ToArray();
             }
 
-            var chain = new List<W.Style>();
+            var chain = new List<OfficeXmlNode>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? currentStyleId = resolvedStyleId;
-            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.TableStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.TableStyles.TryGetValue(currentStyleId!, out OfficeXmlNode style)) {
                 // Word ignores the built-in Normal Table definition's child
                 // properties, including when it is a named style's base.
                 if (IsNativeNormalTableStyleId(currentStyleId)) {
@@ -470,17 +474,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
-                currentStyleId = style.BasedOn?.Val?.Value;
+                currentStyleId = style.ChildVal("basedOn");
             }
 
             chain.Reverse();
-            IReadOnlyList<W.Style> result = chain.ToArray();
+            IReadOnlyList<OfficeXmlNode> result = chain.ToArray();
             cache.TableChains[resolvedStyleId!] = result;
             return result;
         }
 
         private static string? GetNativeTableStyleId(WordTable table) =>
-            table._tableProperties?.TableStyle?.Val?.Value;
+            table.PropertiesNode().ChildVal("tblStyle");
 
         private static bool IsNativeFallbackTableStyleId(string? styleId) =>
             string.IsNullOrWhiteSpace(styleId) ||

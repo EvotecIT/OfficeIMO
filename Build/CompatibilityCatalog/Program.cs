@@ -18,7 +18,11 @@ string websiteDataPath = GetOption(args, "--website-data")
 bool verify = args.Contains("--verify", StringComparer.OrdinalIgnoreCase);
 // The front-page format map sits beside the route data and is generated from the same catalog.
 string formatMapPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(websiteDataPath))!, "format_map.json");
-string formatMap = FormatMapProjection.Create(repositoryRoot);
+FormatMapModel formatMapModel = FormatMapProjection.CreateModel(repositoryRoot);
+string formatMap = FormatMapProjection.Serialize(formatMapModel);
+// The root README carries a family summary of the same map between its own markers.
+string rootReadmePath = Path.Combine(repositoryRoot, "README.md");
+string rootReadme = RootReadmeFormatMapProjection.Create(rootReadmePath, formatMapModel);
 string converterSamplePath = GetOption(args, "--converter-sample")
     ?? Path.Combine(
         Directory.GetCurrentDirectory(),
@@ -72,6 +76,11 @@ if (verify) {
         Environment.ExitCode = 1;
         return;
     }
+    if (Normalize(File.ReadAllText(rootReadmePath)) != Normalize(rootReadme)) {
+        Console.Error.WriteLine("Root README format map is stale: " + rootReadmePath);
+        Environment.ExitCode = 1;
+        return;
+    }
     if (!VerifyConverterPowerPointSample(converterSamplePath, out string sampleError)) {
         Console.Error.WriteLine("Converter proof sample is missing or stale: " + sampleError);
         Environment.ExitCode = 1;
@@ -86,7 +95,7 @@ if (verify) {
         Environment.ExitCode = 1;
         return;
     }
-    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts, {packageReadmes.Count} package README projections, website route data, and the converter proof sample.");
+    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts, {packageReadmes.Count} package README projections, website route data, the root README format map, and the converter proof sample.");
     return;
 }
 
@@ -98,6 +107,7 @@ string? websiteDataDirectory = Path.GetDirectoryName(websiteDataPath);
 if (!string.IsNullOrEmpty(websiteDataDirectory)) Directory.CreateDirectory(websiteDataDirectory);
 File.WriteAllText(websiteDataPath, Normalize(outputs["conversion-routes.json"]), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 File.WriteAllText(formatMapPath, formatMap, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+File.WriteAllText(rootReadmePath, rootReadme, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 foreach ((string path, string content) in packageReadmes) {
     PackageReadmeOperationProjection.Write(repositoryRoot, path, content);
 }

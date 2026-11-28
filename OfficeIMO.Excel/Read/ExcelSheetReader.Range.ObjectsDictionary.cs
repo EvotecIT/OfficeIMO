@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Globalization;
 using System.Xml;
@@ -30,7 +28,7 @@ namespace OfficeIMO.Excel {
             int lastDataRow = r1;
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -309,7 +307,7 @@ namespace OfficeIMO.Excel {
             var rowValues = dataRowCount == 0 ? Array.Empty<object?[]>() : new object?[dataRowCount][];
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -416,11 +414,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (row.RowIndex == null) {
-                    return false;
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) {
                     continue;
                 }
@@ -432,12 +426,12 @@ namespace OfficeIMO.Excel {
                 if (rowIndex == r1) {
                     var headerValues = new object?[cols];
                     int nextHeaderColumnIndex = 1;
-                    foreach (var cell in row.Elements<Cell>()) {
+                    foreach (var cell in row.Cells()) {
                         if (canCancel && (++convertedCells & 1023) == 0) {
                             ct.ThrowIfCancellationRequested();
                         }
 
-                        int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextHeaderColumnIndex);
+                        int columnIndex = cell.GetColumnIndex(ref nextHeaderColumnIndex);
                         if (columnIndex < c1 || columnIndex > c2) {
                             continue;
                         }
@@ -475,12 +469,12 @@ namespace OfficeIMO.Excel {
 
                 var dict = result[rr];
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel && (++convertedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int columnIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (columnIndex < c1 || columnIndex > c2) {
                         continue;
                     }

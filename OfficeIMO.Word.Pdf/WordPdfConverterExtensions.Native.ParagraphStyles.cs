@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         // Native line-count spacing can multiply two valid Int32 values beyond the physical length range.
         // Reject malformed layout data before constructing the PDF style or starting pagination.
@@ -23,8 +19,8 @@ namespace OfficeIMO.Word.Pdf {
         private const double NativeAutomaticParagraphSpacing = 14D;
 
         private static bool IsNativeFirstBodyParagraph(WordParagraph paragraph) =>
-            paragraph._paragraph != null && ReferenceEquals(paragraph._paragraph, paragraph._document?
-                ._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<W.Paragraph>().FirstOrDefault());
+            paragraph.Node().Exists && paragraph._document != null &&
+            paragraph.Node() == paragraph._document.BodyNode().ModelDescendants("p").FirstOrDefault();
 
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
@@ -43,7 +39,7 @@ namespace OfficeIMO.Word.Pdf {
             double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
             style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults));
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
-            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            OfficeXmlNode directSpacing = paragraph.Node().WChild("pPr").WChild("spacing");
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             NativeParagraphSpacing resolvedSpacing = ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults);
             if (resolvedSpacing.BeforeAuto == true) {
@@ -113,11 +109,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.TabStops.Add(tabStop);
             }
 
-            style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
+            style.KeepTogether = ReadNativeDirectParagraphOnOff(paragraph, "keepLines") ?? styleDefaults.KeepTogether ?? false;
             style.KeepTogetherOverflow = UsesModernNativeWordLayout(paragraph._document)
                 ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
-            style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
-            style.WidowControl = ReadNativeDirectParagraphOnOff<W.WidowControl>(paragraph) ?? styleDefaults.WidowControl ?? nativeDefaults.ParagraphWidowControl;
+            style.KeepWithNext = ReadNativeDirectParagraphOnOff(paragraph, "keepNext") ?? styleDefaults.KeepWithNext ?? false;
+            style.WidowControl = ReadNativeDirectParagraphOnOff(paragraph, "widowControl") ?? styleDefaults.WidowControl ?? nativeDefaults.ParagraphWidowControl;
             ApplyNativeParagraphJustification(style, paragraph);
             return style;
         }
@@ -138,33 +134,33 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool UsesNativeContextualSpacing(WordParagraph paragraph) =>
-            ReadNativeDirectParagraphOnOff<W.ContextualSpacing>(paragraph) ??
+            ReadNativeDirectParagraphOnOff(paragraph, "contextualSpacing") ??
             GetNativeParagraphStyleDefaults(paragraph).ContextualSpacing ?? false;
 
         private static bool ShouldSuppressNativeContextualSpacingBefore(WordParagraph paragraph) {
-            if (HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak ||
-                paragraph._paragraph?.PreviousSibling() is not W.Paragraph previous ||
-                !UsesNativeContextualSpacing(paragraph)) return false;
-            var previousParagraph = new WordParagraph(paragraph._document, previous);
+            if (HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak) return false;
+            OfficeXmlNode previous = paragraph.Node().PreviousSibling;
+            if (!previous.IsW("p") || !UsesNativeContextualSpacing(paragraph)) return false;
+            var previousParagraph = paragraph._document.ParagraphView(previous);
             return !previousParagraph.IsPageBreak && string.Equals(
                 GetNativeParagraphStyleIdentity(paragraph), GetNativeParagraphStyleIdentity(previousParagraph), StringComparison.Ordinal);
         }
 
         private static string GetNativeParagraphStyleIdentity(WordParagraph paragraph) {
-            IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
+            IReadOnlyList<OfficeXmlNode> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
             if (styleChain.Count > 0) {
-                return styleChain[styleChain.Count - 1].StyleId?.Value ?? string.Empty;
+                return styleChain[styleChain.Count - 1].WAttr("styleId") ?? string.Empty;
             }
 
             return paragraph.StyleId ?? string.Empty;
         }
 
-        private static bool IsNativeRenderableTextTabStop(W.TabStopValues alignment) =>
-            alignment != W.TabStopValues.Bar &&
-            alignment != W.TabStopValues.Clear;
+        private static bool IsNativeRenderableTextTabStop(string alignment) =>
+            alignment != "bar" &&
+            alignment != "clear";
 
         private static bool IsNativeRenderableTextTabStop(WordTabAlignment alignment) =>
-            IsNativeRenderableTextTabStop(alignment.ToOpenXml());
+            IsNativeRenderableTextTabStop(alignment.ToOpenXmlToken());
 
         private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize) =>
             ResolveNativeParagraphLineHeight(paragraph, fontSize, GetNativeDocumentDefaults(paragraph._document));
@@ -247,7 +243,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (lineHeight.HasValue) return lineHeight.Value;
-            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
+            OfficeXmlNode markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
             return ResolveNativeWordSingleLineHeight(
                 nativeFontMap,
                 EnumerateNativeLatinFontFamilies(paragraph._document, markFonts).Concat(EnumerateNativeStyleFontFamilies(
@@ -255,25 +251,25 @@ namespace OfficeIMO.Word.Pdf {
                     nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true)).ToArray());
         }
 
-        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
+        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, string? lineSpacingRule, double fontSize, double naturalLineHeight) {
             double requestedLineHeight = lineSpacingPoints / fontSize;
-            if (lineSpacingRule == W.LineSpacingRuleValues.AtLeast) {
+            if (lineSpacingRule == "atLeast") {
                 return Math.Max(naturalLineHeight, requestedLineHeight);
             }
 
             return requestedLineHeight;
         }
 
-        private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
-            if (leader == W.TabStopLeaderCharValues.Dot || leader == W.TabStopLeaderCharValues.MiddleDot || leader == W.TabStopLeaderCharValues.Heavy) {
+        private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(string leader) {
+            if (leader == "dot" || leader == "middleDot" || leader == "heavy") {
                 return PdfCore.PdfTabLeaderStyle.Dots;
             }
 
-            if (leader == W.TabStopLeaderCharValues.Hyphen) {
+            if (leader == "hyphen") {
                 return PdfCore.PdfTabLeaderStyle.Hyphens;
             }
 
-            if (leader == W.TabStopLeaderCharValues.Underscore) {
+            if (leader == "underscore") {
                 return PdfCore.PdfTabLeaderStyle.Underscores;
             }
 
@@ -281,22 +277,22 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(WordTabLeader leader) =>
-            MapNativeTabLeader(leader.ToOpenXml());
+            MapNativeTabLeader(leader.ToOpenXmlToken());
 
-        private static PdfCore.PdfTabAlignment MapNativeTabAlignment(W.TabStopValues alignment) {
-            if (alignment == W.TabStopValues.Bar) {
+        private static PdfCore.PdfTabAlignment MapNativeTabAlignment(string alignment) {
+            if (alignment == "bar") {
                 return PdfCore.PdfTabAlignment.Bar;
             }
 
-            if (alignment == W.TabStopValues.Center) {
+            if (alignment == "center") {
                 return PdfCore.PdfTabAlignment.Center;
             }
 
-            if (alignment == W.TabStopValues.Right) {
+            if (alignment == "right") {
                 return PdfCore.PdfTabAlignment.Right;
             }
 
-            if (alignment == W.TabStopValues.Decimal) {
+            if (alignment == "decimal") {
                 return PdfCore.PdfTabAlignment.DecimalSeparator;
             }
 
@@ -304,49 +300,49 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfTabAlignment MapNativeTabAlignment(WordTabAlignment alignment) =>
-            MapNativeTabAlignment(alignment.ToOpenXml());
+            MapNativeTabAlignment(alignment.ToOpenXmlToken());
 
         private static char? GetNativeDecimalTabSeparator(WordParagraph paragraph) {
             string? symbol = paragraph._document.Settings.DecimalSymbol;
             return symbol is { Length: 1 } && !char.IsControl(symbol[0]) && !char.IsSurrogate(symbol[0]) ? symbol[0] : null;
         }
 
-        private static global::OfficeIMO.OfficeAlignment MapNativeParagraphAlign(W.JustificationValues? alignment, bool allowJustify = true) {
-            if (alignment == W.JustificationValues.Center) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeParagraphAlign(string? alignment, bool allowJustify = true) {
+            if (alignment == "center") {
                 return global::OfficeIMO.OfficeAlignment.Center;
             }
 
-            if (alignment == W.JustificationValues.Right) {
+            if (alignment == "right") {
                 return global::OfficeIMO.OfficeAlignment.Right;
             }
 
             if (allowJustify &&
-                (alignment == W.JustificationValues.Both ||
-                 alignment == W.JustificationValues.Distribute ||
-                 alignment == W.JustificationValues.HighKashida ||
-                 alignment == W.JustificationValues.LowKashida ||
-                 alignment == W.JustificationValues.MediumKashida ||
-                 alignment == W.JustificationValues.ThaiDistribute)) {
+                (alignment == "both" ||
+                 alignment == "distribute" ||
+                 alignment == "highKashida" ||
+                 alignment == "lowKashida" ||
+                 alignment == "mediumKashida" ||
+                 alignment == "thaiDistribute")) {
                 return global::OfficeIMO.OfficeAlignment.Justify;
             }
 
             return global::OfficeIMO.OfficeAlignment.Left;
         }
 
-        private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
-            ResolveNativeVisualJustification(paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment,
+        private static string? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
+            ResolveNativeVisualJustification(NativeJustificationToken(paragraph.ParagraphAlignment) ?? GetNativeParagraphStyleDefaults(paragraph).Alignment,
                 IsNativeBiDiParagraph(paragraph));
 
         /// <summary>
         /// Word reads start and end, and also left and right, as the logical sides of the paragraph: a
         /// right-to-left paragraph starts at the right. Returns the physical side; justification is unchanged.
         /// </summary>
-        private static W.JustificationValues? ResolveNativeVisualJustification(W.JustificationValues? alignment, bool rightToLeft) {
-            if (alignment == null) return rightToLeft ? W.JustificationValues.Right : null;
-            if (alignment == W.JustificationValues.Start || alignment == W.JustificationValues.Left)
-                return rightToLeft ? W.JustificationValues.Right : W.JustificationValues.Left;
-            if (alignment == W.JustificationValues.End || alignment == W.JustificationValues.Right)
-                return rightToLeft ? W.JustificationValues.Left : W.JustificationValues.Right;
+        private static string? ResolveNativeVisualJustification(string? alignment, bool rightToLeft) {
+            if (alignment == null) return rightToLeft ? "right" : null;
+            if (alignment == "start" || alignment == "left")
+                return rightToLeft ? "right" : "left";
+            if (alignment == "end" || alignment == "right")
+                return rightToLeft ? "left" : "right";
             return alignment;
         }
 
@@ -358,45 +354,45 @@ namespace OfficeIMO.Word.Pdf {
         /// The physical side for a route that sets lines without justification: justified text keeps to the
         /// paragraph's starting side, which is the right in a right-to-left paragraph.
         /// </summary>
-        private static W.JustificationValues? ResolveNativeUnjustifiedJustification(WordParagraph paragraph) =>
+        private static string? ResolveNativeUnjustifiedJustification(WordParagraph paragraph) =>
             ResolveNativeUnjustifiedJustification(ResolveNativeParagraphJustification(paragraph), IsNativeBiDiParagraph(paragraph));
 
-        private static W.JustificationValues? ResolveNativeUnjustifiedJustification(W.JustificationValues? alignment, bool rightToLeft) =>
+        private static string? ResolveNativeUnjustifiedJustification(string? alignment, bool rightToLeft) =>
             MapNativeParagraphAlign(alignment) == global::OfficeIMO.OfficeAlignment.Justify
-                ? rightToLeft ? W.JustificationValues.Right : W.JustificationValues.Left
+                ? rightToLeft ? "right" : "left"
                 : alignment;
 
         private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
-            (ReadNativeDirectParagraphOnOff<W.BiDi>(paragraph) ?? GetNativeParagraphStyleDefaults(paragraph).BiDi) == true;
+            (ReadNativeDirectParagraphOnOff(paragraph, "bidi") ?? GetNativeParagraphStyleDefaults(paragraph).BiDi) == true;
 
         private static global::OfficeIMO.OfficeAlignment ResolveNativeColumnAlign(WordParagraph paragraph) =>
             MapNativeColumnAlign(ResolveNativeUnjustifiedJustification(paragraph));
 
-        private static global::OfficeIMO.OfficeAlignment MapNativeColumnAlign(W.JustificationValues? alignment) {
-            if (alignment == W.JustificationValues.Center) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeColumnAlign(string? alignment) {
+            if (alignment == "center") {
                 return global::OfficeIMO.OfficeAlignment.Center;
             }
 
-            if (alignment == W.JustificationValues.Right) {
+            if (alignment == "right") {
                 return global::OfficeIMO.OfficeAlignment.Right;
             }
 
             return global::OfficeIMO.OfficeAlignment.Left;
         }
 
-        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) =>
+        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(string? alignment) =>
             MapNativeNullableCellVerticalAlign(alignment) ?? PdfCore.PdfCellVerticalAlign.Top;
 
-        private static PdfCore.PdfCellVerticalAlign? MapNativeNullableCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) {
-            if (!alignment.HasValue) {
+        private static PdfCore.PdfCellVerticalAlign? MapNativeNullableCellVerticalAlign(string? alignment) {
+            if (alignment == null) {
                 return null;
             }
 
-            if (alignment == W.TableVerticalAlignmentValues.Center) {
+            if (alignment == "center") {
                 return PdfCore.PdfCellVerticalAlign.Middle;
             }
 
-            if (alignment == W.TableVerticalAlignmentValues.Bottom) {
+            if (alignment == "bottom") {
                 return PdfCore.PdfCellVerticalAlign.Bottom;
             }
 
@@ -404,7 +400,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfCellVerticalAlign? MapNativeNullableCellVerticalAlign(WordTableVerticalAlignment? alignment) =>
-            MapNativeNullableCellVerticalAlign(alignment.ToOpenXml());
+            MapNativeNullableCellVerticalAlign(NativeCellVerticalAlignmentToken(alignment));
 
         private static int GetHeadingLevel(WordParagraph paragraph) {
             return GetNativeTableOfContentsHeadingLevel(paragraph);
@@ -641,7 +637,35 @@ namespace OfficeIMO.Word.Pdf {
             return color;
         }
 
-        private static global::OfficeIMO.OfficeColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
-            ParseNativeColor(WordRunFormatting.GetHighlightColorHex(highlight));
+        private static global::OfficeIMO.OfficeColor? MapNativeHighlight(string? highlight) =>
+            ParseNativeColor(WordConverterNodes.HighlightColorHexOfToken(highlight));
+
+        /// <summary>The <c>w:jc</c> token of a paragraph alignment, or null.</summary>
+        private static string? NativeJustificationToken(WordParagraphAlignment? alignment) => alignment switch {
+            null => null,
+            WordParagraphAlignment.Left => "left",
+            WordParagraphAlignment.Start => "start",
+            WordParagraphAlignment.Center => "center",
+            WordParagraphAlignment.Right => "right",
+            WordParagraphAlignment.End => "end",
+            WordParagraphAlignment.Both => "both",
+            WordParagraphAlignment.MediumKashida => "mediumKashida",
+            WordParagraphAlignment.Distribute => "distribute",
+            WordParagraphAlignment.NumTab => "numTab",
+            WordParagraphAlignment.HighKashida => "highKashida",
+            WordParagraphAlignment.LowKashida => "lowKashida",
+            WordParagraphAlignment.ThaiDistribute => "thaiDistribute",
+            _ => throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Unsupported paragraph alignment.")
+        };
+
+        /// <summary>The <c>w:vAlign</c> token of a cell vertical alignment, or null.</summary>
+        private static string? NativeCellVerticalAlignmentToken(WordTableVerticalAlignment? alignment) => alignment switch {
+            null => null,
+            WordTableVerticalAlignment.Top => "top",
+            WordTableVerticalAlignment.Center => "center",
+            WordTableVerticalAlignment.Bottom => "bottom",
+            _ => throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Unsupported cell vertical alignment.")
+        };
+
     }
 }

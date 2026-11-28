@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
@@ -17,15 +18,21 @@ internal sealed class WordHeaderFooterResolutionSnapshot {
         WordFooter? defaultFooter = null, firstFooter = null, evenFooter = null;
         foreach (WordSection section in document.Sections) {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var reference in section._sectionProperties.ChildElements) {
-                if (reference is HeaderReference header) {
-                    if (header.Type?.Value == HeaderFooterValues.Default) defaultHeader = section.Headers?.Default;
-                    else if (header.Type?.Value == HeaderFooterValues.First) firstHeader = section.Headers?.First;
-                    else if (header.Type?.Value == HeaderFooterValues.Even) evenHeader = section.Headers?.Even;
-                } else if (reference is FooterReference footer) {
-                    if (footer.Type?.Value == HeaderFooterValues.Default) defaultFooter = section.Footers?.Default;
-                    else if (footer.Type?.Value == HeaderFooterValues.First) firstFooter = section.Footers?.First;
-                    else if (footer.Type?.Value == HeaderFooterValues.Even) evenFooter = section.Footers?.Even;
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            foreach (OfficeXmlNode reference in section.SectionNode.Children()) {
+                string? type = reference.Attribute(W, "type");
+                if (type is not ("default" or "first" or "even")) continue;
+                var kind = type == "first" ? WordHeaderFooterType.First : type == "even" ? WordHeaderFooterType.Even : WordHeaderFooterType.Default;
+                if (reference.Is(W, "headerReference")) {
+                    WordHeader? header = section.PageSetup.GetHeader(kind);
+                    if (kind == WordHeaderFooterType.First) firstHeader = header;
+                    else if (kind == WordHeaderFooterType.Even) evenHeader = header;
+                    else defaultHeader = header;
+                } else if (reference.Is(W, "footerReference")) {
+                    WordFooter? footer = section.PageSetup.GetFooter(kind);
+                    if (kind == WordHeaderFooterType.First) firstFooter = footer;
+                    else if (kind == WordHeaderFooterType.Even) evenFooter = footer;
+                    else defaultFooter = footer;
                 }
             }
             _stories.Add(section, new Stories(defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter));
@@ -59,10 +66,10 @@ internal sealed class WordHeaderFooterResolutionSnapshot {
             _defaultFooter = defaultFooter; _firstFooter = firstFooter; _evenFooter = evenFooter;
         }
 
-        internal WordHeader? Header(HeaderFooterValues kind) => kind == HeaderFooterValues.First ? _firstHeader
-            : kind == HeaderFooterValues.Even ? _evenHeader : _defaultHeader;
-        internal WordFooter? Footer(HeaderFooterValues kind) => kind == HeaderFooterValues.First ? _firstFooter
-            : kind == HeaderFooterValues.Even ? _evenFooter : _defaultFooter;
+        internal WordHeader? Header(WordHeaderFooterType kind) => kind == WordHeaderFooterType.First ? _firstHeader
+            : kind == WordHeaderFooterType.Even ? _evenHeader : _defaultHeader;
+        internal WordFooter? Footer(WordHeaderFooterType kind) => kind == WordHeaderFooterType.First ? _firstFooter
+            : kind == WordHeaderFooterType.Even ? _evenFooter : _defaultFooter;
     }
 
     private sealed class Scope : IDisposable {

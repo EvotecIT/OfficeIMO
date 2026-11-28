@@ -15,6 +15,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTableOfContent? TableOfContent {
             get {
+                if (WordTableOfContent.TryGetOwnedTable(this, out var owned)) return owned;
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
                 return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
             }

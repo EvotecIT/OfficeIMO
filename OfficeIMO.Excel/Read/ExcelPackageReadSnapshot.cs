@@ -1,62 +1,32 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
-using System.IO.Packaging;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Read-only view of the package an unchanged <see cref="ExcelDocument"/> was opened from or last saved as.
-    /// Reading part streams through the editable SDK package would invalidate its loaded roots, and
-    /// loading those roots costs far more than the read, so readers use this view instead and the
-    /// editable document stays untouched until something edits it.
-    /// </summary>
+    /// <summary>A shared read-only view of the package an unchanged workbook was opened from or last saved as.</summary>
     internal sealed partial class ExcelPackageReadSnapshot {
-        private readonly Stream _stream;
-        private readonly Package _package;
         private readonly IDisposable? _ownedFile;
         private readonly object _gate = new();
         private SharedStringCache? _parkedSharedStrings;
-        private Dictionary<Uri, WorksheetPart>? _worksheetParts;
         private int _references = 1;
 
-        private ExcelPackageReadSnapshot(
-            object identity,
-            Stream stream,
-            Package package,
-            SpreadsheetDocument document,
-            OpenXmlPackagePartBufferReader partBufferReader,
-            IDisposable? ownedFile,
-            StylesCache? styles) {
+        private ExcelPackageReadSnapshot(object identity, ExcelReaderPackage package, IDisposable? ownedFile, StylesCache? styles) {
             Identity = identity;
-            _stream = stream;
-            _package = package;
+            Package = package;
             _ownedFile = ownedFile;
-            Document = document;
-            PartBufferReader = partBufferReader;
-            Styles = styles != null ? new StylesCacheProvider(styles) : new StylesCacheProvider(document);
+            Styles = styles != null ? new StylesCacheProvider(styles) : package.CreateStylesProvider();
         }
 
-        /// <summary>The package version this view shows; a different value means it is out of date.</summary>
         internal object Identity { get; }
 
-        internal SpreadsheetDocument Document { get; }
+        internal ExcelReaderPackage Package { get; }
 
-        internal OpenXmlPackagePartBufferReader PartBufferReader { get; }
+        private OpenXmlPackagePartBufferReader PartBufferReader => Package.Parts;
 
         internal StylesCacheProvider Styles { get; }
 
-        /// <summary>Returns null when the bytes need the editable document's more tolerant route.</summary>
         internal static ExcelPackageReadSnapshot? TryOpen(byte[] bytes, StylesCache? styles = null) =>
-            TryOpen(
-                bytes,
-                () => OpenXmlPackagePartBufferReader.TryOpen(bytes),
-                new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false),
-                ownedFile: null,
-                styles);
+            TryOpen(bytes, () => new MemoryStream(bytes, writable: false), OpenXmlPackagePartBufferReader.TryOpen(bytes, ignoreWhitespaceNames: true), null, styles);
 
-        /// <summary>
-        /// Copies a file-backed package to a private temporary file. That package file is rewritten in
-        /// place by Save and allows no second handle, so readers cannot share it safely.
-        /// </summary>
+        /// <summary>Copies a file-backed package before the editable workbook can rewrite its underlying file.</summary>
         internal static ExcelPackageReadSnapshot? TryOpenCopy(Stream package, object identity, CancellationToken cancellationToken) {
             FileStream? copy = null;
             SharedReadOnlyFileSnapshot? file = null;
@@ -70,12 +40,8 @@ namespace OfficeIMO.Excel {
                 file = SharedReadOnlyFileSnapshot.Adopt(copy);
                 copy = null;
                 SharedReadOnlyFileSnapshot opened = file;
-                ExcelPackageReadSnapshot? snapshot = TryOpen(
-                    identity,
-                    () => OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1)),
-                    opened.CreateView(),
-                    opened,
-                    styles: null);
+                ExcelPackageReadSnapshot? snapshot = TryOpen(identity, () => opened.CreateView(),
+                    OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1), ignoreWhitespaceNames: true), opened, styles: null);
                 if (snapshot != null) file = null;
                 return snapshot;
             } catch (IOException) {
@@ -89,35 +55,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static ExcelPackageReadSnapshot? TryOpen(
-            object identity,
-            Func<OpenXmlPackagePartBufferReader?> openParts,
-            Stream stream,
-            IDisposable? ownedFile,
-            StylesCache? styles) {
-            Package? package = null;
-            SpreadsheetDocument? document = null;
-            OpenXmlPackagePartBufferReader? parts = null;
+        private static ExcelPackageReadSnapshot? TryOpen(object identity, Func<Stream> openSource,
+            OpenXmlPackagePartBufferReader? parts, IDisposable? ownedFile, StylesCache? styles) {
+            if (parts == null) return null;
             try {
-                parts = openParts();
-                if (parts != null) {
-                    package = Package.Open(stream, FileMode.Open, FileAccess.Read);
-                    document = SpreadsheetDocument.Open(package);
-                    return new ExcelPackageReadSnapshot(identity, stream, package, document, parts, ownedFile, styles);
-                }
-            } catch (Exception exception) when (exception is IOException
-                or InvalidDataException
-                or InvalidOperationException
-                or OpenXmlPackageException
-                or NotSupportedException
-                or ArgumentException) {
-                parts?.Dispose();
-                document?.Dispose();
-                package?.Close();
+                return new ExcelPackageReadSnapshot(identity, ExcelReaderPackage.Open(openSource, parts), ownedFile, styles);
+            } catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException
+                or System.Xml.XmlException or NotSupportedException or ArgumentException) {
+                parts.Dispose();
+                return null;
+            } catch {
+                parts.Dispose();
+                throw;
             }
-
-            stream.Dispose();
-            return null;
         }
 
         internal void AddReference() => Interlocked.Increment(ref _references);
@@ -128,26 +78,14 @@ namespace OfficeIMO.Excel {
                 _parkedSharedStrings?.Dispose();
                 _parkedSharedStrings = null;
             }
-            Document.Dispose();
-            _package.Close();
-            _stream.Dispose();
-            PartBufferReader.Dispose();
-            _ownedFile?.Dispose();
-        }
-
-        /// <summary>Finds the part of this package an editable document knows by the same name.</summary>
-        internal WorksheetPart? FindWorksheetPart(Uri uri) {
-            lock (_gate) {
-                _worksheetParts ??= Document.WorkbookPart?.WorksheetParts.ToDictionary(static part => part.Uri)
-                    ?? new Dictionary<Uri, WorksheetPart>();
-                return _worksheetParts.TryGetValue(uri, out WorksheetPart? part) ? part : null;
+            try {
+                Package.Dispose();
+            } finally {
+                _ownedFile?.Dispose();
             }
         }
 
-        /// <summary>
-        /// Rents the parsed table exclusively, because its text caches are not shared between threads.
-        /// Each sheet of a workbook then reuses one parse instead of repeating it.
-        /// </summary>
+        /// <summary>Rents the parsed strings exclusively so concurrent readers have separate text caches.</summary>
         internal SharedStringCache RentSharedStrings(ExcelReaderOptions options) {
             lock (_gate) {
                 SharedStringCache? parked = _parkedSharedStrings;
@@ -157,21 +95,7 @@ namespace OfficeIMO.Excel {
                     parked.Dispose();
                 }
             }
-            return SharedStringCache.BuildKeepingUnmarkedWhitespace(Document, options, OpenIndexedSharedStrings);
-
-            Stream? OpenIndexedSharedStrings(SharedStringTablePart part) {
-                string partName = part.Uri.OriginalString;
-                if (!PartBufferReader.TryGetLength(partName, out long length)
-                    || length < 0 || length > SharedStringCache.MaximumIndexedPartBytes) return null;
-                try {
-                    return PartBufferReader.OpenPart(partName, SharedStringCache.MaximumIndexedPartBytes, options.CancellationToken,
-                        maximumBufferedBytes: SharedStringCache.MaximumIndexedPartBytes,
-                        acceptBufferedPrefix: SharedStringCache.CanIndexSimpleAsciiPrefix);
-                } catch (Exception exception) when (exception is InvalidDataException or IOException) {
-                    // A damaged entry is reported by the XML route, as before.
-                    return null;
-                }
-            }
+            return Package.CreateSharedStrings(options, true);
         }
 
         /// <summary>Keeps only a completed parse, so a canceled or failed load is never reused.</summary>

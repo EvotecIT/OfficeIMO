@@ -1,10 +1,8 @@
 using System.Globalization;
-using A = DocumentFormat.OpenXml.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>
@@ -17,8 +15,9 @@ public static partial class WordPdfConverterExtensions {
         string source, out PdfCore.PdfCanvasAnchoredImageItem? item, out string? unsupportedReason, bool runningStory = false) {
         item = null;
         unsupportedReason = null;
-        if (image._Image == null ||
-            !TryResolveNativeAnchoredImageSource(image._Image, section, pageSize, margins, width, height,
+        OfficeXmlNode drawing = image.DrawingNode();
+        if (drawing.IsNone ||
+            !TryResolveNativeAnchoredImageSource(drawing, section, pageSize, margins, width, height,
                 out WordDrawingLayoutInfo layout, out NativeAnchoredImagePlacement placement,
                 out PdfCore.PdfImageTextExclusion? exclusion, out unsupportedReason)) return false;
 
@@ -50,15 +49,17 @@ public static partial class WordPdfConverterExtensions {
     /// Uses one source eligibility decision for running-story admission and actual
     /// descriptor construction. It reads geometry only and never prepares media.
     /// </summary>
-    private static bool TryResolveNativeAnchoredImageSource(W.Drawing drawing, WordSection? section,
+
+    private static bool TryResolveNativeAnchoredImageSource(OfficeXmlNode drawing, WordSection? section,
         PdfCore.PdfPageSize pageSize, PdfCore.PdfPageMargins margins, double width, double height,
         out WordDrawingLayoutInfo layout, out NativeAnchoredImagePlacement placement,
         out PdfCore.PdfImageTextExclusion? exclusion, out string? unsupportedReason) {
         placement = default;
         exclusion = null;
         unsupportedReason = null;
-        if (drawing.Anchor is not DW.Anchor anchor ||
-            !WordDrawingLayoutReader.TryRead(drawing, out layout) ||
+        OfficeXmlNode anchor = drawing.Child(WordXml.Wp, "anchor");
+        if (anchor.IsNone ||
+            !WordConverterNodes.TryReadDrawingLayout(drawing, out layout) ||
             !TryResolveNativeAnchoredImageGeometry(layout, section, pageSize, margins, width, height,
                 out placement)) {
             layout = null!;
@@ -67,11 +68,10 @@ public static partial class WordPdfConverterExtensions {
         }
         if (!TryReadNativeAnchoredImageExclusion(anchor, out exclusion, out unsupportedReason)) return false;
         if (exclusion == null) return true;
-        var picture = anchor.GetFirstChild<A.Graphic>()?.GraphicData?
-            .GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-        if (picture == null || layout.IsGroup || drawing.Ancestors<W.TableCell>().Any() ||
-            drawing.Ancestors<W.TextBoxContent>().Any() ||
-            picture.ShapeProperties?.Transform2D?.Rotation?.Value is > 0 or < 0) {
+        OfficeXmlNode picture = anchor.Child(WordXml.A, "graphic").Child(WordXml.A, "graphicData").Child(WordXml.Pic, "pic");
+        if (picture.IsNone || layout.IsGroup || !drawing.Ancestor(WordXml.W, "tc").IsNone ||
+            !drawing.Ancestor(WordXml.W, "txbxContent").IsNone ||
+            picture.Child(WordXml.Pic, "spPr").Child(WordXml.A, "xfrm").Int32Attr("rot") is > 0 or < 0) {
             unsupportedReason = "Rotated, grouped, table-cell and text-box picture wrapping is outside the supported picture wrapping.";
             return false;
         }
@@ -90,44 +90,45 @@ public static partial class WordPdfConverterExtensions {
     /// Child distances remain unsupported until their normative precedence is independently qualified;
     /// missing source values are not replaced with Word defaults or fitted layout gaps.
     /// </summary>
-    private static bool TryReadNativeAnchoredImageExclusion(DW.Anchor anchor,
+
+    private static bool TryReadNativeAnchoredImageExclusion(OfficeXmlNode anchor,
         out PdfCore.PdfImageTextExclusion? exclusion, out string? unsupportedReason) {
         exclusion = null;
         unsupportedReason = null;
-        if (anchor.ChildElements.Count(child => child is DW.WrapNone or DW.WrapSquare or DW.WrapTopBottom or
-                DW.WrapTight or DW.WrapThrough) != 1) {
+        if (anchor.Elements().Count(child => child.Is(WordXml.Wp, "wrapNone") || child.Is(WordXml.Wp, "wrapSquare") ||
+                child.Is(WordXml.Wp, "wrapTopAndBottom") || child.Is(WordXml.Wp, "wrapTight") || child.Is(WordXml.Wp, "wrapThrough")) != 1) {
             unsupportedReason = "The picture must declare exactly one wrapping primitive.";
             return false;
         }
-        if (anchor.GetFirstChild<DW.WrapNone>() != null) return true;
-        OpenXmlElement wrapping;
+        if (!anchor.Child(WordXml.Wp, "wrapNone").IsNone) return true;
+        OfficeXmlNode wrapping;
         PdfCore.PdfImageTextWrapKind kind;
         PdfCore.PdfImageTextWrapSide side;
         List<(double X, double Y)>? polygon = null;
-        if (anchor.GetFirstChild<DW.WrapSquare>() is DW.WrapSquare square) {
+        if (anchor.Child(WordXml.Wp, "wrapSquare") is { IsNone: false } square) {
             wrapping = square;
             kind = PdfCore.PdfImageTextWrapKind.Square;
             if (!TryReadNativeImageWrapSide(square, out side)) {
                 unsupportedReason = "The square wrapping side is missing or invalid.";
                 return false;
             }
-        } else if (anchor.GetFirstChild<DW.WrapTopBottom>() is DW.WrapTopBottom topBottom) {
+        } else if (anchor.Child(WordXml.Wp, "wrapTopAndBottom") is { IsNone: false } topBottom) {
             wrapping = topBottom;
             kind = PdfCore.PdfImageTextWrapKind.TopAndBottom;
             side = PdfCore.PdfImageTextWrapSide.BothSides;
         } else {
-            wrapping = (OpenXmlElement?)anchor.GetFirstChild<DW.WrapTight>() ?? anchor.GetFirstChild<DW.WrapThrough>()!;
-            kind = wrapping is DW.WrapTight ? PdfCore.PdfImageTextWrapKind.Tight : PdfCore.PdfImageTextWrapKind.Through;
+            wrapping = anchor.Child(WordXml.Wp, "wrapTight") is { IsNone: false } tight ? tight : anchor.Child(WordXml.Wp, "wrapThrough");
+            kind = wrapping.Is(WordXml.Wp, "wrapTight") ? PdfCore.PdfImageTextWrapKind.Tight : PdfCore.PdfImageTextWrapKind.Through;
             if (!TryReadNativeImageWrapSide(wrapping, out side)) {
                 unsupportedReason = "The wrapping side is missing or invalid.";
                 return false;
             }
-            if (!TryReadNativeWrapPolygon(wrapping.GetFirstChild<DW.WrapPolygon>(), out polygon)) {
+            if (!TryReadNativeWrapPolygon(wrapping.Child(WordXml.Wp, "wrapPolygon"), out polygon)) {
                 unsupportedReason = "The wrap polygon is missing or has fewer than three points.";
                 return false;
             }
         }
-        if (wrapping.GetAttributes().Any(attribute => attribute.NamespaceUri == string.Empty &&
+        if (wrapping.Attributes().Any(attribute => attribute.NamespaceUri == string.Empty &&
                 attribute.LocalName is "distL" or "distT" or "distR" or "distB")) {
             unsupportedReason = "Wrap-child text distances are not qualified; their precedence over anchor distances is not inferred.";
             return false;
@@ -148,7 +149,7 @@ public static partial class WordPdfConverterExtensions {
         return true;
     }
 
-    private static bool TryReadNativeImageWrapSide(OpenXmlElement wrapping, out PdfCore.PdfImageTextWrapSide side) {
+    private static bool TryReadNativeImageWrapSide(OfficeXmlNode wrapping, out PdfCore.PdfImageTextWrapSide side) {
         switch (ReadNativeImageWrapAttribute(wrapping, "wrapText")) {
             case "bothSides": side = PdfCore.PdfImageTextWrapSide.BothSides; return true;
             case "left": side = PdfCore.PdfImageTextWrapSide.Left; return true;
@@ -162,12 +163,12 @@ public static partial class WordPdfConverterExtensions {
     /// Word stores wrap polygon points in a 21600 by 21600 space over the picture's extent, and the
     /// points may lie outside it when the polygon encloses the picture's effects.
     /// </summary>
-    private static bool TryReadNativeWrapPolygon(DW.WrapPolygon? source, out List<(double X, double Y)>? polygon) {
+    private static bool TryReadNativeWrapPolygon(OfficeXmlNode source, out List<(double X, double Y)>? polygon) {
         polygon = null;
-        if (source == null) return false;
+        if (source.IsNone) return false;
         var points = new List<(double X, double Y)>();
-        foreach (OpenXmlElement point in source.ChildElements) {
-            if (point is not DW.StartPoint and not DW.LineTo) continue;
+        foreach (OfficeXmlNode point in source.Elements()) {
+            if (!point.Is(WordXml.Wp, "start") && !point.Is(WordXml.Wp, "lineTo")) continue;
             if (!long.TryParse(ReadNativeImageWrapAttribute(point, "x"), NumberStyles.Integer, CultureInfo.InvariantCulture, out long x) ||
                 !long.TryParse(ReadNativeImageWrapAttribute(point, "y"), NumberStyles.Integer, CultureInfo.InvariantCulture, out long y)) return false;
             points.Add((x / 21600D, y / 21600D));
@@ -180,12 +181,13 @@ public static partial class WordPdfConverterExtensions {
     }
 
     /// <summary>Word keeps text clear of a drawing's effect extent as well as its wrap distances.</summary>
-    private static PdfCore.PdfImageTextExclusion AddNativeEffectExtentToExclusion(DW.Anchor anchor, PdfCore.PdfImageTextExclusion exclusion) {
-        if (anchor.GetFirstChild<DW.EffectExtent>() is not { } extent) return exclusion;
-        static double Points(Int64Value? value) => Math.Max(0L, value?.Value ?? 0L) / 12700D;
+
+    private static PdfCore.PdfImageTextExclusion AddNativeEffectExtentToExclusion(OfficeXmlNode anchor, PdfCore.PdfImageTextExclusion exclusion) {
+        if (anchor.Child(WordXml.Wp, "effectExtent") is not { IsNone: false } extent) return exclusion;
+        static double Points(long? value) => Math.Max(0L, value ?? 0L) / 12700D;
         return new PdfCore.PdfImageTextExclusion(exclusion.Kind, exclusion.Side,
-            exclusion.DistanceLeft + Points(extent.LeftEdge), exclusion.DistanceTop + Points(extent.TopEdge),
-            exclusion.DistanceRight + Points(extent.RightEdge), exclusion.DistanceBottom + Points(extent.BottomEdge),
+            exclusion.DistanceLeft + Points(extent.Int64Attr("l")), exclusion.DistanceTop + Points(extent.Int64Attr("t")),
+            exclusion.DistanceRight + Points(extent.Int64Attr("r")), exclusion.DistanceBottom + Points(extent.Int64Attr("b")),
             exclusion.Polygon);
     }
 
@@ -197,12 +199,13 @@ public static partial class WordPdfConverterExtensions {
         layout.BehindDocument && layout.Wrap == WordDrawingWrapKind.None;
 
     /// <summary>Reads optional source markup without turning an absent attribute into an exception.</summary>
-    private static string? ReadNativeImageWrapAttribute(OpenXmlElement source, string name) =>
-        source.GetAttributes().Where(attribute => attribute.NamespaceUri == string.Empty && attribute.LocalName == name)
+
+    private static string? ReadNativeImageWrapAttribute(OfficeXmlNode source, string name) =>
+        source.Attributes().Where(attribute => attribute.NamespaceUri == string.Empty && attribute.LocalName == name)
             .Select(attribute => attribute.Value).FirstOrDefault();
 
     /// <summary>Converts one explicit unsigned EMU distance using the source format's units.</summary>
-    private static bool TryReadNativeImageWrapDistance(OpenXmlElement source, string name, out double points) {
+    private static bool TryReadNativeImageWrapDistance(OfficeXmlNode source, string name, out double points) {
         points = 0D;
         if (!uint.TryParse(ReadNativeImageWrapAttribute(source, name), NumberStyles.Integer,
                 CultureInfo.InvariantCulture, out uint emus)) return false;

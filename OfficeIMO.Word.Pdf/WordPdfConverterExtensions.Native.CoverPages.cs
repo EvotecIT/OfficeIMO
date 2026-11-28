@@ -1,33 +1,32 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         internal const long NativeVmlImageMaxBytes = 32L * 1024L * 1024L;
         private const double MaxNativeVmlLengthPoints = 1_000_000D;
         private const double MaxNativeVmlTextPathFontSizePoints = 400D;
 
-        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, WordPdfExportOptions? options) {
-            W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
-            if (content == null || !HasNativeVmlCoverDrawing(content)) {
+
+        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, OfficeXmlNode sdtBlock, WordSection section, WordPdfExportOptions? options) {
+            OfficeXmlNode content = sdtBlock.WChild("sdtContent");
+            if (content.IsNone || !HasNativeVmlCoverDrawing(content)) {
                 return false;
             }
 
             PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
             var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), 0D, 0D);
             bool rendered = false;
-            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default) || rendered);
+            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.Elements(), rootFrame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default) || rendered);
             return rendered;
         }
 
-        private static bool HasNativeVmlCoverDrawing(OpenXmlElement element) {
-            foreach (OpenXmlElement descendant in element.Descendants()) {
+
+        private static bool HasNativeVmlCoverDrawing(OfficeXmlNode element) {
+            foreach (OfficeXmlNode descendant in element.DescendantElements()) {
                 string localName = descendant.LocalName;
                 if ((localName == "group" || localName == "shape" || localName == "rect" || localName == "line" || localName == "oval" || localName == "roundrect") &&
                     descendant.NamespaceUri == "urn:schemas-microsoft-com:vml" &&
@@ -39,7 +38,7 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static bool IsNativeVmlPositionedCoverElement(OpenXmlElement element) {
+        private static bool IsNativeVmlPositionedCoverElement(OfficeXmlNode element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             return style.TryGetValue("position", out string? position) && position.Equals("absolute", StringComparison.OrdinalIgnoreCase) ||
                    style.ContainsKey("mso-left-percent") ||
@@ -50,9 +49,10 @@ namespace OfficeIMO.Word.Pdf {
                    style.ContainsKey("top");
         }
 
-        private static bool RenderNativeVmlCoverChildren(PdfCore.PdfPageCanvas canvas, WordDocument document, IEnumerable<OpenXmlElement> children, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
+
+        private static bool RenderNativeVmlCoverChildren(PdfCore.PdfPageCanvas canvas, WordDocument document, IEnumerable<OfficeXmlNode> children, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             bool rendered = false;
-            foreach (OpenXmlElement child in OrderNativeVmlCoverChildren(children)) {
+            foreach (OfficeXmlNode child in OrderNativeVmlCoverChildren(children)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (child.NamespaceUri == "urn:schemas-microsoft-com:vml") {
                     if (child.LocalName == "group") {
@@ -64,14 +64,14 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                rendered = RenderNativeVmlCoverChildren(canvas, document, child.ChildElements, frame, pageWidth, pageHeight, cancellationToken) || rendered;
+                rendered = RenderNativeVmlCoverChildren(canvas, document, child.Elements(), frame, pageWidth, pageHeight, cancellationToken) || rendered;
             }
 
             return rendered;
         }
 
-        private static IEnumerable<OpenXmlElement> OrderNativeVmlCoverChildren(IEnumerable<OpenXmlElement> children) {
-            List<OpenXmlElement> childList = children.SelectMany(EnumerateNativeVmlCoverRenderElements).ToList();
+        private static IEnumerable<OfficeXmlNode> OrderNativeVmlCoverChildren(IEnumerable<OfficeXmlNode> children) {
+            List<OfficeXmlNode> childList = children.SelectMany(EnumerateNativeVmlCoverRenderElements).ToList();
             if (childList.Count <= 1) {
                 return childList;
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Select(item => item.Element);
         }
 
-        private static IEnumerable<OpenXmlElement> EnumerateNativeVmlCoverRenderElements(OpenXmlElement element) {
+        private static IEnumerable<OfficeXmlNode> EnumerateNativeVmlCoverRenderElements(OfficeXmlNode element) {
             if (element.NamespaceUri == "urn:schemas-microsoft-com:vml") {
                 if (element.LocalName == "group" ||
                     element.LocalName == "shape" ||
@@ -101,20 +101,20 @@ namespace OfficeIMO.Word.Pdf {
                 yield break;
             }
 
-            foreach (OpenXmlElement child in element.ChildElements) {
-                foreach (OpenXmlElement descendant in EnumerateNativeVmlCoverRenderElements(child)) {
+            foreach (OfficeXmlNode child in element.Elements()) {
+                foreach (OfficeXmlNode descendant in EnumerateNativeVmlCoverRenderElements(child)) {
                     yield return descendant;
                 }
             }
         }
 
-        private static double? GetNativeVmlEffectiveZIndex(OpenXmlElement element) {
+        private static double? GetNativeVmlEffectiveZIndex(OfficeXmlNode element) {
             if (element.NamespaceUri == "urn:schemas-microsoft-com:vml") {
                 return GetNativeVmlZIndex(element);
             }
 
             double? zIndex = null;
-            foreach (OpenXmlElement descendant in element.Descendants()) {
+            foreach (OfficeXmlNode descendant in element.DescendantElements()) {
                 if (descendant.NamespaceUri != "urn:schemas-microsoft-com:vml" ||
                     !IsNativeVmlPositionedCoverElement(descendant)) {
                     continue;
@@ -131,7 +131,7 @@ namespace OfficeIMO.Word.Pdf {
             return zIndex;
         }
 
-        private static double? GetNativeVmlZIndex(OpenXmlElement element) {
+        private static double? GetNativeVmlZIndex(OfficeXmlNode element) {
             if (element.NamespaceUri != "urn:schemas-microsoft-com:vml") {
                 return null;
             }
@@ -140,20 +140,21 @@ namespace OfficeIMO.Word.Pdf {
             return style.TryGetValue("z-index", out string? value) ? ParseNativeVmlDouble(value) : null;
         }
 
-        private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
-            if (group.Ancestors<V.Group>().Count() >= 32)
+
+        private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OfficeXmlNode group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
+            if (group.Ancestors().Count(ancestor => ancestor.Is(WordXml.V, "group")) >= 32)
                 throw new InvalidDataException("Word shape group nesting exceeds the PDF export limit of 32 levels.");
             if (!TryGetNativeVmlBox(group, parentFrame, pageWidth, pageHeight, out NativeVmlBox box)) {
-                return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, parentFrame, pageWidth, pageHeight, cancellationToken);
+                return RenderNativeVmlCoverChildren(canvas, document, group.Elements(), parentFrame, pageWidth, pageHeight, cancellationToken);
             }
 
             (double coordWidth, double coordHeight) = GetNativeVmlCoordSize(group, box.Width, box.Height);
             (double coordOriginX, double coordOriginY) = GetNativeVmlCoordOrigin(group);
             var frame = new NativeVmlFrame(box.X, box.Y, box.Width, box.Height, coordWidth, coordHeight, coordOriginX, coordOriginY);
-            return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, frame, pageWidth, pageHeight, cancellationToken);
+            return RenderNativeVmlCoverChildren(canvas, document, group.Elements(), frame, pageWidth, pageHeight, cancellationToken);
         }
 
-        private static bool RenderNativeVmlShape(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
+        private static bool RenderNativeVmlShape(PdfCore.PdfPageCanvas canvas, WordDocument document, OfficeXmlNode element, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             bool isLine = element.LocalName.Equals("line", StringComparison.OrdinalIgnoreCase);
             if (IsNativeVmlHidden(element) ||
                 !TryGetNativeVmlBox(element, frame, pageWidth, pageHeight, out NativeVmlBox box) ||
@@ -192,11 +193,11 @@ namespace OfficeIMO.Word.Pdf {
             return rendered;
         }
 
-        private static bool ShouldRenderNativeVmlShapeFallback(OpenXmlElement element) => element.GetFirstChild<V.ImageData>() == null;
+        private static bool ShouldRenderNativeVmlShapeFallback(OfficeXmlNode element) => element.Child(WordXml.V, "imagedata").IsNone;
 
-        private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlBox box, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
-            V.ImageData? imageData = element.GetFirstChild<V.ImageData>();
-            if (imageData == null ||
+        private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OfficeXmlNode element, NativeVmlBox box, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
+            OfficeXmlNode imageData = element.Child(WordXml.V, "imagedata");
+            if (imageData.IsNone ||
                 !IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight) ||
                 !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes, cancellationToken) ||
                 imageBytes == null ||
@@ -228,18 +229,19 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeVmlImageBytes(WordDocument document, OpenXmlElement element, V.ImageData imageData, out byte[]? imageBytes, CancellationToken cancellationToken) {
+        private static bool TryGetNativeVmlImageBytes(WordDocument document, OfficeXmlNode element, OfficeXmlNode imageData, out byte[]? imageBytes, CancellationToken cancellationToken) {
             imageBytes = null;
-            string? relationshipId = imageData.RelationshipId?.Value ?? GetNativeOpenXmlAttribute(imageData, "id");
+            string? relationshipId = imageData.Attribute(WordXml.R, "id") ?? GetNativeOpenXmlAttribute(imageData, "id");
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 return false;
             }
 
-            if (!TryGetNativeVmlImagePart(document, element, relationshipId!, out ImagePart? imagePart) || imagePart == null) {
+            // The part is read no further than the limit; a larger part counts as found but unreadable.
+            if (!TryGetNativeVmlImagePart(document, element, relationshipId!, out byte[]? imagePart) || imagePart == null) {
                 return false;
             }
 
-            using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            using Stream stream = new MemoryStream(imagePart, writable: false);
             return TryReadNativeVmlImageBytes(stream, NativeVmlImageMaxBytes, out imageBytes, cancellationToken);
         }
 
@@ -281,52 +283,23 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeVmlImagePart(WordDocument document, OpenXmlElement element, string relationshipId, out ImagePart? imagePart) {
-            imagePart = null;
-            MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
-            if (TryGetNativeVmlImagePart(mainPart, relationshipId, out imagePart)) {
+        // The image part is looked up from the main document part, then each header and footer part, then the part
+        // that holds the shape.
+        private static bool TryGetNativeVmlImagePart(WordDocument document, OfficeXmlNode element, string relationshipId, out byte[]? imagePart) {
+            if (document.DocumentNode().TryGetRelatedImagePartBytes(relationshipId, NativeVmlImageMaxBytes, out imagePart)) {
                 return true;
             }
 
-            if (mainPart == null) {
-                return false;
-            }
-
-            foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                if (TryGetNativeVmlImagePart(headerPart, relationshipId, out imagePart)) {
+            foreach (OfficeXmlNode root in document.HeaderFooterRootNodes()) {
+                if (root.TryGetRelatedImagePartBytes(relationshipId, NativeVmlImageMaxBytes, out imagePart)) {
                     return true;
                 }
             }
 
-            foreach (FooterPart footerPart in mainPart.FooterParts) {
-                if (TryGetNativeVmlImagePart(footerPart, relationshipId, out imagePart)) {
-                    return true;
-                }
-            }
-
-            OpenXmlPartRootElement? root = element.Ancestors<OpenXmlPartRootElement>().FirstOrDefault();
-            if (TryGetNativeVmlImagePart(root?.OpenXmlPart, relationshipId, out imagePart)) {
-                return true;
-            }
-
-            return false;
+            return element.TryGetRelatedImagePartBytes(relationshipId, NativeVmlImageMaxBytes, out imagePart);
         }
 
-        private static bool TryGetNativeVmlImagePart(OpenXmlPartContainer? container, string relationshipId, out ImagePart? imagePart) {
-            imagePart = null;
-            if (container == null) {
-                return false;
-            }
-
-            try {
-                imagePart = container.GetPartById(relationshipId) as ImagePart;
-                return imagePart != null;
-            } catch (ArgumentOutOfRangeException) {
-                return false;
-            }
-        }
-
-        private static bool TryCreateNativeVmlShape(OpenXmlElement element, double width, double height, NativeVmlFrame frame, out OfficeShape? shape) {
+        private static bool TryCreateNativeVmlShape(OfficeXmlNode element, double width, double height, NativeVmlFrame frame, out OfficeShape? shape) {
             shape = null;
             string localName = element.LocalName;
             if (localName == "line") {
@@ -363,11 +336,11 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryCreateNativeVmlPathShape(OpenXmlElement element, double width, double height, out OfficeShape? shape) {
+        private static bool TryCreateNativeVmlPathShape(OfficeXmlNode element, double width, double height, out OfficeShape? shape) {
             shape = null;
-            OpenXmlElement? shapeType = GetNativeVmlReferencedShapeTypeElement(element);
+            OfficeXmlNode shapeType = GetNativeVmlReferencedShapeTypeElement(element);
             string? path = GetNativeOpenXmlAttribute(element, "path");
-            if (string.IsNullOrWhiteSpace(path) && shapeType != null) {
+            if (string.IsNullOrWhiteSpace(path) && shapeType.Exists) {
                 path = GetNativeOpenXmlAttribute(shapeType, "path") ?? GetNativeOpenXmlAttribute(shapeType, "edgepath");
             }
 
@@ -410,7 +383,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool TryCreateNativeVmlBuiltInShapeType(OpenXmlElement element, double width, double height, out OfficeShape? shape) {
+        private static bool TryCreateNativeVmlBuiltInShapeType(OfficeXmlNode element, double width, double height, out OfficeShape? shape) {
             shape = null;
             string? type = GetNativeOpenXmlAttribute(element, "type");
             if (!string.Equals(type, "#_x0000_t15", StringComparison.OrdinalIgnoreCase)) {
@@ -604,8 +577,8 @@ namespace OfficeIMO.Word.Pdf {
         private static double ScaleNativeVmlPathY(double value, double coordHeight, double height) =>
             coordHeight > 0D ? value / coordHeight * height : value;
 
-        private static OpenXmlElement? GetNativeVmlChild(OpenXmlElement? element, string localName) {
-            return element?.ChildElements.FirstOrDefault(child =>
+        private static OfficeXmlNode GetNativeVmlChild(OfficeXmlNode element, string localName) {
+            return element.Elements().FirstOrDefault(child =>
                 child.NamespaceUri == "urn:schemas-microsoft-com:vml" &&
                 child.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase));
         }

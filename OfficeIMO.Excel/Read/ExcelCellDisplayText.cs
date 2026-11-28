@@ -1,5 +1,6 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -25,26 +26,26 @@ namespace OfficeIMO.Excel {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (provider == null) throw new ArgumentNullException(nameof(provider));
             ExcelReaderOptions effective = options?.Clone() ?? new ExcelReaderOptions();
-            effective.DisplayText = Create(document.OpenXmlDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet, document.DateSystem, provider);
+            effective.DisplayText = Create(document.ReadDisplayStyles(effective.CancellationToken), document.DateSystem, provider);
             return effective;
         }
 
-        internal static ExcelCellDisplayText Create(Stylesheet? stylesheet, ExcelDateSystem dateSystem, IFormatProvider provider) {
-            if (stylesheet?.CellFormats == null) return new ExcelCellDisplayText(Array.Empty<ExcelNumberFormatPlan?>(), dateSystem, provider);
+        private static ExcelCellDisplayText Create(OfficeXmlNode stylesheet, ExcelDateSystem dateSystem, IFormatProvider provider) {
+            const int spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
+            OfficeXmlNode formats = stylesheet.Child(spreadsheet, "cellXfs");
+            if (formats.IsNone) return new ExcelCellDisplayText(Array.Empty<ExcelNumberFormatPlan?>(), dateSystem, provider);
             var customCodes = new Dictionary<uint, string>();
-            if (stylesheet.NumberingFormats != null) {
-                foreach (NumberingFormat numberingFormat in stylesheet.NumberingFormats.Elements<NumberingFormat>()) {
-                    if (numberingFormat.NumberFormatId?.Value is uint id && numberingFormat.FormatCode?.Value is string code) {
-                        customCodes[id] = code;
-                    }
+            foreach (OfficeXmlNode numberFormat in stylesheet.Child(spreadsheet, "numFmts").Children(spreadsheet, "numFmt")) {
+                if (numberFormat.UInt32Attribute("numFmtId") is uint id && numberFormat.Attribute("formatCode") is string code) {
+                    customCodes[id] = code;
                 }
             }
 
             // Styles that share a number format share one plan.
             var plansByFormat = new Dictionary<uint, ExcelNumberFormatPlan?>();
             var plans = new List<ExcelNumberFormatPlan?>();
-            foreach (CellFormat cellFormat in stylesheet.CellFormats.Elements<CellFormat>()) {
-                uint numberFormatId = cellFormat.NumberFormatId?.Value ?? 0U;
+            foreach (OfficeXmlNode cellFormat in formats.Children(spreadsheet, "xf")) {
+                uint numberFormatId = cellFormat.UInt32Attribute("numFmtId") ?? 0U;
                 if (!plansByFormat.TryGetValue(numberFormatId, out ExcelNumberFormatPlan? plan)) {
                     string? code = customCodes.TryGetValue(numberFormatId, out string? custom)
                         ? custom

@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
@@ -171,10 +167,10 @@ namespace OfficeIMO.Word.Pdf {
                     if (IsNativeHorizontalMergeContinuation(cell)) continue;
                     int span = GetNativeCellColumnSpan(cell);
                     if (!IsNativeVerticalMergeContinuation(cell)) {
-                        W.Shading? source = WordRunFormatting.ResolveTableCellShading(cell);
+                        OfficeXmlNode source = WordConverterNodes.ResolveTableCellShading(cell);
                         global::OfficeIMO.OfficeColor? fill;
-                        if (source != null) {
-                            fill = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(source, table.Document));
+                        if (source.Exists) {
+                            fill = ParseNativeColor(WordConverterNodes.ResolveShadingFillColorHex(source, table.Document));
                         } else {
                             fill = rowFill;
                             if (!header && !footer && style.BodyColumnFills != null && column < style.BodyColumnFills.Count)
@@ -345,18 +341,18 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.StrikeStyle.HasValue &&
                 !conditionalStyle.AllCaps.HasValue &&
                 !conditionalStyle.SmallCaps.HasValue &&
-                !conditionalStyle.Baseline.HasValue &&
-                !conditionalStyle.Highlight.HasValue &&
+                conditionalStyle.Baseline == null &&
+                conditionalStyle.Highlight == null &&
                 !conditionalStyle.CellVerticalAlignment.HasValue &&
                 !conditionalStyle.ParagraphLineHeight.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
-                !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
-                !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
-                !conditionalStyle.LineSpacing.FontAlignment.HasValue &&
+                conditionalStyle.ParagraphLineSpacingRule == null &&
+                !conditionalStyle.LineSpacing.Value.HasValue && conditionalStyle.LineSpacing.Rule == null &&
+                conditionalStyle.LineSpacing.FontAlignment == null &&
                 conditionalStyle.ParagraphSpacing == default &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
-                !conditionalStyle.ParagraphAlignment.HasValue &&
+                conditionalStyle.ParagraphAlignment == null &&
                 !conditionalStyle.ParagraphLeftIndent.HasValue &&
                 !conditionalStyle.ParagraphRightIndent.HasValue &&
                 !conditionalStyle.ParagraphFirstLineIndent.HasValue) {
@@ -413,12 +409,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
-            W.TableBorders? directBorders = ResolveNativeTableBorderColors(table._tableProperties?.TableBorders, table.Document);
-            if (directBorders?.HasChildren != true) directBorders = null;
-            W.TableBorders? tableBorders = directBorders == null
+            OfficeXmlNode directBorders = ResolveNativeTableBorderColors(table.PropertiesNode().WChild("tblBorders"), table.Document);
+            if (!directBorders.HasChildren()) directBorders = default;
+            OfficeXmlNode tableBorders = directBorders.IsNone
                 ? tableStyleDefaults.Borders
                 : MergeNativeTableBorders(tableStyleDefaults.Borders, directBorders);
-            (global::OfficeIMO.OfficeColor Color, double Width)? border = directBorders == null
+            (global::OfficeIMO.OfficeColor Color, double Width)? border = directBorders.IsNone
                 ? tableStyleDefaults.TableBorder
                 : GetNativeUniformTableBorder(tableBorders);
             if (border != null) {
@@ -429,7 +425,7 @@ namespace OfficeIMO.Word.Pdf {
 
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateNativeTableBorderCellMap(table, tableBorders);
             if (cellBorders == null) {
-                if (directBorders != null) {
+                if (directBorders.Exists) {
                     style.BorderColor = null;
                     style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
                     style.CellBorders = null;
@@ -442,43 +438,40 @@ namespace OfficeIMO.Word.Pdf {
             style.CellBorders = cellBorders;
         }
 
-        private static W.TableBorders MergeNativeTableBorders(W.TableBorders? inherited, W.TableBorders direct) {
-            var merged = new W.TableBorders();
-            AppendBorder(direct.TopBorder ?? inherited?.TopBorder);
-            AppendBorder(direct.LeftBorder ?? inherited?.LeftBorder);
-            AppendBorder(direct.BottomBorder ?? inherited?.BottomBorder);
-            AppendBorder(direct.RightBorder ?? inherited?.RightBorder);
-            AppendBorder(direct.InsideHorizontalBorder ?? inherited?.InsideHorizontalBorder);
-            AppendBorder(direct.InsideVerticalBorder ?? inherited?.InsideVerticalBorder);
-            return merged;
-
-            void AppendBorder(W.BorderType? source) {
-                if (source != null) {
-                    merged.Append(source.CloneNode(true));
-                }
+        /// <summary>
+        /// The direct table border sides over the inherited ones, as a detached <c>w:tblBorders</c> of copies that only
+        /// the renderer reads.
+        /// </summary>
+        private static OfficeXmlNode MergeNativeTableBorders(OfficeXmlNode inherited, OfficeXmlNode direct) {
+            OfficeXmlNode merged = OfficeXmlNode.None.CreateElement(WordXml.W, "tblBorders");
+            foreach (string side in new[] { "top", "left", "bottom", "right", "insideH", "insideV" }) {
+                OfficeXmlNode source = direct.WChild(side);
+                if (source.IsNone) source = inherited.WChild(side);
+                if (source.Exists) merged.Append(source.Clone());
             }
+            return merged;
         }
 
-        private static (global::OfficeIMO.OfficeColor Color, double Width)? GetNativeUniformTableBorder(W.TableBorders? borders) {
-            if (borders == null) {
+        private static (global::OfficeIMO.OfficeColor Color, double Width)? GetNativeUniformTableBorder(OfficeXmlNode borders) {
+            if (borders.IsNone) {
                 return null;
             }
 
-            W.BorderType?[] allBorders = {
-                borders.TopBorder,
-                borders.BottomBorder,
-                borders.LeftBorder,
-                borders.RightBorder,
-                borders.InsideHorizontalBorder,
-                borders.InsideVerticalBorder
+            OfficeXmlNode[] allBorders = {
+                borders.WChild("top"),
+                borders.WChild("bottom"),
+                borders.WChild("left"),
+                borders.WChild("right"),
+                borders.WChild("insideH"),
+                borders.WChild("insideV")
             };
 
-            if (allBorders.Any(border => border == null || !HasNativeBorder(border.Val?.Value))) {
+            if (allBorders.Any(border => border.IsNone || !HasNativeBorder(border.WVal()))) {
                 return null;
             }
 
-            W.BorderValues style = allBorders[0]!.Val!.Value;
-            if (allBorders.Any(border => border!.Val?.Value != style)) {
+            string? style = allBorders[0].WVal();
+            if (allBorders.Any(border => border.WVal() != style)) {
                 return null;
             }
             // The uniform grid stores only color and width. Patterned and paired
@@ -488,20 +481,20 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            uint size = allBorders[0]!.Size?.Value ?? 4U;
-            if (allBorders.Any(border => (border!.Size?.Value ?? 4U) != size)) {
+            uint size = allBorders[0].WUInt32("sz") ?? 4U;
+            if (allBorders.Any(border => (border.WUInt32("sz") ?? 4U) != size)) {
                 return null;
             }
 
-            string? color = NormalizeNativeBorderColor(allBorders[0]!.Color?.Value);
-            if (allBorders.Any(border => !string.Equals(color, NormalizeNativeBorderColor(border!.Color?.Value), StringComparison.OrdinalIgnoreCase))) {
+            string? color = NormalizeNativeBorderColor(allBorders[0].WAttr("color"));
+            if (allBorders.Any(border => !string.Equals(color, NormalizeNativeBorderColor(border.WAttr("color")), StringComparison.OrdinalIgnoreCase))) {
                 return null;
             }
 
             return (ParseNativeColor(color) ?? global::OfficeIMO.OfficeColor.Black, size / 8D);
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateNativeTableBorderCellMap(WordTable table, W.TableBorders? borders) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateNativeTableBorderCellMap(WordTable table, OfficeXmlNode borders) {
             if (!HasNativeTableBorder(borders) || GetNativeUniformTableBorder(borders) != null) {
                 return null;
             }
@@ -530,7 +523,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     PdfCore.PdfCellBorder? cellBorder = CreateNativeTableBorderCell(
-                        borders!,
+                        borders,
                         rowIndex,
                         rowCount,
                         logicalColumn,
@@ -557,15 +550,15 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeTableGridAfterPlaceholders(List<PdfCore.PdfTableCell> cells, int count) =>
             AddNativeTableGridBeforePlaceholders(cells, count);
 
-        private static PdfCore.PdfCellBorder? CreateNativeTableBorderCell(W.TableBorders borders, int rowIndex, int rowCount, int columnIndex, int columnCount, int columnSpan, int rowSpan) {
-            W.BorderType? top = rowIndex == 0 ? borders.TopBorder : borders.InsideHorizontalBorder;
-            W.BorderType? bottom = rowIndex + rowSpan >= rowCount ? borders.BottomBorder : borders.InsideHorizontalBorder;
-            W.BorderType? left = columnIndex == 0 ? borders.LeftBorder : borders.InsideVerticalBorder;
-            W.BorderType? right = columnIndex + columnSpan >= columnCount ? borders.RightBorder : borders.InsideVerticalBorder;
-            bool hasTop = HasNativeBorder(top?.Val?.Value);
-            bool hasRight = HasNativeBorder(right?.Val?.Value);
-            bool hasBottom = HasNativeBorder(bottom?.Val?.Value);
-            bool hasLeft = HasNativeBorder(left?.Val?.Value);
+        private static PdfCore.PdfCellBorder? CreateNativeTableBorderCell(OfficeXmlNode borders, int rowIndex, int rowCount, int columnIndex, int columnCount, int columnSpan, int rowSpan) {
+            OfficeXmlNode top = borders.WChild(rowIndex == 0 ? "top" : "insideH");
+            OfficeXmlNode bottom = borders.WChild(rowIndex + rowSpan >= rowCount ? "bottom" : "insideH");
+            OfficeXmlNode left = borders.WChild(columnIndex == 0 ? "left" : "insideV");
+            OfficeXmlNode right = borders.WChild(columnIndex + columnSpan >= columnCount ? "right" : "insideV");
+            bool hasTop = HasNativeBorder(top.WVal());
+            bool hasRight = HasNativeBorder(right.WVal());
+            bool hasBottom = HasNativeBorder(bottom.WVal());
+            bool hasLeft = HasNativeBorder(left.WVal());
             if (!hasTop && !hasRight && !hasBottom && !hasLeft) {
                 return null;
             }
@@ -584,14 +577,14 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static bool HasNativeTableBorder(W.TableBorders? borders) =>
-            borders != null &&
-            (HasNativeBorder(borders.TopBorder?.Val?.Value) ||
-                HasNativeBorder(borders.RightBorder?.Val?.Value) ||
-                HasNativeBorder(borders.BottomBorder?.Val?.Value) ||
-                HasNativeBorder(borders.LeftBorder?.Val?.Value) ||
-                HasNativeBorder(borders.InsideHorizontalBorder?.Val?.Value) ||
-                HasNativeBorder(borders.InsideVerticalBorder?.Val?.Value));
+        private static bool HasNativeTableBorder(OfficeXmlNode borders) =>
+            borders.Exists &&
+            (HasNativeBorder(borders.WChild("top").WVal()) ||
+                HasNativeBorder(borders.WChild("right").WVal()) ||
+                HasNativeBorder(borders.WChild("bottom").WVal()) ||
+                HasNativeBorder(borders.WChild("left").WVal()) ||
+                HasNativeBorder(borders.WChild("insideH").WVal()) ||
+                HasNativeBorder(borders.WChild("insideV").WVal()));
 
         private static PdfCore.PdfTableStyle? ResolveNativeWordTableStyle(WordTable table, bool preferConfiguredDefaultStyle) {
             string? wordStyle = GetNativeTableStyleId(table);

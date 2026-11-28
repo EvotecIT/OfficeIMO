@@ -48,9 +48,9 @@ namespace OfficeIMO.Word {
 
             ReferenceListNumber? sourceNumber = null;
             if (listSwitch == ReferenceListSwitch.RelativeContext) {
-                Paragraph? sourceParagraph = candidate.AnchorElement is Paragraph paragraph
+                Paragraph? sourceParagraph = candidate.SdkAnchorElement is Paragraph paragraph
                     ? paragraph
-                    : candidate.AnchorElement.Ancestors<Paragraph>().FirstOrDefault();
+                    : candidate.SdkAnchorElement.Ancestors<Paragraph>().FirstOrDefault();
                 if (sourceParagraph != null) {
                     TryBuildReferenceListSnapshot(body, definitions, paragraphStyleNumbering, sourceParagraph, out sourceNumber, out _);
                 }

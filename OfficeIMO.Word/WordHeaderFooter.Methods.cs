@@ -1,9 +1,24 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Represents the shared functionality for headers and footers and
     // provides methods to manipulate their content.
     public partial class WordHeaderFooter {
+        internal List<WordParagraph> AppendSdkPageNumberTemplate(WordDocument document, string templateName) {
+            SdtBlock block = WordEmbeddedMarkup.CreateBuildingBlock(WordEmbeddedMarkup.PageNumbers, templateName, "style");
+            document.EnsureContentStyleDefinitions(block);
+            document.AssignNewSdtIds(block);
+            WordDrawingIdAllocator.Reassign(document, block);
+            WordPageNumber.DeclareGalleryNamespaces(OfficeXmlNode.FromSdk(block));
+            List<WordParagraph> paragraphs = WordSection.ConvertParagraphsToWordParagraphs(document,
+                block.SdtContentBlock!.Elements<Paragraph>());
+            OpenXmlCompositeElement? story = (OpenXmlCompositeElement?)_header ?? _footer;
+            story?.Append(block);
+            return paragraphs;
+        }
+
         /// <summary>
         /// Adds a new paragraph with the specified text to the header or footer.
         /// </summary>
@@ -21,6 +36,7 @@ namespace OfficeIMO.Word {
         /// <param name="newRun">Specifies whether a new run should be started.</param>
         /// <returns>The created <see cref="WordParagraph"/> instance.</returns>
         public WordParagraph AddParagraph(bool newRun = false) {
+            if (AddOwnedStoryParagraph(newRun) is { } owned) return owned;
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (_footer != null) {
                 _footer.Append(wordParagraph._paragraph);

@@ -1,34 +1,35 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfTablePosition CreateNativeTablePosition(W.TablePositionProperties position, bool allowOverlap) {
-            PdfCore.PdfTableAnchor horizontalAnchor = position.HorizontalAnchor?.Value == W.HorizontalAnchorValues.Page
+        private static PdfCore.PdfTablePosition CreateNativeTablePosition(OfficeXmlNode position, bool allowOverlap) {
+            string? verticalAnchorToken = position.WAttr("vertAnchor");
+            PdfCore.PdfTableAnchor horizontalAnchor = position.WAttr("horzAnchor") == "page"
                 ? PdfCore.PdfTableAnchor.Page : PdfCore.PdfTableAnchor.Margin;
-            PdfCore.PdfTableAnchor verticalAnchor = position.VerticalAnchor?.Value == W.VerticalAnchorValues.Page
-                ? PdfCore.PdfTableAnchor.Page : position.VerticalAnchor?.Value == W.VerticalAnchorValues.Margin
+            PdfCore.PdfTableAnchor verticalAnchor = verticalAnchorToken == "page"
+                ? PdfCore.PdfTableAnchor.Page : verticalAnchorToken == "margin"
                     ? PdfCore.PdfTableAnchor.Margin : PdfCore.PdfTableAnchor.Flow;
-            var horizontal = position.TablePositionXAlignment?.Value;
-            global::OfficeIMO.OfficeAlignment alignment = horizontal == W.HorizontalAlignmentValues.Center ? global::OfficeIMO.OfficeAlignment.Center
-                : horizontal == W.HorizontalAlignmentValues.Right || horizontal == W.HorizontalAlignmentValues.Outside
+            string? horizontal = position.WAttr("tblpXSpec");
+            global::OfficeIMO.OfficeAlignment alignment = horizontal == "center" ? global::OfficeIMO.OfficeAlignment.Center
+                : horizontal == "right" || horizontal == "outside"
                     ? global::OfficeIMO.OfficeAlignment.Right : global::OfficeIMO.OfficeAlignment.Left;
-            var vertical = position.TablePositionYAlignment?.Value;
-            bool relativeVertical = vertical.HasValue && verticalAnchor != PdfCore.PdfTableAnchor.Flow;
+            string? vertical = position.WAttr("tblpYSpec");
+            bool relativeVertical = vertical != null && verticalAnchor != PdfCore.PdfTableAnchor.Flow;
             if (!relativeVertical) vertical = null;
-            PdfCore.PdfTableVerticalAlignment verticalAlignment = vertical == W.VerticalAlignmentValues.Center
-                ? PdfCore.PdfTableVerticalAlignment.Center : vertical == W.VerticalAlignmentValues.Bottom
-                    ? PdfCore.PdfTableVerticalAlignment.Bottom : vertical == W.VerticalAlignmentValues.Inside
-                    ? PdfCore.PdfTableVerticalAlignment.Inside : vertical == W.VerticalAlignmentValues.Outside
+            PdfCore.PdfTableVerticalAlignment verticalAlignment = vertical == "center"
+                ? PdfCore.PdfTableVerticalAlignment.Center : vertical == "bottom"
+                    ? PdfCore.PdfTableVerticalAlignment.Bottom : vertical == "inside"
+                    ? PdfCore.PdfTableVerticalAlignment.Inside : vertical == "outside"
                         ? PdfCore.PdfTableVerticalAlignment.Outside : PdfCore.PdfTableVerticalAlignment.Top;
             return new PdfCore.PdfTablePosition(horizontalAnchor, verticalAnchor, alignment, verticalAlignment,
-                global::OfficeIMO.OfficeLength.Points(horizontal.HasValue ? 0 : (position.TablePositionX?.Value ?? 0) / 20D),
-                global::OfficeIMO.OfficeLength.Points(vertical.HasValue ? 0 : (position.TablePositionY?.Value ?? 0) / 20D),
-                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.LeftFromText?.Value ?? 0) / 20D)),
-                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.RightFromText?.Value ?? 0) / 20D)),
-                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.TopFromText?.Value ?? 0) / 20D)),
-                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D)),
-                mirrorHorizontalOnEvenPages: horizontal == W.HorizontalAlignmentValues.Inside || horizontal == W.HorizontalAlignmentValues.Outside,
+                global::OfficeIMO.OfficeLength.Points(horizontal != null ? 0 : (position.WInt32("tblpX") ?? 0) / 20D),
+                global::OfficeIMO.OfficeLength.Points(vertical != null ? 0 : (position.WInt32("tblpY") ?? 0) / 20D),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.WInt32("leftFromText") ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.WInt32("rightFromText") ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.WInt32("topFromText") ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.WInt32("bottomFromText") ?? 0) / 20D)),
+                mirrorHorizontalOnEvenPages: horizontal == "inside" || horizontal == "outside",
                 allowOverlap: allowOverlap) { UsesWordOutsideEdges = true };
         }
     }
