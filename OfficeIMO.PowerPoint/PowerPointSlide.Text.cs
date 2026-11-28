@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointTextContent.InsertInlineContent(paragraph, text, default, default);
             }
 
-            shape = tree.Append(shape);
+            shape = tree.InsertBefore(shape, FindTerminalPresentationExtension(tree));
             part.MarkEdited();
             return TrackShape((PowerPointTextBox)WrapSlideShape(shape, part)!);
         }

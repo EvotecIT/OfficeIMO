@@ -213,7 +213,8 @@ namespace OfficeIMO.PowerPoint {
             slide.SetAttribute(geometry, OfficeXmlNamespaces.None, "prst", preset);
             PowerPointDocument.Append(slide, geometry, OfficeXmlNamespaces.DrawingML, "avLst");
             if (shapeType == OfficePresetShapeType.Line) PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "noFill");
-            slide.Append(tree, shape);
+            OfficeXmlNode container = new(slide, tree);
+            slide.InsertBefore(tree, shape, FindTerminalPresentationExtension(container).Node);
             OwnerDocument!.MarkPackageEdited();
             return TrackShape(new PowerPointAutoShape(this, slide, shape));
         }

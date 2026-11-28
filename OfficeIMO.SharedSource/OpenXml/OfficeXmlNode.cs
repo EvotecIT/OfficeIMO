@@ -22,8 +22,8 @@ namespace OfficeIMO.OpenXml.Internal {
     /// its SDK bridge folder.
     /// </summary>
     /// <remarks>
-    /// Element navigation skips comments and processing instructions, and text is read and written through
-    /// <see cref="InnerText"/>. Namespaces are the fixed ids of <see cref="OfficeXmlNamespaces"/>; a namespace
+    /// Children are elements only: text is read and written through <see cref="InnerText"/>, and comments and
+    /// processing instructions are skipped. Namespaces are the fixed ids of <see cref="OfficeXmlNamespaces"/>; a namespace
     /// outside them is named by its URI.
     /// </remarks>
     internal readonly struct OfficeXmlNode : IEquatable<OfficeXmlNode> {
@@ -84,9 +84,6 @@ namespace OfficeIMO.OpenXml.Internal {
             _tree != null ? _tree.IsElement(_node, namespaceId, localName)
             : _sdk != null && OfficeSdkXml.Is(_sdk, namespaceId, localName);
 
-        /// <summary>Whether the SDK explicitly holds this element as unknown.</summary>
-        internal bool IsSdkUnknownElement => _sdk != null && OfficeSdkXml.IsUnknownElement(_sdk);
-
         internal bool Is(string namespaceUri, string localName) =>
             !IsNone && string.Equals(LocalName, localName, StringComparison.Ordinal) && string.Equals(NamespaceUri, namespaceUri, StringComparison.Ordinal);
 
@@ -119,10 +116,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 return _sdk != null ? FromSdk(OfficeSdkXml.NextSibling(_sdk)) : default;
             }
         }
-
-        /// <summary>The following node, including non-element markup.</summary>
-        internal OfficeXmlNode NextNode => _tree != null ? new OfficeXmlNode(_tree, _tree.NextSiblingOf(_node))
-            : _sdk != null ? FromSdk(OfficeSdkXml.NextNode(_sdk)) : default;
 
         internal OfficeXmlNode PreviousSibling {
             get {
@@ -162,19 +155,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (sibling.Is(namespaceId, localName)) return sibling;
             }
             return default;
-        }
-
-        /// <summary>Takes a snapshot of the child nodes exposed by the current representation. The SDK exposes intervening markup as nodes.</summary>
-        internal List<OfficeXmlNode> ChildNodes() {
-            var children = new List<OfficeXmlNode>();
-            if (_tree != null) {
-                for (int child = _tree.FirstChildOf(_node); child != OfficeXmlTree.NoNode; child = _tree.NextSiblingOf(child)) {
-                    children.Add(new OfficeXmlNode(_tree, child));
-                }
-            } else if (_sdk != null) {
-                OfficeSdkXml.CollectChildNodes(_sdk, children);
-            }
-            return children;
         }
 
         /// <summary>The child elements, in document order.</summary>
@@ -277,23 +257,6 @@ namespace OfficeIMO.OpenXml.Internal {
             _tree != null ? _tree.GetAttribute(_node, namespaceId, localName)
             : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
 
-        /// <summary>Reads an attribute in an extension namespace.</summary>
-        internal string? Attribute(string namespaceUri, string localName) =>
-            _tree != null ? _tree.GetAttribute(_node, _tree.Namespaces.GetId(namespaceUri), localName)
-            : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceUri, localName) : null;
-
-        /// <summary>Finds the closest namespace declaration for the given prefix.</summary>
-        internal string? LookupNamespace(string prefix) {
-            if (_tree != null) {
-                string name = prefix.Length == 0 ? "xmlns" : prefix;
-                for (int node = _node; node != OfficeXmlTree.NoNode; node = _tree.ParentOf(node)) {
-                    if (_tree.GetAttribute(node, OfficeXmlNamespaces.Xmlns, name) is { } uri) return uri;
-                }
-                return null;
-            }
-            return _sdk != null ? OfficeSdkXml.LookupNamespace(_sdk, prefix) : null;
-        }
-
         /// <summary>
         /// The element's attributes in document order, without namespace declarations. Markup compatibility attributes
         /// such as <c>mc:Ignorable</c> are included, as the SDK lists them.
@@ -350,17 +313,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 else _tree.SetAttribute(_node, namespaceId, localName, value);
             } else if (_sdk != null) {
                 OfficeSdkXml.SetAttribute(_sdk, namespaceId, localName, value);
-            } else {
-                throw new InvalidOperationException("There is no element to set the attribute on.");
-            }
-        }
-
-        /// <summary>Sets or removes an attribute in an extension namespace.</summary>
-        internal void SetAttribute(string namespaceUri, string localName, string? value, string prefix) {
-            if (_tree != null) {
-                SetAttribute(_tree.Namespaces.GetId(namespaceUri), localName, value);
-            } else if (_sdk != null) {
-                OfficeSdkXml.SetAttribute(_sdk, namespaceUri, localName, value, prefix);
             } else {
                 throw new InvalidOperationException("There is no element to set the attribute on.");
             }
@@ -530,17 +482,6 @@ namespace OfficeIMO.OpenXml.Internal {
         internal void Remove() {
             if (_tree != null) _tree.Remove(_node);
             else if (_sdk != null) OfficeSdkXml.Remove(_sdk);
-        }
-
-        /// <summary>Removes the child nodes exposed by the current representation.</summary>
-        internal void RemoveAllChildren() {
-            if (_tree != null) {
-                for (int child = _tree.FirstChildOf(_node); child != OfficeXmlTree.NoNode; child = _tree.FirstChildOf(_node)) {
-                    _tree.Remove(child);
-                }
-            } else if (_sdk != null) {
-                OfficeSdkXml.RemoveAllChildren(_sdk);
-            }
         }
 
         /// <summary>Removes every child element with this name.</summary>

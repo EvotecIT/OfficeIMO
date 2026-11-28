@@ -51,6 +51,15 @@ public class PowerPointSdkReferenceRatchetTests {
     }
 
     [Fact]
+    public void TheSharedSdkElementBridgeDoesNotGrow() {
+        const int sharedElementBridgeBaseline = 382;
+        string path = Path.Combine(FindRepositoryRoot(), "OfficeIMO.SharedSource", "OpenXmlSdk", "OfficeSdkXml.cs");
+        int lines = File.ReadLines(path).Count();
+        Assert.True(lines <= sharedElementBridgeBaseline,
+            $"The shared SDK element bridge grew from {sharedElementBridgeBaseline} to {lines} lines.");
+    }
+
+    [Fact]
     public void TheProjectDoesNotImportTheSdkNamespaceGlobally() {
         // A global using would let any file use SDK types without naming them.
         XDocument project = XDocument.Load(Path.Combine(FindRepositoryRoot(), "OfficeIMO.PowerPoint", "OfficeIMO.PowerPoint.csproj"));

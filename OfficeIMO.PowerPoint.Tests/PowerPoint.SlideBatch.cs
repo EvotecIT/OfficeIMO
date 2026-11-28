@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
@@ -51,6 +52,46 @@ public sealed class PowerPointSlideBatchTests {
         Assert.Equal(new[] { "Opening", "Result 0", "Result 1", "Result 2" },
             reopened.Slides.Select(slide => Assert.Single(slide.TextBoxes).Text));
         Assert.Equal(new[] { 1, 2, 3 }, reopened.GetSections()[1].SlideIndices);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BatchAfterDeletingTheLastSlideMatchesSdkPartNamesAndRelationshipTargets(bool deleteLast) {
+        using var presentation = PowerPointDocument.Create();
+        presentation.AddSlides(3);
+        presentation.AddSection("Opening", 0);
+        presentation.AddSection("Results", 1);
+        if (deleteLast) presentation.RemoveSlide(2);
+        string appendedSlide = deleteLast ? "slide3.xml" : "slide4.xml";
+
+        using var sdk = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
+        _ = sdk.OpenXmlDocument;
+        sdk.AddSlides(1);
+        presentation.AddSlides(1);
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.Equal(Enumerable.Range(1, deleteLast ? 2 : 3), presentation.GetSections()[1].SlideIndices);
+
+        using var expected = new ZipArchive(new MemoryStream(sdk.ToBytes(), writable: false));
+        using var actual = new ZipArchive(new MemoryStream(presentation.ToBytes(), writable: false));
+        Assert.NotNull(expected.GetEntry("ppt/slides/" + appendedSlide));
+        Assert.Equal(expected.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal),
+            actual.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal));
+
+        const string slideRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
+        Assert.Equal(ReadRelationships(expected, "ppt/_rels/presentation.xml.rels").Where(rel =>
+                rel.Type == slideRelationship && rel.Target.EndsWith("/" + appendedSlide, StringComparison.Ordinal)),
+            ReadRelationships(actual, "ppt/_rels/presentation.xml.rels").Where(rel =>
+                rel.Type == slideRelationship && rel.Target.EndsWith("/" + appendedSlide, StringComparison.Ordinal)));
+        Assert.Equal(ReadRelationships(expected, "ppt/slides/_rels/" + appendedSlide + ".rels"),
+            ReadRelationships(actual, "ppt/slides/_rels/" + appendedSlide + ".rels"));
+    }
+
+    private static (string Id, string Type, string Target)[] ReadRelationships(ZipArchive package, string part) {
+        using Stream stream = package.GetEntry(part)!.Open();
+        return XDocument.Load(stream).Root!.Elements()
+            .Select(element => ((string)element.Attribute("Id")!, (string)element.Attribute("Type")!, (string)element.Attribute("Target")!))
+            .ToArray();
     }
 
     [Fact]

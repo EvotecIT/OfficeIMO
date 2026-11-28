@@ -180,7 +180,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeXmlNode AppendTimingChild(OfficeXmlNode parent, string name) =>
-            parent.Append(parent.CreateElement(TimingNamespace, name));
+            parent.InsertBefore(parent.CreateElement(TimingNamespace, name), FindTerminalPresentationExtension(parent));
 
         private static OfficeXmlNode InsertSlideTiming(OfficeXmlNode slide) {
             // A trailing unknown element (including a Morph compatibility wrapper) made the SDK prepend timing.

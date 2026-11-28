@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
                 fill.Append(fill.CreateElement(a, "schemeClr")).SetAttribute("val", "tx1");
             }
 
-            connector = tree.Append(connector);
+            connector = tree.InsertBefore(connector, FindTerminalPresentationExtension(tree));
             part.MarkEdited();
             return TrackShape((PowerPointConnectionShape)WrapSlideShape(connector, part)!);
         }

@@ -10,6 +10,38 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointAdvancedFeatures {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TransitionSoundGoesBeforeTheTransitionExtensionList(bool stopSound) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                presentation.AddSlide();
+                var slide = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide;
+                slide.Transition = new Transition(new FadeTransition(), new ExtensionListWithModification());
+                Assert.Empty(new OpenXmlValidator().Validate(slide));
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            if (stopSound) {
+                reopened.StopTransitionSound();
+            } else {
+                byte[] wave = { 82, 73, 70, 70, 4, 0, 0, 0, 87, 65, 86, 69 };
+                using var sound = new MemoryStream(wave, writable: false);
+                reopened.SetTransitionSound(sound, "Chime");
+            }
+            Assert.False(loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            var savedSlide = saved.PresentationPart!.SlideParts.Single().Slide;
+            Transition transition = savedSlide.Transition!;
+            Assert.Single(transition.Elements<SoundAction>());
+            Assert.IsType<ExtensionListWithModification>(transition.LastChild);
+            Assert.Empty(new OpenXmlValidator().Validate(savedSlide));
+        }
+
         [Fact]
         public void CanHandleBackgroundFormattingTransitionsAndCharts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
