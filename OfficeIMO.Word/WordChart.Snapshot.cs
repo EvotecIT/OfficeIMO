@@ -21,9 +21,14 @@ namespace OfficeIMO.Word {
                 OfficeOpenXmlChartSeriesReader.SourceVisibility? visibility = null;
                 IOfficeChartPart? part = SharedChartPart;
                 if (part != null && !OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(part, chart, out visibility, out _)) return false;
-                List<OfficeXmlNode> series = group.Children(NsC, "ser").ToList();
+                // At most one series past the readers' limit, so an oversized group is rejected without reading it all.
+                var series = new List<OfficeXmlNode>();
+                foreach (OfficeXmlNode item in group.Children(NsC, "ser")) {
+                    series.Add(item);
+                    if (series.Count > MaxCachedChartPoints) break;
+                }
                 OfficeOpenXmlChartSeriesReader.Result? result = group.Is(NsC, "scatterChart")
-                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(group.Children(NsC, "ser").ToList(), scheme, (int)MaxCachedChartPoints,
+                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(series, scheme, (int)MaxCachedChartPoints,
                         visibility: visibility)
                     : OfficeOpenXmlChartSeriesReader.ReadCategories(series, kind, scheme, OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, (int)MaxCachedChartPoints,
                         visibility: visibility);

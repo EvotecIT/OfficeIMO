@@ -116,12 +116,36 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
     public void ChartReferenceInsideVendorDrawingMarkupIsNotTheDrawnChart() {
         string path = CreateBarChart("vendor-reference.docx");
         RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<wp:docPr [^>]*?)\\s*/>",
-            "$1><v:payload xmlns:v=\"urn:example:vendor\"><c:chart xmlns:c=\"" + ChartNs + "\" " +
-            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"rIdMissing\" /></v:payload></wp:docPr>",
+            "$1><v:payload xmlns:v=\"urn:example:vendor\"><a:graphicData xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" uri=\"" + ChartNs + "\">" +
+            "<c:chart xmlns:c=\"" + ChartNs + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"rIdMissing\" />" +
+            "</a:graphicData></v:payload></wp:docPr>",
             RegexOptions.None, TimeSpan.FromSeconds(5)));
 
         using var document = WordDocument.Load(path);
         Assert.Equal("Sales", Assert.Single(document.AllCharts).Title);
+    }
+
+    [Fact]
+    public void SeriesTitleValuesInsideVendorMarkupDoNotPickTheOutcomeColor() {
+        string path = Path.Combine(_directory, "vendor-series-title.docx");
+        using (var document = WordDocument.Create(path)) {
+            WordChart chart = document.AddChart("Results");
+            chart.AddCategories(new[] { "Mon", "Tue" });
+            chart.AddBar("Passed", new[] { 1, 2 }, OfficeColor.Black);
+            document.Save();
+        }
+        RewriteChartPart(path, xml => xml.Replace("<c:tx><c:v>Passed</c:v></c:tx>",
+            "<c:tx><v:meta xmlns:v=\"urn:example:vendor\"><c:v>Failed</c:v></v:meta><c:v>Passed</c:v></c:tx>"));
+
+        using (var document = WordDocument.Load(path)) {
+            WordChart chart = Assert.Single(document.AllCharts);
+            chart.ApplyPalette(WordChart.WordChartPalette.Professional);
+            document.Save();
+        }
+
+        string series = Regex.Match(Assert.Single(ReadChartParts(path)), "<c:ser>.*?</c:ser>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Contains("2FB344", series, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("F76707", series, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

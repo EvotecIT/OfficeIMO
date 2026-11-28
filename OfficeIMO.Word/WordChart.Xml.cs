@@ -71,7 +71,31 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static bool IsChartReference(OfficeXmlNode element) => element.Parent.Is(NsA, "graphicData");
+        /// <summary>Whether a <c>c:chart</c> sits at wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart.</summary>
+        private static bool IsChartReference(OfficeXmlNode element) {
+            OfficeXmlNode data = element.Parent;
+            OfficeXmlNode graphic = data.Parent;
+            OfficeXmlNode frame = graphic.Parent;
+            return data.Is(NsA, "graphicData") && graphic.Is(NsA, "graphic") && (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor"));
+        }
+
+        /// <summary>
+        /// A series title's text: the literal <c>c:v</c> of its <c>c:tx</c>, or the first cached value of its string
+        /// reference. Values anywhere else, such as in vendor markup, are not the title.
+        /// </summary>
+        internal static string? SeriesTitleText(OfficeXmlNode text) {
+            if (text.IsNone) return null;
+            OfficeXmlNode literal = text.Child(NsC, "v");
+            if (!literal.IsNone) return literal.InnerText;
+            OfficeXmlNode reference = text.Child(NsC, "strRef");
+            OfficeXmlNode cache = reference.IsNone ? default : reference.Child(NsC, "strCache");
+            if (cache.IsNone) return null;
+            foreach (OfficeXmlNode point in cache.Children(NsC, "pt")) {
+                OfficeXmlNode value = point.Child(NsC, "v");
+                if (!value.IsNone) return value.InnerText;
+            }
+            return null;
+        }
 
         /// <summary>
         /// Whether <paramref name="reference"/> is the drawing's first chart reference in document order outside extension

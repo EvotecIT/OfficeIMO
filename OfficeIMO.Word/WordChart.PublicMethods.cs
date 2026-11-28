@@ -430,19 +430,12 @@ namespace OfficeIMO.Word {
             var map = OutcomeColors(overrides);
 
             int idxPal = 0;
-            List<OfficeXmlNode> found = catAxis.ContentDescendants(NsC, "pt");
+            // The literal's own points; a point in vendor markup is not a slice.
+            List<OfficeXmlNode> found = catAxis.Children(NsC, "pt").ToList();
             var points = new (uint Index, string Name)[found.Count];
             for (int i = 0; i < found.Count; i++) points[i] = (found[i].UIntAttr("idx") ?? 0U, found[i].ChildText(NsC, "v") ?? string.Empty);
-            // A stable insertion sort by index: slices are usually in order already.
-            for (int i = 1; i < points.Length; i++) {
-                var point = points[i];
-                int j = i - 1;
-                while (j >= 0 && points[j].Index > point.Index) {
-                    points[j + 1] = points[j];
-                    j--;
-                }
-                points[j + 1] = point;
-            }
+            // A stable sort by index.
+            points = points.OrderBy(point => point.Index).ToArray();
             foreach (var (index, name) in points) {
                 var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name, out var sem))
                     ? sem
@@ -459,8 +452,7 @@ namespace OfficeIMO.Word {
             int idxPal = 0;
             foreach (OfficeXmlNode series in ColorableSeries()) {
                 OfficeXmlNode text = series.Child(NsC, "tx");
-                List<OfficeXmlNode> values = text.IsNone ? new List<OfficeXmlNode>() : text.ContentDescendants(NsC, "v");
-                string? name = values.Count == 0 ? null : values[0].InnerText;
+                string? name = SeriesTitleText(text);
 
                 var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
                     ? sem

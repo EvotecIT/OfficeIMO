@@ -36,10 +36,17 @@ public partial class WordChart {
             // Preserve the existing flat projection for single legacy 3-D groups. A rejected
             // 2-D projection must never fall back through a less strict legacy reader.
             OfficeXmlNode plotArea = chart.Child(NsC, "plotArea");
-            OfficeXmlNode[]? groups = plotArea.IsNone ? null : plotArea.Children().ToList()
-                .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(10001).ToArray();
-            if (groups?.Length > 10000) return Fail("The chart has too many chart groups.", out failureReason);
-            if (groups?.Length == 1 && groups[0].NamespaceId == NsC && groups[0].LocalName is "bar3DChart" or "line3DChart" or "area3DChart" or "pie3DChart") {
+            List<OfficeXmlNode>? groups = null;
+            if (!plotArea.IsNone) {
+                groups = new List<OfficeXmlNode>();
+                foreach (OfficeXmlNode element in plotArea.Children()) {
+                    if (!element.LocalName.EndsWith("Chart", StringComparison.Ordinal)) continue;
+                    groups.Add(element);
+                    if (groups.Count > 10000) break;
+                }
+            }
+            if (groups?.Count > 10000) return Fail("The chart has too many chart groups.", out failureReason);
+            if (groups?.Count == 1 && groups[0].NamespaceId == NsC && groups[0].LocalName is "bar3DChart" or "line3DChart" or "area3DChart" or "pie3DChart") {
                 if (!TryGetSnapshot(out var legacy) || !OfficeOpenXmlChartSeriesReader.TryReadKind(groups[0], out var legacyKind)) return Fail("The three-dimensional chart has no flat projection.", out failureReason);
                 snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), legacyKind,
                     new OfficeChartData(legacy.Data.Categories, legacy.Data.Series.Select(series => series.ToOfficeSeries()).ToArray()),

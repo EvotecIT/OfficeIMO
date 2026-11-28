@@ -23,8 +23,7 @@ public sealed class WordChartSeries {
             if (_snapshot != null) return _snapshot.Name;
             OfficeXmlNode text = RequireAttached().Child(NsC, "tx");
             if (text.IsNone) return string.Empty;
-            List<OfficeXmlNode> values = text.ContentDescendants(NsC, "v");
-            return values.Count == 0 ? string.Empty : values[0].InnerText;
+            return WordChart.SeriesTitleText(text) ?? string.Empty;
         }
         set {
             ArgumentNullException.ThrowIfNull(value);
