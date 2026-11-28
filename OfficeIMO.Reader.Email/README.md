@@ -2,6 +2,12 @@
 
 One Reader package for the complete `OfficeIMO.Email` data surface:
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Email
+```
+
 Email body, text attachment, iCalendar, and vCard chunks retain complete Unicode scalars at `MaxChars` boundaries.
 Text attachments use the shared email charset decoder before projection or delegation to a registered text handler.
 Decoding recovery warnings appear in the document diagnostics and attachment chunk warnings.
@@ -66,3 +72,4 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 ```
 
 Install this package when Reader needs email or MHTML data. It depends on `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, `OfficeIMO.Mhtml`, and the lean `OfficeIMO.Reader.Html` projection. Email HTML/text/Markdown preparation reuses the shared safe body and embedded-resource contract; store and address-book support do not add separate NuGet layers or another email model.
+

@@ -4,6 +4,12 @@ Open and write Jupyter notebooks with a managed document model. Cells, metadata,
 attachments, and saved output MIME alternatives remain available without running
 a kernel.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 
@@ -49,7 +55,7 @@ Setting `ExecutionCount` to `null` clears the count independently.
 The package handles stored notebook content offline. It does not invoke a
 kernel, load widgets or access remote resources.
 
-Use the [support matrix](SUPPORT.md) to choose a native lifecycle or export
+Use the [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook/SUPPORT.md) to choose a native lifecycle or export
 route and check its fidelity limits.
 
 <!-- officeimo-operation-catalog:start -->

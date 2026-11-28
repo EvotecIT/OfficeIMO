@@ -135,4 +135,4 @@ foreach (OfficeDocumentLink link in document.Links) {
 - **External:** AngleSharp/AngleSharp.Css only through `OfficeIMO.Html`.
 - **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own parsing, projection, chunks, and rich results. Email, RTF, and MHTML are not part of this package graph.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

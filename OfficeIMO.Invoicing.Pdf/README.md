@@ -16,7 +16,7 @@ No external PDF renderer or Java runtime is required to generate the documents.
 
 ## Generate a PDF and its XML from one snapshot
 
-Create a populated invoice using the [invoice model example](../OfficeIMO.Invoicing/README.md#create-invoice-xml),
+Create a populated invoice using the [invoice model example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing/README.md#create-invoice-xml),
 then capture prices, quantities, VAT breakdowns, adjustments, payments and totals:
 
 ```csharp
@@ -180,7 +180,7 @@ MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED for the explicit
 `FacturX_1_09_2_Zugferd_2_5_2` release. Every required result must pass, including
 Mustang's PDF and XML section statuses and overall summary.
 
-Use [pinned XML validation](../OfficeIMO.Invoicing.Validation/README.md) and run
+Use [pinned XML validation](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Validation/README.md) and run
 veraPDF plus an invoice validator against the exact generated PDF. Font coverage,
 page layout and external validation remain necessary for the selected content and
 profile. Tests compare the exact embedded XML bytes, parsed semantic values and
@@ -192,4 +192,4 @@ the complete authored line model. Lower Factur-X profiles use their declared
 projection policy and therefore show only the business data retained by their XML
 contract. Peppol BIS requires UBL and cannot be embedded through this CII adapter.
 
-For contributor builds, use the repository's [build and release guide](../Docs/building-and-releasing.md).
+For contributor builds, use the repository's [build and release guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/building-and-releasing.md).

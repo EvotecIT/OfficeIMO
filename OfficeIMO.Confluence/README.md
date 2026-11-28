@@ -2,6 +2,12 @@
 
 `OfficeIMO.Confluence` is a dependency-light Confluence Cloud client with ADF, Markdown, HTML, attachment, dry-run, and managed-section support.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Confluence
+```
+
 ```csharp
 var session = new ConfluenceSession(
     new ConfluenceBasicCredentialSource(email, apiToken),

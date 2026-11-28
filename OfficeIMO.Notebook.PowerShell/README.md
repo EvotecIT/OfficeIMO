@@ -12,6 +12,12 @@ cell stops its pipeline but not programs it started in the background, and a
 cell blocked in a call that PowerShell cannot interrupt keeps its thread until
 the call returns. Choose process isolation for those cells.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.PowerShell
+```
+
 Only run notebooks you trust. Cells run with your account's permissions.
 Importing, opening, previewing, and exporting saved notebooks remain
 independent operations.
@@ -65,3 +71,4 @@ PSWriteOffice exposes the same execution engine through `Invoke-OfficeNotebook`.
 The cmdlet runs cells in a runspace of the current PowerShell by default;
 `-Isolation Process` or `-PowerShellPath` starts a separate process.
 `-OutputPath` saves a copy of the executed notebook.
+

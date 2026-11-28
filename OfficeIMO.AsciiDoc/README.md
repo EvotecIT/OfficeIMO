@@ -16,6 +16,12 @@ title.Title = "Updated title";
 string updated = document.ToAsciiDoc(AsciiDocWriterMode.Preserve);
 ```
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.AsciiDoc
+```
+
 ## Create and edit structure
 
 ```csharp
@@ -99,7 +105,7 @@ Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 - **External:** None; no Asciidoctor process or parser package.
 - **OfficeIMO:** `OfficeIMO.Core`. Parsing, source preservation, processing limits, and writing are first-party.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

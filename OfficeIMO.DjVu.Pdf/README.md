@@ -2,6 +2,12 @@
 
 Convert scanned DjVu pages into PDFs with source physical size, display rotation, a searchable stored-text layer, and supported outline navigation. This adapter uses `OfficeIMO.DjVu` and `OfficeIMO.Pdf` in process.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.DjVu.Pdf
+```
+
 ```xml
 <ProjectReference Include="../OfficeIMO/OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj" />
 ```
@@ -24,7 +30,7 @@ For OCR, supply an existing `IOcrEngine` through `DjVuPdfExportOptions.OcrEngine
 
 Options bound selected pages, decoded image pixels and working memory, individual and aggregate PNG bytes, searchable spans and characters, and serialized PDF bytes. Stream output stays open; seekable output is replaced and rewound. Serialization failure can leave partial output. The shared `djvu-pdf` workflow stages, reopens, and publishes output atomically, and retains combined source/PDF diagnostics. Workflow OCR remains a separate explicit operation.
 
-See the [native support matrix](../OfficeIMO.DjVu/SUPPORT.md) for exact codecs and independent qualification.
+See the [native support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/SUPPORT.md) for exact codecs and independent qualification.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

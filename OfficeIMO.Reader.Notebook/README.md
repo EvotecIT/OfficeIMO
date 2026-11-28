@@ -18,7 +18,13 @@ string markdown = reader.ConvertToMarkdown("analysis.ipynb");
 
 The adapter projects Markdown, raw, and code cells in source order. Code uses a Markdown fence with the notebook language when available. Supported saved outputs include streams, error tracebacks, `text/markdown`, and `text/plain`. Other display formats remain outside the text projection.
 
-The adapter projects stored notebook content through [OfficeIMO.Notebook](../OfficeIMO.Notebook/README.md). `OfficeIMO.Reader.All` registers this handler. Use the [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) for native editing and rich exports.
+The adapter projects stored notebook content through [OfficeIMO.Notebook](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook/README.md). `OfficeIMO.Reader.All` registers this handler. Use the [notebook support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook/SUPPORT.md) for native editing and rich exports.
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Notebook
+```
 
 ## Registration
 

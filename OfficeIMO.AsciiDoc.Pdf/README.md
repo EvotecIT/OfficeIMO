@@ -17,6 +17,12 @@ The report combines native parser, semantic projection, PDF layout/resource/font
 
 The zero-options resource policy is inherited from `MarkdownPdfExportOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.AsciiDoc.Pdf
+```
+
 ## Dependency footprint
 
 - **External:** None.

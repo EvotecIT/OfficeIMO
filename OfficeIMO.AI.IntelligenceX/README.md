@@ -2,6 +2,12 @@
 
 This optional .NET 10 adapter connects `OfficeIMO.AI` to IntelligenceX Treatment. It requires `IntelligenceX` 0.1.1 and keeps provider/authentication code out of the document engine.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.AI.IntelligenceX
+```
+
 ## Add the adapter from source
 
 With an `OfficeIMO` source checkout beside your application directory, reference the adapter project. Restore obtains IntelligenceX from NuGet:
@@ -39,7 +45,7 @@ The native route uses IX's authentication support. `PreferCurrentCodexSession` e
 
 The example model is an explicit profile setting. If it is unavailable for an account, select an available model and qualify it; the adapter does not silently choose a replacement.
 
-For application-specific accounts, set `AuthStore` to a host-owned IX store, set `AccountId` when selecting an existing account, and disable `LoadCodexAuthJson`. Leave `PreferCurrentCodexSession` disabled unless the user explicitly selects the local Codex login. The executor exposes `LoginChatGptAsync`, `LoginCopilotAsync`, `GetAccountAsync`, `ListModelsAsync` and `LogoutAsync` through the same restricted connection. Await authentication and document operations before disposing the executor. Studio demonstrates an isolated account boundary in its [connection setup](../OfficeIMO.Studio/README.md#document-assistant).
+For application-specific accounts, set `AuthStore` to a host-owned IX store, set `AccountId` when selecting an existing account, and disable `LoadCodexAuthJson`. Leave `PreferCurrentCodexSession` disabled unless the user explicitly selects the local Codex login. The executor exposes `LoginChatGptAsync`, `LoginCopilotAsync`, `GetAccountAsync`, `ListModelsAsync` and `LogoutAsync` through the same restricted connection. Await authentication and document operations before disposing the executor. Studio demonstrates an isolated account boundary in its [connection setup](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.studio-guide.md#document-assistant).
 
 ## Compatible HTTP
 
@@ -90,4 +96,4 @@ Each Treatment request is ephemeral: it starts fresh and removes local SDK threa
 
 Inline images, prompt text, model output, and response wire bytes have separate bounds. The wire bound includes SSE overhead. The SDK rejects JSON nesting beyond 128 containers before parsing provider envelopes or candidate output. Cancellation is forwarded to IX, and the document engine suppresses late results. Finish or cancel active operations before disposing the executor; a provider that ignores cancellation may still be running until its task settles.
 
-The [headless example](../Examples/OfficeIMO.AI.Example/README.md) demonstrates authentication selection, local/hosted profiles, PDF/image input, and artifact output. The [engine README](../OfficeIMO.AI/README.md) defines evidence checks, review requirements, and result states.
+The [headless example](https://github.com/EvotecIT/OfficeIMO/blob/master/Examples/OfficeIMO.AI.Example/README.md) demonstrates authentication selection, local/hosted profiles, PDF/image input, and artifact output. The [engine README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.AI/README.md) defines evidence checks, review requirements, and result states.

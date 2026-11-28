@@ -80,4 +80,4 @@ foreach (var diagnostic in result.TransformDiagnostics) {
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.MarkdownRenderer` and `OfficeIMO.Markdown.Html`; this feature pack owns IntelligenceX presets, aliases, and compatibility transforms.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

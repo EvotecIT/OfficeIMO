@@ -265,15 +265,9 @@ Get-Command -Module PSWriteOffice -Noun OfficeExcel*
 
 Electronic invoices are no longer part of PSWriteOffice; use the [OfficeIMO.Invoicing](../../OfficeIMO.Invoicing/README.md) packages from .NET.
 
-## Build and test
+## Contributing
 
-```powershell
-dotnet build .\Sources\PSWriteOffice.slnx -c Debug
-pwsh -NoLogo -NoProfile -File .\PSWriteOffice.Tests.ps1
-pwsh -NoLogo -NoProfile -File .\Build\Build-Module.ps1 -RunMode Build
-```
-
-[PSWriteOffice.psm1](PSWriteOffice.psm1) loads the local debug build from `Sources\PSWriteOffice\bin\Debug\` during development.
+Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md). Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues).
 
 ## License
 

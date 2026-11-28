@@ -26,7 +26,7 @@ IReadOnlyList<ReaderChunk> chunks = reader
     .ToList();
 ```
 
-The handler also dispatches `.vdx`, `.vsx`, and `.vtx` through the [legacy XML import profile](../OfficeIMO.Visio/README.md#legacy-visio-xml). It also imports `.vsd`, `.vss` and `.vst` through the [bounded binary version 11 profile](../OfficeIMO.Visio/README.md#legacy-binary-visio), with import losses included in results. Give streams their real filename extension so the adapter selects the correct family. Import diagnostics appear in document results and chunk warnings. Page-less stencils have no page text chunks; use the Visio master model for their reusable shapes.
+The handler also dispatches `.vdx`, `.vsx`, and `.vtx` through the [legacy XML import profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#legacy-visio-xml). It also imports `.vsd`, `.vss` and `.vst` through the [bounded binary version 11 profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.visio-guide.md#legacy-binary-visio), with import losses included in results. Give streams their real filename extension so the adapter selects the correct family. Import diagnostics appear in document results and chunk warnings. Page-less stencils have no page text chunks; use the Visio master model for their reusable shapes.
 
 ## Examples
 
@@ -126,4 +126,4 @@ OfficeDocumentReadResult document = diagram.ToOfficeDocumentReadResult();
 - **External:** `System.IO.Packaging` only through `OfficeIMO.Visio`.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Visio` own diagram inspection, topology, chunks, tables, and visuals.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

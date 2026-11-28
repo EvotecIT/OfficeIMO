@@ -2,6 +2,12 @@
 
 First-party HTML adapter for OfficeIMO.PowerPoint. It exports semantic slide HTML and positioned review HTML using the shared OfficeIMO.Html profile contracts and the public PowerPoint slide model.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.PowerPoint.Html
+```
+
 ## Semantic round trips
 
 ```csharp

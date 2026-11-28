@@ -74,12 +74,18 @@ every token materializes the public token objects and has a different allocation
 cost from parsing or sparse inspection. See the model memory evidence
 for measured workloads and platform limits.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Latex
+```
+
 ## Dependency footprint
 
 - **External:** None; no TeX runtime, compiler, or parser package.
 - **OfficeIMO:** `OfficeIMO.Core`. Parsing, source preservation, bounded macro expansion, and writing are first-party.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

@@ -3,6 +3,12 @@
 Convert XPS/OpenXPS pages to vector PDF through `OfficeIMO.Xps`,
 `OfficeIMO.Core`, and `OfficeIMO.Pdf`. No external renderer is used.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Xps.Pdf
+```
+
 ```csharp
 using OfficeIMO.Xps;
 
@@ -27,7 +33,7 @@ OfficeConversionReport saved = document.SaveAsPdf(output, new XpsPdfExportOption
 The stream remains open and the PDF is written at its current position.
 Validation runs before writing, but a serialization failure can leave partial
 stream contents. Stage and reopen output before publishing it when the destination
-must survive a failed operation. [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md)
+must survive a failed operation. [OfficeIMO.Workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md)
 provides that publication contract for `.xps` and `.oxps` through `xps-pdf`.
 
 PDF composition applies cumulative `MaximumSvgCharacters` (32 Mi characters)
@@ -85,7 +91,7 @@ absolute page references resolve to the first occurrence. Path target positions 
 conservative geometry bounds; link hit areas are rectangles.
 
 Export rejects known conversion losses and unsafe or unresolved outline targets.
-Opaque XPS metadata, print tickets and signatures are not PDF preservation contracts. Consult the [XPS support matrix](../OfficeIMO.Xps/SUPPORT.md) and the
+Opaque XPS metadata, print tickets and signatures are not PDF preservation contracts. Consult the [XPS support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md) and the
 PDF engine's own rendering limits before choosing an archival workflow.
 
 <!-- officeimo-operation-catalog:start -->
