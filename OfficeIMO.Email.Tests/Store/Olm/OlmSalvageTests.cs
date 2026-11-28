@@ -204,6 +204,29 @@ public sealed class OlmSalvageTests {
             EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
             Assert.Equal(EmailStoreSalvageStatus.Recovered, contact.Status);
             Assert.True(report.StoppedAtLimit);
+            using EmailReadResult exported = new EmailDocumentReader().ReadDocument(contact.DestinationPath!);
+            Assert.Equal("First", exported.Document.Contact!.DisplayName);
+        });
+    }
+
+    [Fact]
+    public void OpensARepairedEntryThatReserializesLongerThanItsSource() {
+        // Each <contact/> is written back as <contact />, so the repaired entry is longer than the source entry
+        // and than MaxArchiveEntryBytes; the trailing text after the root forces the repair.
+        string source = "<contacts>" + string.Concat(Enumerable.Repeat("<contact/>", 10)) + "</contacts>x";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", source).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(
+                    maxArchiveEntryBytes: Encoding.UTF8.GetByteCount(source))));
+
+            Assert.Equal(10, report.Entries.Count);
+            Assert.All(report.Entries, entry => Assert.Equal(EmailStoreSalvageStatus.Partial, entry.Status));
+            Assert.True(report.DiscoveryCompleted);
         });
     }
 

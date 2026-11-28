@@ -91,12 +91,13 @@ public sealed class EmailStoreReaderOptions {
     /// <summary>Default bounded options.</summary>
     public static EmailStoreReaderOptions Default { get; } = new EmailStoreReaderOptions();
 
-    /// <summary>Copies these options with a different source-length bound and every other limit unchanged.</summary>
-    internal EmailStoreReaderOptions WithMaxInputBytes(long maxInputBytes) => new EmailStoreReaderOptions(
+    /// <summary>Copies these options with different source-length and archive bounds and every other limit unchanged.</summary>
+    internal EmailStoreReaderOptions WithArchiveLimits(long maxInputBytes, long maxArchiveEntryBytes,
+        long maxArchiveDecodedBytes) => new EmailStoreReaderOptions(
         maxInputBytes, MaxNodeCount, MaxBTreeDepth, MaxCachedBTreePages, MaxFolderCount, MaxItemCount,
         MaxPropertiesPerItem, MaxDecodedPropertyBytesPerItem, MaxAttachmentsPerItem, MaxAttachmentBytes,
         MaxTotalAttachmentBytes, RetainAttachmentContent, PstPassword, PstPasswordEncoding, IncludeAssociatedItems,
-        IncludeOrphanedItems, MaxNestedMessageDepth, MaxArchiveEntries, MaxArchiveEntryBytes, MaxArchiveDecodedBytes,
+        IncludeOrphanedItems, MaxNestedMessageDepth, MaxArchiveEntries, maxArchiveEntryBytes, maxArchiveDecodedBytes,
         MaxXmlCharactersPerItem, MaxMessageBytes, MaxDirectoryDepth, MaxDirectoryFileCount, MaxDecodedTableBytes,
         MaxDirectoryEntryCount);
 

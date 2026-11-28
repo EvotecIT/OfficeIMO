@@ -35,6 +35,8 @@ internal sealed class OlmSalvage {
     private readonly List<EmailStoreSalvageEntry> _results = new List<EmailStoreSalvageEntry>();
     private long _decodedBytes;
     private int _itemsAdmitted;
+    private long _rebuiltBytes;
+    private long _largestRebuiltEntry;
     private readonly HashSet<string> _admittedXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private bool _stoppedAtLimit;
     private bool _discoveryCompleted = true;
@@ -245,6 +247,7 @@ internal sealed class OlmSalvage {
             using Stream input = OpenPayload(entry, dataOffset);
             using Stream output = target.Open();
             CopyVerified(input, output, decoded, entry.Crc);
+            TrackRebuilt(decoded);
             return;
         }
 
@@ -288,7 +291,14 @@ internal sealed class OlmSalvage {
         _entryOffsets[normalized] = entry.LocalHeaderOffset;
     }
 
-    private static void WriteSpill(ZipArchive archive, string name, FileStream spill) {
+    /// <summary>Records what the rebuilt archive holds, so it can be opened with limits that cover it.</summary>
+    private void TrackRebuilt(long length) {
+        _rebuiltBytes += length;
+        if (length > _largestRebuiltEntry) _largestRebuiltEntry = length;
+    }
+
+    private void WriteSpill(ZipArchive archive, string name, FileStream spill) {
+        TrackRebuilt(spill.Length);
         ZipArchiveEntry target = archive.CreateEntry(name, CompressionLevel.NoCompression);
         spill.Position = 0;
         using Stream output = target.Open();
@@ -396,7 +406,7 @@ internal sealed class OlmSalvage {
             using (counting)
             using (XmlReader reader = XmlReader.Create(counting, settings))
             using (XmlWriter writer = XmlWriter.Create(spill, new XmlWriterSettings {
-                       Encoding = new UTF8Encoding(false), CloseOutput = false })) {
+                       Encoding = new UTF8Encoding(false), CloseOutput = false, OmitXmlDeclaration = true })) {
                 bool started = false;
                 try {
                     if (reader.MoveToContent() != XmlNodeType.Element) return false;
@@ -440,10 +450,13 @@ internal sealed class OlmSalvage {
     private void ExportItems(Stream rebuilt) {
         EmailStoreSession session;
         try {
-            // The rebuilt archive is stored uncompressed and already bounded by MaxArchiveDecodedBytes, so the
-            // source-length bound (checked on the original input) is not applied to it again.
-            EmailStoreReaderOptions rebuiltLimits = rebuilt.Length > _limits.MaxInputBytes
-                ? _limits.WithMaxInputBytes(rebuilt.Length) : _limits;
+            // The source-length and archive bounds were enforced on the original input. The rebuilt archive is
+            // stored uncompressed, and re-serialized XML can be a few bytes longer than its source entry, so it is
+            // opened with bounds that cover exactly what was written; every other limit is unchanged.
+            EmailStoreReaderOptions rebuiltLimits = _limits.WithArchiveLimits(
+                Math.Max(_limits.MaxInputBytes, rebuilt.Length),
+                Math.Max(_limits.MaxArchiveEntryBytes, _largestRebuiltEntry),
+                Math.Max(_limits.MaxArchiveDecodedBytes, _rebuiltBytes));
             session = EmailStoreSession.Open(rebuilt, _archiveName, rebuiltLimits, leaveOpen: true, _cancellationToken);
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
                                              exception is EmailStoreLimitExceededException) {
