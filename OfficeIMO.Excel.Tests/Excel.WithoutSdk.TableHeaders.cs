@@ -89,11 +89,14 @@ namespace OfficeIMO.Tests {
             Assert.Contains("SUM(Orders[Total])", saved);
         }
 
-        [Fact]
-        public void APartTheOwnedReaderCannotDecodeGoesThroughTheModel() {
-            // A second worksheet in Latin-1, which the owned reader does not decode, holds text outside ASCII.
+        [Theory]
+        [InlineData(0)]
+        [InlineData(300)]
+        public void APartTheOwnedReaderCannotDecodeGoesThroughTheModel(int padding) {
+            // A second worksheet in Latin-1, which the owned reader does not decode, holds text outside ASCII. XML allows
+            // any amount of white space before the declared encoding.
             byte[] source = RewriteWorksheet(CreateWorkbook(latinSheet: true),
-                xml => "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!-- Café -->" + Regex.Replace(xml, "^\\s*<\\?xml[^>]*\\?>", string.Empty),
+                xml => "<?xml version=\"1.0\"" + new string(' ', padding) + " encoding=\"ISO-8859-1\"?><!-- Café -->" + Regex.Replace(xml, "^\\s*<\\?xml[^>]*\\?>", string.Empty),
                 System.Text.Encoding.GetEncoding("ISO-8859-1"), "sheet2.xml");
             AssertSavesAsTheModel(source, sheet => sheet.Cell(2, 3).SetValue("Total"), expectOwned: false, out string saved);
             Assert.Contains("Orders|B2:D4|1:Customer,2:Total,3:Paid", saved);

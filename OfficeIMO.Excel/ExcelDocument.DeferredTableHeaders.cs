@@ -277,7 +277,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Whether the part is UTF-8 markup: no byte order mark or zero byte of a wider encoding at its start, and no
-        /// other encoding declared.
+        /// other encoding declared within a declaration short enough to read whole.
         /// </summary>
         private static bool IsUtf8Markup(byte[] bytes, int length) {
             if (length >= 2 && (bytes[0] == 0xFF && bytes[1] == 0xFE || bytes[0] == 0xFE && bytes[1] == 0xFF || bytes[0] == 0 || bytes[1] == 0)) return false;
@@ -285,6 +285,8 @@ namespace OfficeIMO.Excel {
             if (length - start < 5 || Encoding.ASCII.GetString(bytes, start, 5) != "<?xml") return true;
             int end = start;
             while (end < length && end < start + 256 && bytes[end] != (byte)'>') end++;
+            // A declaration longer than this may still name another encoding further on.
+            if (end == length || bytes[end] != (byte)'>') return false;
             string declaration = Encoding.ASCII.GetString(bytes, start, end - start);
             int encoding = declaration.IndexOf("encoding", StringComparison.Ordinal);
             if (encoding < 0) return true;
