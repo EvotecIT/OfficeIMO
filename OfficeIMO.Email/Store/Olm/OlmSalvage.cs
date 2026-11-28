@@ -17,6 +17,9 @@ internal sealed class OlmSalvage {
     private const uint CentralHeaderSignature = 0x02014b50;
     private const uint EndOfCentralDirectorySignature = 0x06054b50;
     private const uint DataDescriptorSignature = 0x08074b50;
+    private const uint Zip64EndOfCentralDirectorySignature = 0x06064b50;
+    // Bounds what one entry path costs the folder catalog, which keeps every prefix of every path.
+    private const int MaximumEntryPathLength = 4096;
     private const int LocalHeaderLength = 30;
     private const int SearchBufferLength = 1 << 16;
     private const string ItemPrefix = "olm:item:";
@@ -95,7 +98,19 @@ internal sealed class OlmSalvage {
             return null;
         }
         var entries = new List<ZipEntry>(records.Count);
+        var header = new byte[LocalHeaderLength];
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            // A directory that points at a missing or different local header cannot be trusted for any entry, so
+            // every entry is recovered from its own local header instead.
+            if (record.LocalHeaderOffset < 0 ||
+                ReadAvailable(record.LocalHeaderOffset, header, LocalHeaderLength) < LocalHeaderLength ||
+                UInt32(header, 0) != LocalHeaderSignature || UInt16(header, 26) != record.NameBytes.Length) {
+                Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_INCONSISTENT",
+                    "The central directory points at a missing or different local entry header. Entries are recovered from their local headers.",
+                    EmailStoreDiagnosticSeverity.Warning, record.LocalHeaderOffset);
+                return null;
+            }
             entries.Add(new ZipEntry(DecodeName(record.NameBytes), record.Flags, record.CompressionMethod,
                 record.Crc32, record.CompressedSize, record.UncompressedSize, record.LocalHeaderOffset, dataOffset: null));
         }
@@ -106,11 +121,16 @@ internal sealed class OlmSalvage {
         var entries = new List<ZipEntry>();
         long position = 0;
         var header = new byte[LocalHeaderLength];
+        bool reachedEnd = false;
         while (position + LocalHeaderLength <= _length) {
             _cancellationToken.ThrowIfCancellationRequested();
             ReadAvailable(position, header, LocalHeaderLength);
             uint signature = UInt32(header, 0);
-            if (signature == CentralHeaderSignature || signature == EndOfCentralDirectorySignature) break;
+            if (signature == CentralHeaderSignature || signature == EndOfCentralDirectorySignature ||
+                signature == Zip64EndOfCentralDirectorySignature) {
+                reachedEnd = true;
+                break;
+            }
             if (signature != LocalHeaderSignature) {
                 long resync = FindSignature(position + 1, LocalHeaderSignature);
                 Add("EMAIL_STORE_OLM_SALVAGE_RESYNCHRONIZED",
@@ -119,7 +139,10 @@ internal sealed class OlmSalvage {
                         : "Skipped " + (resync - position).ToString(CultureInfo.InvariantCulture) +
                           " unreadable byte(s) before the resync local entry header.",
                     EmailStoreDiagnosticSeverity.Warning, position);
-                if (resync < 0) break;
+                if (resync < 0) {
+                    position = _length + 1;
+                    break;
+                }
                 position = resync;
                 continue;
             }
@@ -155,6 +178,21 @@ internal sealed class OlmSalvage {
             long next;
             if (sized) {
                 next = dataOffset + compressed;
+                if (!EndsAtRecord(next, flags)) {
+                    // A damaged size would skip or run past the entries that follow; this entry fails verification
+                    // and scanning resumes at the next local header after its data starts.
+                    entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset));
+                    Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_SPAN_INVALID",
+                        "The entry's recorded size does not end at another ZIP record; scanning continues at the next local entry header.",
+                        EmailStoreDiagnosticSeverity.Warning, position, name);
+                    long resume = FindSignature(dataOffset, LocalHeaderSignature);
+                    if (resume < 0) {
+                        position = _length + 1;
+                        break;
+                    }
+                    position = resume;
+                    continue;
+                }
             } else if (TryFindDataDescriptor(dataOffset, zip64, out uint descriptorCrc, out long descriptorCompressed,
                            out long descriptorExpanded, out long descriptorEnd)) {
                 crc = descriptorCrc;
@@ -165,15 +203,55 @@ internal sealed class OlmSalvage {
                 // Without sizes or a descriptor the entry runs to the end of the file; it cannot be verified.
                 entries.Add(new ZipEntry(name, flags, method, crc, _length - dataOffset, -1, position, dataOffset));
                 long resume = FindSignature(dataOffset, LocalHeaderSignature);
-                if (resume < 0) break;
+                if (resume < 0) {
+                    position = _length + 1;
+                    break;
+                }
                 position = resume;
                 continue;
             }
             entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset));
-            if (next <= position) break;
+            if (next <= position) {
+                position = _length + 1;
+                break;
+            }
             position = next;
         }
+        // Without a central directory the scan is complete only when it ends exactly at the last entry or at a
+        // directory record; anything else means part of the file could not be examined.
+        if (!reachedEnd && (position != _length || entries.Count == 0) && _discoveryCompleted) {
+            _discoveryCompleted = false;
+            Add("EMAIL_STORE_OLM_SALVAGE_SCAN_INCOMPLETE",
+                entries.Count == 0
+                    ? "No complete ZIP entry was found, so the archive could not be examined."
+                    : "Scanning ended before the end of the archive; later entries may be missing.",
+                EmailStoreDiagnosticSeverity.Error, Math.Min(position, _length));
+        }
         return entries;
+    }
+
+    /// <summary>Whether an entry's data ends at the end of the file or where another ZIP record begins.</summary>
+    private bool EndsAtRecord(long end, ushort flags) {
+        if (end == _length) return true;
+        if (end < 0 || end + 4 > _length) return false;
+        var bytes = new byte[4];
+        ReadAvailable(end, bytes, 4);
+        uint signature = UInt32(bytes, 0);
+        if (signature == LocalHeaderSignature || signature == CentralHeaderSignature ||
+            signature == EndOfCentralDirectorySignature || signature == Zip64EndOfCentralDirectorySignature ||
+            signature == DataDescriptorSignature) return true;
+        if ((flags & 0x08) == 0) return false;
+        // A descriptor without its signature is 12 or 20 bytes long.
+        foreach (int length in new[] { 12, 20 }) {
+            if (end + length == _length) return true;
+            if (end + length + 4 <= _length) {
+                ReadAvailable(end + length, bytes, 4);
+                uint following = UInt32(bytes, 0);
+                if (following == LocalHeaderSignature || following == CentralHeaderSignature ||
+                    following == EndOfCentralDirectorySignature) return true;
+            }
+        }
+        return false;
     }
 
     private void CopyEntry(ZipEntry entry, ZipArchive archive) {
@@ -181,6 +259,16 @@ internal sealed class OlmSalvage {
         if (!OlmStoreReader.TryNormalizeArchivePath(entry.Name, out string normalized)) {
             Add("EMAIL_STORE_OLM_UNSAFE_ENTRY_PATH", "An archive entry with an unsafe path was ignored.",
                 EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, location);
+            return;
+        }
+        bool isXmlPath = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+        if (normalized.Length > MaximumEntryPathLength ||
+            normalized.Count(character => character == '/') >= _limits.MaxDirectoryDepth) {
+            _stoppedAtLimit = true;
+            Damaged(normalized.Length > MaximumEntryPathLength ? normalized.Substring(0, MaximumEntryPathLength) : normalized,
+                entry, "EMAIL_STORE_OLM_SALVAGE_PATH_LIMIT",
+                "The entry path is longer or deeper than " + nameof(EmailStoreReaderOptions.MaxDirectoryDepth) +
+                " allows, so it was not recovered.", isXmlPath);
             return;
         }
         if (!_entryOffsets.ContainsKey(normalized)) _entryOffsets.Add(normalized, entry.LocalHeaderOffset);
@@ -527,7 +615,8 @@ internal sealed class OlmSalvage {
                     outcomes.Add(new Outcome(offset, index, new EmailStoreSalvageEntry(ItemPrefix + location,
                         EmailStoreSalvageStatus.NotRecovered, location, offset, 0, null, null, offset, diagnostic.Code,
                         null, null, null, 0, new[] { diagnostic }), null));
-                } else if (diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING") {
+                } else if (diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING" &&
+                           diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_PATH_MISSING") {
                     _diagnostics.Add(diagnostic);
                 }
             }
@@ -600,15 +689,23 @@ internal sealed class OlmSalvage {
         string? subject = null;
         EmailReadWorkspace? workspace = null;
         try {
-            // Attachment content is staged in files that live only while this item is written.
-            EmailStoreItem item = backend.ReadItemWithWorkspace(reference, out workspace, _cancellationToken);
+            // Attachment content is staged inside the destination, in files that live only while this item is written.
+            EmailStoreItem item = backend.ReadItemWithWorkspace(reference,
+                Path.Combine(_output.Root, ".officeimo-read-" + Guid.NewGuid().ToString("N")), out workspace,
+                _cancellationToken);
             kind = item.Document.OutlookItemKind;
             subject = item.Document.Subject;
             foreach (EmailAttachment attachment in item.Document.Attachments.ToArray()) {
-                if (attachment.Content != null || attachment.ContentSource != null ||
-                    string.IsNullOrWhiteSpace(attachment.ContentLocation)) continue;
+                if (attachment.Content != null || attachment.ContentSource != null) continue;
                 // The artifact omits an attachment whose bytes were lost instead of writing an empty placeholder.
                 item.Document.Attachments.Remove(attachment);
+                if (string.IsNullOrWhiteSpace(attachment.ContentLocation)) {
+                    damageCode ??= "EMAIL_STORE_OLM_SALVAGE_ATTACHMENT_MISSING";
+                    diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_SALVAGE_ATTACHMENT_MISSING",
+                        "An attachment record has no archive entry path, so its content was not recovered: " +
+                        (attachment.FileName ?? "(unnamed)"), EmailStoreDiagnosticSeverity.Warning, location));
+                    continue;
+                }
                 string attachmentPath = attachment.ContentLocation!.Replace('\\', '/').Trim();
                 bool damaged = _damagedEntries.TryGetValue(attachmentPath, out long attachmentOffset);
                 damageOffset ??= damaged ? attachmentOffset : null;

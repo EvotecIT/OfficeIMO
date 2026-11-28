@@ -104,10 +104,10 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     /// Reads one item with attachment content staged in a workspace the caller disposes, so recovery holds one
     /// item's attachment files at a time instead of byte arrays or session-lifetime files.
     /// </summary>
-    internal EmailStoreItem ReadItemWithWorkspace(EmailStoreItemReference reference, out EmailReadWorkspace workspace,
-        CancellationToken cancellationToken) {
+    internal EmailStoreItem ReadItemWithWorkspace(EmailStoreItemReference reference, string workspaceDirectory,
+        out EmailReadWorkspace workspace, CancellationToken cancellationToken) {
         IndexedItem item = GetItem(reference, cancellationToken);
-        var created = new EmailReadWorkspace();
+        var created = new EmailReadWorkspace(workspaceDirectory);
         EmailReadWorkspace? staging = created;
         try {
             EmailStoreItem result = _reader.ReadSelected(item.Path, item.Index, item.Kind, reference.Id,

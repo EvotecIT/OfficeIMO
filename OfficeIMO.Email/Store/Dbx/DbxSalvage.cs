@@ -35,6 +35,8 @@ internal sealed class DbxSalvage {
     private readonly HashSet<uint> _consumedFragments = new HashSet<uint>();
     // First fragments that an independent record or message header identifies; a link into one is a conflict.
     private readonly HashSet<uint> _bodyHeads = new HashSet<uint>();
+    // Fragments whose payload opens with top-level message headers; they begin a message even when linked to.
+    private readonly HashSet<uint> _messageStarts = new HashSet<uint>();
     private bool _stoppedAtLimit;
     private bool _itemLimitReached;
     private bool _scanStopped;
@@ -82,7 +84,9 @@ internal sealed class DbxSalvage {
             foreach (KeyValuePair<uint, Fragment> head in _fragments.OrderBy(pair => pair.Key)) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 // A closed cycle has no unreferenced member, so its first header-bearing fragment is the head.
-                if ((referenced.Contains(head.Key) && !cyclic.Contains(head.Key)) || firstFragments.Contains(head.Key) ||
+                // A linked fragment that opens with top-level message headers is reached through a damaged link.
+                if ((referenced.Contains(head.Key) && !cyclic.Contains(head.Key) && !_messageStarts.Contains(head.Key)) ||
+                    firstFragments.Contains(head.Key) ||
                     _consumedFragments.Contains(head.Key) || !StartsWithHeader(head.Key, head.Value)) continue;
                 if (AtItemLimit(entries.Count)) { StopAtItemLimit(); break; }
                 entries.Add(RecoverChain(head.Key, indexComplete ? false : null, paths));
@@ -152,8 +156,49 @@ internal sealed class DbxSalvage {
         HashSet<uint> referenced = ReferencedFragments();
         foreach (KeyValuePair<uint, Fragment> pair in _fragments) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (!referenced.Contains(pair.Key) && StartsWithHeader(pair.Key, pair.Value)) _bodyHeads.Add(pair.Key);
+            if (IsMessageStart(pair.Key, pair.Value)) {
+                _messageStarts.Add(pair.Key);
+                _bodyHeads.Add(pair.Key);
+            } else if (!referenced.Contains(pair.Key) && StartsWithHeader(pair.Key, pair.Value)) {
+                _bodyHeads.Add(pair.Key);
+            }
         }
+    }
+
+    private static readonly string[] TopLevelHeaders = {
+        "from", "subject", "date", "message-id", "received", "return-path", "mime-version", "to", "reply-to"
+    };
+
+    /// <summary>
+    /// Whether a fragment's payload opens with a header block that names a top-level message header. MIME part
+    /// headers inside a message (Content-Type and the like) do not qualify, so a fragment boundary that happens to
+    /// fall on a part header is not mistaken for the start of another message.
+    /// </summary>
+    private bool IsMessageStart(uint address, Fragment fragment) {
+        var bytes = new byte[Math.Min(1024, (int)fragment.Used)];
+        int read = ReadAvailable(address + (long)FragmentHeaderLength, bytes, 0, bytes.Length);
+        int line = 0;
+        bool first = true;
+        while (line < read) {
+            int end = line;
+            while (end < read && bytes[end] != (byte)'\n') end++;
+            int length = end - line;
+            if (length > 0 && bytes[line + length - 1] == (byte)'\r') length--;
+            if (length == 0) return false;
+            if (bytes[line] == (byte)' ' || bytes[line] == (byte)'\t') {
+                if (first) return false;
+            } else {
+                int colon = 0;
+                while (colon < length && bytes[line + colon] > 0x20 && bytes[line + colon] < 0x7f && bytes[line + colon] != (byte)':') colon++;
+                if (colon == 0 || colon == length || bytes[line + colon] != (byte)':') return false;
+                string name = Encoding.ASCII.GetString(bytes, line, colon);
+                foreach (string header in TopLevelHeaders)
+                    if (string.Equals(header, name, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            first = false;
+            line = end + 1;
+        }
+        return false;
     }
 
     /// <summary>Both the outcome bound and the source item bound stop recovery.</summary>
@@ -168,6 +213,7 @@ internal sealed class DbxSalvage {
             Add("EMAIL_STORE_DBX_SALVAGE_SIGNATURE_DAMAGED",
                 "The message database signature is damaged or missing; records are recovered by scanning.",
                 EmailStoreDiagnosticSeverity.Warning, 0);
+        if (_length < HeaderLength) _scanStopped = true;
         if (_length < HeaderLength)
             Add("EMAIL_STORE_DBX_SALVAGE_HEADER_TRUNCATED",
                 "The database ends inside its header, so no message records follow it.",

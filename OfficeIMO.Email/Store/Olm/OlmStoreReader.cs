@@ -201,12 +201,15 @@ internal sealed partial class OlmStoreReader {
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
             EmailStoreItem projected;
+            long attachmentBytes = _totalAttachmentBytes;
             try {
                 projected = CreateItem(item, kind, id, folder.Id, location);
             } catch (Exception exception) when (_isolateItemFailures && (exception is EmailStoreLimitExceededException ||
                                                                          exception is InvalidDataException ||
                                                                          exception is FormatException ||
                                                                          exception is XmlException)) {
+                // A rejected record leaves the archive's attachment allowance as it found it.
+                _totalAttachmentBytes = attachmentBytes;
                 _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_ITEM_UNREADABLE", exception.Message,
                     EmailStoreDiagnosticSeverity.Error, location));
                 index++;

@@ -364,6 +364,39 @@ public sealed partial class DbxStoreReaderTests {
         });
     }
 
+    [Fact]
+    public void StopsAnOrphanChainThatLinksIntoAnotherOrphanMessage() {
+        byte[] database = CreateDatabase();
+        database[SecondRecord + 16] = 0x03;
+        byte[] third = Encoding.ASCII.GetBytes("Subject: Third message\r\n\r\nThird body\r\n");
+        WriteFragment(database, 0x3a00, third, 0, third.Length, OtherMessage);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            EmailStoreSalvageEntry other = Assert.Single(report.Entries, entry => entry.ItemId == "dbx:chain:00003720");
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, other.Status);
+            Assert.Equal("Subject: Other message\r\n\r\nBody\r\n", File.ReadAllText(other.DestinationPath!));
+            EmailStoreSalvageEntry spliced = Assert.Single(report.Entries, entry => entry.ItemId == "dbx:chain:00003a00");
+            Assert.Equal(EmailStoreSalvageStatus.Partial, spliced.Status);
+            Assert.Equal("EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT", spliced.DamageCode);
+            Assert.Equal(Encoding.ASCII.GetString(third), File.ReadAllText(spliced.DestinationPath!));
+            Assert.False(report.IsComplete);
+        });
+    }
+
+    [Fact]
+    public void ReportsADbxTruncatedInsideItsHeaderAsIncomplete() {
+        WithDestination(destination => {
+            using var input = new MemoryStream(CreateDatabase().AsSpan(0, 0x100).ToArray(), writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            Assert.Empty(report.Entries);
+            Assert.False(report.DiscoveryCompleted);
+            Assert.False(report.IsComplete);
+        });
+    }
+
     internal static string CorpusRoot => Path.Combine(EmailTestRepository.FindRoot(), "OfficeIMO.Email.Tests", "Corpora");
 
     internal static string DamagedFixture(string name) => Path.Combine(CorpusRoot, "damaged-stores", name);

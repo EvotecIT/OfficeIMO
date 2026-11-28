@@ -8,9 +8,12 @@ internal sealed class EmailReadWorkspace : IDisposable {
     private readonly HashSet<WorkspaceReadStream> _openReaders = new HashSet<WorkspaceReadStream>();
     private bool _disposed;
 
-    internal EmailReadWorkspace() {
-        _directoryPath = Path.Combine(Path.GetTempPath(),
-            string.Concat("OfficeIMO.Email.Read.", Guid.NewGuid().ToString("N")));
+    internal EmailReadWorkspace() : this(Path.Combine(Path.GetTempPath(),
+        string.Concat("OfficeIMO.Email.Read.", Guid.NewGuid().ToString("N")))) { }
+
+    /// <summary>Uses a caller-chosen private directory, for example one inside an export destination.</summary>
+    internal EmailReadWorkspace(string directoryPath) {
+        _directoryPath = directoryPath;
         EmailTemporaryStorage.CreatePrivateDirectory(_directoryPath);
     }
 
