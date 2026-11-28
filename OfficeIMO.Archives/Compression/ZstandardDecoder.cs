@@ -166,6 +166,7 @@ internal sealed class ZstandardDecoder {
         }
 
         long contentSize = -1;
+        bool contentSizeBeyondInt64 = false;
         int contentSizeBytes = contentSizeFlag switch { 0 => singleSegment ? 1 : 0, 1 => 2, 2 => 4, _ => 8 };
         if (contentSizeBytes > 0) {
             long contentOffset = _offset;
@@ -174,12 +175,13 @@ internal sealed class ZstandardDecoder {
             for (int index = 0; index < contentSizeBytes; index++) value |= (ulong)_small[index] << (8 * index);
             if (contentSizeBytes == 2) value += 256;
             // Sizes up to 2^64 - 1 are valid; anything past long.MaxValue is beyond every output allowance.
-            if (value > long.MaxValue) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
-            contentSize = (long)value;
+            if (value > long.MaxValue) contentSizeBeyondInt64 = true;
+            else contentSize = (long)value;
         }
 
         // The header is complete; a cancellation that arrived with it wins over any limit the header would break.
         _settings.CancellationToken.ThrowIfCancellationRequested();
+        if (contentSizeBeyondInt64) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
         long remainingOutput = _settings.MaximumOutput - _total;
         if (contentSize > remainingOutput) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
         // A single-segment frame's window is its whole content (RFC 8878 section 3.1.1.1.2), held to the same limit as a

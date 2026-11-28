@@ -365,11 +365,16 @@ public sealed class ZstandardArchiveTests {
         Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
     }
 
-    [Fact]
-    public void CancellationWithTheHeaderWinsOverTheLimitTheHeaderBreaks() {
-        // The 128 MiB window is above the default limit; cancellation arrives with the window descriptor byte.
+    [Theory]
+    // A 128 MiB window descriptor, above the default limit, and a single-segment content size of 2^63.
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CancellationWithTheHeaderWinsOverTheLimitTheHeaderBreaks(bool contentSize) {
+        byte[] header = contentSize
+            ? new byte[] { 0x28, 0xB5, 0x2F, 0xFD, 0xE0, 0, 0, 0, 0, 0, 0, 0, 0x80 }
+            : ReadFixture("text-window128m.zst");
         using var cancellation = new CancellationTokenSource();
-        var source = new TrickleStream(ReadFixture("text-window128m.zst"), 6, cancellation);
+        var source = new TrickleStream(header, contentSize ? header.Length : 6, cancellation);
         Assert.ThrowsAny<OperationCanceledException>(() =>
             ZstandardArchive.Decompress(source, new MemoryStream(), cancellationToken: cancellation.Token));
     }
