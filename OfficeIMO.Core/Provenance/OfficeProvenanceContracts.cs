@@ -37,8 +37,10 @@ public enum OfficeProvenanceCarrierKind {
     /// <summary>An IPTC Digital Source Type declaration carried by XMP.</summary>
     IptcDigitalSourceType,
     /// <summary>
-    /// Generation settings an AI image tool wrote into the file, such as the prompt, seed, model and workflow stored in
-    /// PNG text chunks. <see cref="OfficeProvenanceEvidence.Value"/> carries the field name, not its content.
+    /// AI generator metadata: generation settings an AI image tool wrote into the file, such as the prompt, seed, model and
+    /// workflow, or a generator field (XMP <c>CreatorTool</c>, EXIF <c>Software</c>) that names an AI product.
+    /// <see cref="OfficeProvenanceEvidence.Value"/> carries the field name for settings, or the product a generator field names;
+    /// never the rest of the field's content.
     /// </summary>
     AiGeneratorMetadata
 }
@@ -89,7 +91,10 @@ public sealed class OfficeProvenanceEvidence {
     public bool IsStructurallyValid { get; }
     /// <summary>Gets the embedded payload length, when known.</summary>
     public long PayloadLength { get; }
-    /// <summary>Gets the external URI, the declared source-type value, or the AI generator field name, when applicable.</summary>
+    /// <summary>
+    /// Gets the external URI, the declared source-type value, or for AI generator metadata the settings field name or the named AI
+    /// product, when applicable.
+    /// </summary>
     public string? Value { get; }
     /// <summary>Gets the classified digital source type, when applicable.</summary>
     public OfficeProvenanceDigitalSourceKind DigitalSourceKind { get; }
