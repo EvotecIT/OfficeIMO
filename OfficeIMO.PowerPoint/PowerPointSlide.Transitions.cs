@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 part.MarkEdited();
-                RemoveUnusedTransitionSounds(soundIds);
+                RemoveUnusedSlideSounds(soundIds);
             }
         }
 

@@ -52,9 +52,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidDataException("The slide part has no slide root.");
             }
             string[] removedIds = GetTransitionSoundRelationshipIds();
-            string relationshipId = !part.IsSdk && part.Document is { } document
-                && document.TryAddPackageTransitionSound(part.Name, audio, contentType, extension, out string packageId)
-                    ? packageId : PowerPointEmbeddedSound.Add(SlidePart, audio, contentType, extension);
+            string relationshipId = AddSlideSound(part, audio, contentType, extension);
 
             OfficeXmlNode createdTransition = default;
             var added = new List<(OfficeXmlNode Transition, OfficeXmlNode Sound)>();
@@ -91,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             part.MarkEdited();
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Stops any currently playing transition sound on entry to this slide.</summary>
@@ -103,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
                 action.Append(action.CreateElement(TransitionPresentationNamespace, "endSnd"));
             }
             part.MarkEdited();
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Removes this slide's start- or stop-sound transition action.</summary>
@@ -119,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 part.MarkEdited();
             }
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
@@ -153,7 +151,13 @@ namespace OfficeIMO.PowerPoint {
             GetTransitionNodes(PartRef.Root).Select(GetTransitionSoundRelationshipId)
                 .Where(id => !string.IsNullOrEmpty(id)).Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
 
-        private void RemoveUnusedTransitionSounds(IEnumerable<string> relationshipIds) {
+        private string AddSlideSound(PowerPointPartRef part, Stream audio, string contentType, string extension) =>
+            !part.IsSdk && audio is { CanRead: true, CanSeek: true } && audio.Length <= PowerPointMedia.MaximumOwnedPayloadBytes &&
+            part.Document is { } document
+                && document.TryAddPackageTransitionSound(part.Name, audio, contentType, extension, out string packageId)
+                    ? packageId : PowerPointEmbeddedSound.Add(SlidePart, audio, contentType, extension);
+
+        private void RemoveUnusedSlideSounds(IEnumerable<string> relationshipIds) {
             PowerPointPartRef part = PartRef;
             foreach (string id in relationshipIds) {
                 if (TryGetSlideAudioRelationship(part, id, out _)) part.RemoveRelationshipIfUnused(id, part);

@@ -586,6 +586,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AuthoringAndClearingClassicAnimationsAndSoundKeepsThePackageOwned() {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox shape = slide.AddTextBox("Classic animation");
+            slide.AddClassicAnimation(shape, PowerPointClassicAnimationEffect.Fade, new PowerPointClassicAnimationOptions {
+                Automatic = true, DelayMilliseconds = 400, AfterEffect = PowerPointClassicAnimationAfterEffect.Dim,
+                RawDimColor = 0xFF336699U
+            });
+            byte[] wave = CreateWave();
+            using var audio = new MemoryStream(wave, writable: false);
+            slide.SetClassicAnimationSound(shape, audio, "Narration", stopExistingSounds: true);
+            using var bytes = new MemoryStream(presentation.ToBytes());
+            Assert.False(presentation.IsSdkLoaded);
+
+            using var restored = PowerPointDocument.Load(bytes);
+            PowerPointSlide restoredSlide = Assert.Single(restored.Slides);
+            PowerPointTextBox restoredShape = Assert.Single(restoredSlide.TextBoxes);
+            PowerPointClassicAnimation animation = Assert.Single(restoredSlide.ClassicAnimations);
+            Assert.True(animation.PlaysSound && animation.StopsSound);
+            Assert.Equal(PowerPointClassicAnimationAfterEffect.Dim, animation.AfterEffect);
+            Assert.Equal(wave, restoredSlide.GetClassicAnimationSoundBytes(restoredShape));
+            restoredSlide.ClearClassicAnimations();
+            Assert.Empty(restoredSlide.ClassicAnimations);
+            using var cleared = new MemoryStream(restored.ToBytes());
+            Assert.False(restored.IsSdkLoaded);
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(cleared);
+            Assert.DoesNotContain(package.PartNames, name => name.StartsWith("/media/", StringComparison.Ordinal));
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ReplacingClassicTimingChecksForIdentifierExhaustionBeforeRemovingTheOldEffect(bool exhaustWithUnrelatedMedia) {
+            using var document = PowerPointDocument.Create();
+            PowerPointSlide slide = document.AddSlide();
+            PowerPointTextBox shape = slide.AddTextBox("Classic animation");
+            slide.AddClassicAnimation(shape, PowerPointClassicAnimationEffect.Fade);
+            using var audio = new MemoryStream(CreateWave(), writable: false);
+            slide.AddAudio(audio, "audio/wav", ".wav");
+            Timing timing = slide.SlidePart.Slide!.Timing!;
+            Audio retained = Assert.Single(timing.Descendants<Audio>());
+            if (exhaustWithUnrelatedMedia) retained.CommonMediaNode!.CommonTimeNode!.Id = uint.MaxValue - 1;
+            else Assert.Single(timing.Descendants<AnimateEffect>()).CommonBehavior!.CommonTimeNode!.Id = uint.MaxValue;
+            string before = slide.SlidePart.Slide.OuterXml;
+
+            if (exhaustWithUnrelatedMedia) {
+                Assert.Throws<InvalidOperationException>(() => slide.SetClassicAnimationStopsSound(shape, true));
+                Assert.Equal(before, slide.SlidePart.Slide.OuterXml);
+            } else {
+                slide.SetClassicAnimationStopsSound(shape, true);
+                Assert.True(Assert.Single(slide.ClassicAnimations).StopsSound);
+                Assert.Same(retained, Assert.Single(timing.Descendants<Audio>()));
+            }
+        }
+
+        [Fact]
         public void RemovingOneClassicAnimationPreservesMixedMediaTiming() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();

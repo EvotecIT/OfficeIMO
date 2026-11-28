@@ -204,12 +204,18 @@ namespace OfficeIMO.PowerPoint {
         private uint GetNextTimingId() => GetNextTimingId(PartRef.Root);
 
         private static uint GetNextTimingId(OfficeXmlNode slide) {
-            uint maxId = 0;
-            foreach (OfficeXmlNode node in TimingNodesNamed(slide, "cTn")) {
-                if (ReadTimingId(node) is uint id && id > maxId) maxId = id;
-            }
+            uint maxId = MaximumTimingId(slide);
             if (maxId == uint.MaxValue) throw TimingIdsExhausted();
             return maxId + 1;
+        }
+
+        private static uint MaximumTimingId(OfficeXmlNode slide, OfficeXmlNode omittedTiming = default) {
+            uint maxId = 0;
+            foreach (OfficeXmlNode node in TimingNodesNamed(slide, "cTn")) {
+                if (omittedTiming.Exists && node.AncestorOrSelf(TimingNamespace, "timing") == omittedTiming) continue;
+                if (ReadTimingId(node) is uint id && id > maxId) maxId = id;
+            }
+            return maxId;
         }
 
         private static InvalidOperationException TimingIdsExhausted() =>
