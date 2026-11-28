@@ -274,6 +274,23 @@ namespace OfficeIMO.OpenXml.Internal {
             _tree != null ? _tree.GetAttribute(_node, namespaceId, localName)
             : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
 
+        /// <summary>Reads an attribute in an extension namespace.</summary>
+        internal string? Attribute(string namespaceUri, string localName) =>
+            _tree != null ? _tree.GetAttribute(_node, _tree.Namespaces.GetId(namespaceUri), localName)
+            : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceUri, localName) : null;
+
+        /// <summary>Finds the closest namespace declaration for the given prefix.</summary>
+        internal string? LookupNamespace(string prefix) {
+            if (_tree != null) {
+                string name = prefix.Length == 0 ? "xmlns" : prefix;
+                for (int node = _node; node != OfficeXmlTree.NoNode; node = _tree.ParentOf(node)) {
+                    if (_tree.GetAttribute(node, OfficeXmlNamespaces.Xmlns, name) is { } uri) return uri;
+                }
+                return null;
+            }
+            return _sdk != null ? OfficeSdkXml.LookupNamespace(_sdk, prefix) : null;
+        }
+
         /// <summary>
         /// The element's attributes in document order, without namespace declarations. Markup compatibility attributes
         /// such as <c>mc:Ignorable</c> are included, as the SDK lists them.
@@ -330,6 +347,17 @@ namespace OfficeIMO.OpenXml.Internal {
                 else _tree.SetAttribute(_node, namespaceId, localName, value);
             } else if (_sdk != null) {
                 OfficeSdkXml.SetAttribute(_sdk, namespaceId, localName, value);
+            } else {
+                throw new InvalidOperationException("There is no element to set the attribute on.");
+            }
+        }
+
+        /// <summary>Sets or removes an attribute in an extension namespace.</summary>
+        internal void SetAttribute(string namespaceUri, string localName, string? value, string prefix) {
+            if (_tree != null) {
+                SetAttribute(_tree.Namespaces.GetId(namespaceUri), localName, value);
+            } else if (_sdk != null) {
+                OfficeSdkXml.SetAttribute(_sdk, namespaceUri, localName, value, prefix);
             } else {
                 throw new InvalidOperationException("There is no element to set the attribute on.");
             }

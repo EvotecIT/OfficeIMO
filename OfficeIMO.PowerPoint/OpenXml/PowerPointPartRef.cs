@@ -455,17 +455,21 @@ namespace OfficeIMO.PowerPoint.OpenXml {
 
         // Whether any relationship in the package still targets the part.
         private static bool IsTargeted(OfficeOpcEditablePackage package, string partName) {
+            string identity = PartIdentity(partName);
             foreach (string name in package.PartNames.ToList()) {
                 if (!name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) continue;
                 OfficeXmlTree tree = package.GetXml(name);
                 for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                     node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                     if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (string.Equals(OfficeOpcPartNames.ResolveRelationshipTarget(name, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target")), partName, StringComparison.Ordinal)) return true;
+                    string? target = OfficeOpcPartNames.ResolveRelationshipTarget(name, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                    if (target != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(target), identity)) return true;
                 }
             }
             return false;
         }
+
+        private static string PartIdentity(string name) => name.IndexOf('%') < 0 ? name : OfficeOpcPackage.GetPartIdentity(name);
 
         private static int FindRelationship(OfficeXmlTree tree, string id) {
             for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;

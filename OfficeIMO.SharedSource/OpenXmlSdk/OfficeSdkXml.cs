@@ -106,10 +106,12 @@ namespace OfficeIMO.OpenXml.Internal {
         // been there; the rest go through the list.
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Element, string LocalName, string Uri), bool> AttributesSeenMissing = new();
 
-        internal static string? GetAttribute(object element, int namespaceId, string localName) {
+        internal static string? GetAttribute(object element, int namespaceId, string localName) =>
+            GetAttribute(element, Uri(namespaceId), localName);
+
+        internal static string? GetAttribute(object element, string uri, string localName) {
             OpenXmlElement value = E(element);
             if (!value.HasAttributes) return null;
-            string uri = Uri(namespaceId);
             var key = (value.GetType(), localName, uri);
             if (!AttributesSeenMissing.ContainsKey(key)) {
                 try {
@@ -143,14 +145,18 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static void DeclareNamespace(object element, string prefix, string namespaceUri) => E(element).AddNamespaceDeclaration(prefix, namespaceUri);
 
-        internal static void SetAttribute(object element, int namespaceId, string localName, string? value) {
+        internal static string? LookupNamespace(object element, string prefix) => E(element).LookupNamespace(prefix);
+
+        internal static void SetAttribute(object element, int namespaceId, string localName, string? value) =>
+            SetAttribute(element, Uri(namespaceId), localName, value,
+                namespaceId == OfficeXmlNamespaces.None ? string.Empty : OfficeXmlPrefixes.Canonical(namespaceId));
+
+        internal static void SetAttribute(object element, string uri, string localName, string? value, string prefix) {
             OpenXmlElement target = E(element);
-            string uri = Uri(namespaceId);
             if (value == null) {
                 if (target.HasAttributes) target.RemoveAttribute(localName, uri);
                 return;
             }
-            string prefix = namespaceId == OfficeXmlNamespaces.None ? string.Empty : OfficeXmlPrefixes.Canonical(namespaceId);
             target.SetAttribute(new OpenXmlAttribute(prefix, localName, uri, value));
         }
 

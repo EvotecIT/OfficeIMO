@@ -53,6 +53,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Transition = PowerPointSlideTransition.Morph;
+                    Assert.False(presentation.IsSdkLoaded);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -61,6 +62,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(PowerPointSlideTransition.Morph, slide.Transition);
+                    Assert.False(presentation.IsSdkLoaded);
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
@@ -78,6 +80,55 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void MorphTransitionKeepsTypedBranchesOnAnOpenSdkSlide() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            var package = presentation.OpenXmlDocument;
+
+            slide.Transition = PowerPointSlideTransition.Morph;
+
+            Transition[] transitions = GetAlternateTransitions(package.PresentationPart!.SlideParts.Single());
+            Assert.Equal(2, transitions.Length);
+            Assert.IsType<FadeTransition>(transitions[1].FirstChild);
+        }
+
+        [Fact]
+        public void TransitionIgnoresEffectMarkupInSlideExtensions() {
+            using var packageStream = new MemoryStream();
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
+                source.AddSlide();
+                source.Save(packageStream);
+            }
+
+            packageStream.Position = 0;
+            using (PresentationDocument package = PresentationDocument.Open(packageStream, true)) {
+                const string slideXml = """
+                    <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+                      <p:cSld><p:spTree>
+                        <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+                        <p:grpSpPr/>
+                      </p:spTree></p:cSld>
+                      <p:extLst><p:ext uri="{35079707-908B-43A0-BC40-3D0B4EA5C100}">
+                        <p:transition advClick="1"><p:fade/></p:transition>
+                      </p:ext></p:extLst>
+                    </p:sld>
+                    """;
+                using var xml = new MemoryStream(Encoding.UTF8.GetBytes(slideXml), writable: false);
+                package.PresentationPart!.SlideParts.Single().FeedData(xml);
+            }
+
+            packageStream.Position = 0;
+            using PowerPointDocument presentation = PowerPointDocument.Load(packageStream);
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+            Assert.Equal(PowerPointSlideTransition.None, slide.Transition);
+            Assert.Null(slide.TransitionAdvanceOnClick);
+
+            slide.Transition = PowerPointSlideTransition.WipeDown;
+            Assert.Equal(PowerPointSlideTransition.WipeDown, slide.Transition);
+            Assert.False(presentation.IsSdkLoaded);
         }
 
         [Fact]
@@ -99,6 +150,7 @@ namespace OfficeIMO.Tests {
                                writable: false)) {
                         start.SetTransitionSound(sound, "Morph sound");
                     }
+                    Assert.False(presentation.IsSdkLoaded);
                     start.Transition = PowerPointSlideTransition.Morph;
 
                     PowerPointSlide stop = presentation.AddSlide();
@@ -131,6 +183,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointSlideTransition.Morph,
                     stopSlide.Transition);
                 Assert.True(stopSlide.TransitionStopsSound);
+                Assert.False(reopened.IsSdkLoaded);
                 Assert.Empty(reopened.ValidateDocument());
 
                 using PresentationDocument document =

@@ -205,6 +205,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         if (part == null) return;
         part.DeletedContentType = GetContentType(part.Name);
         part.Deleted = true;
+        // Parsed XML may still have handles. Binary callers receive copies, so release the deleted payload immediately.
+        if (part.Tree == null) ReturnContent(part);
         RemoveOverride(part.Name);
     }
 

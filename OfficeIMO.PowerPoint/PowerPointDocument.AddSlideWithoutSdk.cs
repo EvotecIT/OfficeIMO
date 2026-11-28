@@ -49,7 +49,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlTree presentation = slides.Presentation;
             if (useBatchRelationshipIds && presentation.HasCommentsOrInstructions()) return null;
             int p14 = package.Namespaces.GetId(PowerPointTreeSections.P14Namespace);
-            HashSet<string> used = ReadPresentationRelationshipIds(mainRelationships);
+            HashSet<string> used = ReadPackageRelationshipIds(mainRelationships);
             if (useBatchRelationshipIds) {
                 foreach ((_, string id, _) in slides.Entries) used.Add(id);
             }
@@ -209,9 +209,9 @@ namespace OfficeIMO.PowerPoint {
 
         // The next free rIdN of the presentation part, searched from where the last search stopped.
         private string NextPresentationRelationshipId(OfficeXmlTree relationships) =>
-            ReserveSlideRelationshipId(ReadPresentationRelationshipIds(relationships), ref _slideRelationshipSearchStart);
+            ReserveSlideRelationshipId(ReadPackageRelationshipIds(relationships), ref _slideRelationshipSearchStart);
 
-        private static HashSet<string> ReadPresentationRelationshipIds(OfficeXmlTree relationships) {
+        private static HashSet<string> ReadPackageRelationshipIds(OfficeXmlTree relationships) {
             var used = new HashSet<string>(StringComparer.Ordinal);
             for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                  node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
