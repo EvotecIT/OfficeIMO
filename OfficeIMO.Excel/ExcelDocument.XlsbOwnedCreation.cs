@@ -48,10 +48,10 @@ namespace OfficeIMO.Excel {
                         return default;
 
                     using (plan) {
-                        long limit = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
+                        long limit = GetXlsbMaterializationLimit(options);
                         using var staged = new OfficeBoundedMemoryStream(limit);
                         XlsbNewPackageWriter.WriteOwnedTabular(staged, dateSystem, source.SheetName,
-                            DefaultNativeXlsbStyles.Value, DefaultNativeXlsbTheme.Value, sharedStrings, plan, cancellationToken);
+                            DefaultNativeXlsbStyles.Value, DefaultNativeXlsbTheme.Value, sharedStrings, plan, limit, cancellationToken);
                         return new ArraySegment<byte>(staged.GetBuffer(), 0, checked((int)staged.Length));
                     }
                 } finally {

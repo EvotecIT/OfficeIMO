@@ -168,7 +168,8 @@ namespace OfficeIMO.Excel {
             bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 if (TryGetDirectTabularSaveSource(options, CancellationToken.None, "Xlsb", out ExcelDirectTabularSource source)) {
-                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None, options?.XlsbUseSharedStrings == true)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None,
+                        options?.XlsbUseSharedStrings == true, GetXlsbMaterializationLimit(options))) {
                         try { destination.Flush(); } catch (NotSupportedException) { }
                         LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
                         return true;
@@ -216,7 +217,8 @@ namespace OfficeIMO.Excel {
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
-                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, cancellationToken, options?.XlsbUseSharedStrings == true)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, cancellationToken,
+                        options?.XlsbUseSharedStrings == true, GetXlsbMaterializationLimit(options))) {
                         try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
                         LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
                         return true;
@@ -250,9 +252,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private static long GetXlsbMaterializationLimit(ExcelSaveOptions? options) =>
+            Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
+
         private byte[] RewriteNativeXlsb(ExcelSaveOptions? options, long maximumBytes = int.MaxValue) {
             var calculation = PrepareNativeCalculationForSave(options);
-            maximumBytes = Math.Min(maximumBytes, Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue));
+            maximumBytes = Math.Min(maximumBytes, GetXlsbMaterializationLimit(options));
             return XlsbNativePackageWriter.Rewrite(
                 this,
                 _xlsbOriginalPackageBytes ?? throw new InvalidOperationException("The XLSB source package is unavailable."),
@@ -267,7 +272,8 @@ namespace OfficeIMO.Excel {
             directWrite = false;
             if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
                 using var directOutput = new MemoryStream();
-                if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, directOutput, cancellationToken, options?.XlsbUseSharedStrings == true)) {
+                if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, directOutput, cancellationToken,
+                    options?.XlsbUseSharedStrings == true, GetXlsbMaterializationLimit(options))) {
                     byte[] directBytes = directOutput.ToArray();
                     generatedWorkbook = XlsbWorkbookReader.Load(
                         directBytes,

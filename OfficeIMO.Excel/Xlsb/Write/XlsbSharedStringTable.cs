@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return index;
         }
 
-        internal ArraySegment<byte> CreatePart(CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
+        internal ArraySegment<byte> CreatePart(CancellationToken cancellationToken, long maximumBytes) {
             cancellationToken.ThrowIfCancellationRequested();
             using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             using var writer = new XlsbDirectRecordWriter(output);

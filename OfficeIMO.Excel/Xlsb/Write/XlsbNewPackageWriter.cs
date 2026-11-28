@@ -74,7 +74,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             CancellationToken cancellationToken,
-            bool useSharedStrings = false) {
+            bool useSharedStrings = false,
+            long maximumSharedStringBytes = ExcelSaveOptions.DefaultMaxInMemoryPackageBytes) {
             ArgumentNullException.ThrowIfNull(document);
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(destination);
@@ -95,7 +96,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             if (!XlsbDirectTabularPlan.CanCapture(source)) {
                 return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
-                    sharedStrings, cancellationToken);
+                    sharedStrings, maximumSharedStringBytes, cancellationToken);
             }
 
             // Freeze a flat source as a compressed package before publishing to an
@@ -105,7 +106,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 && !cancellationToken.CanBeCanceled && document.Execution.OnTiming == null
                 && ExcelDocument.HasFlatTabularSnapshot(source.Rows)) {
                 return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
-                    sharedStrings, cancellationToken, pooledSnapshot: true);
+                    sharedStrings, maximumSharedStringBytes, cancellationToken, pooledSnapshot: true);
             }
 
             XlsbDirectTabularPlan? plan = null;
@@ -115,7 +116,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 // Validate temporal styles and shared strings before touching the destination.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
                 byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
-                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
                 WriteDirectTabularPackage(dateSystem, destination, source.SheetName, stylesPart,
@@ -134,6 +135,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             XlsbSharedStringTable? sharedStrings,
+            long maximumSharedStringBytes,
             CancellationToken cancellationToken,
             bool pooledSnapshot = false) {
             // Staging the compressed package preserves the read-once input contract
@@ -152,7 +154,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 // while emitting rows. Finalize every dependent part before publication.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
                 byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
-                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
                 cancellationToken.ThrowIfCancellationRequested();
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, source.SheetName,
                     stylesPart != null, sharedStringsPart.HasValue, CreateThemeWriter(document.WorkbookPartRoot.ThemePart));
@@ -177,8 +179,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// <summary>Emits the same native tabular package from a captured owned worksheet.</summary>
         internal static void WriteOwnedTabular(Stream destination, ExcelDateSystem dateSystem, string sheetName,
             byte[] stylesPart, byte[] themePart, XlsbSharedStringTable? sharedStrings, XlsbDirectTabularPlan plan,
-            CancellationToken cancellationToken) {
-            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+            long maximumSharedStringBytes, CancellationToken cancellationToken) {
+            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
             WriteDirectTabularPackage(dateSystem, destination, sheetName, stylesPart, sharedStringsPart,
                 stream => stream.Write(themePart, 0, themePart.Length), plan, cancellationToken);
         }
