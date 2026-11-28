@@ -29,58 +29,15 @@ public sealed partial class PowerPointDocument {
     private List<OfficeEmbeddedPayloadInfo>? CollectPackagePayloads(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (ReadablePackage is not { } package) return null;
-        // Interleaved OPC stores physical pieces where an atomic relationship part would otherwise be.
-        if (package.PartNames.Any(name => name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) &&
-            OfficeOpcPieceAssembler.HasPieceSuffix(name))) return null;
         var found = new List<OfficeEmbeddedPayloadInfo>();
-        var visited = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
-        var pending = new Queue<string?>();
-        pending.Enqueue(null);
-        while (pending.Count > 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            string? owner = pending.Dequeue();
-            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(owner);
-            if (!package.PartExists(relationshipsPart)) continue;
-            OfficeXmlTree tree = package.GetXml(relationshipsPart);
-            const int ns = OfficeXmlNamespaces.PackageRelationships;
-            if (tree.Root == OfficeXmlTree.NoNode || !tree.IsElement(tree.Root, ns, "Relationships")) return null;
-            var targets = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            for (int node = tree.FindChild(tree.Root, ns, "Relationship"); node != OfficeXmlTree.NoNode;
-                 node = tree.FindNextSibling(node, ns, "Relationship")) {
-                cancellationToken.ThrowIfCancellationRequested();
-                string? rawType = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                string? id = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
-                if (string.IsNullOrEmpty(rawType) || string.IsNullOrEmpty(id) || !ids.Add(id!)) return null;
-
-                string? mode = tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode");
-                if (mode == "External") continue;
-                if (mode != null && mode != "Internal") return null;
-                string type = OfficeXmlNamespaces.NormalizeRelationshipType(rawType!);
-                if (IsReferenceRelationship(type)) continue;
-
-                string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart,
-                    tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                if (target == null || package.GetPartName(target) is not { } part) return null;
-                string identity = OfficeOpcPackage.GetPartIdentity(part);
-                if (!targets.Add(identity)) return null;
-                if (visited.TryGetValue(identity, out string? previousType)) {
-                    if (previousType != type) return null;
-                } else {
-                    visited.Add(identity, type);
-                    pending.Enqueue(part);
-                }
-
-                string? contentType = package.GetContentType(part);
-                if (contentType == null || !CanFollowPayloadGraphPart(type, contentType)) return null;
-                OfficeEmbeddedPayloadKind? kind = ClassifyPayload(type, part, contentType);
-                if (kind == null) continue;
-                string ownerName = owner ?? "/";
-                string fileName = Path.GetFileName(part.Replace('/', Path.DirectorySeparatorChar));
-                found.Add(new OfficeEmbeddedPayloadInfo(ownerName + "#" + id, kind.Value, ownerName, id!,
-                    part, contentType, fileName, -1, sha256: null));
-            }
-        }
+        if (!TryVisitPackageGraph(package, cancellationToken, relationship => {
+                OfficeEmbeddedPayloadKind? kind = ClassifyPayload(relationship.Type, relationship.Part, relationship.ContentType);
+                if (kind == null) return;
+                string owner = relationship.Owner ?? "/";
+                string fileName = Path.GetFileName(relationship.Part.Replace('/', Path.DirectorySeparatorChar));
+                found.Add(new OfficeEmbeddedPayloadInfo(owner + "#" + relationship.Id, kind.Value, owner,
+                    relationship.Id, relationship.Part, relationship.ContentType, fileName, -1, sha256: null));
+            })) return null;
 
         found.Sort(static (left, right) => {
             int owner = StringComparer.OrdinalIgnoreCase.Compare(left.OwnerPartUri, right.OwnerPartUri);
@@ -89,17 +46,98 @@ public sealed partial class PowerPointDocument {
         return found;
     }
 
+    private readonly record struct PackageGraphRelationship(string? Owner, string Id, string Type, string Part, string ContentType);
+
+    private static bool TryVisitPackageGraph(OfficeOpcEditablePackage package, CancellationToken cancellationToken,
+        Action<PackageGraphRelationship> visit) {
+        if (package.PartNames.Any(name => name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) &&
+            OfficeOpcPieceAssembler.HasPieceSuffix(name))) return false;
+        return TryVisitPackageGraph(owner => ReadEditablePackageRelationships(package, owner), package.GetPartName,
+            package.GetContentType, cancellationToken, visit);
+    }
+
+    private static bool TryVisitPackageGraph(OfficeOpcPackage package, CancellationToken cancellationToken,
+        Action<PackageGraphRelationship> visit) {
+        if (package.HasInterleavedParts) return false;
+        try {
+            return TryVisitPackageGraph(package.GetRelationships, package.GetPartName, package.GetContentType,
+                cancellationToken, visit);
+        } catch (Exception exception) when (exception is InvalidDataException or IOException or System.Xml.XmlException
+            or ArgumentException or NotSupportedException or InvalidOperationException or OverflowException) {
+            // The existing SDK opener decides how to report or repair malformed relationships.
+            return false;
+        }
+    }
+
+    private static bool TryVisitPackageGraph(Func<string?, IReadOnlyList<OfficeOpcRelationship>?> getRelationships,
+        Func<string, string?> getPartName, Func<string, string?> getContentType, CancellationToken cancellationToken,
+        Action<PackageGraphRelationship> visit) {
+        var visited = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
+        var pending = new Queue<string?>();
+        pending.Enqueue(null);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string? owner = pending.Dequeue();
+            if (getRelationships(owner) is not { } relationships) return false;
+            if (relationships.Count == 0) continue;
+            var targets = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
+            for (int index = 0; index < relationships.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                OfficeOpcRelationship relationship = relationships[index];
+                if (relationship.Id.Length == 0 || relationship.Type.Length == 0) return false;
+                if (relationship.IsExternal || IsReferenceRelationship(relationship.Type)) continue;
+                if (relationship.TargetPartName is not { } target || getPartName(target) is not { } part) return false;
+                string identity = OfficeOpcPackage.GetPartIdentity(part);
+                if (!targets.Add(identity)) return false;
+                if (visited.TryGetValue(identity, out string? previousType)) {
+                    if (previousType != relationship.Type) return false;
+                } else {
+                    visited.Add(identity, relationship.Type);
+                    pending.Enqueue(part);
+                }
+
+                string? contentType = getContentType(part);
+                if (contentType == null || !CanFollowPackageGraphPart(relationship.Type, contentType)) return false;
+                visit(new PackageGraphRelationship(owner, relationship.Id, relationship.Type, part, contentType));
+            }
+        }
+        return true;
+    }
+
+    private static IReadOnlyList<OfficeOpcRelationship>? ReadEditablePackageRelationships(OfficeOpcEditablePackage package, string? owner) {
+        string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(owner);
+        if (!package.PartExists(relationshipsPart)) return Array.Empty<OfficeOpcRelationship>();
+        OfficeXmlTree tree = package.GetXml(relationshipsPart);
+        const int ns = OfficeXmlNamespaces.PackageRelationships;
+        if (tree.Root == OfficeXmlTree.NoNode || !tree.IsElement(tree.Root, ns, "Relationships")) return null;
+        var relationships = new List<OfficeOpcRelationship>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        string? directory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
+        for (int node = tree.FindChild(tree.Root, ns, "Relationship"); node != OfficeXmlTree.NoNode;
+             node = tree.FindNextSibling(node, ns, "Relationship")) {
+            string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+            string? id = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+            string? target = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target");
+            if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id) || target == null || !ids.Add(id!)) return null;
+            string? mode = tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode");
+            if (mode != null && mode != "Internal" && mode != "External") return null;
+            relationships.Add(new OfficeOpcRelationship(directory, id!, OfficeXmlNamespaces.NormalizeRelationshipType(type!), target, mode == "External"));
+        }
+        return relationships;
+    }
+
     private static bool IsReferenceRelationship(string type) =>
         type == PowerPointPartRef.HyperlinkRelationshipType || type == AudioDataRelationshipType ||
         type == VideoDataRelationshipType || type == MediaDataRelationshipType;
 
-    private static bool CanFollowPayloadGraphPart(string relationship, string contentType) {
+    private static bool CanFollowPackageGraphPart(string relationship, string contentType) {
         string? expected = relationship switch {
             PowerPointPartRef.SlideRelationshipType => PowerPointPackageModel.SlideContentType,
             PowerPointPartRef.SlideLayoutRelationshipType => PowerPointPackageModel.SlideLayoutContentType,
             PowerPointPartRef.SlideMasterRelationshipType => PowerPointPackageModel.SlideMasterContentType,
             PowerPointPartRef.ThemeRelationshipType => PowerPointPackageModel.ThemeContentType,
             NotesSlideRelationshipType => NotesSlideContentType,
+            VbaProjectRelationshipType => VbaProjectContentType,
             _ => null
         };
         return expected == null || string.Equals(expected, contentType, StringComparison.OrdinalIgnoreCase);

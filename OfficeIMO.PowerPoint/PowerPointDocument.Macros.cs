@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint {
         public bool HasVbaProject {
             get {
                 ThrowIfDisposed();
+                if (TryReadPackageVbaProject(maximumBytes: null, inspectSignature: false, out var project, out _)) return project.HasValue;
                 return SdkPresentationPart.VbaProjectPart != null;
             }
         }
@@ -22,6 +23,7 @@ namespace OfficeIMO.PowerPoint {
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+            if (TryReadPackageVbaProject(maximumBytes, inspectSignature: false, out _, out byte[]? bytes)) return bytes;
             VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
             if (part == null) return null;
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);

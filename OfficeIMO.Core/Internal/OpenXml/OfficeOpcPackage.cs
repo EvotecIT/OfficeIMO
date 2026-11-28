@@ -56,6 +56,13 @@ internal sealed class OfficeOpcPackage : IDisposable {
     internal bool HasInterleavedParts => _members.Values.Any(name =>
         name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) && OfficeOpcPieceAssembler.HasPieceSuffix(name));
 
+    /// <summary>The package spelling of this part name, or null when the part is absent.</summary>
+    internal string? GetPartName(string partName) => FindMember(partName) is { } member ? "/" + member : null;
+
+    /// <summary>Opens a part for incremental decoded-byte reads.</summary>
+    internal Stream OpenPartContentStream(string partName, CancellationToken cancellationToken) =>
+        _zip.OpenMemberStream(FindMember(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'."), cancellationToken);
+
     /// <summary>Inflates a part into a buffer the caller disposes.</summary>
     /// <exception cref="InvalidDataException">The part is missing or its ZIP member is corrupt.</exception>
     internal OfficePooledBytes ReadPart(string partName) {

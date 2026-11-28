@@ -6,6 +6,7 @@ public sealed partial class PowerPointDocument {
     /// <summary>Inventories the VBA part and signature relationship without reading its bytes or decoding module names. Payload length remains unknown.</summary>
     public OfficeVbaProjectInfo? InspectVbaProjectMetadata() {
         ThrowIfDisposed();
+        if (TryReadPackageVbaProject(maximumBytes: null, inspectSignature: true, out var project, out _)) return project?.Describe();
         return SdkPresentationPart.VbaProjectPart is { } part ? OfficeOpenXmlPackagePayload.CreateVbaDescriptor(part) : null;
     }
 
