@@ -64,15 +64,42 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? PlaybackReferenceId {
             get {
+                OfficeXmlNode metadata = PlaybackMetadata;
+                return metadata.Attribute(OfficeXmlNamespaces.Relationships, "embed") ?? metadata.Attribute(OfficeXmlNamespaces.Relationships, "link");
+            }
+        }
+
+        private OfficeXmlNode PlaybackMetadata {
+            get {
                 const int p = OfficeXmlNamespaces.PresentationML;
                 foreach (OfficeXmlNode extension in MediaApplicationProperties.Child(p, "extLst").Children(p, "ext")) {
                     if (!string.Equals(extension.Attribute("uri"), MediaExtensionUri, StringComparison.OrdinalIgnoreCase)) continue;
-                    OfficeXmlNode metadata = extension.Child(PlaybackMediaNamespace, "media");
-                    if (metadata.Exists)
-                        return metadata.Attribute(OfficeXmlNamespaces.Relationships, "embed") ?? metadata.Attribute(OfficeXmlNamespaces.Relationships, "link");
+                    foreach (OfficeXmlNode child in extension.Children()) {
+                        if (child.Is(PlaybackMediaNamespace, "media")) return child;
+                        if (!child.Is(OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent")) continue;
+                        OfficeXmlNode metadata = FindCompatiblePlaybackMetadata(child);
+                        if (metadata.Exists) return metadata;
+                    }
                 }
-                return null;
+                return default;
             }
+        }
+
+        private static OfficeXmlNode FindCompatiblePlaybackMetadata(OfficeXmlNode alternate) {
+            const int mc = OfficeXmlNamespaces.MarkupCompatibility;
+            var pending = new Stack<OfficeXmlNode>();
+            pending.Push(alternate);
+            while (pending.Count > 0) {
+                OfficeXmlNode node = pending.Pop();
+                if (node.Is(PlaybackMediaNamespace, "media")) return node;
+                if (node.NamespaceId != mc || node.LocalName is not ("AlternateContent" or "Choice" or "Fallback")) continue;
+                bool isAlternate = node.LocalName == "AlternateContent";
+                for (OfficeXmlNode child = node.LastChild; child.Exists; child = child.PreviousSibling) {
+                    // Under the known extension, only the compatibility wrapper and its branch nodes are transparent.
+                    if (!isAlternate || child.NamespaceId == mc && child.LocalName is ("Choice" or "Fallback")) pending.Push(child);
+                }
+            }
+            return default;
         }
 
         /// <summary>Returns the exact embedded audio or video payload.</summary>
@@ -105,6 +132,22 @@ namespace OfficeIMO.PowerPoint {
             return relationship.Type is PlaybackMediaRelationshipType
                 or OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "audio"
                 or OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "video" ? relationship.TargetPart : default;
+        }
+
+        private PowerPointMediaSourceKind GetSdkMediaSourceKind(string id) {
+            if (GetMediaDataPart() != null) return PowerPointMediaSourceKind.Embedded;
+            return GetSdkLinkedMediaUri(id) != null ? PowerPointMediaSourceKind.Linked : PowerPointMediaSourceKind.Broken;
+        }
+
+        private Uri? GetSdkLinkedMediaUri(string? id) =>
+            SlidePart.ExternalRelationships.FirstOrDefault(relationship => relationship.Id == id)?.Uri;
+
+        private void UpdateSdkMediaLink(string id, Uri uri) {
+            SlidePart part = SlidePart;
+            ExternalRelationship relationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == id)
+                ?? throw new InvalidOperationException("The media frame is embedded rather than linked.");
+            part.DeleteExternalRelationship(id);
+            part.AddExternalRelationship(relationship.RelationshipType, uri, id);
         }
 
         /// <summary>Replaces the embedded audio or video payload.</summary>

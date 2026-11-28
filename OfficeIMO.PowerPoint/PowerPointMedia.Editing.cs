@@ -1,8 +1,7 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Storage kind of a PowerPoint media frame.</summary>
@@ -48,9 +47,7 @@ namespace OfficeIMO.PowerPoint {
                     return TryGetPackageMediaLink(id!, out _)
                         ? PowerPointMediaSourceKind.Linked : PowerPointMediaSourceKind.Broken;
                 }
-                if (GetMediaDataPart() != null) return PowerPointMediaSourceKind.Embedded;
-                return SlidePart.ExternalRelationships.Any(item => item.Id == id)
-                    ? PowerPointMediaSourceKind.Linked : PowerPointMediaSourceKind.Broken;
+                return GetSdkMediaSourceKind(id!);
             }
         }
 
@@ -61,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
                 if (TryGetPackageElement(out _, out _))
                     return id != null && TryGetPackageMediaLink(id, out PowerPointRelationship link)
                         && Uri.TryCreate(link.Target, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
-                return SlidePart.ExternalRelationships.FirstOrDefault(item => item.Id == id)?.Uri;
+                return GetSdkLinkedMediaUri(id);
             }
         }
 
@@ -75,32 +72,45 @@ namespace OfficeIMO.PowerPoint {
             if (!uri.IsAbsoluteUri) throw new ArgumentException(
                 "A linked media URI must be absolute.", nameof(uri));
             string id = MediaReferenceId ?? throw new InvalidOperationException("The media frame has no file relationship.");
-            ExternalRelationship relationship = SlidePart.ExternalRelationships
-                .FirstOrDefault(item => item.Id == id)
-                ?? throw new InvalidOperationException("The media frame is embedded rather than linked.");
-            SlidePart.DeleteExternalRelationship(id);
-            SlidePart.AddExternalRelationship(relationship.RelationshipType, uri, id);
+            PowerPointPartRef part = SlidePartRef;
+            // The SDK retains the supplied absolute Uri in memory when a file path omits the file: scheme.
+            bool implicitFileUri = uri.IsFile && !uri.OriginalString.StartsWith("file:", StringComparison.OrdinalIgnoreCase);
+            if (!implicitFileUri && !part.IsSdk && part.Document is { EditablePackage: { } package } document) {
+                if (!TryGetPackageMediaLink(id, out _)) throw new InvalidOperationException("The media frame is embedded rather than linked.");
+                OfficeXmlTree relationships = package.GetRelationships(part.Name);
+                OfficeXmlNode root = new(relationships, relationships.Root);
+                foreach (OfficeXmlNode relationshipNode in root.Children(OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                    if (relationshipNode.Attribute("Id") != id) continue;
+                    relationshipNode.SetAttribute("Target", PowerPointHyperlinkResolver.TargetText(uri));
+                    part.MarkEdited();
+                    document.InvalidatePackageRelationships();
+                    return this;
+                }
+                throw new InvalidOperationException("The media frame has no file relationship.");
+            }
+            UpdateSdkMediaLink(id, uri);
             return this;
         }
 
         /// <summary>Reads typed playback metadata from the native timing and media nodes.</summary>
         public PowerPointMediaPlaybackOptions GetPlaybackOptions() {
-            CommonMediaNode? node = FindCommonMediaNode();
-            P14.Media? metadata = ((Picture)Element).Descendants<P14.Media>().FirstOrDefault();
-            P14.MediaTrim? trim = metadata?.GetFirstChild<P14.MediaTrim>();
-            P14.MediaFade? fade = metadata?.GetFirstChild<P14.MediaFade>();
-            Video? video = node?.Parent as Video;
+            const int p = OfficeXmlNamespaces.PresentationML;
+            OfficeXmlNode node = FindCommonMediaNode(SlidePartRef);
+            OfficeXmlNode metadata = PlaybackMetadata;
+            OfficeXmlNode trim = metadata.Child(PlaybackMediaNamespace, "trim");
+            OfficeXmlNode fade = metadata.Child(PlaybackMediaNamespace, "fade");
+            OfficeXmlNode video = node.Parent;
+            int volume = node.Attribute("vol") is { } value ? XmlConvert.ToInt32(value) : 80000;
             return new PowerPointMediaPlaybackOptions {
-                VolumePercent = (int)Math.Round((node?.Volume?.Value ?? 80000) / 1000D),
-                Mute = node?.Mute?.Value == true,
-                Loop = string.Equals(node?.CommonTimeNode?.RepeatCount?.Value,
-                    "indefinite", StringComparison.OrdinalIgnoreCase),
-                ShowWhenStopped = node?.ShowWhenStopped?.Value != false,
-                FullScreen = video?.FullScreen?.Value == true,
-                TrimStartMilliseconds = ParseMilliseconds(trim?.Start?.Value),
-                TrimEndMilliseconds = ParseMilliseconds(trim?.End?.Value),
-                FadeInMilliseconds = ParseMilliseconds(fade?.InDuration?.Value),
-                FadeOutMilliseconds = ParseMilliseconds(fade?.OutDuration?.Value)
+                VolumePercent = (int)Math.Round(volume / 1000D),
+                Mute = ReadPlaybackBoolean(node, "mute") == true,
+                Loop = string.Equals(node.Child(p, "cTn").Attribute("repeatCount"), "indefinite", StringComparison.OrdinalIgnoreCase),
+                ShowWhenStopped = ReadPlaybackBoolean(node, "showWhenStopped") != false,
+                FullScreen = video.Is(p, "video") && ReadPlaybackBoolean(video, "fullScrn") == true,
+                TrimStartMilliseconds = ParseMilliseconds(trim.Attribute("st")),
+                TrimEndMilliseconds = ParseMilliseconds(trim.Attribute("end")),
+                FadeInMilliseconds = ParseMilliseconds(fade.Attribute("in")),
+                FadeOutMilliseconds = ParseMilliseconds(fade.Attribute("out"))
             };
         }
 
@@ -112,40 +122,46 @@ namespace OfficeIMO.PowerPoint {
             if (options.TrimStartMilliseconds.HasValue && options.TrimEndMilliseconds.HasValue &&
                 options.TrimStartMilliseconds.Value >= options.TrimEndMilliseconds.Value)
                 throw new ArgumentException("Trim start must be earlier than trim end.", nameof(options));
-            CommonMediaNode node = FindCommonMediaNode()
-                ?? throw new InvalidOperationException("The media frame has no editable playback timing node.");
-            P14.Media metadata = ((Picture)Element).Descendants<P14.Media>().FirstOrDefault()
-                ?? throw new InvalidOperationException(
-                    "The producer-specific media frame has no editable p14 playback metadata and was left unchanged.");
-            node.Volume = options.VolumePercent * 1000;
-            node.Mute = options.Mute;
-            node.ShowWhenStopped = options.ShowWhenStopped;
-            node.CommonTimeNode!.RepeatCount = options.Loop ? "indefinite" : null;
-            if (node.Parent is Video video) video.FullScreen = options.FullScreen;
+            const int p = OfficeXmlNamespaces.PresentationML;
+            PowerPointPartRef part = SlidePartRef.ForMovingXmlNodes();
+            OfficeXmlNode node = FindCommonMediaNode(part);
+            OfficeXmlNode timing = node.Child(p, "cTn");
+            if (timing.IsNone) throw new InvalidOperationException("The media frame has no editable playback timing node.");
+            OfficeXmlNode metadata = PlaybackMetadata;
+            if (metadata.IsNone) throw new InvalidOperationException(
+                "The producer-specific media frame has no editable p14 playback metadata and was left unchanged.");
 
-            metadata.GetFirstChild<P14.MediaTrim>()?.Remove();
+            node.SetInt32Attribute("vol", options.VolumePercent * 1000);
+            node.SetBooleanAttribute("mute", options.Mute);
+            node.SetBooleanAttribute("showWhenStopped", options.ShowWhenStopped);
+            timing.SetAttribute("repeatCount", options.Loop ? "indefinite" : null);
+            OfficeXmlNode video = node.Parent;
+            if (video.Is(p, "video")) video.SetBooleanAttribute("fullScrn", options.FullScreen);
+
+            metadata.Child(PlaybackMediaNamespace, "trim").Remove();
             if (options.TrimStartMilliseconds.HasValue || options.TrimEndMilliseconds.HasValue) {
-                metadata.PrependChild(new P14.MediaTrim {
-                    Start = options.TrimStartMilliseconds?.ToString(CultureInfo.InvariantCulture),
-                    End = options.TrimEndMilliseconds?.ToString(CultureInfo.InvariantCulture)
-                });
+                OfficeXmlNode trim = metadata.CreateElement(PlaybackMediaNamespace, "trim", "p14");
+                trim.SetUInt32Attribute("st", options.TrimStartMilliseconds);
+                trim.SetUInt32Attribute("end", options.TrimEndMilliseconds);
+                metadata.InsertBefore(trim, metadata.FirstChild);
             }
-            metadata.GetFirstChild<P14.MediaFade>()?.Remove();
+            metadata.Child(PlaybackMediaNamespace, "fade").Remove();
             if (options.FadeInMilliseconds.HasValue || options.FadeOutMilliseconds.HasValue) {
-                metadata.Append(new P14.MediaFade {
-                    InDuration = options.FadeInMilliseconds?.ToString(CultureInfo.InvariantCulture),
-                    OutDuration = options.FadeOutMilliseconds?.ToString(CultureInfo.InvariantCulture)
-                });
+                // The SDK appends a replaced fade after any existing bookmarks and extension list.
+                OfficeXmlNode fade = metadata.CreateElement(PlaybackMediaNamespace, "fade", "p14");
+                fade.SetUInt32Attribute("in", options.FadeInMilliseconds);
+                fade.SetUInt32Attribute("out", options.FadeOutMilliseconds);
+                metadata.Append(fade);
             }
+            part.MarkEdited();
             return this;
         }
 
-        private CommonMediaNode? FindCommonMediaNode() {
-            string shapeId = (Id ?? 0U).ToString(CultureInfo.InvariantCulture);
-            return SlidePart.Slide?.Timing?.Descendants<CommonMediaNode>()
-                .FirstOrDefault(node => node.GetFirstChild<TargetElement>()?
-                    .GetFirstChild<ShapeTarget>()?.ShapeId?.Value == shapeId);
-        }
+        private OfficeXmlNode FindCommonMediaNode(PowerPointPartRef part) =>
+            PowerPointSlide.FindMediaTimingNode(part.Root, (Id ?? 0U).ToString(CultureInfo.InvariantCulture));
+
+        private static bool? ReadPlaybackBoolean(OfficeXmlNode node, string name) =>
+            node.Attribute(name) is { } value ? XmlConvert.ToBoolean(value) : null;
 
         private static uint? ParseMilliseconds(string? value) =>
             uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture,

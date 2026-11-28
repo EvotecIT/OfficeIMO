@@ -205,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static uint GetNextTimingId(OfficeXmlNode slide) {
             uint maxId = 0;
-            foreach (OfficeXmlNode node in CommonTimingNodes(slide)) {
+            foreach (OfficeXmlNode node in TimingNodesNamed(slide, "cTn")) {
                 if (ReadTimingId(node) is uint id && id > maxId) maxId = id;
             }
             if (maxId == uint.MaxValue) throw TimingIdsExhausted();
@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeXmlNode FindUniqueCommonTimeNode(OfficeXmlNode slide, uint timingId) {
             OfficeXmlNode match = default;
             OfficeXmlNode timing = slide.Child(TimingNamespace, "timing");
-            foreach (OfficeXmlNode node in CommonTimingNodes(timing)) {
+            foreach (OfficeXmlNode node in TimingNodesNamed(timing, "cTn")) {
                 if (ReadTimingId(node) != timingId) continue;
                 if (match.Exists) return default;
                 match = node;
@@ -229,7 +229,15 @@ namespace OfficeIMO.PowerPoint {
         private static uint? ReadTimingId(OfficeXmlNode node) =>
             node.Attribute("id") is { } value ? XmlConvert.ToUInt32(value) : null;
 
-        private static IEnumerable<OfficeXmlNode> CommonTimingNodes(OfficeXmlNode root) {
+        internal static OfficeXmlNode FindMediaTimingNode(OfficeXmlNode slide, string shapeId) {
+            OfficeXmlNode timing = slide.Child(TimingNamespace, "timing");
+            foreach (OfficeXmlNode node in TimingNodesNamed(timing, "cMediaNode")) {
+                if (node.Child(TimingNamespace, "tgtEl").Child(TimingNamespace, "spTgt").Attribute("spid") == shapeId) return node;
+            }
+            return default;
+        }
+
+        private static IEnumerable<OfficeXmlNode> TimingNodesNamed(OfficeXmlNode root, string name) {
             if (root.IsNone) yield break;
             var pending = new Stack<(OfficeXmlNode Node, string Context)>();
             PushTimingChildren(root, root.LocalName, pending);
@@ -244,7 +252,7 @@ namespace OfficeIMO.PowerPoint {
                         }
                     }
                 } else if (node.NamespaceId == TimingNamespace && IsTimingChild(context, node.LocalName)) {
-                    if (node.LocalName == "cTn") yield return node;
+                    if (node.LocalName == name) yield return node;
                     PushTimingChildren(node, node.LocalName, pending);
                 }
             }
@@ -263,7 +271,8 @@ namespace OfficeIMO.PowerPoint {
             "bldP" => child == "tmplLst",
             "tmplLst" => child == "tmpl",
             "tmpl" => child == "tnLst",
-            "tnLst" or "childTnLst" or "subTnLst" => child is "par" or "seq" or "excl" or "anim" or "animClr" or "animEffect"
+            "tnLst" => child == "par",
+            "childTnLst" or "subTnLst" => child is "par" or "seq" or "excl" or "anim" or "animClr" or "animEffect"
                 or "animMotion" or "animRot" or "animScale" or "cmd" or "set" or "audio" or "video",
             "par" or "seq" or "excl" or "cBhvr" or "cMediaNode" => child == "cTn",
             "anim" or "animClr" or "animEffect" or "animMotion" or "animRot" or "animScale" or "cmd" or "set" => child == "cBhvr",
