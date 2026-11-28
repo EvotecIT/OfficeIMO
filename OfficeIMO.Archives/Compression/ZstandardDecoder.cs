@@ -1,8 +1,9 @@
 namespace OfficeIMO.Archives.Compression;
 
 /// <summary>Decodes Zstandard frames (RFC 8878) from a stream into a destination stream.</summary>
-/// <remarks>Memory is the declared window plus the dictionary and two maximum-size blocks, grown only as output is
-/// produced. Every structure is validated before it is used and errors name the input offset.</remarks>
+/// <remarks>History starts at the dictionary plus two maximum-size blocks and grows only as output is produced, towards the
+/// dictionary plus the window plus spare room of half of both (at least two blocks), so a slide happens at most once per
+/// half window. While it grows, the old and new buffers briefly coexist. Every structure is validated before it is used and errors name the input offset.</remarks>
 internal sealed class ZstandardDecoder {
     internal const string FormatName = "Zstandard";
     internal const uint FrameMagic = 0xFD2FB528;
@@ -79,6 +80,7 @@ internal sealed class ZstandardDecoder {
     private int _position;
     private long _frameProduced;
     private long _contentSize;
+    private bool _hasChecksum;
     private long _blockOffset;
 
     private ZstandardDecoder(Stream source, Stream destination, ZstandardDecoderSettings settings) {
@@ -198,6 +200,7 @@ internal sealed class ZstandardDecoder {
                 throw Corrupt(headerOffset, $"dictionary {dictionaryId}, not the supplied dictionary {dictionary.Id}");
         }
         StartFrame(window, contentSize, dictionary);
+        _hasChecksum = hasChecksum;
 
         bool last;
         do {
@@ -328,9 +331,12 @@ internal sealed class ZstandardDecoder {
         Charge(produced, 0);
         _settings.CancellationToken.ThrowIfCancellationRequested();
         _settings.Select?.Invoke(produced);
+        // Selecting can wait on a shared budget; a cancellation that arrived meanwhile stops the block before it is written.
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         if (produced > 0) {
             _destination.Write(_history, start, produced);
-            _checksum.Append(_history, start, produced);
+            // Only frames that carry a content checksum need the digest.
+            if (_hasChecksum) _checksum.Append(_history, start, produced);
             // The destination can request cancellation as it writes; report that before any frame-level check.
             _settings.CancellationToken.ThrowIfCancellationRequested();
         }

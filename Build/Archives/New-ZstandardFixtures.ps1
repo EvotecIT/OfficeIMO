@@ -18,10 +18,11 @@ param(
 $ErrorActionPreference = 'Stop'
 # Resolve the tool once, so a relative path keeps working after the fixture loop changes directory.
 $Zstd = (Get-Command -Name $Zstd -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$Destination = [System.IO.Path]::GetFullPath($Destination)
-New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-$inputs = Join-Path $Destination 'inputs'
-New-Item -ItemType Directory -Force -Path $inputs | Out-Null
+# Resolved against the PowerShell location, not the process directory, and used literally from here on.
+$Destination = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
+[void][System.IO.Directory]::CreateDirectory($Destination)
+$inputs = [System.IO.Path]::Combine($Destination, 'inputs')
+[void][System.IO.Directory]::CreateDirectory($inputs)
 
 function Write-Bytes([string] $Name, [byte[]] $Bytes) {
     [System.IO.File]::WriteAllBytes((Join-Path $inputs $Name), $Bytes)
@@ -58,10 +59,14 @@ try {
     }
     $message = '{"id":9001,"kind":"move","x":42,"y":17,"owner":"player-1","note":"the message compressed against the dictionary"}'
     Write-Bytes 'message.json' ([System.Text.Encoding]::UTF8.GetBytes($message))
-    & $Zstd -q -f --train (Get-ChildItem $samples -File).FullName --maxdict=1024 --dictID=4242 -o (Join-Path $Destination 'trained.dict')
+    # A file list keeps the command line short on Windows, where 400 absolute paths can pass its length limit.
+    $sampleList = [System.IO.Path]::Combine($samples, 'samples.txt')
+    $sampleFiles = Get-ChildItem -LiteralPath $samples -File -Filter '*.json' | Sort-Object Name
+    [System.IO.File]::WriteAllLines($sampleList, [string[]]$sampleFiles.FullName)
+    & $Zstd -q -f --train --filelist $sampleList --maxdict=1024 --dictID=4242 -o ([System.IO.Path]::Combine($Destination, 'trained.dict'))
     if ($LASTEXITCODE -ne 0) { throw 'zstd --train failed.' }
 } finally {
-    Remove-Item -Recurse -Force $samples
+    Remove-Item -LiteralPath $samples -Recurse -Force
 }
 # A raw-content dictionary: any bytes without the dictionary magic number.
 [System.IO.File]::WriteAllBytes((Join-Path $Destination 'raw-content.dict'),
@@ -82,7 +87,7 @@ $fixtures = @(
 
 $records = foreach ($fixture in $fixtures) {
     $output = Join-Path $Destination $fixture.File
-    Push-Location $Destination
+    Push-Location -LiteralPath $Destination
     try {
         & $Zstd -q -f @($fixture.Arguments) (Join-Path 'inputs' $fixture.Input) -o $fixture.File
         if ($LASTEXITCODE -ne 0) { throw "zstd failed for $($fixture.File)." }
@@ -97,13 +102,14 @@ $records = foreach ($fixture in $fixtures) {
 }
 
 # A frame whose size is unknown keeps its declared 128 MiB window, which is above the default limit.
-Push-Location $Destination
+Push-Location -LiteralPath $Destination
 try {
-    Get-Content -AsByteStream -Raw (Join-Path 'inputs' 'text.txt') | & $Zstd -q -3 --long=27 -c > 'text-window128m.zst'
+    Get-Content -LiteralPath (Join-Path 'inputs' 'text.txt') -AsByteStream -Raw | & $Zstd -q -3 --long=27 -c > 'text-window128m.zst'
+    if ($LASTEXITCODE -ne 0) { throw 'zstd failed for text-window128m.zst.' }
 } finally {
     Pop-Location
 }
-$records += [ordered]@{ file = 'text-window128m.zst'; input = 'inputs/text.txt'; command = 'zstd -3 --long=27 -c < inputs/text.txt' }
+$records += [ordered]@{ file = 'text-window128m.zst'; input = 'inputs/text.txt'; command = 'zstd -3 --long=27 -c < inputs/text.txt > text-window128m.zst' }
 
 # Four copies of the text through a 1 KiB window. The output passes the decoder's first history buffer twice over, so
 # matches after each slide read history that was moved.
@@ -114,12 +120,12 @@ try {
     & $Zstd -q -f -12 --zstd=windowLog=10 $repeated -o (Join-Path $Destination 'text4-window1k.zst')
     if ($LASTEXITCODE -ne 0) { throw 'zstd failed for text4-window1k.zst.' }
 } finally {
-    Remove-Item -Force -ErrorAction SilentlyContinue $repeated
+    Remove-Item -LiteralPath $repeated -Force -ErrorAction SilentlyContinue
 }
 $records += [ordered]@{
     file = 'text4-window1k.zst'
     input = 'inputs/text.txt four times'
-    command = 'zstd -12 --zstd=windowLog=10 on inputs/text.txt repeated four times'
+    command = 'cat inputs/text.txt inputs/text.txt inputs/text.txt inputs/text.txt > text4.txt; zstd -12 --zstd=windowLog=10 text4.txt -o text4-window1k.zst'
 }
 
 # Two frames from separate runs, with a skippable frame between them.
@@ -134,6 +140,7 @@ $records += [ordered]@{
 }
 
 $version = (& $Zstd --version) -join ' '
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) { throw 'zstd --version did not report a version.' }
 foreach ($record in $records) {
     $path = Join-Path $Destination $record.file
     $dictionary = if ($record.file -like '*trained-dict*') { @('-D', (Join-Path $Destination 'trained.dict')) }
@@ -141,7 +148,7 @@ foreach ($record in $records) {
         else { @() }
     & $Zstd -q -t --long=27 @dictionary $path
     if ($LASTEXITCODE -ne 0) { throw "zstd -t rejected $($record.file)." }
-    $record.sha256 = (Get-FileHash -Algorithm SHA256 $path).Hash.ToLowerInvariant()
+    $record.sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
 $manifest = [ordered]@{
@@ -154,5 +161,5 @@ $manifest = [ordered]@{
     }
     fixtures = $records
 }
-$manifest | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $Destination 'manifest.json') -Encoding utf8NoBOM
+$manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Destination 'manifest.json') -Encoding utf8NoBOM
 Write-Host "Wrote $($records.Count) fixtures to $Destination"

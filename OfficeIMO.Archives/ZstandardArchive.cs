@@ -100,12 +100,14 @@ public static class ZstandardArchive {
         if (!destination.CanWrite) throw new ArgumentException("The destination must be writable.", nameof(destination));
         if (ReferenceEquals(source, destination)) throw new ArgumentException("The source and destination must be different streams.", nameof(destination));
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();
-        if (effective.MaxWindowBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
+        // Read once, so a callback that changes the options mid-decode cannot split validation from use.
+        long maxWindow = effective.MaxWindowBytes;
+        if (maxWindow <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
         // A call that is already cancelled admits nothing, so it leaves a shared operation budget untouched.
         cancellationToken.ThrowIfCancellationRequested();
         // Dictionary content becomes history in every frame, so it is admitted against the window limit up front.
-        if (dictionary != null && dictionary.ContentLength > effective.MaxWindowBytes)
-            throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), effective.MaxWindowBytes);
+        if (dictionary != null && dictionary.ContentLength > maxWindow)
+            throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), maxWindow);
         var limits = effective.Limits();
         using Stream? snapshot = source.CanSeek ? null : ArchiveReader.Snapshot(source, limits, cancellationToken);
         // Seekable input is read only within the range admitted here, so bytes appended later are never decoded.
@@ -119,7 +121,7 @@ public static class ZstandardArchive {
         var settings = new ZstandardDecoderSettings(
             entryLimit ? limits.Entry : limits.Expanded,
             entryLimit ? nameof(ArchiveReadOptions.MaxEntryBytes) : nameof(ArchiveReadOptions.MaxExpandedBytes),
-            effective.MaxWindowBytes,
+            maxWindow,
             new ArchiveBlockBudget(limits),
             bytes => limits.Operation.Select(bytes),
             dictionary?.Data,
@@ -131,15 +133,23 @@ public static class ZstandardArchive {
     }
 
     private static Stream Admit(Stream source, long start, long length, ArchiveLimits limits, CancellationToken cancellationToken) {
-        // Measuring the source can take long enough for cancellation to arrive; nothing is charged after it does.
-        cancellationToken.ThrowIfCancellationRequested();
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
-        limits.Operation.AdmitInput(length);
+        Stream view;
         try {
-            return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length, cancellationToken: cancellationToken);
+            // Opening the view validates the range, so a source that shrank since it was measured is charged nothing.
+            view = new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length, cancellationToken: cancellationToken);
         } catch (ArgumentOutOfRangeException) {
             // The source shrank between measuring it and opening the view.
             throw new ArchiveCorruptionException(ZstandardDecoder.FormatName, 0, $"the {length} bytes of input measured when decoding started");
+        }
+        try {
+            // Measuring the source can take long enough for cancellation to arrive; nothing is charged after it does.
+            cancellationToken.ThrowIfCancellationRequested();
+            limits.Operation.AdmitInput(length);
+            return view;
+        } catch {
+            view.Dispose();
+            throw;
         }
     }
 }

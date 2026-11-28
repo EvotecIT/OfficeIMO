@@ -10,7 +10,7 @@ public sealed class ArchiveReadOptions {
     /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
     public int? ZipLegacyCodePage { get; set; }
 
-    /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Stream snapshots are also bounded by Int32.MaxValue.</summary>
+    /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Nonseekable input is snapshotted in memory up to 8 MiB and to a temporary file beyond that, within this limit.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum physical members, including directories and unselected files.</summary>
     public int MaxEntryCount { get; set; } = 10000;
@@ -23,8 +23,9 @@ public sealed class ArchiveReadOptions {
     /// charges 4 KiB per skippable frame, the dictionary copied into every frame that uses one, and the history copied
     /// when it grows or when a long window slides. Defaults to 2 GiB.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
-    /// <summary>Maximum Zstandard window. Defaults to 64 MiB, enough for zstd levels up to 19; levels 20 to 22 with
-    /// <c>--ultra</c> can declare up to 128 MiB and need a higher limit. It applies to the window descriptor, to the declared
+    /// <summary>Maximum Zstandard window. Defaults to 64 MiB, enough for zstd's default parameters at levels up to 19;
+    /// levels 20 to 22 with <c>--ultra</c>, and <c>--long</c> or an explicit <c>windowLog</c>, can declare 128 MiB or more and
+    /// need a higher limit. It applies to the window descriptor, to the declared
     /// content size of a single-segment frame, which is that frame's window, and to the content of a supplied dictionary,
     /// all before any history is allocated. Each frame starts with a buffer for its dictionary and two blocks,
     /// and the history grows towards the window only as output is produced.</summary>

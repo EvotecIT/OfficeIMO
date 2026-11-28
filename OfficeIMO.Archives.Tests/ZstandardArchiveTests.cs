@@ -152,9 +152,12 @@ public sealed class ZstandardArchiveTests {
             var output = new MemoryStream();
             Exception? error = Record.Exception(() => Decode(new MemoryStream(source, 0, length, writable: false), output, dictionary));
             if (error == null) {
-                // Only a cut between complete frames of a concatenated stream is itself a valid stream.
+                // Only a cut between complete frames of a concatenated stream is itself a valid stream: after the first
+                // frame, or after the 13-byte skippable frame that follows it, either way holding the first frame's text.
                 Assert.Equal("concatenated.zst", fixture);
-                Assert.Equal(expected.Take((int)output.Length), output.ToArray());
+                int first = ReadFixture("text-level1.zst").Length;
+                Assert.Contains(length, new[] { first, first + 13 });
+                Assert.Equal(ReadInput("text.txt"), output.ToArray());
                 continue;
             }
             ArchiveCorruptionException corruption = Assert.IsType<ArchiveCorruptionException>(error);
