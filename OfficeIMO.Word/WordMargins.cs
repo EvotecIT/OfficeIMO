@@ -126,16 +126,15 @@ namespace OfficeIMO.Word {
             get {
                 OfficeXmlNode margins = _section.SectionNode.Child(W, "pgMar");
                 if (margins.IsNone) return WordMargin.Normal;
-                Span<int> twips = stackalloc int[7];
-                for (int index = 0; index < Attributes.Length; index++) {
-                    if (OfficeXmlViewValues.ParseInt32(margins.Attribute(W, Attributes[index])) is not int value)
-                        return WordMargin.Unknown;
-                    twips[index] = value;
-                }
+                var twips = (Read(0), Read(1), Read(2), Read(3), Read(4), Read(5), Read(6));
                 foreach (var preset in Presets) {
-                    if (twips.SequenceEqual(preset.Twips)) return preset.Type;
+                    int[] expected = preset.Twips;
+                    if (twips == (expected[0], expected[1], expected[2], expected[3], expected[4], expected[5], expected[6]))
+                        return preset.Type;
                 }
                 return WordMargin.Unknown;
+
+                int? Read(int index) => OfficeXmlViewValues.ParseInt32(margins.Attribute(W, Attributes[index]));
             }
             set {
                 int[]? preset = null;

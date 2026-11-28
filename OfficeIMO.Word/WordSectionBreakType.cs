@@ -20,7 +20,7 @@ public enum WordSectionBreakType {
     OddPage
 }
 
-internal static class WordSectionBreakTypeExtensions {
+internal static partial class WordSectionBreakTypeExtensions {
     internal static string ToOpenXmlToken(this WordSectionBreakType breakType) => breakType switch {
         WordSectionBreakType.NextPage => "nextPage",
         WordSectionBreakType.NextColumn => "nextColumn",

@@ -897,4 +897,16 @@ namespace OfficeIMO.Word {
             return HeaderFooterValues.Default;
         }
     }
+    internal static partial class WordSectionBreakTypeExtensions {
+        // Used by the existing SDK-backed section consumers.
+        internal static WordSectionBreakType ToOfficeEnum(this SectionMarkValues value) {
+            if (value == SectionMarkValues.NextPage) return WordSectionBreakType.NextPage;
+            if (value == SectionMarkValues.NextColumn) return WordSectionBreakType.NextColumn;
+            if (value == SectionMarkValues.Continuous) return WordSectionBreakType.Continuous;
+            if (value == SectionMarkValues.EvenPage) return WordSectionBreakType.EvenPage;
+            if (value == SectionMarkValues.OddPage) return WordSectionBreakType.OddPage;
+            throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported Word section break type.");
+        }
+    }
+
 }

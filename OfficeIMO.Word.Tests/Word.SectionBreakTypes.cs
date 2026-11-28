@@ -41,16 +41,4 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, document.Sections.Count);
         }
     }
-
-    internal static class SectionBreakTestExtensions {
-        // Legacy DOC fixtures still describe section breaks using the SDK's wire values.
-        internal static WordSectionBreakType ToOfficeEnum(this SectionMarkValues value) {
-            if (value == SectionMarkValues.NextPage) return WordSectionBreakType.NextPage;
-            if (value == SectionMarkValues.NextColumn) return WordSectionBreakType.NextColumn;
-            if (value == SectionMarkValues.Continuous) return WordSectionBreakType.Continuous;
-            if (value == SectionMarkValues.EvenPage) return WordSectionBreakType.EvenPage;
-            if (value == SectionMarkValues.OddPage) return WordSectionBreakType.OddPage;
-            throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported Word section break type.");
-        }
-    }
 }
