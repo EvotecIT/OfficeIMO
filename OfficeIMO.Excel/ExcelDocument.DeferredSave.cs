@@ -42,6 +42,8 @@ namespace OfficeIMO.Excel {
             // A sheet a new workbook just added has no tables, and the workbook has no cell metadata.
             if (edit.Kind != ExcelDeferredCellKind.Style && !entry.IsNewSheet) {
                 if (IsTableHeaderCell(entry, packageBytes, edit.Row, edit.Column)) {
+                    // Text renames the column, which the owned path applies unless formulas or fields follow the name.
+                    if (edit.Kind == ExcelDeferredCellKind.Text && TryRecordDeferredTableHeader(sheet, entry, edit)) return true;
                     OpenDeferredSdk("Cell value in a table header row on worksheet '" + entry.Name + "'");
                     return false;
                 }
