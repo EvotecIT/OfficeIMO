@@ -27,8 +27,12 @@ public class XlsbMigrationBenchmarks {
         _arrayInput = File.ReadAllBytes(arrayFile);
         using (ExcelDocument workbook = Load(_arrayInput)) {
             ExcelSheet array = workbook.Sheets.Single();
-            if (array.Cell(1, 2).GetValue<double>() != 3D || array.Cell(Rows, 1).GetValue<double>() != Rows)
-                throw new InvalidDataException("The benchmark array workbook did not import its cached values.");
+            IReadOnlyList<ExcelFormulaCellInfo> formulas = array.GetFormulaCells();
+            ExcelFormulaCellInfo? owner = formulas.SingleOrDefault(formula => formula.CellReference == "B1");
+            if (formulas.Count != Rows / 10 || owner?.Formula != "SUM(A1:A2)" || owner.Array?.Range != "B1:B2"
+                || array.Cell(1, 2).GetValue<double>() != 3D || array.Cell(2, 2).GetValue<double>() != 3D
+                || array.Cell(Rows, 1).GetValue<double>() != Rows)
+                throw new InvalidDataException("The benchmark array workbook did not import its formulas, range and cached values.");
         }
         ValidateWorkbook(_input, Rows * Columns);
         ValidateWorkbook(CreateNativeWorkbook(), Rows * Columns);
