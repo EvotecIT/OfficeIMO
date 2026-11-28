@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.</Description>
     <VersionPrefix>3.6.2</VersionPrefix>
     <InformationalVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</InformationalVersion>
@@ -20,11 +20,16 @@
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
-
+    <!-- The tool ships as one small NuGet package that points the .NET 10 SDK at a ReadyToRun-compiled package for the
+         machine's runtime, plus a portable package for runtimes not listed here. -->
+    <ToolPackageRuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64;osx-x64;osx-arm64;any</ToolPackageRuntimeIdentifiers>
+    <RuntimeIdentifiers>$(ToolPackageRuntimeIdentifiers)</RuntimeIdentifiers>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AotValidation)' == 'true'">
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <PublishReadyToRun>false</PublishReadyToRun>
     <PublishAot>true</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>

@@ -12,6 +12,8 @@ meta.application: "cli"
 
 ## Install the CLI
 
+Installing the tool needs the .NET 10 SDK or later.
+
 ```shell
 dotnet tool install --global OfficeIMO.Tool
 officeimo --version

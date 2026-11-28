@@ -1213,8 +1213,8 @@ function ensureExecutable(filePath: string): void {
 function findBuiltCliDll(csprojPath: string): string | undefined {
   const projectDirectory = path.dirname(csprojPath);
   const candidates = [
-    path.join(projectDirectory, 'bin', 'Release', 'net8.0', 'OfficeIMO.Tool.dll'),
-    path.join(projectDirectory, 'bin', 'Debug', 'net8.0', 'OfficeIMO.Tool.dll')
+    path.join(projectDirectory, 'bin', 'Release', 'net10.0', 'OfficeIMO.Tool.dll'),
+    path.join(projectDirectory, 'bin', 'Debug', 'net10.0', 'OfficeIMO.Tool.dll')
   ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));

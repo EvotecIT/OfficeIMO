@@ -1482,7 +1482,8 @@ jobs:
             add_project OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
             add_project OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
             add_project OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj
-            add_project OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
+            # The tool and its tests target .NET 10 only.
+            if [ "${{ matrix.framework }}" = "net10.0" ]; then add_project OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj; fi
             add_project OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
@@ -1790,7 +1791,7 @@ jobs:
               run_shared_tests "shared-contracts"
               if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
-              if ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if [ "${OFFICEIMO_TEST_FRAMEWORK}" = "net10.0" ] && ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj"; then dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               # CSV parsing has AVX-512, AVX2 and Vector128 branches. The default run takes the widest one this
@@ -2181,10 +2182,10 @@ jobs:
       - name: Run AOT/Trim analyzers (net8.0)
         shell: pwsh
         run: |
-          # Studio and the AI projects target net10 only. Preserve
+          # Studio, the AI projects and the CLI tool target net10 only. Preserve
           # the existing net8 analyzer lane for every compatible solution project.
           $projects = dotnet sln OfficeIMO.slnx list | Where-Object {
-            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Core|\.Native)?(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?)[\\/]'
+            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Core|\.Native)?(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?|Tool(\.Tests)?)[\\/]'
           } | ForEach-Object {
             (Resolve-Path -LiteralPath $_).Path
           }
@@ -2203,8 +2204,11 @@ jobs:
           # concurrent Avalonia generation through Studio and Studio.Tests.
           dotnet restore OfficeIMO.slnx
           $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.slnx'
-          dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
+          # The PSWriteOffice module projects target net8.0 (and net472) only.
+          dotnet sln $analyzerSolution remove PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/PSWriteOffice.Tests.csproj
+          dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj OfficeIMO.Tool/OfficeIMO.Tool.csproj OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
   aot-linux-scenarios:

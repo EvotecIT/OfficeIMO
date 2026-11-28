@@ -14,7 +14,7 @@ OfficeIMO creates, edits, reads and converts Word, Excel, PowerPoint and PDF fil
 | --- | --- | --- |
 | .NET | Focused NuGet packages, one per format or conversion | `dotnet add package OfficeIMO` |
 | PowerShell 5.1 and 7 | [PSWriteOffice](PowerShell/PSWriteOffice/README.MD) | `Install-Module PSWriteOffice` |
-| A terminal or CI job | The `officeimo` command line ([OfficeIMO.Tool](OfficeIMO.Tool/README.md)) | `dotnet tool install --global OfficeIMO.Tool` |
+| A terminal or CI job | The `officeimo` command line ([OfficeIMO.Tool](OfficeIMO.Tool/README.md)) | `dotnet tool install --global OfficeIMO.Tool` (.NET 10 SDK) |
 | An AI agent | The same tool as an MCP server, with the [Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) for Claude Code, Codex, VS Code and Cursor | `officeimo mcp serve --stdio` |
 | A desktop app | [OfficeIMO Studio](https://officeimo.com/studio/) for reading, marking up, filling, converting, protecting and signing documents on Windows and Linux ([README](OfficeIMO.Studio/README.md)); native Mac, iPad and iPhone apps are in development ([README](Apple/OfficeIMOStudio/README.md)) | [Downloads](https://officeimo.com/downloads/) |
 | A browser | [Browser tools](https://officeimo.com/convert/) that convert and organize files in the tab, without uploading them | [officeimo.com](https://officeimo.com/) |

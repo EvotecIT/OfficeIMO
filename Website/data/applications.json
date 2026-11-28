@@ -135,12 +135,12 @@
     "primaryUrl": "#install",
     "secondaryLabel": "Read the CLI docs",
     "secondaryUrl": "/docs/cli/",
-    "availability": "Available on NuGet · Requires the .NET SDK to install · Windows, Linux and macOS",
+    "availability": "Available on NuGet · Requires the .NET 10 SDK to install · Windows, Linux and macOS",
     "install": "dotnet tool install --global OfficeIMO.Tool",
     "facts": ["JSON, NDJSON and SARIF output", "Version-pinned automation", "MIT licensed"],
     "terminalTitle": "pwsh · OfficeIMO.Tool",
     "terminal": [
-      { "comment": "Install once with the .NET SDK", "command": "dotnet tool install --global OfficeIMO.Tool" },
+      { "comment": "Install once with the .NET 10 SDK", "command": "dotnet tool install --global OfficeIMO.Tool" },
       { "comment": "Convert a folder to PDF, resuming where it stopped", "command": "officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State" },
       { "comment": "Extract the content as Markdown for search or AI", "command": "officeimo convert report.pdf report.md" },
       { "comment": "Validate an e-invoice before it is sent", "command": "officeimo invoice validate invoice.xml" }
@@ -208,7 +208,7 @@
     "primaryUrl": "#install",
     "secondaryLabel": "View the plugin",
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
-    "availability": "Runs locally with the .NET SDK · Windows, Linux and macOS",
+    "availability": "Runs locally with the .NET 10 SDK · Windows, Linux and macOS",
     "facts": ["Local and read-first", "Only the folders you allow", "MIT licensed"],
     "stats": [
       { "source": "agents.tools", "label": "MCP tools" },
