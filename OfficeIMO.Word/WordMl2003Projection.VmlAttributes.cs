@@ -1,14 +1,12 @@
 using System.Xml.Linq;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Packaging;
-using V = DocumentFormat.OpenXml.Vml;
-using O = DocumentFormat.OpenXml.Vml.Office;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
 internal sealed partial class WordMl2003Projection {
-    private readonly HashSet<(OpenXmlPart Story, XName Element, string Identifier)> _vmlIdentifiers = new();
+    private readonly HashSet<(string Story, XName Element, string Identifier)> _vmlIdentifiers = new();
     private const string LockBooleanAttributes = "aspectratio position selection grouping ungrouping rotation cropping verticies adjusthandles text shapetype";
     private static readonly Dictionary<string, string> VmlOfficeAttributes = new(StringComparer.Ordinal) {
         ["shape"] = "spid spt preferrelative allowincell allowoverlap",
@@ -59,40 +57,31 @@ internal sealed partial class WordMl2003Projection {
     }
 
     private static bool IsSupportedVmlAttributeValue(XName element, XName attribute, string value) {
-        Func<string, bool>? valid = (element.LocalName, attribute.LocalName) switch {
-            ("stroke", "joinstyle") => IsEnum<V.StrokeJoinStyleValues>,
-            ("stroke", "endcap") => IsEnum<V.StrokeEndCapValues>,
-            ("path", "connecttype") => IsEnum<O.ConnectValues>,
-            ("fill", "type") => IsEnum<V.FillTypeValues>,
-            ("fill", "method") => IsEnum<V.FillMethodValues>,
-            ("lock", "ext") => IsEnum<V.ExtensionHandlingBehaviorValues>,
+        string? tokens = (element.LocalName, attribute.LocalName) switch {
+            ("stroke", "joinstyle") => "round bevel miter",
+            ("stroke", "endcap") => "flat square round",
+            ("path", "connecttype") => "none rect segments custom",
+            ("fill", "type") => "solid gradient gradientRadial tile pattern frame",
+            ("fill", "method") => "none linear sigma any",
+            ("lock", "ext") => "view edit backwardCompatible",
             _ => null
         };
-        if (valid != null) return valid(value);
-        try {
-            if (attribute == Office + "spt" && (element == Vml + "shape" || element == Vml + "shapetype")) {
-                int number = new Int32Value { InnerText = value }.Value;
-                return number >= 0 && number <= 202;
-            }
-            if (element == Vml + "fill" && attribute == XName.Get("angle")) {
-                decimal angle = new DecimalValue { InnerText = value }.Value;
-                return angle >= -32767M && angle <= 32767M;
-            }
-            if (element == Vml + "fill" && attribute == XName.Get("focus"))
-                return value.Length == 0 || value.Length <= 5 && Regex.IsMatch(value, @"^-?(\d{1,2}|100)%$", RegexOptions.CultureInvariant);
-            if (element == Vml + "imagedata" && attribute == XName.Get("blacklevel"))
-                return IsVmlNumberInRange(value, -0.5, 0.5);
-            if (element == Vml + "stroke" && attribute == XName.Get("weight"))
-                return IsVmlNumberInRange(value, 0, 20116800);
-            if (!VmlBooleanAttributes.TryGetValue(element.LocalName, out string? booleans) || !ContainsName(booleans, attribute.LocalName)) return true;
-            // Assigning InnerText alone defers parsing. The SDK Value getter owns the TrueFalse vocabulary.
-            _ = new TrueFalseValue { InnerText = value }.Value;
-            return true;
-        } catch (FormatException) {
-            return false;
-        } catch (OverflowException) {
-            return false;
-        }
+        if (tokens != null) return value == "linear sigma" && (element.LocalName, attribute.LocalName) == ("fill", "method")
+            || ContainsName(tokens, value);
+        if (attribute == Office + "spt" && (element == Vml + "shape" || element == Vml + "shapetype"))
+            return OfficeXmlViewValues.ParseInt32(value) is >= 0 and <= 202;
+        if (element == Vml + "fill" && attribute == XName.Get("angle"))
+            return decimal.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint |
+                NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture, out decimal angle)
+                && angle is >= -32767M and <= 32767M;
+        if (element == Vml + "fill" && attribute == XName.Get("focus"))
+            return value.Length == 0 || value.Length <= 5 && Regex.IsMatch(value, @"^-?(\d{1,2}|100)%$", RegexOptions.CultureInvariant);
+        if (element == Vml + "imagedata" && attribute == XName.Get("blacklevel"))
+            return IsVmlNumberInRange(value, -0.5, 0.5);
+        if (element == Vml + "stroke" && attribute == XName.Get("weight"))
+            return IsVmlNumberInRange(value, 0, 20116800);
+        return !VmlBooleanAttributes.TryGetValue(element.LocalName, out string? booleans) ||
+            !ContainsName(booleans, attribute.LocalName) || value is "t" or "f" or "true" or "false";
     }
 
     private static bool IsVmlNumberInRange(string value, double minimum, double maximum) {
@@ -104,7 +93,7 @@ internal sealed partial class WordMl2003Projection {
     private void CheckVmlIdentifiers(XElement picture) {
         foreach (XElement element in picture.Elements()) {
             string? identifier = (string?)element.Attribute("id");
-            if (identifier != null && identifier.Length != 0 && !_vmlIdentifiers.Add((_story, element.Name, identifier)))
+            if (identifier != null && identifier.Length != 0 && !_vmlIdentifiers.Add((_story.PartName, element.Name, identifier)))
                 throw new InvalidDataException("WordML 2003 contains a duplicate VML " + element.Name.LocalName + " identifier within one story.");
         }
     }

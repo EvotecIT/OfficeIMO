@@ -177,6 +177,48 @@ public sealed class WordMlReconstructionTests {
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(package));
     }
 
+    [Theory]
+    [InlineData("<w:extLst>", "</w:extLst>")]
+    [InlineData("<mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"wx\">",
+        "</mc:Choice></mc:AlternateContent>")]
+    public void WordMlPictureResolutionIgnoresResourcesInsideOpaqueMarkup(string opening, string closing) {
+        const string name = "wordml://pixel.png";
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+        string xml = Wrap("<w:body>" + opening + "<w:binData w:name=\"" + name + "\">ignored</w:binData>" + closing +
+            "<w:p><w:r><w:pict><w:binData w:name=\"" + name + "\">" + png + "</w:binData>" +
+            "<v:shape id=\"Picture1\"><v:imagedata src=\"" + name + "\"/></v:shape></w:pict></w:r></w:p></w:body>");
+        using var input = Input(xml);
+        using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "WORDML2003_OMITTED" &&
+            diagnostic.Location!.EndsWith(opening.StartsWith("<mc:", StringComparison.Ordinal) ? "}AlternateContent" : "}extLst", StringComparison.Ordinal));
+
+        using var saved = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument package = WordprocessingDocument.Open(saved, false);
+        ImagePart part = Assert.Single(package.MainDocumentPart!.ImageParts);
+        var data = Assert.Single(package.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Vml.ImageData>());
+        Assert.Same(part, package.MainDocumentPart.GetPartById(data.RelationshipId!.Value));
+        using Stream payload = part.GetStream();
+        using var copy = new MemoryStream();
+        payload.CopyTo(copy);
+        Assert.Equal(Convert.FromBase64String(png), copy.ToArray());
+    }
+
+    [Theory]
+    [InlineData(128)]
+    [InlineData(129)]
+    public void WordMlSourceDepthLimitCountsTheRootAtZero(int depth) {
+        string xml = Wrap("<w:body><w:extLst>" +
+            string.Concat(Enumerable.Repeat("<w:unknown>", depth - 2)) +
+            string.Concat(Enumerable.Repeat("</w:unknown>", depth - 2)) + "</w:extLst></w:body>");
+        using var input = Input(xml);
+        if (depth == 129) {
+            Assert.Throws<InvalidDataException>(() => WordDocument.Load(input));
+        } else {
+            using WordDocument document = WordDocument.Load(input, null, out OfficeConversionReport report);
+            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location == "{" + WordNamespace + "}extLst");
+        }
+    }
+
     private static string Table(string? span, string? before = null, string? after = null) =>
         "<w:tbl><w:tr>" + (before == null && after == null ? string.Empty : "<w:trPr>" +
         (before == null ? string.Empty : "<w:gridBefore w:val=\"" + before + "\"/>") +

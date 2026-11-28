@@ -1,6 +1,6 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -32,17 +32,19 @@ internal sealed partial class WordMl2003Projection {
                 // The producer explicitly excludes this namespace from Word's document semantics.
             } else Omit(child, "document-level content");
         }
-        if (_main.StyleDefinitionsPart == null && root.Element(Word + "fonts")?.Element(Word + "defaultFonts") is { } defaults)
+        if (!_package.PartExists("/word/styles.xml") && root.Element(Word + "fonts")?.Element(Word + "defaultFonts") is { } defaults)
             ReadStyles(new XElement(Word + "styles"), defaults);
     }
 
     private void ReadStyles(XElement source, XElement? defaultFonts) {
         CheckAttributes(source, "");
-        var styles = new Styles();
+        OfficeXmlTree styles = AddMainPart("styles", "styles", out _);
         if (defaultFonts != null) {
-            XElement? mapped = MapProperties(defaultFonts, "rFonts");
-            styles.DocDefaults = new DocDefaults(new RunPropertiesDefault(
-                NormalizeMappedProperties(new RunPropertiesBaseStyle(new XElement(ModernWord + "rPr", mapped).ToString(SaveOptions.DisableFormatting)))));
+            int defaults = AppendWord(styles, styles.Root, "docDefaults");
+            int runDefault = AppendWord(styles, defaults, "rPrDefault");
+            var mapped = new XElement(ModernWord + "rPr", MapProperties(defaultFonts, "rFonts"));
+            NormalizeMappedProperties(mapped, "defaultRun");
+            AppendMapped(styles, runDefault, mapped);
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (XElement child in source.Elements()) {
@@ -55,44 +57,41 @@ internal sealed partial class WordMl2003Projection {
             string? id = (string?)child.Attribute(Word + "styleId");
             if (id == null || id.Length == 0 || !ids.Add(id))
                 throw new InvalidDataException("WordML 2003 contains a missing or duplicate style identifier.");
-            string? kind = (string?)child.Attribute(Word + "type");
-            StyleValues type = kind switch {
-                "paragraph" => StyleValues.Paragraph,
-                "character" => StyleValues.Character,
-                "table" => StyleValues.Table,
-                "list" => StyleValues.Numbering,
+            string type = (string?)child.Attribute(Word + "type") switch {
+                "paragraph" => "paragraph",
+                "character" => "character",
+                "table" => "table",
+                "list" => "numbering",
                 _ => throw new InvalidDataException("WordML 2003 contains an unsupported style type.")
             };
-            var style = new Style { StyleId = id, Type = type };
-            if (child.Attribute(Word + "default") is { } defaultAttribute) style.Default = IsTrue(defaultAttribute.Value);
-            if (child.Attribute(Word + "customStyle") is { } customAttribute) style.CustomStyle = IsTrue(customAttribute.Value);
+            int style = AppendWord(styles, styles.Root, "style");
+            styles.SetAttribute(style, W, "type", type);
+            styles.SetAttribute(style, W, "styleId", id);
+            if (child.Attribute(Word + "default") is { } defaultAttribute) styles.SetAttribute(style, W, "default", BooleanToken(IsTrue(defaultAttribute.Value)));
+            if (child.Attribute(Word + "customStyle") is { } customAttribute) styles.SetAttribute(style, W, "customStyle", BooleanToken(IsTrue(customAttribute.Value)));
             foreach (XElement property in child.Elements()) {
                 if (property.Name == Auxiliary + "uiName" || property.Name == Word + "rsid") continue;
-                if (property.Name == Word + "name") style.StyleName = new StyleName { Val = ReadStyleReference(property) };
-                else if (property.Name == Word + "basedOn") style.BasedOn = new BasedOn { Val = ReadStyleReference(property) };
-                else if (property.Name == Word + "next") style.NextParagraphStyle = new NextParagraphStyle { Val = ReadStyleReference(property) };
-                else if (property.Name == Word + "link") style.LinkedStyle = new LinkedStyle { Val = ReadStyleReference(property) };
-                else if (property.Name == Word + "pPr") style.StyleParagraphProperties =
-                    NormalizeMappedProperties(new StyleParagraphProperties(MapProperties(property, "pPr")!.ToString(SaveOptions.DisableFormatting)));
-                else if (property.Name == Word + "rPr") style.StyleRunProperties =
-                    NormalizeMappedProperties(new StyleRunProperties(MapProperties(property, "rPr")!.ToString(SaveOptions.DisableFormatting)));
-                else if (property.Name == Word + "tblPr") style.StyleTableProperties =
-                    NormalizeMappedProperties(new StyleTableProperties(MapProperties(property, "tblPr")!.ToString(SaveOptions.DisableFormatting)));
-                else if (property.Name == Word + "trPr") style.TableStyleConditionalFormattingTableRowProperties =
-                    NormalizeMappedProperties(new TableStyleConditionalFormattingTableRowProperties(MapProperties(property, "trPr")!.ToString(SaveOptions.DisableFormatting)));
-                else if (property.Name == Word + "tcPr") style.StyleTableCellProperties =
-                    NormalizeMappedProperties(new StyleTableCellProperties(MapProperties(property, "tcPr")!.ToString(SaveOptions.DisableFormatting)));
-                else if (property.Name == Word + "tblStylePr") {
+                string name = property.Name.LocalName;
+                if (property.Name.Namespace == Word && ContainsName("name basedOn next link", name)) {
+                    int reference = styles.CreateElement(W, name);
+                    styles.SetAttribute(reference, W, "val", ReadStyleReference(property));
+                    ReplaceWordChild(styles, style, reference, StyleOrder);
+                } else if (property.Name.Namespace == Word && ContainsName("pPr rPr tblPr trPr tcPr", name)) {
+                    ReplaceWordChild(styles, style, ProjectProperties(styles, property, name, context: "style"), StyleOrder);
+                } else if (property.Name == Word + "tblStylePr") {
                     XElement? conditional = MapProperties(property, "tblStylePr");
-                    if (conditional != null) style.AppendChild(NormalizeMappedProperties(new TableStyleProperties(conditional.ToString(SaveOptions.DisableFormatting))));
-                }
-                else Omit(property, "style properties");
+                    if (conditional != null) {
+                        NormalizeMappedProperties(conditional);
+                        AppendMapped(styles, style, conditional);
+                    }
+                } else Omit(property, "style properties");
             }
-            styles.AppendChild(style);
         }
-        ReserveRelationship(_main, createsPart: true);
-        _main.AddNewPart<StyleDefinitionsPart>().Styles = styles;
     }
+
+    private static readonly OfficeXmlChildOrder StyleOrder = WordChildOrder("name basedOn next link pPr rPr tblPr trPr tcPr tblStylePr");
+
+    private static string BooleanToken(bool value) => value ? "true" : "false";
 
     private string ReadStyleReference(XElement source) {
         CheckAttributes(source, "val");
@@ -102,7 +101,7 @@ internal sealed partial class WordMl2003Projection {
 
     private void ReadFonts(XElement source) {
         CheckAttributes(source, "");
-        var fonts = new Fonts();
+        OfficeXmlTree? fonts = null;
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "defaultFonts") continue;
             if (child.Name != Word + "font") { Omit(child, "font-table content"); continue; }
@@ -111,18 +110,13 @@ internal sealed partial class WordMl2003Projection {
             foreach (XElement property in child.Elements()) {
                 XElement? mapped = MapProperties(property, property.Name.LocalName);
                 if (mapped == null) continue;
-                if (property.Name == Word + "panose-1") { mapped.Name = ModernWord + "panose1"; font.Add(mapped); }
-                else if (property.Name == Word + "charset") font.Add(mapped);
-                else if (property.Name == Word + "family") font.Add(mapped);
-                else if (property.Name == Word + "pitch") font.Add(mapped);
+                if (property.Name.Namespace == Word && ContainsName("panose-1 charset family pitch", property.Name.LocalName)) font.Add(mapped);
                 else if (property.Name == Word + "sig") Omit(property, "font signature metadata");
                 else Omit(property, "font metadata");
             }
-            fonts.AppendChild(NormalizeMappedProperties(new Font(font.ToString(SaveOptions.DisableFormatting))));
-        }
-        if (fonts.HasChildren) {
-            ReserveRelationship(_main, createsPart: true);
-            _main.AddNewPart<FontTablePart>().Fonts = fonts;
+            NormalizeMappedProperties(font);
+            fonts ??= AddMainPart("fontTable", "fonts", out _);
+            AppendMapped(fonts, fonts.Root, font);
         }
     }
 
@@ -144,56 +138,63 @@ internal sealed partial class WordMl2003Projection {
             settings.Add(mapped);
         }
         if (settings.HasElements) {
-            var ordered = NormalizeMappedProperties(new Settings(settings.ToString(SaveOptions.DisableFormatting)));
-            ReserveRelationship(_main, createsPart: true);
-            _main.AddNewPart<DocumentSettingsPart>().Settings = ordered;
+            NormalizeMappedProperties(settings);
+            OfficeXmlTree part = AddMainPart("settings", "settings", out _);
+            foreach (XElement setting in settings.Elements()) AppendMapped(part, part.Root, setting);
         }
     }
 
     private void ReadMetadata(XElement source) {
         CheckAttributes(source, "", Office);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (XElement child in source.Elements()) {
             CheckAttributes(child, "", Office);
-            if (child.HasElements || child.Name.Namespace != Office) { Omit(child, "document properties"); continue; }
-            string value = child.Value;
-            if (ContainsName("Title Subject Author LastAuthor Keywords Description", child.Name.LocalName) && !_corePropertiesReserved) {
-                ReserveRelationship(_main.OpenXmlPackage, createsPart: true);
-                _corePropertiesReserved = true;
+            if (child.HasElements || child.Name.Namespace != Office ||
+                !ContainsName("Title Subject Author LastAuthor Keywords Description", child.Name.LocalName)) {
+                Omit(child, "document properties");
+                continue;
             }
-            switch (child.Name.LocalName) {
-                case "Title": _main.OpenXmlPackage.PackageProperties.Title = value; break;
-                case "Subject": _main.OpenXmlPackage.PackageProperties.Subject = value; break;
-                case "Author": _main.OpenXmlPackage.PackageProperties.Creator = value; break;
-                case "LastAuthor": _main.OpenXmlPackage.PackageProperties.LastModifiedBy = value; break;
-                case "Keywords": _main.OpenXmlPackage.PackageProperties.Keywords = value; break;
-                case "Description": _main.OpenXmlPackage.PackageProperties.Description = value; break;
-                default: Omit(child, "document properties"); break;
-            }
+            if (values.Count == 0) ReserveRelationship(null, createsPart: true);
+            values[child.Name.LocalName] = child.Value;
+        }
+        if (values.Count == 0) return;
+        _package.AddRelationship(null, CorePropertiesRelationshipType, CorePropertiesPart);
+        OfficeXmlTree core = _package.CreateXmlPart(CorePropertiesPart, CorePropertiesContentType, OfficeXmlNamespaces.CoreProperties, "coreProperties");
+        Add("Title", "title", OfficeXmlNamespaces.DublinCore);
+        Add("Subject", "subject", OfficeXmlNamespaces.DublinCore);
+        Add("Keywords", "keywords", OfficeXmlNamespaces.CoreProperties);
+        Add("Description", "description", OfficeXmlNamespaces.DublinCore);
+        Add("Author", "creator", OfficeXmlNamespaces.DublinCore);
+        Add("LastAuthor", "lastModifiedBy", OfficeXmlNamespaces.CoreProperties);
+
+        void Add(string sourceName, string name, int ns) {
+            if (!values.TryGetValue(sourceName, out string? text)) return;
+            int node = core.CreateElement(ns, name);
+            core.SetInnerText(node, text);
+            core.Append(core.Root, node);
         }
     }
 
-    private void AppendHeaderFooter(SectionProperties properties, XElement source) {
+    private void AppendHeaderFooter(int properties, XElement source) {
         CheckAttributes(source, "type");
-        HeaderFooterValues type = (string?)source.Attribute(Word + "type") switch {
-            "odd" => HeaderFooterValues.Default, "even" => HeaderFooterValues.Even, "first" => HeaderFooterValues.First,
+        string type = (string?)source.Attribute(Word + "type") switch {
+            "odd" => "default", "even" => "even", "first" => "first",
             _ => throw new InvalidDataException("WordML 2003 contains an invalid header or footer type.")
         };
-        OpenXmlPart previous = _story;
-        ReserveRelationship(_main, createsPart: true);
+        Story previous = _story;
+        bool header = source.Name == Word + "hdr";
+        string kind = header ? "header" : "footer";
+        string name = kind + (header ? ++_headerCount : ++_footerCount).ToString(CultureInfo.InvariantCulture);
+        OfficeXmlTree tree = AddMainPart(name, header ? "hdr" : "ftr", out string id, kind);
         try {
-            if (source.Name == Word + "hdr") {
-                HeaderPart part = _main.AddNewPart<HeaderPart>();
-                _story = part;
-                part.Header = new Header(ProjectBlocks(source));
-                if (!part.Header.HasChildren) part.Header.AppendChild(new Paragraph());
-                properties.PrependChild(new HeaderReference { Type = type, Id = _main.GetIdOfPart(part) });
-            } else {
-                FooterPart part = _main.AddNewPart<FooterPart>();
-                _story = part;
-                part.Footer = new Footer(ProjectBlocks(source));
-                if (!part.Footer.HasChildren) part.Footer.AppendChild(new Paragraph());
-                properties.PrependChild(new FooterReference { Type = type, Id = _main.GetIdOfPart(part) });
-            }
+            _story = new Story("/word/" + name + ".xml", tree);
+            foreach (int block in ProjectBlocks(source)) tree.Append(tree.Root, block);
+            if (tree.FirstChildOf(tree.Root) == NoNode) AppendWord(tree, tree.Root, "p");
         } finally { _story = previous; }
+        OfficeXmlTree document = previous.Tree;
+        int reference = document.CreateElement(W, kind + "Reference");
+        document.SetAttribute(reference, W, "type", type);
+        document.SetAttribute(reference, R, "id", id);
+        document.InsertBefore(properties, reference, document.FirstChildOf(properties));
     }
 }

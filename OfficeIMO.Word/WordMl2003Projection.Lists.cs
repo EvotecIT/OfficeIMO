@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word;
@@ -12,17 +11,19 @@ internal sealed partial class WordMl2003Projection {
     /// <summary>Reconstructs declarations before styles and stories resolve their list references.</summary>
     private void ReadLists(XElement source) {
         CheckAttributes(source, "");
-        var numbering = new Numbering();
-        var definitions = new Dictionary<int, AbstractNum>();
+        OfficeXmlTree? numbering = null;
+        var definitions = new Dictionary<int, HashSet<int>>();
         foreach (XElement child in source.Elements(Word + "listDef")) {
             _token.ThrowIfCancellationRequested();
             int id = ReadListIndex(child, "listDefId");
             if (definitions.ContainsKey(id)) throw new InvalidDataException("WordML 2003 contains a duplicate list definition identifier.");
             ValidateListLevels(child);
-            var definition = NormalizeMappedProperties(new AbstractNum(MapProperties(child, "listDef")!.ToString(SaveOptions.DisableFormatting)));
-            definition.AbstractNumberId = id;
-            definitions.Add(id, definition);
-            numbering.AppendChild(definition);
+            XElement definition = MapProperties(child, "listDef")!;
+            NormalizeMappedProperties(definition);
+            definition.SetAttributeValue(ModernWord + "abstractNumId", id);
+            definitions.Add(id, new HashSet<int>(definition.Elements(ModernWord + "lvl").Select(level => (int)level.Attribute(ModernWord + "ilvl")!)));
+            numbering ??= AddMainPart("numbering", "numbering", out _);
+            AppendMapped(numbering, numbering.Root, definition);
         }
         var ids = new HashSet<int>();
         foreach (XElement child in source.Elements()) {
@@ -35,26 +36,25 @@ internal sealed partial class WordMl2003Projection {
             if (reference == null || reference.ElementsAfterSelf(Word + "ilst").Any())
                 throw new InvalidDataException("WordML 2003 list must reference exactly one list definition.");
             int definitionId = ReadListIndex(reference, "val");
-            if (!definitions.TryGetValue(definitionId, out AbstractNum? definition)) {
+            if (!definitions.TryGetValue(definitionId, out HashSet<int>? definition)) {
                 Omit(child, "list instance with an unresolved definition");
                 continue;
             }
             ValidateListLevels(child, overrides: true);
-            var instance = NormalizeMappedProperties(new NumberingInstance(MapProperties(child, "list")!.ToString(SaveOptions.DisableFormatting)));
-            instance.NumberID = id;
-            instance.AbstractNumId = new AbstractNumId { Val = definitionId };
-            var levels = new HashSet<int>(definition.Elements<Level>().Select(level => level.LevelIndex!.Value));
-            foreach (LevelOverride item in instance.Elements<LevelOverride>()) {
-                if (item.GetFirstChild<Level>() != null) levels.Add(item.LevelIndex!.Value);
-                else if (!levels.Contains(item.LevelIndex!.Value))
+            XElement instance = MapProperties(child, "list")!;
+            NormalizeMappedProperties(instance);
+            instance.SetAttributeValue(ModernWord + "numId", id);
+            instance.Element(ModernWord + "abstractNumId")?.Remove();
+            instance.AddFirst(new XElement(ModernWord + "abstractNumId", new XAttribute(ModernWord + "val", definitionId)));
+            var levels = new HashSet<int>(definition);
+            foreach (XElement item in instance.Elements(ModernWord + "lvlOverride")) {
+                int index = (int)item.Attribute(ModernWord + "ilvl")!;
+                if (item.Element(ModernWord + "lvl") != null) levels.Add(index);
+                else if (!levels.Contains(index))
                     throw new InvalidDataException("WordML 2003 list start override references an undefined level.");
             }
             _listLevels.Add(id, levels);
-            numbering.AppendChild(instance);
-        }
-        if (numbering.HasChildren) {
-            ReserveRelationship(_main, createsPart: true);
-            _main.AddNewPart<NumberingDefinitionsPart>().Numbering = numbering;
+            AppendMapped(numbering!, numbering!.Root, instance);
         }
     }
 
@@ -130,6 +130,7 @@ internal sealed partial class WordMl2003Projection {
             "tab" or "space" or "nothing" when context == "suff" => source.ToLowerInvariant(),
             _ => source
         };
-        return context == "plt" ? IsEnum<MultiLevelValues>(value) : IsEnum<LevelSuffixValues>(value);
+        return context == "plt" ? ContainsName("singleLevel multilevel hybridMultilevel", value)
+            : WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(value, out WordListLevelSuffix _);
     }
 }

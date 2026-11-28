@@ -1,6 +1,6 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -80,7 +80,7 @@ internal sealed partial class WordMl2003Projection {
         ["h-ansi"] = "hAnsi", ["fareast"] = "eastAsia", ["line-rule"] = "lineRule",
         ["before-lines"] = "beforeLines", ["before-autospacing"] = "beforeAutospacing",
         ["after-lines"] = "afterLines", ["after-autospacing"] = "afterAutospacing",
-        ["left-chars"] = "leftChars", ["right-chars"] = "rightChars", ["hanging-chars"] = "hangingChars",
+        ["left-chars"] = "startChars", ["right-chars"] = "endChars", ["hanging-chars"] = "hangingChars",
         ["first-line"] = "firstLine", ["first-line-chars"] = "firstLineChars",
         ["h-rule"] = "hRule", ["count-by"] = "countBy", ["chap-style"] = "chapStyle",
         ["chap-sep"] = "chapSep", ["line-pitch"] = "linePitch", ["char-space"] = "charSpace",
@@ -94,7 +94,6 @@ internal sealed partial class WordMl2003Projection {
         if (context == "listPr") return MapListProperties(source);
         string name = ElementNames.TryGetValue(context, out string? mappedName) ? mappedName : context;
         var output = new XElement(ModernWord + name);
-        output.SetAttributeValue(XNamespace.Xmlns + "w", ModernWord.NamespaceName);
         PropertyAttributes.TryGetValue(context, out HashSet<string>? allowed);
         if (context == "spacing" && parent == "rPr") allowed = RunSpacingAttributes;
         else if (parent is "pBdr" or "tblBorders" or "tcBorders" or "pgBorders") allowed = BorderAttributes;
@@ -107,7 +106,8 @@ internal sealed partial class WordMl2003Projection {
                 Omit(attribute.Name, context + " attribute " + local);
                 continue;
             }
-            string target = AttributeNames.TryGetValue(local, out string? mapped) ? mapped : local;
+            string target = context == "ind" && local is "left" or "right" ? (local == "left" ? "start" : "end")
+                : AttributeNames.TryGetValue(local, out string? mapped) ? mapped : local;
             string sourceValue = IsHexPropertyAttribute(context, local)
                 ? attribute.Value.Trim(' ', '\t', '\r', '\n') : attribute.Value;
             if (!TryMapPropertyValue(context, local, parent, sourceValue, out string value)) {
@@ -142,34 +142,95 @@ internal sealed partial class WordMl2003Projection {
         return output;
     }
 
-    private T NormalizeMappedProperties<T>(T properties, string? mappedXml = null) where T : OpenXmlCompositeElement {
-        OrderMappedProperties(properties);
-        AdmitMappedProperties(properties, mappedXml);
-        return properties;
+    private int ProjectProperties(OfficeXmlTree tree, XElement source, string name, string? parent = null, string? context = null) {
+        XElement mapped = MapProperties(source, name, parent)!;
+        NormalizeMappedProperties(mapped, context);
+        return ImportMapped(tree, mapped);
     }
 
-    private void OrderMappedProperties(OpenXmlCompositeElement properties) {
-        // These particles contain choices or repeated values whose source order is meaningful.
-        bool preserveOrder = properties is TableRowProperties or TableStyleConditionalFormattingTableRowProperties
-            or TableGrid or Tabs or Columns;
-        OpenXmlElement[] children = properties.ChildElements.ToArray();
-        if (!preserveOrder) properties.RemoveAllChildren();
-        foreach (OpenXmlElement child in children) {
-            bool repeatedListChild = properties is AbstractNum && child is Level ||
-                properties is NumberingInstance && child is LevelOverride;
-            bool duplicate = !preserveOrder && !repeatedListChild && properties.ChildElements.Any(existing =>
-                existing.LocalName == child.LocalName && existing.NamespaceUri == child.NamespaceUri);
-            if (child is OpenXmlUnknownElement || duplicate || !preserveOrder && !repeatedListChild && !properties.AddChild(child, false)) {
-                if (preserveOrder) child.Remove();
-                string name = LegacyPropertyName(child.LocalName);
-                Omit(Word + name, duplicate ? "duplicate " + properties.LocalName + " property"
-                    : properties.LocalName + " property not supported in this formatting context");
+    private void NormalizeMappedProperties(XElement properties, string? context = null) {
+        OrderMappedProperties(properties, context);
+        AdmitMappedProperties(properties);
+    }
+
+    private void OrderMappedProperties(XElement properties, string? context) {
+        string parent = properties.Name.LocalName;
+        OfficeXmlChildOrder? order = GetPropertyOrder(parent, context);
+        bool preserveOrder = parent is "trPr" or "tblGrid" or "tabs" or "cols";
+        var ranks = new List<(XElement Element, int Rank)>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement child in properties.Elements().ToArray()) {
+            string local = child.Name.LocalName;
+            int rank = order?.RankOf(W, local) ?? -1;
+            bool repeated = parent == "abstractNum" && local == "lvl" || parent == "num" && local == "lvlOverride";
+            bool duplicate = !preserveOrder && !repeated && !seen.Add(local);
+            if (rank < 0 || duplicate) {
+                child.Remove();
+                string name = LegacyPropertyName(local);
+                Omit(Word + name, duplicate ? "duplicate " + parent + " property" : parent + " property not supported in this formatting context");
                 continue;
             }
-            if (repeatedListChild) properties.AppendChild(child);
-            if (child is OpenXmlCompositeElement nested) OrderMappedProperties(nested);
+            if (!preserveOrder) ranks.Add((child, rank));
+            if (child.HasElements) OrderMappedProperties(child, parent == "tblStylePr" ? "style" : parent);
         }
+        if (ranks.Count < 2) return;
+        properties.RemoveNodes();
+        foreach (var item in ranks.OrderBy(item => item.Rank)) properties.Add(item.Element);
     }
+
+    private static OfficeXmlChildOrder? GetPropertyOrder(string name, string? context) => name switch {
+        "pPr" => context == "style" ? StyleParagraphOrder : WPPrView.Order,
+        "rPr" => context switch {
+            "pPr" => WParaRPrView.Order,
+            "style" or "defaultRun" => StyleRunOrder,
+            _ => WRPrView.Order
+        },
+        "tblPr" => context == "style" ? StyleTableOrder : BodyTableOrder,
+        "trPr" => context == "style" ? StyleRowOrder : TableRowOrder,
+        "tcPr" => WTcPrView.Order,
+        "tblPrEx" => TableExceptionOrder,
+        "sectPr" => WSectPrView.Order,
+        "abstractNum" => WAbstractNumView.Order,
+        "num" => WNumView.Order,
+        "lvl" => WLvlView.Order,
+        "lvlOverride" => WNumLvlView.Order,
+        "pBdr" => ParagraphBorderOrder,
+        "tblBorders" => TableBorderOrder,
+        "tcBorders" => CellBorderOrder,
+        "pgBorders" or "tcMar" or "tblCellMar" => EdgeOrder,
+        "tblGrid" => GridOrder,
+        "tabs" => TabsOrder,
+        "cols" => ColumnsOrder,
+        "tblStylePr" => ConditionalStyleOrder,
+        "font" => FontOrder,
+        "settings" => SettingsOrder,
+        "numPr" => NumberingPropertiesOrder,
+        _ => null
+    };
+
+    private static OfficeXmlChildOrder WordChildOrder(string names) {
+        string[] parts = names.Split(' ');
+        return new OfficeXmlChildOrder(Enumerable.Repeat(W, parts.Length).ToArray(), parts);
+    }
+
+    private static readonly OfficeXmlChildOrder StyleParagraphOrder = WordChildOrder("keepNext keepLines pageBreakBefore widowControl numPr suppressLineNumbers pBdr shd tabs suppressAutoHyphens kinsoku wordWrap overflowPunct topLinePunct autoSpaceDE autoSpaceDN bidi adjustRightInd snapToGrid spacing ind contextualSpacing mirrorIndents suppressOverlap jc textDirection textAlignment textboxTightWrap outlineLvl divId cnfStyle");
+    private static readonly OfficeXmlChildOrder StyleRunOrder = WordChildOrder("rStyle rFonts b bCs i iCs caps smallCaps strike dstrike outline shadow emboss imprint noProof snapToGrid vanish webHidden color spacing w kern position sz szCs u effect bdr shd fitText vertAlign rtl cs em lang specVanish oMath");
+    private static readonly OfficeXmlChildOrder BodyTableOrder = WordChildOrder("tblStyle tblpPr tblOverlap bidiVisual tblW jc tblCellSpacing tblInd tblBorders shd tblLayout tblCellMar tblLook tblCaption tblDescription");
+    private static readonly OfficeXmlChildOrder StyleTableOrder = WordChildOrder("tblStyle tblpPr tblOverlap bidiVisual tblStyleRowBandSize tblStyleColBandSize jc tblCellSpacing tblInd tblBorders shd tblLayout tblCellMar tblLook tblCaption tblDescription");
+    private static readonly OfficeXmlChildOrder TableRowOrder = WordChildOrder("cnfStyle divId gridBefore gridAfter wBefore wAfter cantSplit trHeight tblHeader tblCellSpacing jc hidden");
+    private static readonly OfficeXmlChildOrder StyleRowOrder = WordChildOrder("cantSplit trHeight tblHeader tblCellSpacing jc hidden");
+    private static readonly OfficeXmlChildOrder TableExceptionOrder = WordChildOrder("tblW jc tblCellSpacing tblInd tblBorders shd tblLayout tblCellMar tblLook");
+    private static readonly OfficeXmlChildOrder ParagraphBorderOrder = WordChildOrder("top left bottom right between bar");
+    private static readonly OfficeXmlChildOrder TableBorderOrder = WordChildOrder("top left bottom right insideH insideV");
+    private static readonly OfficeXmlChildOrder CellBorderOrder = WordChildOrder("top left bottom right insideH insideV tl2br tr2bl");
+    private static readonly OfficeXmlChildOrder EdgeOrder = WordChildOrder("top left bottom right");
+    private static readonly OfficeXmlChildOrder GridOrder = WordChildOrder("gridCol");
+    private static readonly OfficeXmlChildOrder TabsOrder = WordChildOrder("tab");
+    private static readonly OfficeXmlChildOrder ColumnsOrder = WordChildOrder("col");
+    private static readonly OfficeXmlChildOrder ConditionalStyleOrder = WordChildOrder("pPr rPr tblPr trPr tcPr");
+    private static readonly OfficeXmlChildOrder FontOrder = WordChildOrder("panose1 charset family pitch");
+    private static readonly OfficeXmlChildOrder SettingsOrder = WordChildOrder("view zoom displayBackgroundShape embedSystemFonts mirrorMargins defaultTabStop autoHyphenation consecutiveHyphenLimit hyphenationZone doNotHyphenateCaps evenAndOddHeaders noPunctuationKerning characterSpacingControl");
+    private static readonly OfficeXmlChildOrder NumberingPropertiesOrder = WordChildOrder("ilvl numId");
 
     private static bool IsHexPropertyAttribute(string context, string attribute) =>
         attribute is "color" or "fill" ||
@@ -204,6 +265,7 @@ internal sealed partial class WordMl2003Projection {
     private static readonly HashSet<string> RunSpacingAttributes = Names("val");
 
     private static bool ContainsName(string names, string name) {
+        if (name.Length == 0) return false;
         int offset = 0;
         while ((offset = names.IndexOf(name, offset, StringComparison.Ordinal)) >= 0) {
             int end = offset + name.Length;
