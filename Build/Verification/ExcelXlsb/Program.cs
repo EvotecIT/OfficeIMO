@@ -23,13 +23,11 @@ Directory.CreateDirectory(Path.Combine(output, "generated"));
 foreach (bool sharedStrings in new[] { false, true }) {
     using var plain = ExcelDocument.Create();
     ExcelSheet sheet = plain.AddSheet("Data");
-    sheet.Batch(target => {
-        for (int row = 1; row <= 64; row++) {
-            target.Cell(row, 1).SetValue(row + 2.5D);
-            target.Cell(row, 2).SetValue("row " + row);
-            target.Cell(row, 3).SetValue((row & 1) == 0);
-        }
-    });
+    for (int row = 1; row <= 64; row++) {
+        sheet.Cell(row, 1).SetValue(row + 2.5D);
+        sheet.Cell(row, 2).SetValue("row " + row);
+        sheet.Cell(row, 3).SetValue((row & 1) == 0);
+    }
     string name = sharedStrings ? "scalars-shared.xlsb" : "scalars-inline.xlsb";
     string path = Path.Combine("generated", name);
     File.WriteAllBytes(Path.Combine(output, path), plain.ToBytes(new ExcelSaveOptions {

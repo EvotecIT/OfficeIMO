@@ -28,13 +28,11 @@ namespace OfficeIMO.Tests {
             static ExcelDocument CreateTabularWorkbook() {
                 ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet data = document.AddSheet("Data");
-                data.Batch(sheet => {
-                    for (int row = 1; row <= 64; row++) {
-                        sheet.Cell(row, 1).SetValue(row + 2.5D);
-                        sheet.Cell(row, 2).SetValue("row " + row);
-                        sheet.Cell(row, 3).SetValue(row % 2 == 0);
-                    }
-                });
+                for (int row = 1; row <= 64; row++) {
+                    data.Cell(row, 1).SetValue(row + 2.5D);
+                    data.Cell(row, 2).SetValue("row " + row);
+                    data.Cell(row, 3).SetValue(row % 2 == 0);
+                }
                 return document;
             }
         }
