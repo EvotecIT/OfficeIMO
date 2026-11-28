@@ -127,7 +127,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Keeps encryption intent across in-memory plaintext snapshots without retaining passwords or keys.</summary>
         internal IReadOnlyDictionary<string, bool> LegacyXlsEncryptedSummaryEntries => _legacyXlsEncryptedSummaryEntries;
 
-        internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default) {
+        internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default,
+            byte[]? ownedProjection = null) {
             ArgumentNullException.ThrowIfNull(workbook);
 
             SourceFormat = ExcelFileFormat.Xls;
@@ -143,7 +144,10 @@ namespace OfficeIMO.Excel {
             _legacyXlsWasEncryptedSource = workbook.WasEncryptedSource;
             foreach (var entry in workbook.EncryptedSummaryEntries) _legacyXlsEncryptedSummaryEntries[entry.Key] = entry.Value;
             _packageDirty = false;
-            _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, workbook, cancellationToken);
+            _legacyXlsDeferredPreservation = ownedProjection == null ? null : new LegacyXlsDeferredPreservation(ownedProjection, workbook);
+            _legacyXlsPreservationSnapshot = ownedProjection == null
+                ? LegacyXlsPreservationSnapshot.Capture(this, workbook, cancellationToken)
+                : null;
             _openXmlOriginalPackageBytes = null;
 
             if (!string.IsNullOrEmpty(sourcePath)) {
@@ -191,14 +195,24 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException("Legacy XLS import failed: no supported worksheets or chart sheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
             }
 
-            ExcelDocument document = workbook.ToExcelDocument(cancellationToken);
+            ExcelDocument document;
+            if (TryProjectPlainLegacyXls(workbook, cancellationToken, out byte[]? ownedProjection, out ExcelDeferredWorkbook? deferred)) {
+                document = CreateDeferredDocument(deferred!, ownedProjection!, CreateOpenSettings(null), readOnly,
+                    filePath: null, sourceStream: null, leaveSourceStreamOpen: true, DocumentPersistenceMode.Explicit);
+                document._deferredCreated = true;
+                document._deferredPackageWrittenHere = true;
+                document._unchangedPackageBytes = null;
+            } else {
+                document = workbook.ToExcelDocument(cancellationToken);
+            }
+
             try {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (readOnly) {
+                if (readOnly && ownedProjection == null) {
                     document = ReopenProjectedWorkbookReadOnly(document);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                document.MarkLoadedFromLegacyXls(sourcePath, workbook, cancellationToken);
+                document.MarkLoadedFromLegacyXls(sourcePath, workbook, cancellationToken, ownedProjection);
                 return document;
             } catch {
                 document.Dispose();
