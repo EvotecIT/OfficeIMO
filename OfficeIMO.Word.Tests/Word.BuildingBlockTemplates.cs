@@ -143,7 +143,13 @@ namespace OfficeIMO.Tests {
                 text = Regex.Replace(text, "OfficeIMO_TocPlaceholder_[0-9a-f]{32}", "OfficeIMO_TocPlaceholder");
                 // The package layer writes relationship parts, and .NET Framework formats and orders them differently;
                 // they are compared by their relationships.
-                if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) text = DescribeRelationships(part.Name, text);
+                if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) {
+                    text = DescribeRelationships(part.Name, text);
+                } else if (name.StartsWith("PageNumber/", StringComparison.Ordinal) ||
+                           name.StartsWith("TableOfContent/", StringComparison.Ordinal) ||
+                           name == "Watermark/Text") {
+                    text = CanonicalizeXmlPart(part.Name, text);
+                }
                 string hash;
                 using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", string.Empty);
                 string line = $"{name} {part.Name} {hash}";
@@ -151,6 +157,68 @@ namespace OfficeIMO.Tests {
                 lines.Add(line);
             }
             return lines;
+        }
+
+        // These building blocks can now be written by the owned XML writer. Compare namespace names and values
+        // without depending on the writer's empty-element spelling, namespace declarations or attribute order.
+        private static string CanonicalizeXmlPart(string partName, string text) {
+            XElement root = XDocument.Parse(text, LoadOptions.PreserveWhitespace).Root!;
+            var canonical = new StringBuilder(text.Length);
+            WriteElement(root, preserveSpace: false);
+            return canonical.ToString();
+
+            void WriteElement(XElement element, bool preserveSpace) {
+                XAttribute? space = element.Attribute(XNamespace.Xml + "space");
+                if (space != null) preserveSpace = space.Value == "preserve";
+                canonical.Append('E');
+                WriteToken(element.Name.ToString());
+                foreach (XAttribute attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
+                             .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal)) {
+                    canonical.Append('A');
+                    WriteToken(attribute.Name.ToString());
+                    WriteToken(ResolveMarkupCompatibilityPrefixes(attribute));
+                }
+
+                IEnumerable<XNode> children = element.Nodes();
+                if (element == root && partName == "[Content_Types].xml") {
+                    // Content-type mappings form a set, independent of package insertion order.
+                    children = element.Elements().OrderBy(child => (string?)child.Attribute("PartName") ??
+                        (string?)child.Attribute("Extension"), StringComparer.Ordinal);
+                }
+                foreach (XNode node in children) {
+                    if (node is XElement child) {
+                        WriteElement(child, preserveSpace);
+                    } else if (node is XText value && (preserveSpace || !element.HasElements || !string.IsNullOrWhiteSpace(value.Value))) {
+                        canonical.Append('T');
+                        WriteToken(value.Value);
+                    } else if (node is XComment or XProcessingInstruction) {
+                        canonical.Append('M');
+                        WriteToken(node.ToString(SaveOptions.DisableFormatting));
+                    }
+                }
+                canonical.Append('F');
+            }
+
+            void WriteToken(string value) => canonical.Append(value.Length.ToString(CultureInfo.InvariantCulture))
+                .Append(':').Append(value);
+        }
+
+        private static string ResolveMarkupCompatibilityPrefixes(XAttribute attribute) {
+            XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            bool prefixList = attribute.Name == mc + "Ignorable" || attribute.Name == mc + "MustUnderstand" ||
+                (attribute.Parent!.Name == mc + "Choice" && attribute.Name == "Requires");
+            bool qualifiedNames = attribute.Name == mc + "ProcessContent" || attribute.Name == mc + "PreserveAttributes" ||
+                attribute.Name == mc + "PreserveElements";
+            if (!prefixList && !qualifiedNames) return attribute.Value;
+
+            return string.Join(" ", attribute.Value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(token => {
+                    int colon = token.IndexOf(':');
+                    string prefix = prefixList ? token : colon >= 0 ? token.Substring(0, colon) : string.Empty;
+                    string name = prefixList ? string.Empty : colon >= 0 ? token.Substring(colon + 1) : token;
+                    XNamespace? ns = prefix.Length == 0 ? attribute.Parent!.GetDefaultNamespace() : attribute.Parent!.GetNamespaceOfPrefix(prefix);
+                    return ns == null ? token : "{" + ns.NamespaceName + "}" + name;
+                }));
         }
 
         private static string DescribeRelationships(string relationshipsPart, string text) {

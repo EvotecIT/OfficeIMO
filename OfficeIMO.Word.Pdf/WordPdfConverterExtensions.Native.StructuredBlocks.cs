@@ -1,9 +1,8 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const int MaximumNativeStructuredDocumentTagDepth = 128;
         private const int MaximumNativeTableNestingDepth = 128;
@@ -11,16 +10,17 @@ namespace OfficeIMO.Word.Pdf {
         [ThreadStatic]
         private static int _nativeStructuredDocumentTagDepth;
 
-        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
-            bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, options);
-            RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas, nativeDefaults, nativeFontMap);
+        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+            OfficeXmlNode block = coverPage.SdtBlockNode();
+            bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, block, activeSection, options);
+            RenderNativeStructuredBlockContent(pdf, coverPage.Document, block, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas, nativeDefaults, nativeFontMap);
 
-            if (HasNativeStructuredBlockContentAfter(coverPage.SdtBlock)) {
+            if (HasNativeStructuredBlockContentAfter(block)) {
                 pdf.PageBreak();
             }
         }
 
-        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (_nativeStructuredDocumentTagDepth >= MaximumNativeStructuredDocumentTagDepth) {
                 throw new InvalidDataException(
                     $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
@@ -28,13 +28,13 @@ namespace OfficeIMO.Word.Pdf {
 
             _nativeStructuredDocumentTagDepth++;
             try {
-                RenderNativeStructuredBlockContent(pdf, structuredDocumentTag.Document, structuredDocumentTag.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: false, nativeDefaults, nativeFontMap);
+                RenderNativeStructuredBlockContent(pdf, structuredDocumentTag.Document, structuredDocumentTag.SdtBlockNode(), activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: false, nativeDefaults, nativeFontMap);
             } finally {
                 _nativeStructuredDocumentTagDepth--;
             }
         }
 
-        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, OfficeXmlNode sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
                 pdf.Paragraph(builder => builder.AddText(propertyValue!));
                 return;
@@ -68,8 +68,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IReadOnlyList<WordElement> GetNativeStructuredBlockElements(WordDocument document, W.SdtBlock? sdtBlock, bool skipCanvasOnlyVmlParagraphs = false) =>
-            WordDocumentTraversal.GetBlockContentElements(document, sdtBlock,
+        private static IReadOnlyList<WordElement> GetNativeStructuredBlockElements(WordDocument document, OfficeXmlNode sdtBlock, bool skipCanvasOnlyVmlParagraphs = false) =>
+            WordConverterNodes.GetBlockContentElements(document, sdtBlock,
                 skipCanvasOnlyVmlParagraphs ? static paragraph => !IsNativeCanvasOnlyVmlParagraph(paragraph) : null);
 
         private static IEnumerable<WordTable> EnumerateNativeTableTree(WordTable root) {
@@ -123,13 +123,13 @@ namespace OfficeIMO.Word.Pdf {
             return numbers;
         }
 
-        private static bool IsNativeCanvasOnlyVmlParagraph(W.Paragraph paragraph) {
+        private static bool IsNativeCanvasOnlyVmlParagraph(OfficeXmlNode paragraph) {
             if (!HasNativeVmlCoverDrawing(paragraph)) {
                 return false;
             }
 
-            foreach (W.Text text in paragraph.Descendants<W.Text>()) {
-                if (string.IsNullOrWhiteSpace(text.Text)) {
+            foreach (OfficeXmlNode text in paragraph.DescendantElements(WordXml.W, "t")) {
+                if (string.IsNullOrWhiteSpace(text.InnerText)) {
                     continue;
                 }
 
@@ -144,10 +144,10 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeStructuredBlockPropertyValue(WordDocument document, W.SdtBlock? sdtBlock, out string? value) {
+        private static bool TryGetNativeStructuredBlockPropertyValue(WordDocument document, OfficeXmlNode sdtBlock, out string? value) {
             value = null;
-            W.SdtProperties? properties = sdtBlock?.SdtProperties;
-            if (properties == null) {
+            OfficeXmlNode properties = sdtBlock.WChild("sdtPr");
+            if (properties.IsNone) {
                 return false;
             }
 
@@ -159,31 +159,31 @@ namespace OfficeIMO.Word.Pdf {
             return !string.IsNullOrWhiteSpace(value);
         }
 
-        private static bool IsNativePropertyBoundStructuredBlock(W.SdtProperties properties) {
-            W.DataBinding? binding = properties.Elements<W.DataBinding>().FirstOrDefault();
-            if (binding != null && !string.IsNullOrWhiteSpace(binding.XPath?.Value)) {
+        private static bool IsNativePropertyBoundStructuredBlock(OfficeXmlNode properties) {
+            OfficeXmlNode binding = properties.WChild("dataBinding");
+            if (binding.Exists && !string.IsNullOrWhiteSpace(binding.WAttr("xpath"))) {
                 return true;
             }
 
-            return properties.Elements<W.ShowingPlaceholder>().Any();
+            return properties.WChild("showingPlcHdr").Exists;
         }
 
-        private static bool HasNativeStructuredBlockContentAfter(W.SdtBlock? sdtBlock) {
-            if (sdtBlock == null) {
+        private static bool HasNativeStructuredBlockContentAfter(OfficeXmlNode sdtBlock) {
+            if (sdtBlock.IsNone) {
                 return false;
             }
 
-            for (OpenXmlElement? next = sdtBlock.NextSibling(); next != null; next = next.NextSibling()) {
-                if (next is W.SectionProperties) {
+            for (OfficeXmlNode next = sdtBlock.NextSibling; !next.IsNone; next = next.NextSibling) {
+                if (next.IsW("sectPr")) {
                     continue;
                 }
 
-                if (next is W.Paragraph paragraph) {
-                    if (IsNativePageBreakSeparator(paragraph)) {
+                if (next.IsW("p")) {
+                    if (IsNativePageBreakSeparator(next)) {
                         return false;
                     }
 
-                    if (IsNativeEmptyParagraph(paragraph)) {
+                    if (IsNativeEmptyParagraph(next)) {
                         continue;
                     }
                 }
@@ -194,26 +194,26 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static bool IsNativeEmptyParagraph(W.Paragraph paragraph) {
-            if (paragraph.Descendants<W.Drawing>().Any() ||
-                paragraph.Descendants().Any(element => element.LocalName == "pict" || element.NamespaceUri == "urn:schemas-microsoft-com:vml")) {
+        private static bool IsNativeEmptyParagraph(OfficeXmlNode paragraph) {
+            if (paragraph.HasDescendant(WordXml.W, "drawing") ||
+                paragraph.DescendantElements().Any(element => element.LocalName == "pict" || element.NamespaceUri == "urn:schemas-microsoft-com:vml")) {
                 return false;
             }
 
-            return !paragraph.Descendants<W.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text));
+            return !paragraph.DescendantElements(WordXml.W, "t").Any(text => !string.IsNullOrWhiteSpace(text.InnerText));
         }
 
-        private static bool IsNativePageBreakSeparator(W.Paragraph paragraph) =>
-            ReadNativeOnOff(paragraph.ParagraphProperties?.PageBreakBefore) == true ||
-            paragraph.Descendants<W.Break>().Any(breakElement => breakElement.Type?.Value == W.BreakValues.Page);
+        private static bool IsNativePageBreakSeparator(OfficeXmlNode paragraph) =>
+            paragraph.WChild("pPr").WChild("pageBreakBefore").OnOff() == true ||
+            paragraph.DescendantElements(WordXml.W, "br").Any(breakElement => breakElement.WAttr("type") == "page");
 
-        private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {
-            if (properties == null) {
+        private static string? GetNativeBuiltInPropertyValue(WordDocument document, OfficeXmlNode properties) {
+            if (properties.IsNone) {
                 return null;
             }
 
-            string? alias = properties.Elements<W.SdtAlias>().FirstOrDefault()?.Val?.Value;
-            string? xPath = properties.Elements<W.DataBinding>().FirstOrDefault()?.XPath?.Value;
+            string? alias = properties.WChild("alias").WVal();
+            string? xPath = properties.WChild("dataBinding").WAttr("xpath");
             return GetNativeBuiltInPropertyValue(document, alias, xPath);
         }
 

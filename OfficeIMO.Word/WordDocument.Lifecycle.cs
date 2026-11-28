@@ -132,6 +132,7 @@ namespace OfficeIMO.Word {
                 try {
                     _disposedPackageBytes = _ownedModel.CurrentBytes();
                     _disposedElementPositions = _ownedModel.ElementPositions();
+                    CaptureRunningStoryPositions();
                 } catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException) {
                     // A document that can't be written keeps no copy; its paragraphs then fail as on a disposed document.
                     _disposedPackageBytes = null;

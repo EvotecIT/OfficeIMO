@@ -1,13 +1,11 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeComplexScriptDefaults(double? FontSize, bool? Enabled) {
-            public NativeComplexScriptDefaults Merge(OpenXmlElement? properties) => new(
-                ParseNativeDefaultFontSize(properties?.GetFirstChild<W.FontSizeComplexScript>()?.Val?.Value) ?? FontSize,
-                ReadNativeOnOff(properties?.GetFirstChild<W.ComplexScript>()) ??
-                    ReadNativeOnOff(properties?.GetFirstChild<W.RightToLeftText>()) ?? Enabled);
+            public NativeComplexScriptDefaults Merge(OfficeXmlNode properties) => new(
+                ParseNativeDefaultFontSize(properties.WChild("szCs").WVal()) ?? FontSize,
+                ReadNativeOnOff(properties.WChild("cs")) ??
+                    ReadNativeOnOff(properties.WChild("rtl")) ?? Enabled);
 
             public NativeComplexScriptDefaults Merge(NativeComplexScriptDefaults overrides) => new(
                 overrides.FontSize ?? FontSize, overrides.Enabled ?? Enabled);
@@ -15,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? ResolveNativeComplexScriptFontSize(
             double? ordinarySize,
-            W.RunProperties? properties,
+            OfficeXmlNode properties,
             NativeCharacterStyleDefaults characterStyle,
             NativeParagraphStyleDefaults paragraphStyle,
             NativeTableRunStyleDefaults tableStyle,

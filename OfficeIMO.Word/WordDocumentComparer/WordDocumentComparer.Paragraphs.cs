@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -21,21 +21,25 @@ namespace OfficeIMO.Word {
         }
 
         private static void CompareParagraph(WordParagraph source, WordParagraph target, WordParagraph result) {
-            var srcRuns = source._paragraph.Elements<Run>().ToList();
-            var tgtRuns = target._paragraph.Elements<Run>().ToList();
+            OfficeXmlNode sourceParagraph = WordPackageView.ElementOf(source);
+            OfficeXmlNode targetParagraph = WordPackageView.ElementOf(target);
+            OfficeXmlNode resultParagraph = WordPackageView.ElementOf(result);
+            List<OfficeXmlNode> srcRuns = ChildrenW(sourceParagraph, "r");
+            List<OfficeXmlNode> tgtRuns = ChildrenW(targetParagraph, "r");
             int runCount = Math.Min(srcRuns.Count, tgtRuns.Count);
-            var paragraphProperties = (ParagraphProperties?)result._paragraph.ParagraphProperties?.CloneNode(true)
-                ?? (ParagraphProperties?)source._paragraph.ParagraphProperties?.CloneNode(true)
-                ?? (ParagraphProperties?)target._paragraph.ParagraphProperties?.CloneNode(true);
+            OfficeXmlNode paragraphProperties = resultParagraph.Child(W, "pPr");
+            if (paragraphProperties.IsNone) paragraphProperties = sourceParagraph.Child(W, "pPr");
+            if (paragraphProperties.IsNone) paragraphProperties = targetParagraph.Child(W, "pPr");
+            paragraphProperties = paragraphProperties.IsNone ? default : paragraphProperties.Clone();
 
-            result._paragraph.RemoveAllChildren();
-            if (paragraphProperties != null) {
-                result._paragraph.Append(paragraphProperties);
+            RemoveAllChildren(resultParagraph);
+            if (!paragraphProperties.IsNone) {
+                resultParagraph.Append(paragraphProperties);
             }
 
             for (int i = 0; i < runCount; i++) {
-                string srcText = srcRuns[i].InnerText;
-                string tgtText = tgtRuns[i].InnerText;
+                string srcText = InnerText(srcRuns[i]);
+                string tgtText = InnerText(tgtRuns[i]);
 
                 string common = GetCommonPrefix(srcText, tgtText);
                 if (!string.IsNullOrEmpty(common)) {
@@ -52,40 +56,46 @@ namespace OfficeIMO.Word {
                     result.AddInsertedText(inserted, "Comparer");
                 }
 
-                Run? resRun = result._paragraph.Elements<Run>().LastOrDefault();
+                OfficeXmlNode resRun = resultParagraph.Children(W, "r").Last();
                 ApplyFormattingChange(srcRuns[i], tgtRuns[i], resRun);
             }
 
             for (int i = runCount; i < tgtRuns.Count; i++) {
-                result.AddInsertedText(tgtRuns[i].InnerText, "Comparer");
+                result.AddInsertedText(InnerText(tgtRuns[i]), "Comparer");
             }
 
             for (int i = runCount; i < srcRuns.Count; i++) {
-                result.AddDeletedText(srcRuns[i].InnerText, "Comparer");
+                result.AddDeletedText(InnerText(srcRuns[i]), "Comparer");
             }
         }
 
-        private static void ApplyFormattingChange(Run srcRun, Run tgtRun, Run? resRun) {
-            if (srcRun == null || tgtRun == null || resRun == null) {
+        private static bool SameBytes(byte[] left, byte[] right) {
+            if (left.Length != right.Length) return false;
+            for (int index = 0; index < left.Length; index++) {
+                if (left[index] != right[index]) return false;
+            }
+            return true;
+        }
+
+        private static void ApplyFormattingChange(OfficeXmlNode srcRun, OfficeXmlNode tgtRun, OfficeXmlNode resRun) {
+            if (srcRun.IsNone || tgtRun.IsNone || resRun.IsNone) {
                 return;
             }
 
-            string srcXml = srcRun.RunProperties?.OuterXml ?? string.Empty;
-            string tgtXml = tgtRun.RunProperties?.OuterXml ?? string.Empty;
-
-            if (srcXml != tgtXml) {
-                resRun.RunProperties = tgtRun.RunProperties != null
-                    ? (RunProperties)tgtRun.RunProperties.CloneNode(true)
-                    : new RunProperties();
-                resRun.RunProperties.RunPropertiesChange = new RunPropertiesChange() {
-                    Author = "Comparer",
-                    Date = DateTime.Now
-                };
-                var originalProps = srcRun.RunProperties != null
-                    ? (RunProperties)srcRun.RunProperties.CloneNode(true)
-                    : new RunProperties();
-                resRun.RunProperties.RunPropertiesChange.Append(originalProps);
+            OfficeXmlNode srcProperties = srcRun.Child(W, "rPr");
+            OfficeXmlNode tgtProperties = tgtRun.Child(W, "rPr");
+            if (srcProperties.IsNone == tgtProperties.IsNone &&
+                (srcProperties.IsNone || SameBytes(srcProperties.OuterXml(), tgtProperties.OuterXml()))) {
+                return;
             }
+
+            OfficeXmlNode properties = tgtProperties.IsNone ? resRun.CreateElement(W, "rPr") : tgtProperties.Clone();
+            properties = SetPropertyChild(resRun, properties, WRView.Order);
+            OfficeXmlNode change = properties.CreateElement(W, "rPrChange");
+            change.SetAttribute(W, "author", "Comparer");
+            change.SetAttribute(W, "date", WordPackageView.FormatDateTime(DateTime.Now));
+            change = SetPropertyChild(properties, change, order: null);
+            change.Append(srcProperties.IsNone ? change.CreateElement(W, "rPr") : srcProperties.Clone());
         }
 
         private static string GetCommonPrefix(string a, string b) {

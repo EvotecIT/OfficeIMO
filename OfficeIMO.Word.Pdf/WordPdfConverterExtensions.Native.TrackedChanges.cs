@@ -1,9 +1,7 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         // Word prints every reviewer's revisions in an author colour; one
         // accessible red keeps the static markup readable on white paper.
@@ -35,63 +33,68 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>
         /// Returns the revision container a visible-run traversal should enter,
-        /// or null when the current view omits it.
+        /// or <see cref="OfficeXmlNode.None"/> when the current view omits it.
         /// </summary>
-        private static OpenXmlCompositeElement? GetNativeVisibleRevisionContainer(OpenXmlElement element) =>
-            element switch {
-                W.InsertedRun inserted => inserted,
-                W.MoveToRun movedTo => movedTo,
-                W.DeletedRun deleted when CurrentNativeTrackedChangeView == WordPdfTrackedChangeView.Markup => deleted,
-                W.MoveFromRun movedFrom when CurrentNativeTrackedChangeView == WordPdfTrackedChangeView.Markup => movedFrom,
-                _ => null
-            };
+        private static OfficeXmlNode GetNativeVisibleRevisionContainer(OfficeXmlNode element) {
+            if (element.IsTrackedChangeContainer() && element.LocalName is "ins" or "moveTo") return element;
+            if (element.IsTrackedChangeContainer() && element.LocalName is "del" or "moveFrom" &&
+                CurrentNativeTrackedChangeView == WordPdfTrackedChangeView.Markup) return element;
+            return default;
+        }
 
         /// <summary>
         /// Applies the markup view's revision formatting to a run inside a tracked change.
         /// Returns the source run unchanged in the final view or outside revisions.
         /// </summary>
-        private static W.Run ApplyNativeTrackedChangeMarkup(W.Run sourceRun) {
+        private static OfficeXmlNode ApplyNativeTrackedChangeMarkup(OfficeXmlNode sourceRun) {
             if (CurrentNativeTrackedChangeView != WordPdfTrackedChangeView.Markup) return sourceRun;
             bool deleted = false;
             bool inserted = false;
-            for (OpenXmlElement? ancestor = sourceRun.Parent; ancestor != null && ancestor is not W.Paragraph; ancestor = ancestor.Parent) {
-                if (ancestor is W.DeletedRun or W.MoveFromRun) deleted = true;
-                else if (ancestor is W.InsertedRun or W.MoveToRun) inserted = true;
+            for (OfficeXmlNode ancestor = sourceRun.Parent; !ancestor.IsNone && !ancestor.IsW("p"); ancestor = ancestor.Parent) {
+                if (ancestor.IsW("del") || ancestor.IsW("moveFrom")) deleted = true;
+                else if (ancestor.IsW("ins") || ancestor.IsW("moveTo")) inserted = true;
             }
             if (!deleted && !inserted) return sourceRun;
 
-            var markupRun = (W.Run)sourceRun.CloneNode(true);
+            OfficeXmlNode markupRun = sourceRun.Clone();
             if (deleted) {
-                foreach (W.DeletedText deletedText in markupRun.Elements<W.DeletedText>().ToList()) {
-                    var text = new W.Text(deletedText.Text) { Space = SpaceProcessingModeValues.Preserve };
+                foreach (OfficeXmlNode deletedText in markupRun.WElements("delText").ToList()) {
+                    OfficeXmlNode text = markupRun.CreateElement(WordXml.W, "t");
+                    text.SetInnerText(deletedText.InnerText);
+                    text.SetAttribute(WordXml.Xml, "space", "preserve");
                     deletedText.InsertAfterSelf(text);
                     deletedText.Remove();
                 }
             }
-            W.RunProperties properties = markupRun.RunProperties ?? markupRun.PrependChild(new W.RunProperties());
-            properties.RemoveAllChildren<W.Color>();
-            properties.Append(new W.Color { Val = NativeTrackedChangeMarkupColor });
+            OfficeXmlNode properties = markupRun.GetOrPrependChild(WordXml.W, "rPr");
+            properties.RemoveChildren(WordXml.W, "color");
+            AppendNativeMarkupProperty(properties, "color", NativeTrackedChangeMarkupColor);
             if (deleted) {
-                properties.RemoveAllChildren<W.Strike>();
-                properties.RemoveAllChildren<W.DoubleStrike>();
-                properties.Append(new W.Strike());
+                properties.RemoveChildren(WordXml.W, "strike");
+                properties.RemoveChildren(WordXml.W, "dstrike");
+                AppendNativeMarkupProperty(properties, "strike", null);
             } else {
-                properties.RemoveAllChildren<W.Underline>();
-                properties.Append(new W.Underline { Val = W.UnderlineValues.Single });
+                properties.RemoveChildren(WordXml.W, "u");
+                AppendNativeMarkupProperty(properties, "u", "single");
             }
             return markupRun;
         }
 
+        private static void AppendNativeMarkupProperty(OfficeXmlNode properties, string localName, string? value) {
+            OfficeXmlNode property = properties.CreateElement(WordXml.W, localName);
+            if (value != null) property.SetAttribute(WordXml.W, "val", value);
+            properties.Append(property);
+        }
+
         private static void ReportNativeTrackedChanges(WordDocument document, WordPdfExportOptions options) {
             if (options.TrackedChanges != WordPdfTrackedChangeView.Final) return;
-            MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
-            if (mainPart == null) return;
+            if (document.DocumentNode().IsNone) return;
             int insertions = 0;
             int deletions = 0;
-            foreach (OpenXmlElement root in EnumerateNativeRevisionRoots(mainPart)) {
-                foreach (OpenXmlElement element in root.Descendants()) {
-                    if (element is W.InsertedRun or W.MoveToRun) insertions++;
-                    else if (element is W.DeletedRun or W.MoveFromRun) deletions++;
+            foreach (OfficeXmlNode root in EnumerateNativeRevisionRoots(document)) {
+                foreach (OfficeXmlNode element in root.DescendantElements()) {
+                    if (element.IsTrackedChangeContainer() && element.LocalName is "ins" or "moveTo") insertions++;
+                    else if (element.IsTrackedChangeContainer() && element.LocalName is "del" or "moveFrom") deletions++;
                 }
             }
             if (insertions == 0 && deletions == 0) return;
@@ -102,14 +105,11 @@ namespace OfficeIMO.Word.Pdf {
             AddNativeExportWarning(options, "tracked-revisions-projected", "tracked changes", message);
         }
 
-        private static IEnumerable<OpenXmlElement> EnumerateNativeRevisionRoots(MainDocumentPart mainPart) {
-            if (mainPart.Document?.Body is { } body) yield return body;
-            foreach (HeaderPart header in mainPart.HeaderParts)
-                if (header.Header != null) yield return header.Header;
-            foreach (FooterPart footer in mainPart.FooterParts)
-                if (footer.Footer != null) yield return footer.Footer;
-            if (mainPart.FootnotesPart?.Footnotes is { } footnotes) yield return footnotes;
-            if (mainPart.EndnotesPart?.Endnotes is { } endnotes) yield return endnotes;
+        private static IEnumerable<OfficeXmlNode> EnumerateNativeRevisionRoots(WordDocument document) {
+            if (document.BodyNode() is { Exists: true } body) yield return body;
+            foreach (OfficeXmlNode root in document.HeaderFooterRootNodes()) yield return root;
+            if (document.FootnotesNode() is { Exists: true } footnotes) yield return footnotes;
+            if (document.EndnotesNode() is { Exists: true } endnotes) yield return endnotes;
         }
     }
 }

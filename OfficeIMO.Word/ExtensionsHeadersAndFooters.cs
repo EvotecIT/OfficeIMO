@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Creates header/footer parts and section properties.
@@ -13,9 +15,7 @@ namespace OfficeIMO.Word {
         /// <param name="headerFooterValue"></param>
         /// <returns></returns>
         internal static bool GetHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
-            return section._sectionProperties.ChildElements
-                .OfType<HeaderReference>()
-                .Any(element => element.Type?.Value == headerFooterValue);
+            return ContainsStoryReference(section.SectionNode, "headerReference", StoryTypeToken(headerFooterValue));
         }
 
 
@@ -27,10 +27,19 @@ namespace OfficeIMO.Word {
         /// <param name="headerFooterValue"></param>
         /// <returns></returns>
         internal static bool GetFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
-            return section._sectionProperties.ChildElements
-                .OfType<FooterReference>()
-                .Any(element => element.Type?.Value == headerFooterValue);
+            return ContainsStoryReference(section.SectionNode, "footerReference", StoryTypeToken(headerFooterValue));
         }
+
+        private static bool ContainsStoryReference(OfficeXmlNode section, string referenceName, string type) {
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            foreach (OfficeXmlNode reference in section.Children(W, referenceName)) {
+                if (reference.Attribute(W, "type") == type) return true;
+            }
+            return false;
+        }
+
+        private static string StoryTypeToken(HeaderFooterValues value) =>
+            value == HeaderFooterValues.First ? "first" : value == HeaderFooterValues.Even ? "even" : "default";
 
         /// <summary>
         /// Creates Header reference in the document
@@ -39,6 +48,7 @@ namespace OfficeIMO.Word {
         /// <param name="section"></param>
         /// <param name="headerFooterValue"></param>
         internal static void AddHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+            if (section.TryAddOwnedStory(header: true, StoryTypeToken(headerFooterValue))) return;
             var sectionProperties = section._sectionProperties;
 
             foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
@@ -83,6 +93,7 @@ namespace OfficeIMO.Word {
         /// <param name="section"></param>
         /// <param name="headerFooterValue"></param>
         internal static void AddFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+            if (section.TryAddOwnedStory(header: false, StoryTypeToken(headerFooterValue))) return;
             var sectionProperties = section._sectionProperties;
             foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
                 if (element.Type?.Value == headerFooterValue) {

@@ -14,6 +14,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AuthoredSimpleFieldKeepsFormattingThroughSdkParagraphAccess() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            WordField field = paragraph.AddField(WordFieldType.Page);
+            field.Text = "3";
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+
+            SimpleField simple = Assert.IsType<SimpleField>(paragraph._simpleField);
+            Run result = Assert.Single(simple.Elements<Run>());
+            var formatted = new WordParagraph(document, paragraph._paragraph, result);
+            formatted.Bold = true;
+
+            Assert.Equal("3", result.InnerText);
+            Assert.True(result.RunProperties?.Bold?.Val?.Value);
+            Assert.Equal("3", field.Text);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_ExposesStableDiagnosticCodesAndEvaluationBasis() {
             using WordDocument document = WordDocument.Create();
             document.Properties.Creator = "Ada";

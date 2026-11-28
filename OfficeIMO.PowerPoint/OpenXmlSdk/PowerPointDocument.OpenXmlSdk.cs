@@ -68,9 +68,6 @@ namespace OfficeIMO.PowerPoint {
             return slide;
         }
 
-        /// <summary>The presentation part for a slide size that has to read or edit it through the SDK.</summary>
-        internal DocumentFormat.OpenXml.Packaging.PresentationPart SdkPresentationPartForSize => SdkPresentationPart;
-
         /// <summary>The presentation part through the SDK, opening it.</summary>
         private OpenXml.PowerPointPartRef SdkPresentationPartRef => OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart);
 

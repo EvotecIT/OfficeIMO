@@ -1,12 +1,6 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -77,11 +71,11 @@ namespace OfficeIMO.Word.Pdf {
         private static List<WordElement> ExpandNativeHeaderFooterStructuredBlocks(WordHeaderFooter headerFooter) {
             var expanded = new List<WordElement>();
             foreach (WordElement element in headerFooter.Elements) {
-                if (element is WordStructuredDocumentTag tag && tag.SdtBlock is { } block &&
+                if (element is WordStructuredDocumentTag tag && tag.SdtBlockNode() is { Exists: true } block &&
                     IsNativeParagraphOnlyRunningBlock(block)) {
                     expanded.AddRange(GetNativeStructuredBlockElements(headerFooter.Document, block)
-                        .SelectMany(child => child is WordStructuredDocumentTag nested && nested.SdtBlock != null
-                            ? GetNativeStructuredBlockElements(headerFooter.Document, nested.SdtBlock)
+                        .SelectMany(child => child is WordStructuredDocumentTag nested && nested.SdtBlockNode().Exists
+                            ? GetNativeStructuredBlockElements(headerFooter.Document, nested.SdtBlockNode())
                             : new[] { child }));
                 } else {
                     expanded.Add(element);

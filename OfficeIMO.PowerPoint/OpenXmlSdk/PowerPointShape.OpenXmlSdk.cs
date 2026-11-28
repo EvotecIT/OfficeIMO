@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointSlide? OwnerSlide { get; private set; }
 
         internal OpenXmlPart? RelationshipOwnerPart {
-            get => _relationshipOwnerPart ?? (PackageTree == null ? null : OwnerSlide != null ? OwnerSlide.SlidePart : PackagePartForSdk());
+            get => _relationshipOwnerPart ?? (PackageTree == null ? null : !PackagePart.IsNone ? PackagePartForSdk() : OwnerSlide?.SlidePart);
             private set => _relationshipOwnerPart = value;
         }
 
@@ -60,9 +60,9 @@ namespace OfficeIMO.PowerPoint {
         internal bool IsPackageBacked => _element == null;
 
         private OpenXmlElement BindSdkElement() {
-            OpenXmlElement element = OwnerSlide != null
-                ? PowerPointSlide.BindPackageElement(OwnerSlide, PackageTree!, PackageNode)
-                : (OpenXmlElement)PowerPointSlide.BindPackageNode(PackagePart, PackageTree!, PackageNode);
+            OpenXmlElement element = !PackagePart.IsNone
+                ? (OpenXmlElement)PowerPointSlide.BindPackageNode(PackagePart, PackageTree!, PackageNode)
+                : PowerPointSlide.BindPackageElement(OwnerSlide!, PackageTree!, PackageNode);
             _element = element;
             return element;
         }

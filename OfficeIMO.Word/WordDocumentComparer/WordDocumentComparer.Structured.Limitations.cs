@@ -1,19 +1,16 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void AnalyzeKnownComparisonLimitations(
-            WordDocument source,
-            WordDocument target,
+            WordPackageView source,
+            WordPackageView target,
             WordComparisonResult result,
             WordComparisonOptions options,
             ComparisonWorkBudget comparisonWorkBudget,
             ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
-            MainDocumentPart? sourcePart = source._wordprocessingDocument.MainDocumentPart;
-            MainDocumentPart? targetPart = target._wordprocessingDocument.MainDocumentPart;
+            WordPartView? sourcePart = source.Main;
+            WordPartView? targetPart = target.Main;
             if (sourcePart == null || targetPart == null) return;
 
             if (options.CompareEffectiveFormatting) {
@@ -73,34 +70,30 @@ namespace OfficeIMO.Word {
             ResourceLimitExceeded
         }
 
-        private static ShapeScanResult ContainsThemeFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
+        private static ShapeScanResult ContainsThemeFormatting(WordPartView mainPart, ComparisonWorkBudget comparisonWorkBudget) {
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool hasRunWithoutStyle = false;
             bool hasParagraphWithoutStyle = false;
             bool hasTableWithoutStyle = false;
             ShapeScanResult documentScan = ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
-                if (element.GetAttributes().Any(IsThemeAttribute)) return true;
-                if (element is Run run && run.RunProperties?.RunStyle?.Val?.Value == null) hasRunWithoutStyle = true;
-                if (element is Paragraph paragraph && paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == null) hasParagraphWithoutStyle = true;
-                if (element is Table table && table.TableProperties?.TableStyle?.Val?.Value == null) hasTableWithoutStyle = true;
-                string? styleId = element switch {
-                    ParagraphStyleId paragraphStyle => paragraphStyle.Val?.Value,
-                    RunStyle runStyle => runStyle.Val?.Value,
-                    TableStyle tableStyle => tableStyle.Val?.Value,
-                    _ => null
-                };
+                if (HasThemeAttribute(element)) return true;
+                if (element.NamespaceId != W || IsInsideExtensionList(element)) return false;
+                if (element.LocalName == "r" && ChildVal(element.Child(W, "rPr"), "rStyle") == null) hasRunWithoutStyle = true;
+                if (element.LocalName == "p" && ChildVal(element.Child(W, "pPr"), "pStyle") == null) hasParagraphWithoutStyle = true;
+                if (element.LocalName == "tbl" && ChildVal(element.Child(W, "tblPr"), "tblStyle") == null) hasTableWithoutStyle = true;
+                string? styleId = element.LocalName is "pStyle" or "rStyle" or "tblStyle" ? WVal(element) : null;
                 if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
                 return false;
             });
             if (documentScan != ShapeScanResult.Absent) return documentScan;
             ShapeScanResult defaultStylesScan = ContainsThemeAttribute(
-                WordStyleCatalog.For(mainPart.StyleDefinitionsPart).DocumentDefaults, comparisonWorkBudget);
+                GetComparisonStyles(mainPart).DocumentDefaults, comparisonWorkBudget);
             if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
             defaultStylesScan = ContainsThemeAttribute(
-                WordStyleCatalog.For(mainPart.StylesWithEffectsPart).DocumentDefaults, comparisonWorkBudget);
+                GetComparisonStyles(mainPart, WordPackageView.StylesWithEffectsRelationshipType).DocumentDefaults, comparisonWorkBudget);
             if (defaultStylesScan != ShapeScanResult.Absent) return defaultStylesScan;
 
-            IReadOnlyList<StyleDefinition> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
+            IReadOnlyList<ComparisonStyle> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
             if (styleBudgetExhausted) return ShapeScanResult.ResourceLimitExceeded;
             if (hasParagraphWithoutStyle) {
                 AddDefaultStyleIds(styles, "paragraph", usedStyleIds);
@@ -111,21 +104,21 @@ namespace OfficeIMO.Word {
             if (hasTableWithoutStyle) {
                 AddDefaultStyleIds(styles, "table", usedStyleIds);
             }
-            ILookup<string, StyleDefinition> stylesById = styles
+            ILookup<string, ComparisonStyle> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
                 .ToLookup(style => style.StyleId!, StringComparer.OrdinalIgnoreCase);
             return ContainsStyleShape(
                 usedStyleIds,
                 stylesById,
-                (style, budget) => ScanElementSubtree(style, budget, element => element.GetAttributes().Any(IsThemeAttribute)),
+                (style, budget) => ScanElementSubtree(style, budget, HasThemeAttribute),
                 comparisonWorkBudget);
         }
 
         private static void AddDefaultStyleIds(
-            IEnumerable<StyleDefinition> styles,
+            IEnumerable<ComparisonStyle> styles,
             string styleType,
             HashSet<string> styleIds) {
-            foreach (StyleDefinition style in styles.Where(style =>
+            foreach (ComparisonStyle style in styles.Where(style =>
                          string.Equals(style.Type, styleType, StringComparison.Ordinal) &&
                          style.IsDefault &&
                          !string.IsNullOrWhiteSpace(style.StyleId))) {
@@ -133,49 +126,51 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool IsThemeAttribute(OpenXmlAttribute attribute) =>
-            attribute.LocalName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
-            attribute.LocalName.Equals("themeColor", StringComparison.OrdinalIgnoreCase);
+        private static bool HasThemeAttribute(OfficeXmlNode element) =>
+            WordXmlNodes.AnyAttribute(element, static (localName, _, _) =>
+                localName.EndsWith("Theme", StringComparison.OrdinalIgnoreCase) ||
+                localName.Equals("themeColor", StringComparison.OrdinalIgnoreCase));
 
-        private static ShapeScanResult ContainsThemeAttribute(OpenXmlElement? element, ComparisonWorkBudget comparisonWorkBudget) =>
-            element == null
+        private static ShapeScanResult ContainsThemeAttribute(OfficeXmlNode element, ComparisonWorkBudget comparisonWorkBudget) =>
+            element.IsNone
                 ? ShapeScanResult.Absent
-                : ScanElementSubtree(element, comparisonWorkBudget, candidate => candidate.GetAttributes().Any(IsThemeAttribute));
+                : ScanElementSubtree(element, comparisonWorkBudget, HasThemeAttribute);
 
-        private static ShapeScanResult ContainsConditionalTableStyleFormatting(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) {
+        private static ShapeScanResult ContainsConditionalTableStyleFormatting(WordPartView mainPart, ComparisonWorkBudget comparisonWorkBudget) {
             var usedTableStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool hasTableWithoutStyle = false;
             ShapeScanResult documentScan = ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
-                if (element is TableStyleProperties) return true;
-                if (element is TableStyle tableStyle && !string.IsNullOrWhiteSpace(tableStyle.Val?.Value)) {
-                    usedTableStyleIds.Add(tableStyle.Val!.Value!);
+                if (element.NamespaceId != W || IsInsideExtensionList(element)) return false;
+                if (element.Is(W, "tblStylePr")) return true;
+                if (element.Is(W, "tblStyle") && WVal(element) is string tableStyleId && !string.IsNullOrWhiteSpace(tableStyleId)) {
+                    usedTableStyleIds.Add(tableStyleId);
                 }
-                if (element is Table table && table.TableProperties?.TableStyle?.Val?.Value == null) hasTableWithoutStyle = true;
+                if (element.Is(W, "tbl") && ChildVal(element.Child(W, "tblPr"), "tblStyle") == null) hasTableWithoutStyle = true;
                 return false;
             });
             if (documentScan != ShapeScanResult.Absent) return documentScan;
 
-            IReadOnlyList<StyleDefinition> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
+            IReadOnlyList<ComparisonStyle> styles = CollectComparisonStyles(mainPart, comparisonWorkBudget, out bool styleBudgetExhausted);
             if (styleBudgetExhausted) return ShapeScanResult.ResourceLimitExceeded;
             if (hasTableWithoutStyle) {
                 AddDefaultStyleIds(styles, "table", usedTableStyleIds);
             }
             if (usedTableStyleIds.Count == 0) return ShapeScanResult.Absent;
 
-            ILookup<string, StyleDefinition> stylesById = styles
+            ILookup<string, ComparisonStyle> stylesById = styles
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
                 .ToLookup(style => style.StyleId!, StringComparer.OrdinalIgnoreCase);
             return ContainsStyleShape(
                 usedTableStyleIds,
                 stylesById,
-                (style, budget) => ScanElementSubtree(style, budget, element => element is TableStyleProperties),
+                (style, budget) => ScanElementSubtree(style, budget, element => element.Is(W, "tblStylePr") && !IsInsideExtensionList(element)),
                 comparisonWorkBudget);
         }
 
         private static ShapeScanResult ContainsStyleShape(
             IEnumerable<string> initialStyleIds,
-            ILookup<string, StyleDefinition> stylesById,
-            Func<Style, ComparisonWorkBudget, ShapeScanResult> containsShape,
+            ILookup<string, ComparisonStyle> stylesById,
+            Func<OfficeXmlNode, ComparisonWorkBudget, ShapeScanResult> containsShape,
             ComparisonWorkBudget comparisonWorkBudget) {
             var pendingStyleIds = new Stack<string>(initialStyleIds);
             var inspectedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -183,7 +178,7 @@ namespace OfficeIMO.Word {
                 string styleId = pendingStyleIds.Pop();
                 if (!inspectedStyleIds.Add(styleId)) continue;
 
-                foreach (StyleDefinition style in stylesById[styleId]) {
+                foreach (ComparisonStyle style in stylesById[styleId]) {
                     if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
                     ShapeScanResult styleScan = containsShape(style.Element, comparisonWorkBudget);
                     if (styleScan != ShapeScanResult.Absent) return styleScan;
@@ -195,7 +190,7 @@ namespace OfficeIMO.Word {
         }
 
         private static ShapeScanResult ContainsNumberingFormatting(
-            MainDocumentPart mainPart,
+            WordPartView mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
             ParagraphNumberingStyleCatalogCache numberingStyleCatalogs) {
             if (!numberingStyleCatalogs.TryGetOrCreate(
@@ -205,40 +200,40 @@ namespace OfficeIMO.Word {
                 return ShapeScanResult.ResourceLimitExceeded;
             }
             return ScanComparisonElements(mainPart, comparisonWorkBudget, element => {
-                if (element is not Paragraph paragraph) return ShapeScanResult.Absent;
+                if (!element.Is(W, "p") || IsInsideExtensionList(element)) return ShapeScanResult.Absent;
                 if (!TryResolveParagraphNumberingProperties(
-                        paragraph,
+                        element,
                         styleCatalog!,
                         comparisonWorkBudget,
-                        out NumberingProperties? numbering)) {
+                        out OfficeXmlNode numbering)) {
                     return ShapeScanResult.ResourceLimitExceeded;
                 }
-                return numbering == null ? ShapeScanResult.Absent : ShapeScanResult.Present;
+                return numbering.IsNone ? ShapeScanResult.Absent : ShapeScanResult.Present;
             });
         }
 
-        private static ShapeScanResult ContainsMoveMarkup(MainDocumentPart mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
+        private static ShapeScanResult ContainsMoveMarkup(WordPartView mainPart, ComparisonWorkBudget comparisonWorkBudget) =>
             ScanComparisonElements(mainPart, comparisonWorkBudget, element =>
                 element.LocalName.StartsWith("moveFrom", StringComparison.Ordinal) ||
                 element.LocalName.StartsWith("moveTo", StringComparison.Ordinal));
 
         private static ShapeScanResult ScanComparisonElements(
-            MainDocumentPart mainPart,
+            WordPartView mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
-            Func<OpenXmlElement, bool> predicate) => ScanComparisonElements(
+            Func<OfficeXmlNode, bool> predicate) => ScanComparisonElements(
                 mainPart,
                 comparisonWorkBudget,
                 element => predicate(element) ? ShapeScanResult.Present : ShapeScanResult.Absent);
 
         private static ShapeScanResult ScanComparisonElements(
-            MainDocumentPart mainPart,
+            WordPartView mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
-            Func<OpenXmlElement, ShapeScanResult> inspect) {
-            foreach (OpenXmlCompositeElement root in EnumerateComparisonRoots(mainPart)) {
+            Func<OfficeXmlNode, ShapeScanResult> inspect) {
+            foreach (OfficeXmlNode root in EnumerateComparisonRoots(mainPart)) {
                 if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
                 ShapeScanResult rootResult = inspect(root);
                 if (rootResult != ShapeScanResult.Absent) return rootResult;
-                foreach (OpenXmlElement element in root.Descendants()) {
+                foreach (OfficeXmlNode element in Descendants(root)) {
                     if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
                     ShapeScanResult elementResult = inspect(element);
                     if (elementResult != ShapeScanResult.Absent) return elementResult;
@@ -248,24 +243,24 @@ namespace OfficeIMO.Word {
         }
 
         private static ShapeScanResult ScanElementSubtree(
-            OpenXmlElement root,
+            OfficeXmlNode root,
             ComparisonWorkBudget comparisonWorkBudget,
-            Func<OpenXmlElement, bool> predicate) {
+            Func<OfficeXmlNode, bool> predicate) {
             if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
             if (predicate(root)) return ShapeScanResult.Present;
-            foreach (OpenXmlElement element in root.Descendants()) {
+            foreach (OfficeXmlNode element in Descendants(root)) {
                 if (!comparisonWorkBudget.TryConsume(1)) return ShapeScanResult.ResourceLimitExceeded;
                 if (predicate(element)) return ShapeScanResult.Present;
             }
             return ShapeScanResult.Absent;
         }
 
-        private static IReadOnlyList<StyleDefinition> CollectComparisonStyles(
-            MainDocumentPart mainPart,
+        private static IReadOnlyList<ComparisonStyle> CollectComparisonStyles(
+            WordPartView mainPart,
             ComparisonWorkBudget comparisonWorkBudget,
             out bool budgetExhausted) {
-            var styles = new List<StyleDefinition>();
-            foreach (StyleDefinition style in EnumerateComparisonStyleDefinitions(mainPart)) {
+            var styles = new List<ComparisonStyle>();
+            foreach (ComparisonStyle style in EnumerateComparisonStyles(mainPart)) {
                 if (!comparisonWorkBudget.TryConsume(1)) {
                     budgetExhausted = true;
                     return styles;
@@ -276,12 +271,12 @@ namespace OfficeIMO.Word {
             return styles;
         }
 
-        /// <summary>The styles part's then the styles-with-effects part's styles, read from their style catalogs.</summary>
-        private static IEnumerable<StyleDefinition> EnumerateComparisonStyleDefinitions(MainDocumentPart mainPart) =>
-            WordStyleCatalog.For(mainPart.StyleDefinitionsPart).Definitions
-                .Concat(WordStyleCatalog.For(mainPart.StylesWithEffectsPart).Definitions);
+        /// <summary>The styles part's then the styles-with-effects part's styles.</summary>
+        private static IEnumerable<ComparisonStyle> EnumerateComparisonStyles(WordPartView mainPart) =>
+            GetComparisonStyles(mainPart).Definitions
+                .Concat(GetComparisonStyles(mainPart, WordPackageView.StylesWithEffectsRelationshipType).Definitions);
 
-        private static IEnumerable<OpenXmlCompositeElement> EnumerateComparisonRoots(MainDocumentPart mainPart) =>
+        private static IEnumerable<OfficeXmlNode> EnumerateComparisonRoots(WordPartView mainPart) =>
             WordFieldInventory.EnumerateFieldRoots(mainPart).Select(root => root.Root);
     }
 }

@@ -139,6 +139,10 @@
       "family": "books"
     },
     {
+      "name": "Comic book RAR 5 (stored)",
+      "family": "books"
+    },
+    {
       "name": "FictionBook 2",
       "family": "books"
     },
@@ -1307,6 +1311,62 @@
     {
       "id": "ebook-cb7-pdf",
       "source": "Comic book 7z",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-epub",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-html",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-markdown",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-pdf",
+      "source": "Comic book RAR 5 (stored)",
       "target": "PDF",
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",

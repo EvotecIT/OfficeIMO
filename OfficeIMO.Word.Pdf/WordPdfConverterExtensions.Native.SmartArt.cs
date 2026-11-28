@@ -1,8 +1,6 @@
 using System.Xml;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
+using static OfficeIMO.Word.OpenXml.WordXml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -13,21 +11,21 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyList<WordParagraph> runs, WordPdfExportOptions? options, string source,
         bool isHeaderFooter = false, bool reportDiagnostics = true) {
         var drawings = new List<OfficeDrawing>();
-        var seen = new HashSet<W.Drawing>();
+        var seen = new HashSet<OfficeXmlNode>();
         foreach (WordParagraph run in runs) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
             // A source run may contain several diagrams or a picture before a diagram.
             // Content views let the semantic SmartArt accessor resolve every selected drawing.
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
-                if (view.SmartArt is not WordSmartArt smartArt || !seen.Add(smartArt._drawing)) continue;
+                if (view.SmartArt is not WordSmartArt smartArt || !seen.Add(smartArt.DrawingNode())) continue;
                 OfficeDrawing? drawing;
                 string projection;
                 try {
                     drawing = WordSmartArtDrawingRenderer.CreateDrawing(smartArt, out projection,
                         options?.CancellationToken ?? default);
-                } catch (Exception exception) when (exception is OpenXmlPackageException or InvalidOperationException or
+                } catch (Exception exception) when (WordConverterNodes.IsPackageReadException(exception) || exception is InvalidOperationException or
                     KeyNotFoundException or ArgumentOutOfRangeException or XmlException) {
                     // Diagram parts outside the semantic reader's supported relationship layout,
                     // or malformed diagram data, must not discard the rest of the paragraph.
@@ -54,7 +52,7 @@ public static partial class WordPdfConverterExtensions {
     /// <summary>Records running-content diagram coverage before its deferred drawing callbacks execute.</summary>
     private static void RecordNativeHeaderFooterSmartArtDiagnostics(WordParagraph paragraph, WordPdfExportOptions options, string source) {
         List<WordParagraph> runs = GetNativeRuns(paragraph);
-        if (paragraph._paragraph.Ancestors<W.TableCell>().Any() || paragraph._paragraph.Ancestors<W.TextBoxContent>().Any()) {
+        if (paragraph.Node().Ancestor(W, "tc").Exists || paragraph.Node().Ancestor(W, "txbxContent").Exists) {
             if (runs.Any(run => run.IsSmartArt && !IsNativeHiddenTextRun(run, paragraph)))
                 AddNativeExportWarning(options, "native-header-footer-smart-art-unsupported", source,
                     "SmartArt nested in a header/footer table cell or text box is not mapped by the shared diagram flow.");

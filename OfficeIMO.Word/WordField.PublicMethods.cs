@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Provides public methods for field manipulation.
@@ -14,30 +14,29 @@ namespace OfficeIMO.Word {
         /// <param name="parameters">Additional switch parameters.</param>
         /// <returns>The created field.</returns>
         public static WordField AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+            OfficeXmlNode parent = paragraph.EditParagraphForField();
+            string instruction = GenerateField(wordFieldType, wordFieldFormat, customFormat, parameters);
+            string text = "[Document " + wordFieldType + "]";
             WordField field;
             if (advanced) {
-                var runStart = AddFieldStart();
-                var runField = AddAdvancedField(wordFieldType: wordFieldType, wordFieldFormat: wordFieldFormat, customFormat: customFormat, parameters: parameters);
-                var runSeparator = AddFieldSeparator();
-                var runText = AddFieldText(wordFieldType.ToString());
-                var runEnd = AddFieldEnd();
-
-                paragraph._paragraph.Append(runStart);
-                paragraph._paragraph.Append(runField);
-                paragraph._paragraph.Append(runSeparator);
-                paragraph._paragraph.Append(runText);
-                paragraph._paragraph.Append(runEnd);
-                paragraph._runs = new List<Run>() { runStart, runField, runSeparator, runText, runEnd };
-                paragraph._simpleField = null;
-                field = new WordField(paragraph._document, paragraph._paragraph, null, paragraph._runs);
+                var runs = new List<OfficeXmlNode>(5) {
+                    AppendMarkerRun(parent, "begin"),
+                    AppendTextRun(parent, "instrText", instruction, preserveSpace: true),
+                    AppendMarkerRun(parent, "separate"),
+                    AppendTextRun(parent, "t", text, preserveSpace: false),
+                    AppendMarkerRun(parent, "end")
+                };
+                field = new WordField(paragraph._document, parent, default, runs);
             } else {
-                var simpleField = AddSimpleField(wordFieldType, wordFieldFormat, customFormat, parameters: parameters);
-                paragraph._paragraph.Append(simpleField);
-                paragraph._simpleField = simpleField;
-                paragraph._runs = null;
-                field = new WordField(paragraph._document, paragraph._paragraph, simpleField, null);
+                OfficeXmlNode simpleField = parent.CreateElement(W, "fldSimple");
+                simpleField.SetAttribute(W, "instr", instruction);
+                AppendTextRun(simpleField, "t", text, preserveSpace: false);
+                field = new WordField(paragraph._document, parent, parent.Append(simpleField));
             }
 
+            if (parent.Tree != null && paragraph._document._ownedModel is { } model && ReferenceEquals(model.Document, parent.Tree))
+                model.NoteBodyFieldAdded();
+            paragraph.RememberAuthoredField(field);
             field._authoringParagraph = paragraph;
             field.UpdateField = true;
             return field;
@@ -77,14 +76,9 @@ namespace OfficeIMO.Word {
         /// Deletes all runs and simple field elements associated with this field.
         /// </summary>
         public void Remove() {
-            if (_runs != null) {
-                foreach (var run in _runs) {
-                    run.Remove();
-                }
-            }
-            if (this._simpleField != null) {
-                this._simpleField.Remove();
-            }
+            ResolveNodes()?.MarkChanged();
+            foreach (OfficeXmlNode run in _runs) run.Remove();
+            if (_simpleField.Exists) _simpleField.Remove();
         }
     }
 }

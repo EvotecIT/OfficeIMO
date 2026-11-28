@@ -1,0 +1,336 @@
+{
+  "producer": "RARLAB RAR command-line tool",
+  "download": "https://www.rarlab.com/download.htm",
+  "producerPlatform": "Darwin arm64",
+  "verification": "rar t passed for all archives and both complete volume sets.",
+  "files": [
+    {
+      "file": "directories.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "out/directories.rar",
+        "empty-directory",
+        "notes/señal.txt"
+      ],
+      "sha256": "0bc82261fd2057dfe45eda6dbe22b003bb0172156079282b57546a2849ab1e7c"
+    },
+    {
+      "file": "stored.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-qo+",
+        "-ol",
+        "out/stored.rar",
+        "notes"
+      ],
+      "sha256": "05d3f83948edd6f49b81fb0d657ab81949578d950ce226b8267206c09efa0261"
+    },
+    {
+      "file": "plain.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-qo-",
+        "-tsm-",
+        "out/plain.rar",
+        "notes/señal.txt"
+      ],
+      "sha256": "4ff3c9c6b91e8b4c76fad87aaa2716044b12e5f517416188a9f806cf177799ee"
+    },
+    {
+      "file": "prefixed.sfx",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-sfxfixture.sfx",
+        "out/prefixed.sfx",
+        "notes/señal.txt"
+      ],
+      "sha256": "3f853067be501bf1d21fa56f3fdb48f54bc4b045dc0affdcc059276a44726b9d"
+    },
+    {
+      "file": "zero-prefixed.sfx",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-sfxzero.sfx",
+        "out/zero-prefixed.sfx",
+        "notes/señal.txt"
+      ],
+      "sha256": "f903c6815210c9ad85058631988263e679fe5d3b7d04f2e46fbd5784d5751ea6"
+    },
+    {
+      "file": "legacy-prefixed.sfx",
+      "rarVersion": "6.24",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma4",
+        "-m0",
+        "-sfxfixture.sfx",
+        "out/legacy-prefixed.sfx",
+        "notes/señal.txt"
+      ],
+      "sha256": "eeb26ad8112c58c9db74c3b4204953b7d14947acdc0e9ca886c69b902a510855"
+    },
+    {
+      "file": "legacy.rar",
+      "rarVersion": "6.24",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma4",
+        "-m0",
+        "out/legacy.rar",
+        "notes/señal.txt"
+      ],
+      "sha256": "75ae66bf9112a502f8346ca95f38c1756f5218761583a474b344982bbe82d2f3"
+    },
+    {
+      "file": "encrypted-headers.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-hpfixture",
+        "out/encrypted-headers.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "8aafee14bd7bdad86cf700bffe0f50c14d9aa797d2efa4a7fc0a14c49e801e2a"
+    },
+    {
+      "file": "encrypted-member.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-pfixture",
+        "out/encrypted-member.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "c12b7d8ffde37f8a3b207397017a1387a1e6c33e048a1b87ed199adfc28422cc"
+    },
+    {
+      "file": "compressed-1.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m1",
+        "out/compressed-1.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "d7a8f62a2b4dc8d00d053bedf6c8398abe778c1a994dea1472629bbe33fdafe0"
+    },
+    {
+      "file": "compressed-2.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m2",
+        "out/compressed-2.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "ae5c516e7ca5fef49c5dab9f35aff7bfcb3446ed30e7c70fab8c727296825471"
+    },
+    {
+      "file": "compressed-3.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m3",
+        "out/compressed-3.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "20ada8c79b76f0ec213ab081a690d0bf3bf4244e512ee22ae057a6ce313c51e9"
+    },
+    {
+      "file": "compressed-4.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m4",
+        "out/compressed-4.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "41ca491861215bb32d160e8ba3e068e8e0a061e576b9f59aea64774d0363f0d5"
+    },
+    {
+      "file": "compressed-5.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m5",
+        "out/compressed-5.rar",
+        "notes/café.txt"
+      ],
+      "sha256": "d8309aa03053aa1b98eadc6ba2df67bde1daee266a031acb0be38e8b4b183b52"
+    },
+    {
+      "file": "metadata.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-htb",
+        "-qo+",
+        "-tsmcap",
+        "-ow",
+        "-ol",
+        "-oh",
+        "-oi1:1",
+        "-zcomment.txt",
+        "out/metadata.rar",
+        "piece.bin",
+        "linked.bin",
+        "copy.bin",
+        "empty-directory",
+        "directory-link"
+      ],
+      "sha256": "3b297132842d188dad4421c6d6a64d30572ce106cee98d7d349228a3b205409f"
+    },
+    {
+      "file": "split-blake.part1.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htb",
+        "out/split-blake.rar",
+        "piece.bin"
+      ],
+      "sha256": "f0e2238f57fe0fc5618a6a7518dca25063697887c10dbb30cbd58a516f021586"
+    },
+    {
+      "file": "split-blake.part2.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htb",
+        "out/split-blake.rar",
+        "piece.bin"
+      ],
+      "sha256": "2efbafdfbe12d9b8ca9d57787ecce2d203fcbe4124686085243815457e05fe42"
+    },
+    {
+      "file": "split-blake.part3.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htb",
+        "out/split-blake.rar",
+        "piece.bin"
+      ],
+      "sha256": "9638578e9e867e77fe262e8da4053d4c50ad05fb32261dd0b0b9656a13653fad"
+    },
+    {
+      "file": "split-crc.part1.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htc",
+        "out/split-crc.rar",
+        "piece.bin"
+      ],
+      "sha256": "b37601375ed5b5128c64bac515f3e7f638713f23c00ba5978d7b197a3de690e4"
+    },
+    {
+      "file": "split-crc.part2.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htc",
+        "out/split-crc.rar",
+        "piece.bin"
+      ],
+      "sha256": "3a7dcffd42df76ff5e584408ec0dac70d160b16a7526c3e658d04f534cec4ff7"
+    },
+    {
+      "file": "split-crc.part3.rar",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "-v900b",
+        "-htc",
+        "out/split-crc.rar",
+        "piece.bin"
+      ],
+      "sha256": "d8647f297eeaacc4f0877c096c101f431c41fab367e935e92ea06f1cbd8ecec3"
+    }
+  ]
+}

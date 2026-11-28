@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -14,13 +14,16 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrWhiteSpace(format)) {
                 instruction = instruction.Replace("\\* MERGEFORMAT", $"\\@ \"{format}\" \\* MERGEFORMAT");
             }
-            if (_simpleField != null) {
-                _simpleField.Instruction = instruction;
-            } else if (_runs.Count > 0) {
-                var fieldCode = _runs.Select(r => r.GetFirstChild<FieldCode>()).FirstOrDefault(fc => fc != null);
-                if (fieldCode != null) {
-                    fieldCode.Text = instruction;
-                }
+            ResolveNodes()?.MarkChanged();
+            if (_simpleField.Exists) {
+                _simpleField.SetAttribute(W, "instr", instruction);
+                return;
+            }
+            foreach (OfficeXmlNode run in _runs) {
+                OfficeXmlNode code = run.Child(W, "instrText");
+                if (code.IsNone) continue;
+                code.SetInnerText(instruction);
+                break;
             }
         }
     }

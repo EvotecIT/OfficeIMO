@@ -1,9 +1,8 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeFontMap {
             private readonly Dictionary<string, PdfCore.PdfStandardFont> _fontSlots = new(StringComparer.OrdinalIgnoreCase);
@@ -17,10 +16,10 @@ namespace OfficeIMO.Word.Pdf {
 
             public NativeFontMap(PdfCore.PdfConversionReport? report, WordDocument? document = null) {
                 _report = report;
-                if (document?._wordprocessingDocument?.MainDocumentPart?.FontTablePart?.Fonts is W.Fonts fonts) {
-                    foreach (W.Font font in fonts.Elements<W.Font>()) {
-                        string? primary = font.Name?.Value;
-                        string? alternateNames = font.GetFirstChild<W.AltName>()?.Val?.Value;
+                if (document.FontTableNode() is { Exists: true } fonts) {
+                    foreach (OfficeXmlNode font in fonts.WElements("font")) {
+                        string? primary = font.WAttr("name");
+                        string? alternateNames = font.WChild("altName").WVal();
                         if (string.IsNullOrWhiteSpace(primary) || string.IsNullOrWhiteSpace(alternateNames)) continue;
                         string key = NormalizeNativeFontFamily(primary!);
                         if (_declaredFontAlternates.ContainsKey(key)) continue;
@@ -254,9 +253,10 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
-            runs.Any(run => IsNativeParagraphMetricBearingRun(run, paragraph, paragraph._paragraph.Ancestors<W.FootnoteEndnoteType>().Any()))
-                ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
+        private static OfficeXmlNode GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
+            runs.Any(run => IsNativeParagraphMetricBearingRun(run, paragraph,
+                paragraph.Node().Ancestor(WordXml.W, "footnote").Exists || paragraph.Node().Ancestor(WordXml.W, "endnote").Exists))
+                ? default : paragraph.Node().WChild("pPr").WChild("rPr").WChild("rFonts");
 
         private static void RegisterNativeThemeStyleFonts(
             WordDocument document,
@@ -284,33 +284,25 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<string> ResolveNativeParagraphStyleFontFamilies(WordDocument? document, string? styleId) {
-            IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(document, styleId);
+            IReadOnlyList<OfficeXmlNode> styleChain = GetNativeParagraphStyleChain(document, styleId);
             NativeLatinFontFamilies families = default;
-            foreach (W.Style style in styleChain) {
-                W.RunFonts? runFonts = style.GetFirstChild<W.StyleRunProperties>()?.GetFirstChild<W.RunFonts>();
+            foreach (OfficeXmlNode style in styleChain) {
+                OfficeXmlNode runFonts = style.WChild("rPr").WChild("rFonts");
                 families = GetNativeRunFontFamilies(document, runFonts).Inherit(families);
             }
 
             return families.Enumerate();
         }
 
-        private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) =>
+        private static string? ResolveNativeRunFontsFamily(WordDocument? document, OfficeXmlNode runFonts) =>
             EnumerateNativeLatinFontFamilies(document, runFonts).FirstOrDefault();
 
-        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, W.RunFonts? runFonts) =>
+        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, OfficeXmlNode runFonts) =>
             GetNativeRunFontFamilies(document, runFonts).Enumerate();
 
-        private static string? GetNativeThemeFontValue(DocumentFormat.OpenXml.EnumValue<W.ThemeFontValues>? value) {
-            if (value == null) {
-                return null;
-            }
-
-            return string.IsNullOrWhiteSpace(value.InnerText) ? value.Value.ToString() : value.InnerText;
-        }
-
         private static string? ResolveNativeThemeFontFamily(WordDocument? document, params string?[] themeValues) {
-            A.FontScheme? fontScheme = document?._wordprocessingDocument?.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            if (fontScheme == null) {
+            OfficeXmlNode fontScheme = document.ThemeNode().Child(WordXml.A, "themeElements").Child(WordXml.A, "fontScheme");
+            if (fontScheme.IsNone) {
                 return null;
             }
 
@@ -321,11 +313,11 @@ namespace OfficeIMO.Word.Pdf {
 
                 string normalized = NormalizeNativeFontFamily(themeValue!);
                 if (normalized.StartsWith("major", StringComparison.OrdinalIgnoreCase)) {
-                    return fontScheme.MajorFont?.LatinFont?.Typeface?.Value;
+                    return fontScheme.Child(WordXml.A, "majorFont").Child(WordXml.A, "latin").Attr("typeface");
                 }
 
                 if (normalized.StartsWith("minor", StringComparison.OrdinalIgnoreCase)) {
-                    return fontScheme.MinorFont?.LatinFont?.Typeface?.Value;
+                    return fontScheme.Child(WordXml.A, "minorFont").Child(WordXml.A, "latin").Attr("typeface");
                 }
             }
 

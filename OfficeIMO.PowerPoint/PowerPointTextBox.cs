@@ -69,9 +69,9 @@ namespace OfficeIMO.PowerPoint {
         // A paragraph wrapper bound the same way the shape is; a node taken from the package tree binds by its place
         // there, even when the SDK opened after it was taken.
         private PowerPointParagraph ParagraphFor(OfficeXmlNode paragraph) =>
-            paragraph.Tree != null && OwnerSlide != null && ReferenceEquals(paragraph.Tree, PackageTree)
+            paragraph.Tree != null && PackagePart.IsNone && OwnerSlide != null && ReferenceEquals(paragraph.Tree, PackageTree)
                 ? new PowerPointParagraph(OwnerSlide, paragraph.Tree, paragraph.Node)
-                : new PowerPointParagraph(paragraph, SlidePartRef, OwnerPartRef);
+                : new PowerPointParagraph(paragraph, SlidePartRef, OwnerPartRef, owningSlide: OwnerSlide);
 
         /// <summary>
         ///     Adds a paragraph to the textbox.

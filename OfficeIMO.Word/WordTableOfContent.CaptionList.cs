@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -241,9 +242,9 @@ namespace OfficeIMO.Word {
 
             content.RemoveAllChildren();
             content.Append(titleParagraph);
-            AppendGeneratedFieldResult(content, instruction, entries.Select(entry => CreateEntryParagraph(
+            AppendGeneratedFieldResult(OfficeXmlNode.FromSdk(content), instruction, entries.Select(entry => CreateEntryParagraph(
                 new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false),
-                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)), noContentText);
+                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)).Select(OfficeXmlNode.FromSdk), noContentText);
         }
 
         private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier) {

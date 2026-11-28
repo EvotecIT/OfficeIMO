@@ -1,6 +1,7 @@
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static IEnumerable<WordElement> EnumerateNativeTableCellElements(WordTableCell cell) =>
             EnumerateNativeStructuredContentElements(CollapseNativeParagraphElements(cell.Elements), 0);
@@ -19,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 IEnumerable<WordElement> structuredElements = GetNativeStructuredBlockElements(
                     structuredDocumentTag.Document,
-                    structuredDocumentTag.SdtBlock);
+                    structuredDocumentTag.SdtBlockNode());
                 foreach (WordElement structuredElement in EnumerateNativeStructuredContentElements(structuredElements, structuredDocumentTagDepth + 1)) {
                     yield return structuredElement;
                 }
@@ -35,7 +36,7 @@ namespace OfficeIMO.Word.Pdf {
             int tableNestingDepth,
             bool ignoreFallbackTableStyle,
             WordPdfExportOptions? options,
-            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages,
+            IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages,
             List<PdfCore.PdfTextRun> runs,
             List<PdfCore.PdfTableCellParagraph> paragraphs) {
             int nestedDepth = tableNestingDepth + 1;

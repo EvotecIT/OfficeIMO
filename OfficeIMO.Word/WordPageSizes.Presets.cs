@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
@@ -27,9 +26,6 @@ namespace OfficeIMO.Word {
             WordPageSize.EnvelopeMonarch => EnvelopeMonarch,
             _ => throw new ArgumentOutOfRangeException(nameof(pageSize))
         };
-
-        private static PageSize? GetDefault(WordPageSize? pageSize) =>
-            pageSize.HasValue && GetDefinition(pageSize.Value) is { } definition ? ToOpenXmlPageSize(definition) : null;
 
         /// <summary>A3 paper, 297 × 420 millimeters.</summary>
         public static WordPageSizeDefinition A3 { get; } = FromPhysicalSize(OfficePageSizes.A3, 8);

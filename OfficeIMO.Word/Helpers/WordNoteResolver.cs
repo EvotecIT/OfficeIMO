@@ -5,8 +5,19 @@ namespace OfficeIMO.Word {
     /// <summary>Resolves referenced ordinary note bodies independently of their numeric identifiers.</summary>
     internal static class WordNoteResolver {
         /// <summary>Distinguishes ordinary notes, whose type defaults to normal, from special separator stories.</summary>
-        internal static bool IsOrdinary(FootnoteEndnoteType note) {
-            return note.Type == null || note.Type.Value == FootnoteEndnoteValues.Normal;
+        internal static bool IsOrdinary(FootnoteEndnoteType note) => IsOrdinary(OfficeXmlNode.FromSdk(note));
+
+        /// <summary>Whether a <c>w:footnote</c> or <c>w:endnote</c> is an ordinary note; a type the SDK doesn't parse throws as it does.</summary>
+        internal static bool IsOrdinary(OfficeXmlNode note) {
+            string? type = note.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.WordprocessingML, "type");
+            switch (type) {
+                case null: case "normal":
+                    return true;
+                case "separator": case "continuationSeparator": case "continuationNotice":
+                    return false;
+                default:
+                    throw new FormatException("The text value is not a valid enumeration value.");
+            }
         }
 
         /// <summary>Finds an ordinary footnote for a present identifier; zero is a valid identifier.</summary>

@@ -36,12 +36,16 @@ namespace OfficeIMO.Word {
 
         /// <summary>Points the paragraph at the same elements in the copy of the package a disposed document keeps.</summary>
         private bool RebindOwned(WordPackageModel copy) {
-            int paragraph = _document.DisposedCopyNode(_ownedParagraphNode);
+            OfficeXmlTree source = _ownedTree!;
+            OfficeXmlTree? target = _document.GetDisposedWordTree(copy, source);
+            if (target == null) return false;
+            if (ReferenceEquals(source, target)) return true;
+            int paragraph = _document.DisposedCopyNode(source, _ownedParagraphNode);
             if (paragraph == NoNode) return false;
             int run = NoNode, bookmark = NoNode;
-            if (_ownedRunNode != NoNode && (run = _document.DisposedCopyNode(_ownedRunNode)) == NoNode) return false;
-            if (_ownedBookmarkNode != NoNode && (bookmark = _document.DisposedCopyNode(_ownedBookmarkNode)) == NoNode) return false;
-            _ownedTree = copy.Document;
+            if (_ownedRunNode != NoNode && (run = _document.DisposedCopyNode(source, _ownedRunNode)) == NoNode) return false;
+            if (_ownedBookmarkNode != NoNode && (bookmark = _document.DisposedCopyNode(source, _ownedBookmarkNode)) == NoNode) return false;
+            _ownedTree = target;
             _ownedParagraphNode = paragraph;
             _ownedRunNode = run;
             _ownedBookmarkNode = bookmark;
@@ -57,7 +61,7 @@ namespace OfficeIMO.Word {
                 OfficeXmlTree? tree = _ownedTree;
                 if (tree == null || _document == null) return null;
                 WordPackageModel? model = _document._ownedModel;
-                if (model != null) return model.IsDocumentParsed && ReferenceEquals(model.Document, tree) ? model : null;
+                if (model != null) return model.IsDocumentParsed && _document.OwnsWordTree(model, tree) ? model : null;
                 // Once the SDK package is open, it is the document for every paragraph, the kept copy included.
                 if (_document._ownedNodeElements != null) return null;
                 WordPackageModel? disposed = _document.DisposedReadModel;
@@ -77,11 +81,15 @@ namespace OfficeIMO.Word {
             text = string.Empty;
             if (OwnedModel == null) return false;
             // A paragraph without a run (an empty paragraph or a bookmark) has no text, as on the SDK path.
-            if (_ownedRunNode == NoNode) return true;
+            if (_ownedRunNode == NoNode) {
+                if (_ownedFieldProjection) text = _authoredField!.Text;
+                return true;
+            }
             return WordOwnedText.TryRead(_ownedTree!, _ownedRunNode, out text);
         }
 
         private bool TrySetOwnedText(string? value) {
+            if (_ownedFieldProjection) return false;
             WordPackageModel? model = OwnedModel;
             if (model == null) return false;
             OfficeXmlTree tree = _ownedTree!;

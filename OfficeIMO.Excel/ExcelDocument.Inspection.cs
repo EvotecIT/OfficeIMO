@@ -174,7 +174,16 @@ namespace OfficeIMO.Excel {
                                 }
 
                                 // One walk over the cell's children; each SDK child property searches them again.
-                                ExcelSheetReader.GetCellChildren(cell, out CellFormula? cellFormula, out CellValue? cellValue, out InlineString? inlineString);
+                                CellFormula? cellFormula = null;
+                                CellValue? cellValue = null;
+                                InlineString? inlineString = null;
+                                for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                                    switch (child) {
+                                        case CellFormula formulaChild: cellFormula ??= formulaChild; break;
+                                        case CellValue valueChild: cellValue ??= valueChild; break;
+                                        case InlineString inlineChild: inlineString ??= inlineChild; break;
+                                    }
+                                }
                                 string? storedFormula = cellFormula?.Text;
                                 uint? cellStyleIndex = cell.StyleIndex?.Value;
                                 worksheetSnapshot.AddCell(new ExcelCellInfo {

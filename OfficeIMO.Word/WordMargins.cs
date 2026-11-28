@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -39,328 +40,126 @@ namespace OfficeIMO.Word {
     /// Provides access to page margin settings for a document section.
     /// </summary>
     public class WordMargins {
-        private readonly WordDocument _document;
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
         private readonly WordSection _section;
+        private static readonly string[] Attributes = { "top", "right", "bottom", "left", "header", "footer", "gutter" };
+        private static readonly (WordMargin Type, int[] Twips)[] Presets = {
+            (WordMargin.Normal, new[] { 1440, 1440, 1440, 1440, 720, 720, 0 }),
+            (WordMargin.Mirrored, new[] { 1440, 1440, 1440, 1800, 720, 720, 0 }),
+            (WordMargin.Moderate, new[] { 1440, 1080, 1440, 1080, 720, 720, 0 }),
+            (WordMargin.Narrow, new[] { 720, 720, 720, 720, 720, 720, 0 }),
+            (WordMargin.Wide, new[] { 1440, 2880, 1440, 2880, 720, 720, 0 }),
+            (WordMargin.Office2003Default, new[] { 1440, 1800, 1440, 1800, 720, 720, 0 })
+        };
+        private static readonly int[] NormalTwips = Presets[0].Twips;
 
-        /// <summary>
-        /// Initializes a new instance for managing margins within the specified section.
-        /// </summary>
+        /// <summary>Initializes a new instance for managing margins within the specified section.</summary>
         /// <param name="wordDocument">Parent document.</param>
         /// <param name="wordSection">Section associated with the margins.</param>
         public WordMargins(WordDocument wordDocument, WordSection wordSection) {
-            _document = wordDocument;
             _section = wordSection;
         }
 
-        /// <summary>
-        /// Get or set the left margin as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Left {
-            get {
-                var left = _section._sectionProperties.GetFirstChild<PageMargin>()?.Left ?? WordMargins.Normal.Left;
-                return global::OfficeIMO.OfficeLength.Points(((left ?? new UInt32Value()).Value) / 20D);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Left = wordNativeValue;
-            }
+        /// <summary>Gets or sets the left margin as a physical length.</summary>
+        public OfficeLength? Left {
+            get => GetLength("left", 1440);
+            set => SetLength("left", value);
         }
 
-        /// <summary>
-        /// Get or set the right margin as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Right {
-            get {
-                var right = _section._sectionProperties.GetFirstChild<PageMargin>()?.Right ?? WordMargins.Normal.Right;
-                return global::OfficeIMO.OfficeLength.Points(((right ?? new UInt32Value()).Value) / 20D);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Right = wordNativeValue;
-            }
+        /// <summary>Gets or sets the right margin as a physical length.</summary>
+        public OfficeLength? Right {
+            get => GetLength("right", 1440);
+            set => SetLength("right", value);
         }
 
-        /// <summary>
-        /// Get or set the top margin as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Top {
-            get {
-                return ((_section._sectionProperties.GetFirstChild<PageMargin>()?.Top?.Value
-                       ?? WordMargins.Normal.Top?.Value) is { } wordLength3339 ? global::OfficeIMO.OfficeLength.Points((wordLength3339) / 20D) : (global::OfficeIMO.OfficeLength?)null);
-            }
-            set {
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Top = wordNativeValue;
-            }
+        /// <summary>Gets or sets the top margin as a physical length.</summary>
+        public OfficeLength? Top {
+            get => GetLength("top", 1440, signed: true);
+            set => SetLength("top", value, signed: true);
         }
 
-        /// <summary>
-        /// Get or set the bottom margin as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Bottom {
-            get {
-                return ((_section._sectionProperties.GetFirstChild<PageMargin>()?.Bottom?.Value
-                       ?? WordMargins.Normal.Bottom?.Value) is { } wordLength4042 ? global::OfficeIMO.OfficeLength.Points((wordLength4042) / 20D) : (global::OfficeIMO.OfficeLength?)null);
-            }
-            set {
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Bottom = wordNativeValue;
-            }
+        /// <summary>Gets or sets the bottom margin as a physical length.</summary>
+        public OfficeLength? Bottom {
+            get => GetLength("bottom", 1440, signed: true);
+            set => SetLength("bottom", value, signed: true);
         }
 
-        /// <summary>
-        /// Get or set the header distance as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? HeaderDistance {
-            get {
-                var header = _section._sectionProperties.GetFirstChild<PageMargin>()?.Header ?? WordMargins.Normal.Header;
-                return global::OfficeIMO.OfficeLength.Points(((header ?? new UInt32Value()).Value) / 20D);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Header = wordNativeValue;
-            }
+        /// <summary>Gets or sets the header distance from the page edge.</summary>
+        public OfficeLength? HeaderDistance {
+            get => GetLength("header", 720);
+            set => SetLength("header", value);
         }
 
-        /// <summary>
-        /// Get or set the footer distance as a physical length
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? FooterDistance {
-            get {
-                var footer = _section._sectionProperties.GetFirstChild<PageMargin>()?.Footer ?? WordMargins.Normal.Footer;
-                return global::OfficeIMO.OfficeLength.Points(((footer ?? new UInt32Value()).Value) / 20D);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Footer = wordNativeValue;
-            }
+        /// <summary>Gets or sets the footer distance from the page edge.</summary>
+        public OfficeLength? FooterDistance {
+            get => GetLength("footer", 720);
+            set => SetLength("footer", value);
         }
 
-        /// <summary>
-        /// Gets or sets the gutter size as a physical length.
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Gutter {
-            get {
-                var gutter = _section._sectionProperties.GetFirstChild<PageMargin>()?.Gutter ?? WordMargins.Normal.Gutter;
-                return global::OfficeIMO.OfficeLength.Points(((gutter ?? new UInt32Value()).Value) / 20D);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _section._sectionProperties.Append(WordMargins.Normal);
-                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin!.Gutter = wordNativeValue;
-            }
+        /// <summary>Gets or sets the binding gutter.</summary>
+        public OfficeLength? Gutter {
+            get => GetLength("gutter", 0);
+            set => SetLength("gutter", value);
         }
 
-        /// <summary>
-        /// Gets or sets a predefined margin set that matches the current settings.
-        /// </summary>
+        private OfficeLength GetLength(string name, int normal, bool signed = false) {
+            string? token = _section.SectionNode.Child(W, "pgMar").Attribute(W, name);
+            long? twips = signed ? (long?)OfficeXmlViewValues.ParseInt32(token) : OfficeXmlViewValues.ParseUInt32(token);
+            return OfficeLength.Points((twips ?? normal) / 20D);
+        }
+
+        private void SetLength(string name, OfficeLength? value, bool signed = false) {
+            if (!signed && value.HasValue && value.Value.ToEmus() < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+            long? twips = value?.ToTwips();
+            string? token = signed
+                ? OfficeXmlViewValues.Format(checked((int?)twips))
+                : OfficeXmlViewValues.Format(checked((uint?)twips));
+            OfficeXmlNode section = _section.EditSectionNode();
+            OfficeXmlNode margin = section.Child(W, "pgMar");
+            if (margin.IsNone) margin = AppendMargins(section, NormalTwips);
+            margin.SetAttribute(W, name, token);
+        }
+
+        /// <summary>Gets or sets a predefined margin set that matches the current settings.</summary>
         public WordMargin? Type {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    foreach (WordMargin wordMargin in global::OfficeIMO.Internal.EnumCompat.GetValues<WordMargin>()) {
-                        if (wordMargin == WordMargin.Unknown) {
-                            continue;
-                        }
+                OfficeXmlNode margins = _section.SectionNode.Child(W, "pgMar");
+                if (margins.IsNone) return WordMargin.Normal;
+                var twips = (Read(0), Read(1), Read(2), Read(3), Read(4), Read(5), Read(6));
+                foreach (var preset in Presets) {
+                    int[] expected = preset.Twips;
+                    if (twips == (expected[0], expected[1], expected[2], expected[3], expected[4], expected[5], expected[6]))
+                        return preset.Type;
+                }
+                return WordMargin.Unknown;
 
-                        var pageMarginBuiltin = GetDefault(wordMargin);
-                        if (pageMarginBuiltin.Bottom == null &&
-                            pageMarginBuiltin.Footer == null &&
-                            pageMarginBuiltin.Gutter == null &&
-                            pageMarginBuiltin.Header == null &&
-                            pageMarginBuiltin.Left == null &&
-                            pageMarginBuiltin.Right == null &&
-                            pageMarginBuiltin.Top == null) {
-                            return wordMargin;
-                        }
-
-                        if (pageMarginBuiltin.Bottom != null && pageMargin.Bottom != null &&
-                            pageMarginBuiltin.Footer != null && pageMargin.Footer != null &&
-                            pageMarginBuiltin.Gutter != null && pageMargin.Gutter != null &&
-                            pageMarginBuiltin.Header != null && pageMargin.Header != null &&
-                            pageMarginBuiltin.Left != null && pageMargin.Left != null &&
-                            pageMarginBuiltin.Right != null && pageMargin.Right != null &&
-                            pageMarginBuiltin.Top != null && pageMargin.Top != null &&
-
-
-                            pageMarginBuiltin.Bottom == pageMargin.Bottom &&
-                            pageMarginBuiltin.Footer == pageMargin.Footer &&
-                            pageMarginBuiltin.Gutter == pageMargin.Gutter &&
-                             pageMarginBuiltin.Header == pageMargin.Header &&
-                            pageMarginBuiltin.Left == pageMargin.Left &&
-                            pageMarginBuiltin.Right == pageMargin.Right &&
-                             pageMarginBuiltin.Top == pageMargin.Top
-                            ) {
-                            return wordMargin;
+                int? Read(int index) => OfficeXmlViewValues.ParseInt32(margins.Attribute(W, Attributes[index]));
+            }
+            set {
+                int[]? preset = null;
+                if (value.HasValue) {
+                    foreach (var candidate in Presets) {
+                        if (candidate.Type == value.Value) {
+                            preset = candidate.Twips;
+                            break;
                         }
                     }
-
-                    return WordMargin.Unknown;
+                    if (preset == null) throw new ArgumentOutOfRangeException(nameof(value));
                 }
-
-                return WordMargin.Normal;
-            }
-            set => SetMargins(value);
-        }
-
-        private void SetMargins(WordMargin? wordMargin) {
-            if (wordMargin == null) {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    pageMargin.Remove();
-                }
-            } else {
-                var pageMarginData = GetDefault(wordMargin);
-                if (pageMarginData != null) {
-                    var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                    if (pageMargin == null) {
-                        _section._sectionProperties.Append(pageMarginData);
-                        // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                    } else {
-                        pageMargin.Remove();
-                        _section._sectionProperties.Append(pageMarginData);
-                    }
-                }
+                OfficeXmlNode section = _section.EditSectionNode();
+                OfficeXmlNode previous = section.Child(W, "pgMar");
+                if (previous.Exists) previous.Remove();
+                if (preset != null) AppendMargins(section, preset);
             }
         }
 
-        private static PageMargin GetDefault(WordMargin? pageMargins) {
-            switch (pageMargins) {
-                case WordMargin.Mirrored: return Mirrored;
-                case WordMargin.Normal: return Normal;
-                case WordMargin.Moderate: return Moderate;
-                case WordMargin.Narrow: return Narrow;
-                case WordMargin.Office2003Default: return Office2003Default;
-                case WordMargin.Wide: return Wide;
+        private static OfficeXmlNode AppendMargins(OfficeXmlNode section, int[] twips) {
+            OfficeXmlNode margin = section.CreateElement(W, "pgMar");
+            for (int index = 0; index < Attributes.Length; index++) {
+                margin.SetAttribute(W, Attributes[index], OfficeXmlViewValues.Format(twips[index]));
             }
-
-            throw new ArgumentOutOfRangeException(nameof(pageMargins));
-        }
-
-        private static PageMargin Normal {
-            get {
-                return new PageMargin() {
-                    Top = 1440,
-                    Right = (UInt32Value)1440U,
-                    Bottom = 1440,
-                    Left = (UInt32Value)1440U,
-                    Header = (UInt32Value)720U,
-                    Footer = (UInt32Value)720U,
-                    Gutter = (UInt32Value)0U
-                };
-            }
-        }
-
-        private static PageMargin Mirrored {
-            get {
-                return new PageMargin() {
-                    Top = 1440,
-                    Right = (UInt32Value)1440U,
-                    Bottom = 1440,
-                    Left = (UInt32Value)1800U,
-                    Header = (UInt32Value)720U,
-                    Footer = (UInt32Value)720U,
-                    Gutter = (UInt32Value)0U
-                };
-            }
-        }
-
-        private static PageMargin Moderate => new PageMargin() {
-            Top = 1440,
-            Right = (UInt32Value)1080U,
-            Bottom = 1440,
-            Left = (UInt32Value)1080U,
-            Header = (UInt32Value)720U,
-            Footer = (UInt32Value)720U,
-            Gutter = (UInt32Value)0U
-        };
-
-        private static PageMargin Narrow {
-            get {
-                return new PageMargin() {
-                    Top = 720,
-                    Right = (UInt32Value)720U,
-                    Bottom = 720,
-                    Left = (UInt32Value)720U,
-                    Header = (UInt32Value)720U,
-                    Footer = (UInt32Value)720U,
-                    Gutter = (UInt32Value)0U
-                };
-            }
-        }
-
-        private static PageMargin Wide {
-            get {
-                return new PageMargin() {
-                    Top = 1440,
-                    Right = (UInt32Value)2880U,
-                    Bottom = 1440,
-                    Left = (UInt32Value)2880U,
-                    Header = (UInt32Value)720U,
-                    Footer = (UInt32Value)720U,
-                    Gutter = (UInt32Value)0U
-                };
-            }
-        }
-
-        private static PageMargin Office2003Default {
-            get {
-                return new PageMargin() {
-                    Top = 1440,
-                    Right = (UInt32Value)1800U,
-                    Bottom = 1440,
-                    Left = (UInt32Value)1800U,
-                    Header = (UInt32Value)720U,
-                    Footer = (UInt32Value)720U,
-                    Gutter = (UInt32Value)0U
-                };
-            }
+            return section.Append(margin);
         }
     }
 }
