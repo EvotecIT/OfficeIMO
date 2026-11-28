@@ -1,5 +1,6 @@
 using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 using P = DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -528,13 +529,15 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointClassicComment AddClassicComment(PowerPointSlide slide,
             PowerPointCommentAuthor author, string text, OfficeLength x = default, OfficeLength y = default,
             DateTime? created = null) {
-            EnsureCommentSlide(slide);
+            OfficeOpcEditablePackage? package = GetPackageForClassicCommentAdd(slide);
+            if (package == null) EnsureCommentSlide(slide);
             ArgumentNullException.ThrowIfNull(author);
             ValidateClassicCommentText(text, nameof(text));
             long nativeX = LengthToClassicCommentPosition(x);
             long nativeY = LengthToClassicCommentPosition(y);
             ValidateClassicCommentPosition(nativeX, nameof(x));
             ValidateClassicCommentPosition(nativeY, nameof(y));
+            if (package != null && TryAddPackageClassicComment(package, slide, author, text, nativeX, nativeY, created) is { } owned) return owned;
             P.CommentAuthor commentAuthor = GetOrCreateClassicCommentAuthor(author);
             var comment = new P.Comment(
                 new P.Position { X = nativeX, Y = nativeY }, new P.Text(text)) {
@@ -631,17 +634,16 @@ namespace OfficeIMO.PowerPoint {
                 .Where(comment => comment.AuthorId?.Value == authorId)
                 .Where(comment => comment.Index?.Value != null)
                 .Select(comment => comment.Index!.Value));
-            const uint MaximumClassicCommentIndex = int.MaxValue;
-            uint firstCandidate = author.LastIndex?.Value >=
-                MaximumClassicCommentIndex
-                ? 0U
-                : (author.LastIndex?.Value ?? 0U) + 1U;
-            uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate,
-                "classic-comment", MaximumClassicCommentIndex);
-            author.LastIndex = usedIndexes.Count == 0
-                ? next
-                : Math.Max(usedIndexes.Max(), next);
+            (uint next, uint last) = FindClassicCommentIndexes(usedIndexes, author.LastIndex?.Value);
+            author.LastIndex = last;
             return next;
+        }
+
+        private static (uint Next, uint Last) FindClassicCommentIndexes(HashSet<uint> usedIndexes, uint? lastIndex) {
+            const uint maximum = int.MaxValue;
+            uint firstCandidate = lastIndex >= maximum ? 0U : (lastIndex ?? 0U) + 1U;
+            uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate, "classic-comment", maximum);
+            return (next, usedIndexes.Count == 0 ? next : Math.Max(usedIndexes.Max(), next));
         }
 
         internal PowerPointCommentAuthor ResolveClassicCommentAuthor(uint? authorId) {

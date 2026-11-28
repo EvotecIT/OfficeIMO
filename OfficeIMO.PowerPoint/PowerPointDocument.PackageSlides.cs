@@ -389,6 +389,7 @@ namespace OfficeIMO.PowerPoint {
             _packageSlideOrder = null;
             _packageSlideEntries = null;
             _packageSlideEntryIndex = null;
+            ResetClassicCommentAddValidation();
             // A slide a caller still holds stops working on the package, so it can't reach a part that later takes its name.
             if (removedPart != null && _packageSlides != null && _packageSlides.TryGetValue(PartIdentity(removedPart), out PowerPointSlide? removed)) {
                 removed.RemovedFromPackage = true;

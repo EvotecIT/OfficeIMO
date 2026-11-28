@@ -88,22 +88,28 @@ namespace OfficeIMO.PowerPoint {
             root = default;
             try {
                 IReadOnlyList<OfficeOpcRelationship>? edges = ReadEditablePackageRelationships(package, owner, strictXml: true, requireTransitionalTypes: true);
-                if (edges == null) return false;
-                foreach (OfficeOpcRelationship edge in edges) {
-                    if (edge.Type != relationship || edge.IsExternal) continue;
-                    if (partName != null || string.Equals(edge.Target, "NULL", StringComparison.OrdinalIgnoreCase) ||
-                        edge.TargetPartName is not { } target || package.GetPartName(target) is not { } stored ||
-                        stored.IndexOf('%') >= 0 || target.IndexOf('%') >= 0 ||
-                        package.GetContentType(stored) is not { } contentType || !MatchesSubtypeSavePart(relationship, contentType) ||
-                        GetPackageXml(stored) is not { } tree) return false;
-                    root = new OfficeXmlNode(tree, tree.Root);
-                    if (!root.Is(ClassicCommentNamespace, rootName) || !HasTransitionalClassicCommentName(root)) return false;
-                    partName = stored;
-                }
-                return true;
+                return edges != null && TryFindClassicCommentPart(package, edges, relationship, rootName, out partName, out root);
             } catch (Exception exception) when (exception is XmlException or InvalidDataException or FormatException) {
                 return false;
             }
+        }
+
+        private bool TryFindClassicCommentPart(OfficeOpcEditablePackage package, IReadOnlyList<OfficeOpcRelationship> edges,
+            string relationship, string rootName, out string? partName, out OfficeXmlNode root) {
+            partName = null;
+            root = default;
+            foreach (OfficeOpcRelationship edge in edges) {
+                if (edge.Type != relationship || edge.IsExternal) continue;
+                if (partName != null || string.Equals(edge.Target, "NULL", StringComparison.OrdinalIgnoreCase) ||
+                    edge.TargetPartName is not { } target || package.GetPartName(target) is not { } stored ||
+                    stored.IndexOf('%') >= 0 || target.IndexOf('%') >= 0 ||
+                    package.GetContentType(stored) is not { } contentType || !MatchesSubtypeSavePart(relationship, contentType) ||
+                    GetPackageXml(stored) is not { } tree) return false;
+                root = new OfficeXmlNode(tree, tree.Root);
+                if (!root.Is(ClassicCommentNamespace, rootName) || !HasTransitionalClassicCommentName(root)) return false;
+                partName = stored;
+            }
+            return true;
         }
     }
 }

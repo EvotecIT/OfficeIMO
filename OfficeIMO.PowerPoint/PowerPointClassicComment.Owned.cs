@@ -110,6 +110,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointSlide _slide;
         private readonly string _partName;
         private IReadOnlyList<OfficeXmlNode>? _comments;
+        private OfficeXmlNode _originalRoot;
+        private readonly int _originalVersion;
         private OfficeXmlNode[]? _sdkComments;
         private bool _removed;
         private bool? _editableMarkup;
@@ -119,6 +121,8 @@ namespace OfficeIMO.PowerPoint {
             _slide = slide;
             _partName = partName;
             _comments = comments;
+            _originalRoot = comments[0].Parent;
+            _originalVersion = _originalRoot.Tree!.Version;
             document.RegisterPackageBinding(this);
         }
 
@@ -147,12 +151,29 @@ namespace OfficeIMO.PowerPoint {
         void IPackageSdkBinding.BindSdk() {
             try {
                 if (_removed) return;
+                if (_comments is not { } original || _originalRoot.Tree is not { } tree) return;
                 OfficeXmlNode[] comments = PowerPointClassicComment.ReadSdkCommentsForBinding(_slide, _partName);
-                if (comments.Length == _comments?.Count) _sdkComments = comments;
+                if (comments.Length == original.Count && tree.Version == _originalVersion) {
+                    _sdkComments = comments;
+                    return;
+                }
+
+                // An owned edit may have appended comments since the caller received this inventory.
+                var originalIndexes = new Dictionary<OfficeXmlNode, int>(original.Count);
+                for (int index = 0; index < original.Count; index++) originalIndexes.Add(original[index], index);
+                var mapped = new OfficeXmlNode[original.Count];
+                int sdkIndex = 0;
+                foreach (OfficeXmlNode current in _originalRoot.Children(OfficeXmlNamespaces.PresentationML, "cm")) {
+                    if (sdkIndex >= comments.Length) return;
+                    if (originalIndexes.TryGetValue(current, out int index)) mapped[index] = comments[sdkIndex];
+                    sdkIndex++;
+                }
+                if (sdkIndex == comments.Length) _sdkComments = mapped;
             } catch (InvalidOperationException) {
                 // A wrapper reports when its original comment did not survive the handoff.
             } finally {
                 _comments = null;
+                _originalRoot = default;
             }
         }
     }

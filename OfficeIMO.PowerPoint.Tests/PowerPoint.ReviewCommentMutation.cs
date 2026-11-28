@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(43), held.Y);
             Assert.False(presentation.IsSdkLoaded);
 
-            presentation.AddClassicComment(presentation.Slides[1], reviewer, "Study note", created: created);
+            presentation.AddModernComment(presentation.Slides[1], reviewer, "Study note", created: created);
             Assert.True(presentation.IsSdkLoaded);
             held.Text = "Edited text";
             using var saved = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
@@ -381,6 +381,206 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(part.Array, 0, part.Length, writable: false);
             XElement root = XElement.Load(input);
             return root.Element(root.Name.Namespace + "cm")!;
+        }
+
+        [Fact]
+        public void AddingClassicCommentsRetainsHeldCommentsAndAuthorIndexesAcrossSdkHandoff() {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide first = presentation.AddSlide();
+            PowerPointSlide second = presentation.AddSlide();
+            var primary = new PowerPointCommentAuthor("Reviewer", "RV");
+            var sameName = new PowerPointCommentAuthor("Reviewer", "R2");
+            var when = new DateTime(2026, 4, 20, 9, 0, 0, DateTimeKind.Utc);
+            PowerPointClassicComment firstComment = presentation.AddClassicComment(first, primary, "First", created: when);
+            PowerPointClassicComment earlierInventory = Assert.Single(presentation.GetClassicComments(first));
+            PowerPointClassicComment appended = presentation.AddClassicComment(first, primary, "Second", created: when);
+            PowerPointClassicComment acrossSlides = presentation.AddClassicComment(second, primary, "Third", created: when);
+            PowerPointClassicComment another = presentation.AddClassicComment(second, sameName, "Other author", created: when);
+            Assert.Equal(1U, firstComment.Index);
+            Assert.Equal(2U, appended.Index);
+            Assert.Equal(3U, acrossSlides.Index);
+            Assert.Equal(1U, another.Index);
+            Assert.Equal(primary.Initials, acrossSlides.Author.Initials);
+            Assert.Equal(sameName.Initials, another.Author.Initials);
+            Assert.False(presentation.IsSdkLoaded);
+
+            _ = presentation.OpenXmlDocument;
+            earlierInventory.Text = "First after handoff";
+            appended.Text = "Second after handoff";
+            Assert.Equal("First after handoff", firstComment.Text);
+
+            using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
+            Assert.Equal(new[] { "First after handoff", "Second after handoff" },
+                reopened.GetClassicComments(reopened.Slides[0]).Select(item => item.Text));
+            Assert.Equal(new[] { 3U, 1U }, reopened.GetClassicComments(reopened.Slides[1]).Select(item => item.Index));
+        }
+
+        [Fact]
+        public void AddingClassicCommentsIgnoresAuthorAndIndexDecoysInExtensions() {
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            const int none = OfficeXmlNamespaces.None;
+            (byte[] source, string commentPart) = CreateClassicCommentMarkupFixture("plain");
+            using var original = OfficeOpcPackage.Open(new MemoryStream(source, writable: false));
+            string main = original.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string authorsPart = original.GetRelatedPartName(main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "commentAuthors")!;
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(source, writable: false));
+            OfficeXmlTree comments = edit.GetXml(commentPart);
+            int lookalike = AddDecoy(comments, "cm");
+            comments.SetAttribute(lookalike, none, "authorId", "0");
+            comments.SetAttribute(lookalike, none, "idx", "2");
+            OfficeXmlTree authors = edit.GetXml(authorsPart);
+            lookalike = AddDecoy(authors, "cmAuthor");
+            authors.SetAttribute(lookalike, none, "id", "7");
+            authors.SetAttribute(lookalike, none, "name", "Another reviewer");
+            authors.SetAttribute(lookalike, none, "initials", "AR");
+            using var changed = new MemoryStream();
+            edit.Save(changed);
+
+            using var presentation = PowerPointDocument.Load(new MemoryStream(changed.ToArray(), writable: false));
+            var originalAuthor = new PowerPointCommentAuthor("Reviewer");
+            var anotherAuthor = new PowerPointCommentAuthor("Another reviewer", "AR");
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointClassicComment second = presentation.AddClassicComment(slide, originalAuthor, "Second");
+            PowerPointClassicComment third = presentation.AddClassicComment(slide, anotherAuthor, "Third");
+            Assert.Equal(2U, second.Index);
+            Assert.Equal(1U, third.Index);
+            Assert.Equal(anotherAuthor.Name, third.Author.Name);
+            Assert.Equal(3, presentation.GetClassicComments(slide).Count);
+            Assert.False(presentation.IsSdkLoaded);
+
+            static int AddDecoy(OfficeXmlTree tree, string name) {
+                int extensionList = PowerPointDocument.Append(tree, tree.Root, ns, "extLst");
+                int extension = PowerPointDocument.Append(tree, extensionList, ns, "ext");
+                tree.SetAttribute(extension, none, "uri", "{605F80EB-C384-4E32-B9F6-A6DDABD38C2A}");
+                return PowerPointDocument.Append(tree, extension, ns, name);
+            }
+        }
+
+        [Theory]
+        [InlineData("content type")]
+        [InlineData("relationship id")]
+        [InlineData("absolute internal target")]
+        public void AddingClassicCommentsKeepsSdkErrorsForMalformedSlideRelationships(string problem) {
+            (byte[] original, _) = CreateClassicCommentMarkupFixture("plain");
+            using var input = OfficeOpcPackage.Open(new MemoryStream(original, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slide = input.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            string relations = OfficeOpcPartNames.GetRelationshipsPartName(slide);
+            using var package = OfficeOpcEditablePackage.Open(new MemoryStream(original, writable: false));
+            if (problem == "content type") {
+                package.SetOverride(relations, "application/xml");
+            } else {
+                OfficeXmlTree tree = package.GetXml(relations);
+                int relationship = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                if (problem == "relationship id") {
+                    tree.SetAttribute(relationship, OfficeXmlNamespaces.None, "Id", "invalid relationship id");
+                } else {
+                    tree.SetAttribute(relationship, OfficeXmlNamespaces.None, "Target", "https://example.invalid/layout");
+                }
+            }
+            using var modified = new MemoryStream();
+            package.Save(modified);
+            byte[] source = modified.ToArray();
+
+            Exception expected = Assert.ThrowsAny<Exception>(() => Add(openSdk: true));
+            Assert.IsType(expected.GetType(), Record.Exception(() => Add(openSdk: false)));
+
+            void Add(bool openSdk) {
+                using var presentation = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+                if (openSdk) _ = presentation.OpenXmlDocument;
+                presentation.AddClassicComment(presentation.Slides[0], new PowerPointCommentAuthor("Another reviewer"), "New comment");
+            }
+        }
+
+        [Fact]
+        public void AddingTheFirstClassicCommentKeepsSdkPartNumberingWithAnOrphanCommentPart() {
+            const string contentType = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml";
+            using var original = PowerPointDocument.Create();
+            original.AddSlide();
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(original.ToBytes(), writable: false));
+            edit.CreateXmlPart("/ppt/comments/archive.xml", contentType, OfficeXmlNamespaces.PresentationML, "cmLst");
+            using var modified = new MemoryStream();
+            edit.Save(modified);
+            byte[] source = modified.ToArray();
+
+            string expected = AddAndReadPart(openSdk: true);
+            Assert.Equal("/ppt/comments/comment1.xml", expected);
+            Assert.Equal(expected, AddAndReadPart(openSdk: false));
+
+            string AddAndReadPart(bool openSdk) {
+                using var presentation = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+                if (openSdk) _ = presentation.OpenXmlDocument;
+                presentation.AddClassicComment(presentation.Slides[0], new PowerPointCommentAuthor("Reviewer"), "Added");
+                using var result = OfficeOpcPackage.Open(new MemoryStream(presentation.ToBytes(), writable: false));
+                string main = result.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+                string slide = result.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+                return result.GetRelatedPartName(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "comments")!;
+            }
+        }
+
+        [Fact]
+        public void AddingClassicCommentsTypesNewRelationshipsEvenWithAnUnusualDefault() {
+            using var original = PowerPointDocument.Create();
+            original.AddSlide();
+            byte[] source = original.ToBytes();
+            using var input = OfficeOpcPackage.Open(new MemoryStream(source, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slide = input.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            string slideRelationships = OfficeOpcPartNames.GetRelationshipsPartName(slide);
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(source, writable: false));
+            edit.DeletePart(slideRelationships);
+            foreach (string part in edit.PartNames.Where(name => name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase))) {
+                edit.SetOverride(part, OfficeOpcEditablePackage.RelationshipContentType);
+            }
+            OfficeXmlTree types = edit.ContentTypes;
+            const int ns = OfficeXmlNamespaces.ContentTypes;
+            int defaults = types.FindChild(types.Root, ns, "Default");
+            while (defaults != OfficeXmlTree.NoNode && types.GetAttribute(defaults, OfficeXmlNamespaces.None, "Extension") != "rels") {
+                defaults = types.FindNextSibling(defaults, ns, "Default");
+            }
+            Assert.NotEqual(OfficeXmlTree.NoNode, defaults);
+            types.SetAttribute(defaults, OfficeXmlNamespaces.None, "ContentType", "application/xml");
+            using var changed = new MemoryStream();
+            edit.Save(changed);
+
+            using var presentation = PowerPointDocument.Load(new MemoryStream(changed.ToArray(), writable: false));
+            presentation.AddClassicComment(presentation.Slides[0], new PowerPointCommentAuthor("Reviewer"), "First review");
+            byte[] saved = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+            using var result = OfficeOpcPackage.Open(new MemoryStream(saved, writable: false));
+            Assert.Equal(OfficeOpcEditablePackage.RelationshipContentType, result.GetContentType(slideRelationships));
+
+            using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            _ = reopened.OpenXmlDocument;
+            Assert.Equal("First review", Assert.Single(reopened.GetClassicComments(reopened.Slides[0])).Text);
+        }
+
+        [Fact]
+        public void AddingClassicCommentsWrapsPersistedAuthorIndexAndKeepsTheHighestUsedIndex() {
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            const string type = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "commentAuthors";
+            (byte[] original, _) = CreateClassicCommentMarkupFixture("plain");
+            using var input = OfficeOpcPackage.Open(new MemoryStream(original, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string part = input.GetRelatedPartName(main, type)!;
+            using var package = OfficeOpcEditablePackage.Open(new MemoryStream(original, writable: false));
+            OfficeXmlTree authors = package.GetXml(part);
+            int author = authors.FindChild(authors.Root, ns, "cmAuthor");
+            authors.SetAttribute(author, OfficeXmlNamespaces.None, "lastIdx", "4294967295");
+            using var modified = new MemoryStream();
+            package.Save(modified);
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(modified.ToArray(), writable: false));
+            PowerPointSlide slide = actual.Slides[0];
+            var reviewer = new PowerPointCommentAuthor("Reviewer");
+            Assert.Equal(0U, actual.AddClassicComment(slide, reviewer, "Wrap to zero").Index);
+            Assert.Equal(2U, actual.AddClassicComment(slide, reviewer, "Continue after the highest").Index);
+            using var saved = OfficeOpcPackage.Open(new MemoryStream(actual.ToBytes(), writable: false));
+            Assert.False(actual.IsSdkLoaded);
+            using var read = saved.ReadPart(part);
+            using var stream = new MemoryStream(read.Array, 0, read.Length, writable: false);
+            XElement root = XElement.Load(stream);
+            Assert.Equal("2", (string?)root.Element(root.Name.Namespace + "cmAuthor")!.Attribute("lastIdx"));
         }
 
         [Fact]
