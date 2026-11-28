@@ -1,6 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -9,13 +10,11 @@ namespace OfficeIMO.PowerPoint {
     /// them. Anything this path does not cover opens the SDK and saves as before.
     /// </summary>
     public sealed partial class PowerPointDocument {
-        private const string CorePropertiesRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
         private const string NotesSlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
         private const string NotesSlideRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide";
         private const string VbaProjectRelationshipType = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
         // Kept in their own type, so the document's static constructor, which the SDK-bound statics share, doesn't carry them.
         private static class UnchangedSaveNames {
-            internal static readonly string[] ApplicationCounters = { "TotalTime", "Application", "PresentationFormat", "Slides", "Notes", "HiddenSlides" };
             internal static readonly HashSet<string> SlideSizeTypes = new(StringComparer.Ordinal) {
                 "screen4x3", "letter", "A4", "35mm", "overhead", "banner", "custom", "ledger", "A3", "B4ISO", "B5ISO", "B4JIS", "B5JIS",
                 "hagakiCard", "screen16x9", "screen16x10"
@@ -50,20 +49,17 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcEditablePackage editable = pending ?? OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
             bool kept = false;
             try {
-                OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
-                OfficeXmlTree core = editable.GetXml(values.CorePart);
-                int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
-                // Everything edited has to be a direct child, as the SDK reads it; nothing has changed yet otherwise,
-                // and pending slide edits stay pending for the SDK save.
-                if (modified == OfficeXmlTree.NoNode) return false;
-                foreach (string counter in UnchangedSaveNames.ApplicationCounters) {
-                    if (application.FindChild(application.Root, OfficeXmlNamespaces.ExtendedProperties, counter) == OfficeXmlTree.NoNode) return false;
-                }
-                SetChildText(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
-                SetChildText(application, "Notes", values.Notes.ToString(CultureInfo.InvariantCulture));
-                SetChildText(application, "HiddenSlides", values.HiddenSlides.ToString(CultureInfo.InvariantCulture));
-                SetChildText(application, "PresentationFormat", values.PresentationFormat);
-                core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
+                if (!TryGetSavePropertyRoots(editable, values.CorePart, values.ApplicationPart,
+                    out OfficeXmlNode core, out OfficeXmlNode application)) return false;
+
+                EnsureApplicationProperty(application, "TotalTime", "0");
+                EnsureApplicationProperty(application, "Application", "Microsoft Office PowerPoint");
+                SetApplicationProperty(application, "PresentationFormat", values.PresentationFormat);
+                SetApplicationProperty(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
+                SetApplicationProperty(application, "Notes", values.Notes.ToString(CultureInfo.InvariantCulture));
+                SetApplicationProperty(application, "HiddenSlides", values.HiddenSlides.ToString(CultureInfo.InvariantCulture));
+                DateTime modified = DateTime.UtcNow;
+                SetCoreProperty(core, OfficeXmlNamespaces.DublinCoreTerms, "modified", FormatPackageDate(modified));
 
                 // The package is written into pooled chunks where the runtime has them, so the array the caller owns is
                 // the only copy.
@@ -83,16 +79,39 @@ namespace OfficeIMO.PowerPoint {
                 }
                 kept = true;
                 _pendingEdits = true;
+                if (_accessMode == DocumentAccessMode.ReadWrite && (_properties != null || _applicationProperties != null)) {
+                    RememberAssignedPackageDate("modified", modified);
+                }
             } finally {
                 if (!kept && pending == null) editable.Dispose();
             }
             return true;
         }
 
-        // A save through the SDK writes the element text even when it is unchanged; here an unchanged value keeps its bytes.
-        private static void SetChildText(OfficeXmlTree tree, string localName, string text) {
-            int child = tree.FindChild(tree.Root, OfficeXmlNamespaces.ExtendedProperties, localName);
-            if (!string.Equals(tree.GetInnerText(child), text, StringComparison.Ordinal)) tree.SetInnerText(child, text);
+        private static bool TryGetSavePropertyRoots(OfficeOpcEditablePackage package, string? corePart, string? applicationPart,
+            out OfficeXmlNode core, out OfficeXmlNode application) {
+            core = default;
+            application = default;
+            if (applicationPart != null) {
+                OfficeXmlTree tree = package.GetXml(applicationPart);
+                application = new OfficeXmlNode(tree, tree.Root);
+                if (!application.Is(OfficeXmlNamespaces.ExtendedProperties, "Properties")) return false;
+            } else if (package.PartExists(ApplicationPropertiesPartName)) {
+                // An unrelated part occupies the usual name. Let the SDK choose a new one.
+                return false;
+            }
+            if (corePart != null) {
+                OfficeXmlTree tree = package.GetXml(corePart);
+                core = new OfficeXmlNode(tree, tree.Root);
+                if (!core.Is(OfficeXmlNamespaces.CoreProperties, "coreProperties") ||
+                    (core.Child(OfficeXmlNamespaces.DublinCoreTerms, "modified").IsNone && !IsValidCoreProperties(core))) {
+                    return false;
+                }
+            }
+
+            if (application.IsNone) application = CreateApplicationPropertiesPart(package);
+            if (core.IsNone) core = CreateCorePropertiesPart(package);
+            return true;
         }
 
         // System.IO.Packaging writes package dates in UTC with seven fractional digits.
@@ -100,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
             value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
 
         private readonly struct UnchangedSaveValues {
-            internal UnchangedSaveValues(string applicationPart, string corePart, int slides, int notes, int hiddenSlides, string presentationFormat) {
+            internal UnchangedSaveValues(string? applicationPart, string? corePart, int slides, int notes, int hiddenSlides, string presentationFormat) {
                 ApplicationPart = applicationPart;
                 CorePart = corePart;
                 Slides = slides;
@@ -109,8 +128,8 @@ namespace OfficeIMO.PowerPoint {
                 PresentationFormat = presentationFormat;
             }
 
-            internal string ApplicationPart { get; }
-            internal string CorePart { get; }
+            internal string? ApplicationPart { get; }
+            internal string? CorePart { get; }
             internal int Slides { get; }
             internal int Notes { get; }
             internal int HiddenSlides { get; }
@@ -120,18 +139,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Reads what a save through the SDK would write into the document properties, following
         /// <see cref="PowerPointUtils.UpdateDocumentProperties"/>. Returns false for anything that save would also change
-        /// elsewhere or create: footer definitions, legacy slide visibility, a VBA project, or missing property parts.
+        /// elsewhere: footer definitions, legacy slide visibility, or a VBA project.
         /// </summary>
         private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters,
             OfficeOpcEditablePackage? parsed, bool notesAdded, out UnchangedSaveValues values) {
             values = default;
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
-            string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
-            string? core = package.GetRelatedPartName(null, CorePropertiesRelationshipType);
-            if (main == null || application == null || core == null || !package.PartExists(application) || !package.PartExists(core)) return false;
-            // The SDK save reads both property parts under the part size limit; a part over it takes that path.
-            if (package.GetPartLength(application) > maximumSlideXmlCharacters || package.GetPartLength(core) > maximumSlideXmlCharacters) return false;
-            if (!HasApplicationCounters(package, application) || !HasModifiedDate(package, core)) return false;
+            if (main == null) return false;
+            string? application, core;
+            bool validProperties = parsed != null
+                ? TryReadPropertyPartNames(parsed, out application, out core)
+                : TryReadPropertyPartNames(package, out application, out core);
+            if (!validProperties) return false;
+            // A dangling relationship or a part beyond the load's limit belongs to the compatibility path.
+            if (!CanReadSavePropertyPart(package, parsed, application, maximumSlideXmlCharacters)
+                || !CanReadSavePropertyPart(package, parsed, core, maximumSlideXmlCharacters)) return false;
 
             // Slides removed or moved without the SDK changed the slide list in the pending package, which is read instead.
             OfficeXmlTree? presentationTree = parsed?.GetParsedXml(main);
@@ -231,7 +253,13 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static string? FirstRelatedPart(OfficeOpcEditablePackage package, string source, string type) {
+        private static bool CanReadSavePropertyPart(OfficeOpcPackage source, OfficeOpcEditablePackage? pending, string? part, long limit) {
+            if (part == null) return true;
+            if (!(pending?.PartExists(part) ?? source.PartExists(part))) return false;
+            return pending?.IsStoredPart(part) == false || source.GetPartLength(part) <= limit;
+        }
+
+        private static string? FirstRelatedPart(OfficeOpcEditablePackage package, string? source, string type) {
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
             if (!package.PartExists(relationshipsPart)) return null;
             OfficeXmlTree relationships = package.GetXml(relationshipsPart);
@@ -340,36 +368,6 @@ namespace OfficeIMO.PowerPoint {
                 case "false": case "0": show = false; return true;
                 default: return false;
             }
-        }
-
-        // The SDK save adds any of these that are missing; this path only replaces their text.
-        private static bool HasApplicationCounters(OfficeOpcPackage package, string application) {
-            var found = new HashSet<string>(StringComparer.Ordinal);
-            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content, processMarkupCompatibility: false);
-            using (content) {
-                while (reader.Read()) {
-                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                    if (reader.Depth == 1 && !reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "Properties")) return false;
-                    if (reader.Depth == 2 && reader.NamespaceId == OfficeXmlNamespaces.ExtendedProperties) found.Add(reader.LocalName);
-                }
-            }
-            foreach (string counter in UnchangedSaveNames.ApplicationCounters) {
-                if (!found.Contains(counter)) return false;
-            }
-            return true;
-        }
-
-        private static bool HasModifiedDate(OfficeOpcPackage package, string core) {
-            OfficeXmlPullReader reader = package.OpenXml(core, out OfficePooledBytes content, processMarkupCompatibility: false);
-            using (content) {
-                while (reader.Read()) {
-                    if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
-                        && reader.IsElement(OfficeXmlNamespaces.DublinCoreTerms, "modified")) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
     }
 }

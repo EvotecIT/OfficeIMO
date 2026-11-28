@@ -36,7 +36,9 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Load(input)) {
                 Assert.Equal(creator, presentation.Properties.Creator);
                 presentation.Properties.Title = "Updated title";
+                Assert.False(presentation.IsSdkLoaded);
                 presentation.Save(output);
+                Assert.False(presentation.IsSdkLoaded);
             }
 
             output.Position = 0;
@@ -46,6 +48,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(lastModifiedBy, saved.PackageProperties.LastModifiedBy);
             Assert.Equal(created, saved.PackageProperties.Created?.ToUniversalTime());
             Assert.True(saved.PackageProperties.Modified?.ToUniversalTime() > originalModified);
+        }
+
+        [Fact]
+        public void AssignedDatesKeepTheirKindAcrossAnOwnedSaveAndSdkBinding() {
+            using var presentation = PowerPointDocument.Create();
+            DateTime created = new(2024, 3, 14, 10, 11, 12, DateTimeKind.Utc);
+            DateTime lastPrinted = new(2024, 4, 15, 10, 11, 12, DateTimeKind.Unspecified);
+            presentation.Properties.Created = created;
+            presentation.Properties.LastPrinted = lastPrinted;
+
+            Assert.Equal(created, presentation.Properties.Created);
+            Assert.Equal(DateTimeKind.Utc, presentation.Properties.Created!.Value.Kind);
+            Assert.Equal(DateTimeKind.Unspecified, presentation.Properties.LastPrinted!.Value.Kind);
+            _ = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.Equal(DateTimeKind.Utc, presentation.Properties.Modified!.Value.Kind);
+
+            PresentationDocument sdk = presentation.OpenXmlDocument;
+            Assert.Equal(created, sdk.PackageProperties.Created);
+            Assert.Equal(DateTimeKind.Utc, sdk.PackageProperties.Created!.Value.Kind);
+            Assert.Equal(lastPrinted, sdk.PackageProperties.LastPrinted);
+            Assert.Equal(DateTimeKind.Unspecified, sdk.PackageProperties.LastPrinted!.Value.Kind);
         }
 
         [Fact]
@@ -79,6 +103,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("OfficeIMO.PowerPoint", presentation.ApplicationProperties.Application);
                     Assert.Equal("1.0", presentation.ApplicationProperties.ApplicationVersion);
                     Assert.Equal("1", presentation.ApplicationProperties.Slides);
+                    Assert.False(presentation.IsSdkLoaded);
                 }
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {

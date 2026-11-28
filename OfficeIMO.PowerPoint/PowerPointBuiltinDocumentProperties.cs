@@ -1,90 +1,90 @@
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Provides access to the built-in package properties for a PowerPoint presentation.
     /// </summary>
     public sealed class PowerPointBuiltinDocumentProperties {
-        private readonly PresentationDocument _presentationDocument;
+        private readonly PowerPointDocument _document;
         private bool _hasReadOnlyLegacyDateOverrides;
         private DateTime? _readOnlyLegacyCreated;
         private DateTime? _readOnlyLegacyModified;
         private DateTime? _readOnlyLegacyLastPrinted;
 
-        internal PowerPointBuiltinDocumentProperties(PresentationDocument presentationDocument) {
-            _presentationDocument = presentationDocument ?? throw new ArgumentNullException(nameof(presentationDocument));
+        internal PowerPointBuiltinDocumentProperties(PowerPointDocument document) {
+            _document = document;
         }
 
         /// <summary>
         ///     Gets or sets the presentation creator.
         /// </summary>
         public string? Creator {
-            get => _presentationDocument.PackageProperties.Creator;
-            set => _presentationDocument.PackageProperties.Creator = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.DublinCore, "creator");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.DublinCore, "creator", value);
         }
 
         /// <summary>
         ///     Gets or sets the presentation title.
         /// </summary>
         public string? Title {
-            get => _presentationDocument.PackageProperties.Title;
-            set => _presentationDocument.PackageProperties.Title = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.DublinCore, "title");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.DublinCore, "title", value);
         }
 
         /// <summary>
         ///     Gets or sets the presentation description.
         /// </summary>
         public string? Description {
-            get => _presentationDocument.PackageProperties.Description;
-            set => _presentationDocument.PackageProperties.Description = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.DublinCore, "description");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.DublinCore, "description", value);
         }
 
         /// <summary>
         ///     Gets or sets the presentation category.
         /// </summary>
         public string? Category {
-            get => _presentationDocument.PackageProperties.Category;
-            set => _presentationDocument.PackageProperties.Category = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "category");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "category", value);
         }
 
         /// <summary>
         ///     Gets or sets keywords used for searching and indexing.
         /// </summary>
         public string? Keywords {
-            get => _presentationDocument.PackageProperties.Keywords;
-            set => _presentationDocument.PackageProperties.Keywords = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "keywords");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "keywords", value);
         }
 
         /// <summary>
         ///     Gets or sets the presentation subject.
         /// </summary>
         public string? Subject {
-            get => _presentationDocument.PackageProperties.Subject;
-            set => _presentationDocument.PackageProperties.Subject = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.DublinCore, "subject");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.DublinCore, "subject", value);
         }
 
         /// <summary>
         ///     Gets or sets the revision number.
         /// </summary>
         public string? Revision {
-            get => _presentationDocument.PackageProperties.Revision;
-            set => _presentationDocument.PackageProperties.Revision = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "revision");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "revision", value);
         }
 
         /// <summary>
         ///     Gets or sets the last user who modified the presentation.
         /// </summary>
         public string? LastModifiedBy {
-            get => _presentationDocument.PackageProperties.LastModifiedBy;
-            set => _presentationDocument.PackageProperties.LastModifiedBy = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "lastModifiedBy");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "lastModifiedBy", value);
         }
 
         /// <summary>
         ///     Gets or sets the presentation version.
         /// </summary>
         public string? Version {
-            get => _presentationDocument.PackageProperties.Version;
-            set => _presentationDocument.PackageProperties.Version = value;
+            get => _document.ReadBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "version");
+            set => _document.WriteBuiltinProperty(OfficeXmlNamespaces.CoreProperties, "version", value);
         }
 
         /// <summary>
@@ -93,8 +93,8 @@ namespace OfficeIMO.PowerPoint {
         public DateTime? Created {
             get => _hasReadOnlyLegacyDateOverrides
                 ? _readOnlyLegacyCreated
-                : _presentationDocument.PackageProperties.Created;
-            set => _presentationDocument.PackageProperties.Created = value;
+                : _document.ReadBuiltinDateProperty(OfficeXmlNamespaces.DublinCoreTerms, "created");
+            set => _document.WriteBuiltinDateProperty(OfficeXmlNamespaces.DublinCoreTerms, "created", value);
         }
 
         /// <summary>
@@ -103,8 +103,8 @@ namespace OfficeIMO.PowerPoint {
         public DateTime? Modified {
             get => _hasReadOnlyLegacyDateOverrides
                 ? _readOnlyLegacyModified
-                : _presentationDocument.PackageProperties.Modified;
-            set => _presentationDocument.PackageProperties.Modified = value;
+                : _document.ReadBuiltinDateProperty(OfficeXmlNamespaces.DublinCoreTerms, "modified");
+            set => _document.WriteBuiltinDateProperty(OfficeXmlNamespaces.DublinCoreTerms, "modified", value);
         }
 
         /// <summary>
@@ -113,8 +113,8 @@ namespace OfficeIMO.PowerPoint {
         public DateTime? LastPrinted {
             get => _hasReadOnlyLegacyDateOverrides
                 ? _readOnlyLegacyLastPrinted
-                : _presentationDocument.PackageProperties.LastPrinted;
-            set => _presentationDocument.PackageProperties.LastPrinted = value;
+                : _document.ReadBuiltinDateProperty(OfficeXmlNamespaces.CoreProperties, "lastPrinted");
+            set => _document.WriteBuiltinDateProperty(OfficeXmlNamespaces.CoreProperties, "lastPrinted", value);
         }
 
         internal void SetReadOnlyLegacyDateOverrides(DateTime? created,

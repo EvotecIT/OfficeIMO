@@ -81,8 +81,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static Ap.Properties EnsureApplicationProperties(PresentationDocument presentationDocument) {
-            ExtendedFilePropertiesPart extendedPart = presentationDocument.ExtendedFilePropertiesPart ?? presentationDocument.AddExtendedFilePropertiesPart();
-            Ap.Properties properties = extendedPart.Properties ??= new Ap.Properties();
+            Ap.Properties properties = GetSdkApplicationProperties(presentationDocument);
             properties.TotalTime ??= new Ap.TotalTime() { Text = "0" };
             properties.Application ??= new Ap.Application() { Text = "Microsoft Office PowerPoint" };
             properties.PresentationFormat ??= new Ap.PresentationFormat() { Text = "Widescreen" };
@@ -90,6 +89,93 @@ namespace OfficeIMO.PowerPoint {
             properties.Notes ??= new Ap.Notes() { Text = "0" };
             properties.HiddenSlides ??= new Ap.HiddenSlides() { Text = "0" };
             return properties;
+        }
+
+        internal static string? ReadSdkBuiltinProperty(PowerPointDocument document, string name) {
+            var properties = document.SdkDocument.PackageProperties;
+            return name switch {
+                "creator" => properties.Creator,
+                "title" => properties.Title,
+                "description" => properties.Description,
+                "category" => properties.Category,
+                "keywords" => properties.Keywords,
+                "subject" => properties.Subject,
+                "revision" => properties.Revision,
+                "lastModifiedBy" => properties.LastModifiedBy,
+                "version" => properties.Version,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+        }
+
+        internal static void WriteSdkBuiltinProperty(PowerPointDocument document, string name, string? value) {
+            var properties = document.SdkDocument.PackageProperties;
+            switch (name) {
+                case "creator": properties.Creator = value; break;
+                case "title": properties.Title = value; break;
+                case "description": properties.Description = value; break;
+                case "category": properties.Category = value; break;
+                case "keywords": properties.Keywords = value; break;
+                case "subject": properties.Subject = value; break;
+                case "revision": properties.Revision = value; break;
+                case "lastModifiedBy": properties.LastModifiedBy = value; break;
+                case "version": properties.Version = value; break;
+                default: throw new ArgumentOutOfRangeException(nameof(name));
+            }
+        }
+
+        internal static DateTime? ReadSdkBuiltinDateProperty(PowerPointDocument document, string name) {
+            var properties = document.SdkDocument.PackageProperties;
+            return name switch {
+                "created" => properties.Created,
+                "modified" => properties.Modified,
+                "lastPrinted" => properties.LastPrinted,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+        }
+
+        internal static void WriteSdkBuiltinDateProperty(PowerPointDocument document, string name, DateTime? value) {
+            var properties = document.SdkDocument.PackageProperties;
+            switch (name) {
+                case "created": properties.Created = value; break;
+                case "modified": properties.Modified = value; break;
+                case "lastPrinted": properties.LastPrinted = value; break;
+                default: throw new ArgumentOutOfRangeException(nameof(name));
+            }
+        }
+
+        private static Ap.Properties GetSdkApplicationProperties(PresentationDocument document) {
+            ExtendedFilePropertiesPart part = document.ExtendedFilePropertiesPart ?? document.AddExtendedFilePropertiesPart();
+            return part.Properties ??= new Ap.Properties();
+        }
+
+        internal static string ReadSdkApplicationProperty(PowerPointDocument document, string name) {
+            Ap.Properties properties = GetSdkApplicationProperties(document.SdkDocument);
+            return (name switch {
+                "Application" => properties.Application?.Text,
+                "AppVersion" => properties.ApplicationVersion?.Text,
+                "Company" => properties.Company?.Text,
+                "Manager" => properties.Manager?.Text,
+                "PresentationFormat" => properties.PresentationFormat?.Text,
+                "TotalTime" => properties.TotalTime?.Text,
+                "Slides" => properties.Slides?.Text,
+                "Notes" => properties.Notes?.Text,
+                "HiddenSlides" => properties.HiddenSlides?.Text,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            }) ?? string.Empty;
+        }
+
+        internal static void WriteSdkApplicationProperty(PowerPointDocument document, string name, string? value) {
+            Ap.Properties properties = GetSdkApplicationProperties(document.SdkDocument);
+            OpenXmlLeafTextElement property = name switch {
+                "Application" => properties.Application ??= new Ap.Application(),
+                "AppVersion" => properties.ApplicationVersion ??= new Ap.ApplicationVersion(),
+                "Company" => properties.Company ??= new Ap.Company(),
+                "Manager" => properties.Manager ??= new Ap.Manager(),
+                "PresentationFormat" => properties.PresentationFormat ??= new Ap.PresentationFormat(),
+                "TotalTime" => properties.TotalTime ??= new Ap.TotalTime(),
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+            property.Text = value ?? string.Empty;
         }
 
         private static void InitializeDocumentProperties(PresentationDocument presentationDocument) {

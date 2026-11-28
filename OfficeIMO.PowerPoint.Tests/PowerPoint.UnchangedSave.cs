@@ -161,7 +161,6 @@ public class PowerPointUnchangedSaveTests {
     [Theory]
     [InlineData("footer")]
     [InlineData("legacy-show")]
-    [InlineData("missing-app")]
     [InlineData("signed")]
     public void UsesTheSdkWhenTheSaveWouldChangeMoreThanTheProperties(string variant) {
         byte[] source = CreateDeckWithStaleProperties();
@@ -169,7 +168,6 @@ public class PowerPointUnchangedSaveTests {
             "footer" => Rewrite(source, PresentationPart, xml => xml.Replace("</p:presentation>",
                 "<p:extLst><p:ext uri=\"urn:officeimo:powerpoint:footer-definitions:1\"/></p:extLst></p:presentation>")),
             "legacy-show" => Rewrite(source, PresentationPart, xml => xml.Replace("<p:sldId ", "<p:sldId show=\"0\" ")),
-            "missing-app" => Rewrite(source, ApplicationPart, xml => Regex.Replace(xml, "<(\\w+:)?TotalTime>.*?</(\\w+:)?TotalTime>|<(\\w+:)?TotalTime/>", string.Empty)),
             _ => Rewrite(source, ApplicationPart, xml => Regex.Replace(xml, "</(\\w+:)?Properties>\\s*$", match => "<ap:DigSig xmlns:ap=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><vt:blob xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">AA==</vt:blob></ap:DigSig>" + match.Value))
         };
 
@@ -185,6 +183,81 @@ public class PowerPointUnchangedSaveTests {
 
         Assert.True(presentation.IsSdkLoaded);
         AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
+    }
+
+    [Fact]
+    public void FillsMissingPropertiesWithoutReadingAnExtensionCounter() {
+        byte[] source = Rewrite(CreateDeckWithStaleProperties(), ApplicationPart, xml =>
+            Regex.Replace(xml, "<(\\w+:)?TotalTime>[^<]*</(\\w+:)?TotalTime>", match =>
+                "<x:extLst xmlns:x=\"urn:test:property-extension\">" +
+                Regex.Replace(match.Value, ">[^<]*<", ">999<") + "</x:extLst>"));
+        source = Rewrite(source, CorePart, xml => Regex.Replace(xml, "<(\\w+:)?modified[^>]*>[^<]*</(\\w+:)?modified>", string.Empty));
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+
+        byte[] saved = presentation.ToBytes();
+
+        Assert.False(presentation.IsSdkLoaded);
+        XElement root = ReadXml(saved, ApplicationPart).Root!;
+        Assert.Equal("0", root.Elements().Single(element => element.Name.LocalName == "TotalTime").Value);
+        Assert.Equal("999", root.Element(XName.Get("extLst", "urn:test:property-extension"))!.Value);
+        AssertSamePackage(source, SaveThroughSdk(source), saved);
+    }
+
+    [Fact]
+    public void CreatesMissingPropertyPartsAndReusesThemOnTheNextSave() {
+        byte[] input = CreateDeckWithStaleProperties();
+        using var source = new MemoryStream();
+        source.Write(input, 0, input.Length);
+        source.Position = 0;
+        using (PresentationDocument package = PresentationDocument.Open(source, true)) {
+            package.DeletePart(package.ExtendedFilePropertiesPart!);
+            package.DeletePart(package.CoreFilePropertiesPart!);
+        }
+        source.Position = 0;
+        using var presentation = PowerPointDocument.Load(source);
+
+        byte[] first = presentation.ToBytes();
+        byte[] second = presentation.ToBytes();
+
+        Assert.False(presentation.IsSdkLoaded);
+        using var firstSaved = PresentationDocument.Open(new MemoryStream(first), false);
+        using var secondSaved = PresentationDocument.Open(new MemoryStream(second), false);
+        Assert.Equal(firstSaved.CoreFilePropertiesPart!.Uri, secondSaved.CoreFilePropertiesPart!.Uri);
+        Assert.Equal(firstSaved.ExtendedFilePropertiesPart!.Uri, secondSaved.ExtendedFilePropertiesPart!.Uri);
+        Assert.NotNull(secondSaved.PackageProperties.Modified);
+        Assert.Equal("2", secondSaved.ExtendedFilePropertiesPart.Properties!.Slides!.Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidCoreMetadataUsesTheSdkSaveOutcome(bool externalRelationship) {
+        byte[] source = CreateDeckWithStaleProperties();
+        if (externalRelationship) {
+            source = Rewrite(source, "_rels/.rels", xml => {
+                XDocument relationships = XDocument.Parse(xml);
+                XElement core = relationships.Root!.Elements().Single(relationship =>
+                    ((string?)relationship.Attribute("Type"))?.EndsWith("/metadata/core-properties", StringComparison.Ordinal) == true);
+                core.SetAttributeValue("Target", "https://example.test/core.xml");
+                core.SetAttributeValue("TargetMode", "External");
+                return relationships.ToString(SaveOptions.DisableFormatting);
+            });
+        } else {
+            source = Rewrite(source, CorePart, xml => {
+                XDocument core = XDocument.Parse(xml);
+                core.Root!.Element(DublinCoreTerms + "modified")!.Remove();
+                core.Root.Element(DublinCoreTerms + "created")!
+                    .Attribute(XName.Get("type", "http://www.w3.org/2001/XMLSchema-instance"))!.Remove();
+                return core.ToString(SaveOptions.DisableFormatting);
+            });
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        Exception? expected = Record.Exception(() => SaveThroughSdk(source));
+        Exception? actual = Record.Exception(() => presentation.ToBytes());
+
+        Assert.NotNull(expected);
+        Assert.Equal(expected.GetType(), actual?.GetType());
     }
 
     // The SDK reads markup compatibility as written by default, so a wrapped element is not the one it updates or counts.
@@ -205,7 +278,7 @@ public class PowerPointUnchangedSaveTests {
     }
 
     [Fact]
-    public void UsesTheSdkWhenACounterIsWrappedInMarkupCompatibility() {
+    public void SavesADirectCounterAlongsideAnUnselectedAlternateContentCounter() {
         const string compatibility = "http://schemas.openxmlformats.org/markup-compatibility/2006";
         byte[] source = Rewrite(CreateDeckWithStaleProperties(), ApplicationPart, xml => Regex.Replace(xml, "<(\\w+:)?Slides>[^<]*</(\\w+:)?Slides>",
             match => "<mc:AlternateContent xmlns:mc=\"" + compatibility + "\"><mc:Fallback>" + match.Value + "</mc:Fallback></mc:AlternateContent>"));
@@ -214,8 +287,12 @@ public class PowerPointUnchangedSaveTests {
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
         byte[] saved = presentation.ToBytes();
 
-        Assert.True(presentation.IsSdkLoaded);
-        AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
+        Assert.False(presentation.IsSdkLoaded);
+        XElement root = ReadXml(saved, ApplicationPart).Root!;
+        Assert.Equal("2", root.Elements().Single(element => element.Name.LocalName == "Slides").Value);
+        Assert.Equal(ReadXml(source, ApplicationPart).Root!.Element(XName.Get("AlternateContent", compatibility))!.Value,
+            root.Element(XName.Get("AlternateContent", compatibility))!.Value);
+        AssertSamePackage(source, SaveThroughSdk(source), saved);
     }
 
     // Only the entries of the root's slide list are slides; an entry in an extension is not one to the SDK either.
