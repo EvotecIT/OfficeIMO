@@ -103,42 +103,55 @@ namespace OfficeIMO.Excel {
         internal static ExcelDeferredSharedStrings? Load(OfficeOpcEditablePackage package, string? partName) {
             var table = new ExcelDeferredSharedStrings { PartName = partName };
             if (partName == null) return table;
-            OfficePooledBytes content = package.ReadPart(partName);
+            return Read(package.ReadPart(partName), table, null, -1) ? table : null;
+        }
+
+        /// <summary>
+        /// The text of the items up to <paramref name="lastItem"/>, null for an item whose text depends on compatibility
+        /// markup; null when the markup needs the model or holds fewer items.
+        /// </summary>
+        internal static string?[]? ReadTexts(OfficeOpcPackage package, string partName, int lastItem) {
+            var texts = new List<string?>();
+            if (!Read(package.ReadPart(partName), new ExcelDeferredSharedStrings { PartName = partName }, texts, lastItem)) return null;
+            return texts.Count - 1 == lastItem ? texts.ToArray() : null;
+        }
+
+        private static bool Read(OfficePooledBytes content, ExcelDeferredSharedStrings table, List<string?>? texts, int lastItem) {
             using (content) {
                 var reader = new OfficeXmlPullReader(content.Array, content.Length, processMarkupCompatibility: false);
-                if (reader.Transcoded) return null;
+                if (reader.Transcoded) return false;
                 string? text = null;
                 StringBuilder? runs = null;
-                bool inItem = false, inRun = false, root = false, compatibility = false;
+                bool inItem = false, inRun = false, root = false, compatibility = false, split = false;
                 while (reader.Read()) {
                     int depth = reader.Depth;
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement) {
                         if (depth == 1) {
                             if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "sst")
                                 || reader.ElementUriId != OfficeXmlNamespaces.TransitionalUriId(OfficeXmlNamespaces.SpreadsheetML)) {
-                                return null;
+                                return false;
                             }
                             root = true;
                         } else if (depth == 2 && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "si")) {
                             inItem = true;
-                            compatibility = false;
+                            compatibility = split = false;
                             text = null;
                             runs = null;
                         } else if (depth == 2 && !reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "extLst")) {
                             // Compatibility markup can supply items of its own, which would move the indexes after it.
-                            return null;
+                            return false;
                         } else if (inItem && reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility) {
                             // A reader that takes a choice or fallback can see other text than the one read here.
                             compatibility = true;
                         } else if (inItem && depth == 3 && reader.NamespaceId == OfficeXmlNamespaces.SpreadsheetML) {
                             if (reader.LocalNameEquals("t")) {
                                 // The item's own text wins over its runs, as the model reads it.
-                                text ??= ReadElementText(reader);
+                                text ??= ReadElementText(reader, ref split);
                             } else if (reader.LocalNameEquals("r")) {
                                 inRun = true;
                             }
                         } else if (inRun && depth == 4 && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "t")) {
-                            (runs ??= new StringBuilder()).Append(Utilities.ExcelSanitizer.DecodeXString(ReadElementText(reader)));
+                            (runs ??= new StringBuilder()).Append(Utilities.ExcelSanitizer.DecodeXString(ReadElementText(reader, ref split)));
                         }
                     } else if (reader.NodeKind == OfficeXmlNodeKind.EndElement) {
                         if (depth == 3) inRun = false;
@@ -147,22 +160,27 @@ namespace OfficeIMO.Excel {
                             string value = text != null ? Utilities.ExcelSanitizer.DecodeXString(text) : runs?.ToString() ?? string.Empty;
                             // An item whose text depends on compatibility markup keeps its index but is never reused.
                             if (!compatibility) table._indexes[value] = table._count;
-                            table._count++;
+                            // Text in runs or split across nodes, as by a CDATA section, can read differently in the model.
+                            texts?.Add(compatibility || split || runs != null ? null : value);
+                            if (table._count++ == lastItem) return root;
                         }
                     }
                 }
-                return root ? table : null;
+                return root;
             }
         }
 
-        private static string ReadElementText(OfficeXmlPullReader reader) {
+        private static string ReadElementText(OfficeXmlPullReader reader, ref bool split) {
             if (reader.IsEmptyElement) return string.Empty;
             var text = new StringBuilder();
-            int depth = reader.Depth;
+            int depth = reader.Depth, nodes = 0;
             while (reader.Read()) {
                 if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) break;
                 // Text reports the depth of the element that contains it.
-                if (reader.NodeKind == OfficeXmlNodeKind.Text && reader.Depth == depth) text.Append(reader.GetText());
+                if (reader.NodeKind == OfficeXmlNodeKind.Text && reader.Depth == depth) {
+                    text.Append(reader.GetText());
+                    if (++nodes > 1) split = true;
+                }
                 // The model's text stops at its first child element.
                 if (reader.NodeKind == OfficeXmlNodeKind.StartElement) return text.ToString();
             }

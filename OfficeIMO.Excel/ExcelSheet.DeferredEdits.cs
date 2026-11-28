@@ -74,6 +74,9 @@ namespace OfficeIMO.Excel {
 
         internal int Count { get; private set; }
 
+        /// <summary>The parts of the tables whose header text these changes rename, or null when none do.</summary>
+        internal HashSet<string>? HeaderTables { get; set; }
+
         /// <summary>True while every change came after the previous one in row, then column order.</summary>
         internal bool InCellOrder { get; private set; } = true;
 

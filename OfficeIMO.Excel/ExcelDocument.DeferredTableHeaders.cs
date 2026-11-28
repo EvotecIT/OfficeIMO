@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         private const string ChartsheetRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "chartsheet";
         // Structured references escape these, and the package escapes some of them, so a name holding one is not
         // searched for as written.
-        private const string EscapedNameCharacters = "[]#'&<>\"";
+        private const string EscapedNameCharacters = "[]#'@&<>\"";
 
         /// <summary>
         /// Records text written to a table header cell as the model would apply it; false, having changed nothing, when
@@ -40,12 +40,24 @@ namespace OfficeIMO.Excel {
             if (WorkbookHasCellMetadata(workbook, packageBytes)) return false;
             if (!TryFindDeferredHeaderTable(entry, edit.Row, edit.Column, out ExcelTablePart table, out int left, out int index)) return false;
             if (table.HasQueryTable || index >= table.Columns.Count) return false;
+            // Header text recorded earlier replays against the columns as this edit leaves them, which the model only
+            // accepts while the table has been renamed once.
+            if (entry.Cells?.HeaderTables?.Contains(table.PartName) == true) return false;
 
             string[] current = new string[table.Columns.Count];
             for (int column = 0; column < current.Length; column++) current[column] = table.Columns[column].Name ?? string.Empty;
             string[] requested = (string[])current.Clone();
             requested[index] = edit.Text;
             string[] names = ExcelSheet.ValidateTableColumnNames(requested);
+            // The model wraps a header that breaks across lines.
+            foreach (string name in names) {
+                foreach (char character in name) {
+                    if (character < ' ') return false;
+                }
+            }
+            // The model writes the column count on every header write.
+            if (!HasNormalizedRangeAndFilter(table)
+                || !string.Equals(table.ColumnCountText, table.Columns.Count.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)) return false;
 
             var renamed = new List<string>();
             for (int column = 0; column < names.Length; column++) {
@@ -55,18 +67,20 @@ namespace OfficeIMO.Excel {
                 if (oldName.Length > 0 && MayBeReferencedByFormulas(workbook, packageBytes, oldName)) return false;
             }
 
-            // Each header cell becomes its column's name unless it already holds that text. Writing a shared string's
-            // own text again leaves the cell as it was, so only text the cell holds inline needs reading.
+            // Each header cell becomes its column's name unless it already holds that text. A shared string is
+            // compared by its own item, since another item can hold the same text with other formatting.
             HeaderCellKind[]? kinds;
+            string?[]? sharedTexts;
             try {
-                kinds = ReadHeaderCellKinds(packageBytes, entry.PartName, edit.Row, left, names.Length);
+                kinds = ReadHeaderCellKinds(packageBytes, workbook.WorkbookPartName, entry.PartName, edit.Row, left, names.Length, out sharedTexts);
             } catch (Exception exception) when (IsUnreadableMarkup(exception)) {
                 return false;
             }
-            if (kinds == null || Array.IndexOf(kinds, HeaderCellKind.Formula) >= 0) return false;
+            if (kinds == null || sharedTexts == null || Array.IndexOf(kinds, HeaderCellKind.Formula) >= 0) return false;
             var headerEdits = new List<ExcelDeferredCellEdit>(names.Length);
             ExcelFormulaSheetModel? model = null;
             for (int column = 0; column < names.Length; column++) {
+                if (kinds[column] == HeaderCellKind.SharedString && string.Equals(sharedTexts[column], names[column], StringComparison.Ordinal)) continue;
                 if (kinds[column] == HeaderCellKind.InlineText) {
                     model ??= GetFormulaSheetModel(sheet);
                     if (!ReferenceEquals(sheet.DeferredEntry, entry) || model is not ExcelXmlFormulaSheetModel) return false;
@@ -89,6 +103,7 @@ namespace OfficeIMO.Excel {
                         _deferredEditedSheets.Add(sheet);
                     }
                     foreach (ExcelDeferredCellEdit header in headerEdits) store.Add(header);
+                    (store.HeaderTables ??= new HashSet<string>(StringComparer.Ordinal)).Add(table.PartName);
                 }
             }
             if (renamed.Count > 0 || headerEdits.Count > 0) {
@@ -98,21 +113,76 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private enum HeaderCellKind : byte { Other, InlineText, Formula }
+        /// <summary>
+        /// Whether the table's range and filter are already as the model leaves them on a rename: the range written in
+        /// canonical form, and a filter over every row but the totals that names only columns the table has.
+        /// </summary>
+        private static bool HasNormalizedRangeAndFilter(ExcelTablePart table) {
+            if (!ExcelA1.TryParseRange(table.Reference ?? string.Empty, out int top, out int left, out int bottom, out int right)) return false;
+            if (!string.Equals(table.Reference, ExcelA1.CellReference(top, left) + ":" + ExcelA1.CellReference(bottom, right), StringComparison.Ordinal)) return false;
+            if (!table.HasAutoFilter) return true;
+            uint totals;
+            try {
+                totals = table.TotalsRowCount ?? 0U;
+            } catch (FormatException) {
+                return false;
+            }
+            if (table.TotalsRowShown) totals = Math.Max(1U, totals);
+            if (totals > int.MaxValue) return false;
+            string filter = ExcelA1.CellReference(top, left) + ":" + ExcelA1.CellReference(Math.Max(top, bottom - (int)totals), right);
+            if (!string.Equals(table.AutoFilterReference, filter, StringComparison.Ordinal)) return false;
+            return table.AutoFilterColumnCount == 0 || table.AutoFilterLastColumnId is uint last && last < (uint)table.Columns.Count;
+        }
+
+        /// <summary>Whether the worksheet markup holds a <c>tablePart</c> element, which follows the cells.</summary>
+        private static bool ListsTablePart(byte[] bytes, int length) {
+            const string name = "tablePart";
+            for (int start = length - name.Length - 1; start >= 1; start--) {
+                if (bytes[start - 1] != (byte)'<' && bytes[start - 1] != (byte)':') continue;
+                int matched = 0;
+                while (matched < name.Length && bytes[start + matched] == (byte)name[matched]) matched++;
+                if (matched < name.Length) continue;
+                byte next = bytes[start + name.Length];
+                if (next is (byte)' ' or (byte)'/' or (byte)'>' or (byte)'\t' or (byte)'\r' or (byte)'\n' && !InComment(bytes, start)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether a comment opened before <paramref name="position"/> is still open there.</summary>
+        private static bool InComment(byte[] bytes, int position) {
+            for (int index = position - 1; index >= 3; index--) {
+                if (bytes[index] == (byte)'>' && bytes[index - 1] == (byte)'-' && bytes[index - 2] == (byte)'-') return false;
+                if (bytes[index] == (byte)'-' && bytes[index - 1] == (byte)'-' && bytes[index - 2] == (byte)'!' && bytes[index - 3] == (byte)'<') return true;
+            }
+            return false;
+        }
+
+        private enum HeaderCellKind : byte { Other, InlineText, SharedString, Formula }
 
         /// <summary>
         /// What the package holds in the header cells: a formula, text held in the cell rather than as a shared string,
-        /// or anything else. Null when a row or cell of the worksheet has no reference, which the model resolves.
+        /// a shared string, with its text in <paramref name="sharedTexts"/>, or anything else. Null when a row or cell
+        /// of the worksheet has no reference or a shared string cannot be read, which the model resolves.
         /// </summary>
-        private static HeaderCellKind[]? ReadHeaderCellKinds(byte[] packageBytes, string partName, int row, int left, int count) {
+        private static HeaderCellKind[]? ReadHeaderCellKinds(byte[] packageBytes, string workbookPartName, string partName, int row, int left, int count, out string?[]? sharedTexts) {
+            sharedTexts = null;
             var kinds = new HeaderCellKind[count];
+            var sharedIndexes = new int[count];
             using var source = new MemoryStream(packageBytes, writable: false);
             using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
             OfficeXmlPullReader reader = package.OpenXml(partName, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
+                // The model finds a table only through the worksheet's own list of table parts.
+                if (!IsUtf8Markup(content.Array, content.Length) || !ListsTablePart(content.Array, content.Length)) return null;
                 bool inRow = false;
                 int cellIndex = -1;
+                var textNodes = new int[count];
                 while (reader.Read()) {
+                    if (reader.NodeKind == OfficeXmlNodeKind.Text && inRow && cellIndex >= 0) {
+                        // Text split across nodes, as by a CDATA section, reads differently in the model.
+                        if (kinds[cellIndex] == HeaderCellKind.InlineText && ++textNodes[cellIndex] > 1) return null;
+                        continue;
+                    }
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) continue;
                     // worksheet / sheetData / row / c / f
                     if (reader.Depth == 3 && reader.LocalNameEquals("row")) {
@@ -125,13 +195,38 @@ namespace OfficeIMO.Excel {
                         if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string reference)
                             || !ExcelA1.TryParseCellReferenceFast(reference.AsSpan(), out int cellRow, out int column) || cellRow != row) return null;
                         cellIndex = column >= left && column < left + count ? column - left : -1;
-                        if (cellIndex >= 0 && reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string type) && type is "inlineStr" or "str") {
-                            kinds[cellIndex] = HeaderCellKind.InlineText;
+                        if (cellIndex >= 0 && reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string type)) {
+                            if (type is "inlineStr" or "str") kinds[cellIndex] = HeaderCellKind.InlineText;
+                            else if (type == "s") kinds[cellIndex] = HeaderCellKind.SharedString;
                         }
+                        if (cellIndex >= 0 && kinds[cellIndex] == HeaderCellKind.SharedString) sharedIndexes[cellIndex] = -1;
                     } else if (inRow && cellIndex >= 0 && reader.Depth == 5 && reader.LocalNameEquals("f")) {
                         kinds[cellIndex] = HeaderCellKind.Formula;
+                    } else if (inRow && cellIndex >= 0 && reader.Depth == 5 && reader.LocalNameEquals("v") && kinds[cellIndex] == HeaderCellKind.SharedString) {
+                        var value = new StringBuilder();
+                        while (reader.Read() && reader.NodeKind != OfficeXmlNodeKind.EndElement) {
+                            if (reader.NodeKind == OfficeXmlNodeKind.Text) value.Append(reader.GetText());
+                        }
+                        if (!int.TryParse(value.ToString().Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out sharedIndexes[cellIndex])) return null;
                     }
                 }
+            }
+            sharedTexts = new string?[count];
+            int lastItem = -1;
+            for (int column = 0; column < count; column++) {
+                if (kinds[column] != HeaderCellKind.SharedString) continue;
+                if (sharedIndexes[column] < 0) return null;
+                lastItem = Math.Max(lastItem, sharedIndexes[column]);
+            }
+            if (lastItem < 0) return kinds;
+            string? sharedStringsPart = package.GetRelatedPartName(workbookPartName, SharedStringsRelationshipType);
+            if (sharedStringsPart == null || !package.PartExists(sharedStringsPart)) return null;
+            string?[]? texts = ExcelDeferredSharedStrings.ReadTexts(package, sharedStringsPart, lastItem);
+            if (texts == null) return null;
+            for (int column = 0; column < count; column++) {
+                if (kinds[column] != HeaderCellKind.SharedString) continue;
+                // An item whose text depends on compatibility markup is left to the model.
+                if ((sharedTexts[column] = texts[sharedIndexes[column]]) == null) return null;
             }
             return kinds;
         }
@@ -152,6 +247,8 @@ namespace OfficeIMO.Excel {
                 }
                 if (headerRows == 0U || !ExcelA1.TryParseRange(table.Reference ?? string.Empty, out int top, out int first, out _, out int last)
                     || row != top || column < first || column > last) continue;
+                // The model rejects a table whose columns do not span its range.
+                if (last - first + 1 != table.Columns.Count) return false;
                 found = table;
                 left = first;
                 index = column - first;
@@ -167,7 +264,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private static bool MayBeReferencedByFormulas(ExcelDeferredWorkbook workbook, byte[] packageBytes, string columnName) {
             foreach (char character in columnName) {
-                if (EscapedNameCharacters.IndexOf(character) >= 0) return true;
+                // The reader turns a stored line break into another one, so the stored bytes need not hold the name.
+                if (character < ' ' || EscapedNameCharacters.IndexOf(character) >= 0) return true;
             }
             using var source = new MemoryStream(packageBytes, writable: false);
             using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);

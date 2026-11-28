@@ -20,6 +20,12 @@ namespace OfficeIMO.Excel {
 
         internal bool TotalsRowShown { get; set; }
         internal bool HasAutoFilter { get; set; }
+        internal string? AutoFilterReference { get; set; }
+        internal string? ColumnCountText { get; set; }
+
+        /// <summary>The largest column a filter column names, or null when one names none the model reads.</summary>
+        internal uint? AutoFilterLastColumnId { get; set; } = 0U;
+        internal int AutoFilterColumnCount { get; set; }
         internal bool HasStyleInfo { get; set; }
         internal string? StyleName { get; set; }
         internal bool ShowFirstColumn { get; set; }
@@ -57,7 +63,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Reads a table part's markup, or returns null when its root is not a table.</summary>
         internal static ExcelTablePart? Read(OfficeXmlPullReader reader) {
             ExcelTablePart? table = null;
-            bool columnsSeen = false, inColumns = false, styleSeen = false, filterSeen = false;
+            bool columnsSeen = false, inColumns = false, inFilter = false, styleSeen = false, filterSeen = false;
             while (reader.Read()) {
                 if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
                 if (reader.Depth == 1) {
@@ -74,13 +80,15 @@ namespace OfficeIMO.Excel {
                 }
                 if (table == null) return null;
                 if (reader.Depth == 2) {
-                    inColumns = false;
+                    inColumns = inFilter = false;
                     if (reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) continue;
                     // The first element of each kind counts, as the SDK finds it.
                     if (reader.LocalNameEquals("tableColumns") && !columnsSeen) {
                         inColumns = columnsSeen = true;
+                        table.ColumnCountText = Attribute(reader, "count");
                     } else if (reader.LocalNameEquals("autoFilter") && !filterSeen) {
-                        filterSeen = table.HasAutoFilter = true;
+                        inFilter = filterSeen = table.HasAutoFilter = true;
+                        table.AutoFilterReference = Attribute(reader, "ref");
                     } else if (reader.LocalNameEquals("tableStyleInfo") && !styleSeen) {
                         styleSeen = table.HasStyleInfo = true;
                         table.StyleName = Attribute(reader, "name");
@@ -90,6 +98,12 @@ namespace OfficeIMO.Excel {
                         table.ShowColumnStripes = IsTrue(reader, "showColumnStripes");
                     }
                     continue;
+                }
+                if (reader.Depth == 3 && inFilter && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "filterColumn")) {
+                    table.AutoFilterColumnCount++;
+                    table.AutoFilterLastColumnId = uint.TryParse(Attribute(reader, "colId"), System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out uint id) && table.AutoFilterLastColumnId is uint last
+                        ? Math.Max(last, id) : null;
                 }
                 if (reader.Depth == 3 && inColumns && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "tableColumn")) {
                     table.Columns.Add((Attribute(reader, "name"), Attribute(reader, "totalsRowFunction")));
