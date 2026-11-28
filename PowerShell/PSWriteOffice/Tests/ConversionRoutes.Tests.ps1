@@ -32,6 +32,23 @@ Describe 'Conversion capability discovery' {
         @($pdf | Where-Object TargetExtension -NE '.pdf') | Should -HaveCount 0
     }
 
+    It 'discovers the Notebook conversion family across native and imported file extensions' {
+        $toPdf = @(Get-OfficeDocumentCapability -Conversion -Executable -From Notebook -To .pdf)
+        $toPdf.Id | Should -Contain 'notebook-pdf'
+        $toPdf.Id | Should -Contain 'notebook-source-pdf'
+        (Get-OfficeDocumentCapability -Conversion -Executable -From .qmd -To Notebook).Id | Should -Be 'notebook-source-ipynb'
+        @(Get-OfficeDocumentCapability -Conversion -Id notebook-pdf -From Json) | Should -HaveCount 0
+    }
+
+    It 'runs an explicit HTML conversion route for an FB2 ZIP' {
+        $source = Join-Path $PSScriptRoot '../../../OfficeIMO.Fb2.Tests/Fixtures/harbour.fb2.zip'
+        $destination = Join-Path $TestDrive 'harbour.html'
+
+        Convert-OfficeDocument -LiteralPath $source -OutputPath $destination -Route 'ebook-fb2-html' -ErrorAction Stop | Out-Null
+
+        Get-Content -LiteralPath $destination -Raw | Should -Match 'Signal received\.'
+    }
+
     It 'accepts pipeline route IDs without mutating canonical rows on repeated queries' {
         $rows = @([pscustomobject]@{ Id = 'docx-pdf' }, [pscustomobject]@{ Id = 'pdf-docx' }) |
             Get-OfficeDocumentCapability -Conversion

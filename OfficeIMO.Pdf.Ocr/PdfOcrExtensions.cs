@@ -55,7 +55,7 @@ public static partial class PdfOcrExtensions {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(engine);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument snapshot = PdfDocument.Load(document.GetBytesForOperation(cancellationToken), document.ReadOptions);
+        PdfDocument snapshot = PdfDocument.LoadOwned(document.GetReportBytes(cancellationToken), document.ReadOptions, cancellationToken);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         if (effectiveOptions.ReadOptions.PageSelection != null)
             NormalizeReviewPageSelection(effectiveOptions, snapshot.Inspect(snapshot.ReadOptions, cancellationToken).PageCount);

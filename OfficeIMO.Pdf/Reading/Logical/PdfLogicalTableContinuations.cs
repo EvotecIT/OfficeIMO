@@ -58,7 +58,9 @@ public enum PdfLogicalTableContinuationEvidence {
     /// <summary>The continuation header contract was compatible.</summary>
     CompatibleHeaders = 64,
     /// <summary>Repeated continuation headers were detected.</summary>
-    RepeatedHeaders = 128
+    RepeatedHeaders = 128,
+    /// <summary>Tagged-PDF structure places the segments in one Table element.</summary>
+    TaggedStructure = 256
 }
 
 /// <summary>
@@ -135,42 +137,48 @@ internal static class PdfLogicalTableContinuations {
             PdfLogicalTableAnalysis.ExtractTables(document, extractionRowLimit, cancellationToken);
         if (extractions.Count == 0) return Array.Empty<PdfLogicalTableContinuationGroup>();
 
-        var groups = new List<PdfLogicalTableContinuationGroup>(extractions.Count);
-        var segments = new List<PdfLogicalTableExtraction>();
-        var boundaries = new List<ContinuationBoundary>();
+        // Groups open in order of their first segment. Untagged segments continue the group of the
+        // extraction just before them; tagged segments continue the group of their own Table element,
+        // so two tagged tables interleaved on the same pages each stay whole.
+        var openGroups = new List<(List<PdfLogicalTableExtraction> Segments, List<ContinuationBoundary> Boundaries)>();
+        var groupByTaggedTable = new Dictionary<int, int>();
+        int previousGroup = -1;
+        double tolerance = effective.GeometryTolerance.ToPoints();
         for (int index = 0; index < extractions.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalTableExtraction current = extractions[index];
-            if (segments.Count > 0) {
-                ContinuationBoundary boundary = default;
-                bool canContinue = effective.MergePageContinuations &&
-                    segments.Count < effective.MaximumSegmentsPerTable &&
-                    CanContinue(
-                        document,
-                        segments[segments.Count - 1],
-                        current,
-                        effective.GeometryTolerance.ToPoints(),
-                        cancellationToken,
-                        out boundary) &&
-                    boundary.Confidence >= effective.MinimumConfidence;
-                if (canContinue) {
-                    boundaries.Add(boundary);
-                } else {
-                    groups.Add(CreateGroup(
-                        segments,
-                        boundaries,
-                        effective.MaxRows,
-                        effective.SuppressRepeatedBodyHeaderRows,
-                        cancellationToken));
-                    segments.Clear();
-                    boundaries.Clear();
+            int target = -1;
+            ContinuationBoundary boundary = default;
+            if (effective.MergePageContinuations) {
+                if (current.Table.TaggedSegment is { } taggedSegment &&
+                    groupByTaggedTable.TryGetValue(taggedSegment.TableObjectNumber, out int taggedGroup) &&
+                    TryContinue(taggedGroup, out boundary)) {
+                    target = taggedGroup;
+                } else if (previousGroup >= 0 && TryContinue(previousGroup, out boundary)) {
+                    target = previousGroup;
                 }
             }
+            if (target >= 0) {
+                openGroups[target].Boundaries.Add(boundary);
+                openGroups[target].Segments.Add(current);
+            } else {
+                target = openGroups.Count;
+                openGroups.Add((new List<PdfLogicalTableExtraction> { current }, new List<ContinuationBoundary>()));
+            }
+            if (current.Table.TaggedSegment is { } segment) groupByTaggedTable[segment.TableObjectNumber] = target;
+            previousGroup = target;
 
-            segments.Add(current);
+            bool TryContinue(int groupIndex, out ContinuationBoundary found) {
+                List<PdfLogicalTableExtraction> segments = openGroups[groupIndex].Segments;
+                found = default;
+                return segments.Count < effective.MaximumSegmentsPerTable &&
+                    CanContinue(document, segments[segments.Count - 1], current, tolerance, cancellationToken, out found) &&
+                    found.Confidence >= effective.MinimumConfidence;
+            }
         }
 
-        if (segments.Count > 0) {
+        var groups = new List<PdfLogicalTableContinuationGroup>(openGroups.Count);
+        foreach ((List<PdfLogicalTableExtraction> segments, List<ContinuationBoundary> boundaries) in openGroups) {
             groups.Add(CreateGroup(
                 segments,
                 boundaries,
@@ -193,6 +201,19 @@ internal static class PdfLogicalTableContinuations {
         if (current.PageIndex != previous.PageIndex + 1 || current.PageNumber != previous.PageNumber + 1) return false;
         PdfLogicalPage previousPage = document.Pages[previous.PageIndex];
         PdfLogicalPage currentPage = document.Pages[current.PageIndex];
+        if (previous.Table.TaggedSegment is { } previousSegment && current.Table.TaggedSegment is { } currentSegment) {
+            // The structure tree, not page position, decides: consecutive segments of one Table element continue it.
+            if (previousSegment.TableObjectNumber != currentSegment.TableObjectNumber ||
+                currentSegment.SegmentIndex != previousSegment.SegmentIndex + 1 ||
+                previous.Data.Columns.Count != current.Data.Columns.Count) return false;
+            boundary = new ContinuationBoundary(1D,
+                PdfLogicalTableContinuationEvidence.AdjacentPages |
+                PdfLogicalTableContinuationEvidence.MatchingColumnCount |
+                PdfLogicalTableContinuationEvidence.MatchingDetectionKind |
+                PdfLogicalTableContinuationEvidence.CompatibleHeaders |
+                PdfLogicalTableContinuationEvidence.TaggedStructure);
+            return true;
+        }
         if (previous.TableIndex != previousPage.Tables.Count - 1 || current.TableIndex != 0) return false;
         // Distinct captions identify separate tables. An identical line can be
         // a running page header or a caption repeated with the table header.
@@ -411,7 +432,9 @@ internal static class PdfLogicalTableContinuations {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalTableExtraction[] segments = sourceSegments.ToArray();
-        int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows
+        // Tagged segments mark their headers explicitly; identical TD rows are data, never repeated headers.
+        bool tagged = segments.Length > 1 && segments.All(static segment => segment.Table.TaggedSegment is not null);
+        int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows && !tagged
             ? DetectRepeatedBodyHeaderRows(segments, cancellationToken)
             : 0;
         double confidence = sourceBoundaries.Count == 0 ? 1D : sourceBoundaries.Min(static boundary => boundary.Confidence);

@@ -1,62 +1,71 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Additional sheet helpers for <see cref="ExcelDocumentReader"/>.
-    /// </summary>
     internal sealed partial class ExcelDocumentReader {
-        /// <summary>
-        /// Gets a reader by sheet index (1-based, Excel display order).
-        /// </summary>
-        public ExcelSheetReader GetSheet(int index) {
-            ArgumentOutOfRangeException.ThrowIfLessThan(index, 1);
-            if (TryGetSheetByIndexXmlFast(index, out string fastSheetName, out WorksheetPart fastWorksheetPart)) {
-                return CreateSheetReader(fastSheetName, fastWorksheetPart);
-            }
+        private OfficeXmlNode.ChildList WorkbookSheets =>
+            ReadWorkbookNode.Child(Spreadsheet, "sheets").Children(Spreadsheet, "sheet");
 
-            var wb = WorkbookRoot;
-            Sheet? sheet = null;
-            int currentIndex = 0;
-            foreach (var candidate in wb.Sheets!.Elements<Sheet>()) {
-                if (!TryGetWorksheetPart(candidate, out _)) {
-                    continue;
-                }
+        private static string? WorksheetRelationshipId(OfficeXmlNode sheet) => sheet.Attribute(Relationships, "id");
 
-                currentIndex++;
-                if (currentIndex == index) {
-                    sheet = candidate;
-                    break;
+        public IReadOnlyList<string> GetSheetNames() {
+            var names = new List<string>();
+            foreach (OfficeXmlNode sheet in WorkbookSheets) {
+                if (TryGetWorksheetPart(WorksheetRelationshipId(sheet), out _, out _)) {
+                    names.Add(sheet.Attribute("name")!);
                 }
             }
-
-            if (sheet is null) throw new ArgumentOutOfRangeException(nameof(index));
-            if (!TryGetWorksheetPart(sheet, out WorksheetPart? wsPart)) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            return CreateSheetReader(sheet.Name!, wsPart!);
+            return names;
         }
 
-        /// <summary>
-        /// The number of worksheets in the workbook.
-        /// </summary>
+        public ExcelSheetReader GetSheet(string name) {
+            foreach (OfficeXmlNode sheet in WorkbookSheets) {
+                string? candidate = sheet.Attribute("name");
+                if (string.Equals(candidate, name, StringComparison.OrdinalIgnoreCase)
+                    && TryGetWorksheetPart(WorksheetRelationshipId(sheet), out string path, out ExcelPartRef? live)) {
+                    return CreateSheetReader(candidate!, path, live);
+                }
+            }
+            throw new KeyNotFoundException($"Sheet '{name}' not found.");
+        }
+
+        public ExcelSheetReader GetSheet(int index) {
+            ArgumentOutOfRangeException.ThrowIfLessThan(index, 1);
+            foreach (OfficeXmlNode sheet in WorkbookSheets) {
+                if (TryGetWorksheetPart(WorksheetRelationshipId(sheet), out string path, out ExcelPartRef? live) && --index == 0) {
+                    return CreateSheetReader(sheet.Attribute("name")!, path, live);
+                }
+            }
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
         public int SheetCount {
             get {
-                if (TryGetSheetCountXmlFast(out int fastCount)) {
-                    return fastCount;
-                }
-
                 int count = 0;
-                foreach (var sheet in WorkbookRoot.Sheets!.Elements<Sheet>()) {
-                    if (TryGetWorksheetPart(sheet, out _)) {
-                        count++;
-                    }
+                foreach (OfficeXmlNode sheet in WorkbookSheets) {
+                    if (TryGetWorksheetPart(WorksheetRelationshipId(sheet), out _, out _)) count++;
                 }
-
                 return count;
             }
         }
+
+        private bool TryGetWorksheetPart(string? relationshipId, out string partName, out ExcelPartRef? livePart) {
+            partName = string.Empty;
+            livePart = default;
+            if (string.IsNullOrEmpty(relationshipId)) return false;
+            if (_liveWorkbook is ExcelPartRef workbook) {
+                ExcelPartRef part = workbook.GetPartById(relationshipId);
+                livePart = part;
+                partName = part.Name;
+                return part.Kind == ExcelPartKind.Worksheet;
+            }
+
+            var relationship = _package!.FindWorkbookRelationship(relationshipId!);
+            if (relationship.Type != ExcelReadWorkbookParts.WorksheetRelationship || relationship.Target is not string target
+                || !_package.PartExists(target)) return false;
+            _package.ValidateWorksheetContentType(target);
+            partName = target;
+            return true;
+        }
     }
 }
-

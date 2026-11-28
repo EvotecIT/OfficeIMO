@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections;
 
 namespace OfficeIMO.Excel {
@@ -107,14 +106,14 @@ namespace OfficeIMO.Excel {
         private bool TryGetPlainCalculatedRange(ExcelSheet sheet, int r1, int c1, int r2, int c2, out FormulaArgumentValue[] values) {
             values = null!;
             if (_formulaCalculationContext is not { IsDisposed: false } context || _formulaEvaluationCache == null) return false;
-            var key = ((object)sheet._worksheetPartValue, r1, c1, r2, c2);
+            var key = (sheet.FormulaSheetKey, r1, c1, r2, c2);
             if (context.Ranges.TryGetValue(key, out var range)) {
                 if (range.Depth != 0) return false;
                 values = range.Values;
                 return true;
             }
             if (context.LazyRanges.Contains(key)) return false;
-            if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null
+            if (_excelDocument.HasCellMetadataPart
                 || sheet._formulaEvaluationCache == null
                 || sheet.GetFixedArraySheetIndex().Owners.Count != 0) {
                 context.LazyRanges.Add(key);
@@ -125,8 +124,7 @@ namespace OfficeIMO.Excel {
             int index = 0;
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
-                    Cell? cell = sheet.TryGetDomCell(row, column);
-                    if (cell != null && ExcelWorksheetScan.FindFormula(cell) != null) {
+                    if (sheet.HasFormulaCell(row, column)) {
                         context.LazyRanges.Add(key);
                         return false;
                     }

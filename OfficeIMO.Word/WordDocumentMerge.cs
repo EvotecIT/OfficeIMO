@@ -81,6 +81,7 @@ namespace OfficeIMO.Word {
             }
             PlaceContent(destinationBody, staging, sourceSection);
             _destination.MarkTableNormalizationRequired();
+            _destination.InvalidateIdentifierState();
         }
 
         /// <summary>

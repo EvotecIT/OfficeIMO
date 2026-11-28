@@ -1065,6 +1065,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordBibliographySourceType? ToOfficeEnum(this DocumentFormat.OpenXml.Bibliography.DataSourceValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordBibliographySourceType value) {
+        int index = Array.IndexOf(WordBibliographySourceTypeTokens, token);
+        value = index < 0 ? default : (WordBibliographySourceType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordBibliographySourceType value) => GetToken(value, WordBibliographySourceTypeTokens);
+
     private static readonly string[] WordImageBlackWhiteModeTokens = {
         "clr",
         "auto",
@@ -1091,6 +1099,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordImageBlackWhiteMode? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.BlackWhiteModeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordImageBlackWhiteMode value) {
+        int index = Array.IndexOf(WordImageBlackWhiteModeTokens, token);
+        value = index < 0 ? default : (WordImageBlackWhiteMode)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordImageBlackWhiteMode value) => GetToken(value, WordImageBlackWhiteModeTokens);
+
     private static readonly string[] WordImageCompressionQualityTokens = {
         "email",
         "screen",
@@ -1111,6 +1127,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordImageCompressionQuality? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.BlipCompressionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordImageCompressionQuality value) {
+        int index = Array.IndexOf(WordImageCompressionQualityTokens, token);
+        value = index < 0 ? default : (WordImageCompressionQuality)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordImageCompressionQuality value) => GetToken(value, WordImageCompressionQualityTokens);
+
     private static readonly string[] WordChartBarDirectionTokens = {
         "bar",
         "col",
@@ -1127,6 +1151,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordChartBarDirection? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BarDirectionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordChartBarDirection value) {
+        int index = Array.IndexOf(WordChartBarDirectionTokens, token);
+        value = index < 0 ? default : (WordChartBarDirection)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordChartBarDirection value) => GetToken(value, WordChartBarDirectionTokens);
 
     private static readonly string[] WordChartBarGroupingTokens = {
         "percentStacked",
@@ -1146,6 +1178,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordChartBarGrouping? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BarGroupingValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordChartBarGrouping value) {
+        int index = Array.IndexOf(WordChartBarGroupingTokens, token);
+        value = index < 0 ? default : (WordChartBarGrouping)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordChartBarGrouping value) => GetToken(value, WordChartBarGroupingTokens);
 
     private static readonly string[] WordTextBoxHorizontalSizeReferenceTokens = {
         "margin",
@@ -1167,6 +1207,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordTextBoxHorizontalSizeReference? ToOfficeEnum(this DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordTextBoxHorizontalSizeReference value) {
+        int index = Array.IndexOf(WordTextBoxHorizontalSizeReferenceTokens, token);
+        value = index < 0 ? default : (WordTextBoxHorizontalSizeReference)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTextBoxHorizontalSizeReference value) => GetToken(value, WordTextBoxHorizontalSizeReferenceTokens);
 
     private static readonly string[] WordBorderStyleTokens = {
         "nil",
@@ -1380,6 +1428,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordBorderStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.BorderValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordBorderStyle value) {
+        int index = Array.IndexOf(WordBorderStyleTokens, token);
+        value = index < 0 ? default : (WordBorderStyle)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordBorderStyle value) => GetToken(value, WordBorderStyleTokens);
+
     private static readonly string[] WordCharacterSpacingTokens = {
         "doNotCompress",
         "compressPunctuation",
@@ -1398,6 +1454,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordCharacterSpacing? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordCharacterSpacing value) {
+        int index = Array.IndexOf(WordCharacterSpacingTokens, token);
+        value = index < 0 ? default : (WordCharacterSpacing)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordCharacterSpacing value) => GetToken(value, WordCharacterSpacingTokens);
+
     private static readonly string[] WordEndnotePositionTokens = {
         "sectEnd",
         "docEnd",
@@ -1414,6 +1478,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordEndnotePosition? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.EndnotePositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordEndnotePosition value) {
+        int index = Array.IndexOf(WordEndnotePositionTokens, token);
+        value = index < 0 ? default : (WordEndnotePosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordEndnotePosition value) => GetToken(value, WordEndnotePositionTokens);
 
     private static readonly string[] WordFootnotePositionTokens = {
         "pageBottom",
@@ -1432,6 +1504,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordFootnotePosition? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.FootnotePositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordFootnotePosition value) {
+        int index = Array.IndexOf(WordFootnotePositionTokens, token);
+        value = index < 0 ? default : (WordFootnotePosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordFootnotePosition value) => GetToken(value, WordFootnotePositionTokens);
 
     private static readonly string[] WordHighlightColorTokens = {
         "black",
@@ -1465,6 +1545,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordHighlightColor? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordHighlightColor value) {
+        int index = Array.IndexOf(WordHighlightColorTokens, token);
+        value = index < 0 ? default : (WordHighlightColor)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordHighlightColor value) => GetToken(value, WordHighlightColorTokens);
+
     private static readonly string[] WordTableHorizontalAlignmentTokens = {
         "left",
         "center",
@@ -1485,6 +1573,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordTableHorizontalAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.HorizontalAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordTableHorizontalAlignment value) {
+        int index = Array.IndexOf(WordTableHorizontalAlignmentTokens, token);
+        value = index < 0 ? default : (WordTableHorizontalAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableHorizontalAlignment value) => GetToken(value, WordTableHorizontalAlignmentTokens);
+
     private static readonly string[] WordTableHorizontalAnchorTokens = {
         "text",
         "margin",
@@ -1502,6 +1598,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordTableHorizontalAnchor? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.HorizontalAnchorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordTableHorizontalAnchor value) {
+        int index = Array.IndexOf(WordTableHorizontalAnchorTokens, token);
+        value = index < 0 ? default : (WordTableHorizontalAnchor)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableHorizontalAnchor value) => GetToken(value, WordTableHorizontalAnchorTokens);
 
     private static readonly string[] WordListLevelAlignmentTokens = {
         "left",
@@ -1521,6 +1625,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordListLevelAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.LevelJustificationValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordListLevelAlignment value) {
+        int index = Array.IndexOf(WordListLevelAlignmentTokens, token);
+        value = index < 0 ? default : (WordListLevelAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordListLevelAlignment value) => GetToken(value, WordListLevelAlignmentTokens);
+
     private static readonly string[] WordListLevelSuffixTokens = {
         "tab",
         "space",
@@ -1538,6 +1650,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordListLevelSuffix? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.LevelSuffixValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordListLevelSuffix value) {
+        int index = Array.IndexOf(WordListLevelSuffixTokens, token);
+        value = index < 0 ? default : (WordListLevelSuffix)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordListLevelSuffix value) => GetToken(value, WordListLevelSuffixTokens);
 
     private static readonly string[] WordLineSpacingRuleTokens = {
         "auto",
@@ -1557,6 +1677,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordLineSpacingRule? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.LineSpacingRuleValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordLineSpacingRule value) {
+        int index = Array.IndexOf(WordLineSpacingRuleTokens, token);
+        value = index < 0 ? default : (WordLineSpacingRule)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordLineSpacingRule value) => GetToken(value, WordLineSpacingRuleTokens);
+
     private static readonly string[] WordCellMergeTokens = {
         "continue",
         "restart",
@@ -1573,6 +1701,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordCellMerge? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.MergedCellValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordCellMerge value) {
+        int index = Array.IndexOf(WordCellMergeTokens, token);
+        value = index < 0 ? default : (WordCellMerge)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordCellMerge value) => GetToken(value, WordCellMergeTokens);
 
     private static readonly string[] WordNumberFormatTokens = {
         "decimal",
@@ -1652,6 +1788,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordNumberFormat? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordNumberFormat value) {
+        int index = Array.IndexOf(WordNumberFormatTokens, token);
+        value = index < 0 ? default : (WordNumberFormat)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordNumberFormat value) => GetToken(value, WordNumberFormatTokens);
+
     private static readonly string[] WordZoomPresetTokens = {
         "none",
         "fullPage",
@@ -1671,6 +1815,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordZoomPreset? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordZoomPreset value) {
+        int index = Array.IndexOf(WordZoomPresetTokens, token);
+        value = index < 0 ? default : (WordZoomPreset)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordZoomPreset value) => GetToken(value, WordZoomPresetTokens);
+
     private static readonly string[] WordNoteNumberRestartTokens = {
         "continuous",
         "eachSect",
@@ -1688,6 +1840,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordNoteNumberRestart? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.RestartNumberValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordNoteNumberRestart value) {
+        int index = Array.IndexOf(WordNoteNumberRestartTokens, token);
+        value = index < 0 ? default : (WordNoteNumberRestart)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordNoteNumberRestart value) => GetToken(value, WordNoteNumberRestartTokens);
 
     private static readonly string[] WordShadingPatternTokens = {
         "nil",
@@ -1742,6 +1902,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordShadingPattern? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.ShadingPatternValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordShadingPattern value) {
+        int index = Array.IndexOf(WordShadingPatternTokens, token);
+        value = index < 0 ? default : (WordShadingPattern)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordShadingPattern value) => GetToken(value, WordShadingPatternTokens);
+
     private static readonly string[] WordTabLeaderTokens = {
         "none",
         "dot",
@@ -1762,6 +1930,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordTabLeader? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TabStopLeaderCharValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordTabLeader value) {
+        int index = Array.IndexOf(WordTabLeaderTokens, token);
+        value = index < 0 ? default : (WordTabLeader)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTabLeader value) => GetToken(value, WordTabLeaderTokens);
 
     private static readonly string[] WordTabAlignmentTokens = {
         "clear",
@@ -1787,6 +1963,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordTabAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TabStopValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordTabAlignment value) {
+        int index = Array.IndexOf(WordTabAlignmentTokens, token);
+        value = index < 0 ? default : (WordTabAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTabAlignment value) => GetToken(value, WordTabAlignmentTokens);
+
     private static readonly string[] WordTableOverlapTokens = {
         "never",
         "overlap",
@@ -1803,6 +1987,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordTableOverlap? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TableOverlapValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordTableOverlap value) {
+        int index = Array.IndexOf(WordTableOverlapTokens, token);
+        value = index < 0 ? default : (WordTableOverlap)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableOverlap value) => GetToken(value, WordTableOverlapTokens);
 
     private static readonly string[] WordTableAlignmentTokens = {
         "left",
@@ -1822,6 +2014,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordTableAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TableRowAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordTableAlignment value) {
+        int index = Array.IndexOf(WordTableAlignmentTokens, token);
+        value = index < 0 ? default : (WordTableAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableAlignment value) => GetToken(value, WordTableAlignmentTokens);
+
     private static readonly string[] WordTableWidthUnitTokens = {
         "nil",
         "pct",
@@ -1840,6 +2040,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordTableWidthUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordTableWidthUnit value) {
+        int index = Array.IndexOf(WordTableWidthUnitTokens, token);
+        value = index < 0 ? default : (WordTableWidthUnit)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableWidthUnit value) => GetToken(value, WordTableWidthUnitTokens);
 
     private static readonly string[] WordThemeColorTokens = {
         "dark1",
@@ -1873,6 +2081,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordThemeColor? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordThemeColor value) {
+        int index = Array.IndexOf(WordThemeColorTokens, token);
+        value = index < 0 ? default : (WordThemeColor)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordThemeColor value) => GetToken(value, WordThemeColorTokens);
+
     private static readonly string[] WordTableVerticalPositionAlignmentTokens = {
         "inline",
         "top",
@@ -1894,6 +2110,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordTableVerticalPositionAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.VerticalAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordTableVerticalPositionAlignment value) {
+        int index = Array.IndexOf(WordTableVerticalPositionAlignmentTokens, token);
+        value = index < 0 ? default : (WordTableVerticalPositionAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableVerticalPositionAlignment value) => GetToken(value, WordTableVerticalPositionAlignmentTokens);
+
     private static readonly string[] WordTableVerticalAnchorTokens = {
         "text",
         "margin",
@@ -1912,6 +2136,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordTableVerticalAnchor? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.VerticalAnchorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordTableVerticalAnchor value) {
+        int index = Array.IndexOf(WordTableVerticalAnchorTokens, token);
+        value = index < 0 ? default : (WordTableVerticalAnchor)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordTableVerticalAnchor value) => GetToken(value, WordTableVerticalAnchorTokens);
+
     private static readonly string[] WordVerticalTextPositionTokens = {
         "baseline",
         "superscript",
@@ -1929,6 +2161,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static WordVerticalTextPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out WordVerticalTextPosition value) {
+        int index = Array.IndexOf(WordVerticalTextPositionTokens, token);
+        value = index < 0 ? default : (WordVerticalTextPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordVerticalTextPosition value) => GetToken(value, WordVerticalTextPositionTokens);
 
     private static readonly string[] WordVerticalCharacterAlignmentTokens = {
         "top",
@@ -1950,6 +2190,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordVerticalCharacterAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.VerticalTextAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out WordVerticalCharacterAlignment value) {
+        int index = Array.IndexOf(WordVerticalCharacterAlignmentTokens, token);
+        value = index < 0 ? default : (WordVerticalCharacterAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this WordVerticalCharacterAlignment value) => GetToken(value, WordVerticalCharacterAlignmentTokens);
+
     private static readonly string[] OfficeChartLegendPositionTokens = {
         "b",
         "tr",
@@ -1969,6 +2217,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartLegendPosition value) {
+        int index = Array.IndexOf(OfficeChartLegendPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartLegendPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartLegendPosition value) => GetToken(value, OfficeChartLegendPositionTokens);
 
     private static readonly string[] OfficePresetShapeTypeTokens = {
         "line",
@@ -2172,6 +2428,14 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static OfficePresetShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficePresetShapeType value) {
+        int index = Array.IndexOf(OfficePresetShapeTypeTokens, token);
+        value = index < 0 ? default : (OfficePresetShapeType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficePresetShapeType value) => GetToken(value, OfficePresetShapeTypeTokens);
+
     private static readonly string[] OfficePageOrientationTokens = {
         "portrait",
         "landscape",
@@ -2188,6 +2452,14 @@ internal static class WordOpenXmlValueTypeExtensions {
 
     internal static OfficePageOrientation? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficePageOrientation value) {
+        int index = Array.IndexOf(OfficePageOrientationTokens, token);
+        value = index < 0 ? default : (OfficePageOrientation)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficePageOrientation value) => GetToken(value, OfficePageOrientationTokens);
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {
         int index = Convert.ToInt32(value, CultureInfo.InvariantCulture);

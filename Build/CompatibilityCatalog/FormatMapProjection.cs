@@ -14,7 +14,13 @@ internal static class FormatMapProjection {
     private const string PowerShellRoutesFile = "powershell-routes.json";
     private const string PowerShellSnapshot = "Website/data/apidocs/powershell/command-metadata.json";
 
-    internal static string Create(string repositoryRoot) {
+    internal static string Create(string repositoryRoot) =>
+        Serialize(CreateModel(repositoryRoot));
+
+    internal static string Serialize(FormatMapModel model) =>
+        JsonSerializer.Serialize(model, FormatMapJsonContext.Default.FormatMapModel).Replace("\r\n", "\n") + "\n";
+
+    internal static FormatMapModel CreateModel(string repositoryRoot) {
         HashSet<string> studio = Ids(IWorkWorkflow.CreateRunner().ConversionRoutes);
         HashSet<string> cli = Ids(new OfficeWorkflowRunner().ConversionRoutes);
         cli.UnionWith(studio);
@@ -57,8 +63,7 @@ internal static class FormatMapProjection {
                 }
             }
         }
-        var model = new FormatMapModel(1, Families, formats, routes);
-        return JsonSerializer.Serialize(model, FormatMapJsonContext.Default.FormatMapModel).Replace("\r\n", "\n") + "\n";
+        return new FormatMapModel(1, Families, formats, routes);
     }
 
     private static HashSet<string> Ids(IEnumerable<OfficeWorkflowRoute> routes) =>
@@ -113,7 +118,7 @@ internal static class FormatMapProjection {
         "PPTX", "ODP", "Keynote", "Google Slides",
         "PDF", "XPS/OpenXPS", "MHTML", "Visio", "ODG/FODG",
         "PNG", "SVG", "JPEG", "TIFF", "WebP",
-        "OneNote", "EPUB", "Book project",
+        "OneNote", "EPUB", "Comic book ZIP", "Comic book 7z", "Comic book RAR 5 (stored)", "FictionBook 2", "Mobipocket and Kindle", "Book project",
         "Email", "EML", "MSG", "OFT", "TNEF",
         "BibTeX", "BibLaTeX", "CSL JSON", "RIS", "NBIB/MEDLINE", "EndNote XML",
         "Markdown", "AsciiDoc", "LaTeX", "Plain text", "OfficeIMO Markup",
@@ -131,7 +136,7 @@ internal static class FormatMapProjection {
         "PPTX" or "ODP" or "Keynote" or "Google Slides" => "presentations",
         "PDF" or "XPS/OpenXPS" or "MHTML" or "Visio" or "ODG/FODG" => "fixed",
         "PNG" or "SVG" or "JPEG" or "TIFF" or "WebP" or "HEIC" => "images",
-        "OneNote" or "EPUB" or "Book project" => "books",
+        "OneNote" or "EPUB" or "Comic book ZIP" or "Comic book 7z" or "Comic book RAR 5 (stored)" or "FictionBook 2" or "Mobipocket and Kindle" or "Book project" => "books",
         "Email" or "EML" or "MSG" or "OFT" or "TNEF" => "email",
         "BibTeX" or "BibLaTeX" or "CSL JSON" or "RIS" or "NBIB/MEDLINE" or "EndNote XML" => "bibliography",
         "Markdown" or "AsciiDoc" or "LaTeX" or "Plain text" or "OfficeIMO Markup" => "markup",

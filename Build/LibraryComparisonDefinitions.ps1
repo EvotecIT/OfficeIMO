@@ -256,6 +256,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -282,6 +284,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -698,8 +702,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'PNG decoding'
             Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: SkiaSharp and Magick.NET decode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImagePngDecodeBenchmarks*'
             ComparisonId = 'image-png-decode'
@@ -711,8 +716,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'JPEG decoding'
             Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: SkiaSharp and Magick.NET decode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageJpegDecodeBenchmarks*'
             ComparisonId = 'image-jpeg-decode'
@@ -724,8 +730,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'PNG encoding'
             Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: SkiaSharp and Magick.NET encode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImagePngEncodeBenchmarks*'
             ComparisonId = 'image-png-encode'
@@ -737,8 +744,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'TIFF LZW round trip'
             Libraries = @('OfficeIMO', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: Magick.NET encodes and decodes in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageTiffLzw*Benchmarks*'
             ComparisonId = 'image-tiff-lzw'
@@ -747,19 +755,16 @@ function Get-LibraryComparisonDefinitions {
         }
         imagewebplossless = [pscustomobject]@{
             Area = 'image'
-            Title = 'Lossless WebP encoding and decoding'
+            Title = 'Lossless WebP decoding'
             Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-            Filter = '*ImageWebpLossless*Benchmarks*'
+            Filter = '*ImageWebpLosslessDecodeBenchmarks*'
             ComparisonId = 'image-webp-lossless'
             Suite = 'OfficeIMO.Drawing.WebpLossless'
             ExpectedCases = @(
-                'OfficeIMOEncode|Image=Pattern'
-                'MagickNETEncode|Image=Pattern'
-                if ($one) { 'OneImageEncode|Image=Pattern' }
                 foreach ($image in @('Pattern', 'Photo', 'Screenshot', 'Logo')) {
                     foreach ($method in @('OfficeIMODecodeExternal', 'SkiaSharpDecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageDecodeExternal' })) {
                         "$method|Image=$image"
@@ -767,13 +772,32 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
+        imagewebplosslessencode = [pscustomobject]@{
+            Area = 'image'
+            Title = 'Lossless WebP encoding'
+            Libraries = @('OfficeIMO', 'Magick.NET'; if ($one) { 'OneImage' })
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'Not equivalent output: for the 512x512 pattern OfficeIMO writes about 80 KB where Magick.NET writes 1.8 KB and OneImage 7.4 KB, so the faster lane does far less compression work.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
+            Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+            Filter = '*ImageWebpLosslessEncodeBenchmarks*'
+            ComparisonId = 'image-webp-lossless-encode'
+            Suite = 'OfficeIMO.Drawing.WebpLosslessEncode'
+            ExpectedCases = @(
+                'OfficeIMOEncode|Image=Pattern'
+                'MagickNETEncode|Image=Pattern'
+                if ($one) { 'OneImageEncode|Image=Pattern' }
+            )
+        }
         imageresize = [pscustomobject]@{
             Area = 'image'
             Title = 'Image resizing'
             Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: SkiaSharp and Magick.NET resize in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageResizeBenchmarks*'
             ComparisonId = 'image-resize'
@@ -785,8 +809,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'Structured PDF generation'
             Libraries = @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'iText'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: QuestPDF lays out and draws through Skia in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfGenerationBenchmarks*'
             ComparisonId = 'pdf-structured-generation'
@@ -830,8 +855,9 @@ function Get-LibraryComparisonDefinitions {
             Title = 'HTML to PDF'
             Libraries = @('OfficeIMO', 'PeachPDF', 'PdfPecker', 'iText pdfHTML', 'Chromium')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'None'
-            CatalogEligible = $true
+            PublishRestriction = 'Allocation is not comparable: Chromium renders in a separate browser process, so BenchmarkDotNet saw only the client side of that lane. The suite no longer records allocation; runs are collected unpublished until every platform has one without it.'
+            CatalogEligible = $false
+            CollectNonPublishedEvidence = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfHtmlBenchmarks*'
             ComparisonId = 'pdf-html-generation'
@@ -915,6 +941,27 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
+        pdftables = [pscustomobject]@{
+            Area = 'pdf'
+            Title = 'PDF ruled table extraction'
+            Libraries = @('OfficeIMO', 'Tabula')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfTableExtractionBenchmarks.*'
+            ComparisonId = 'pdf-table-extraction'
+            Suite = 'OfficeIMO.Pdf.TableExtraction'
+            ExpectedCases = @(
+                foreach ($scale in @('Easy', 'Medium')) {
+                    foreach ($producer in @('PeachPDF', 'MigraDoc', 'IText')) {
+                        foreach ($engine in @('OfficeIMO', 'Tabula')) {
+                            "$engine|Producer=$producer&Scale=$scale"
+                        }
+                    }
+                }
+            )
+        }
         pdfstructuredread = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF read profile route health'
@@ -981,17 +1028,20 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
+        # The split, merge and selection lanes time the operation through serialized output bytes. They used to reopen
+        # each output with the producing library inside the timed operation, which timed readers of different depth;
+        # the -to-bytes ids keep those earlier runs from being read as the same measurement.
         pdfsplit = [pscustomobject]@{
             Area = 'pdf'
-            Title = 'PDF splitting'
+            Title = 'PDF splitting to bytes'
             Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfSplitBenchmarks.*'
-            ComparisonId = 'pdf-split'
-            Suite = 'OfficeIMO.Pdf.Split'
+            ComparisonId = 'pdf-split-to-bytes'
+            Suite = 'OfficeIMO.Pdf.SplitToBytes'
             ExpectedCases = @(
                 foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
@@ -1008,15 +1058,15 @@ function Get-LibraryComparisonDefinitions {
         }
         pdfmerge = [pscustomobject]@{
             Area = 'pdf'
-            Title = 'PDF merging'
+            Title = 'PDF merging to bytes'
             Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfMergeBenchmarks.*'
-            ComparisonId = 'pdf-merge'
-            Suite = 'OfficeIMO.Pdf.Merge'
+            ComparisonId = 'pdf-merge-to-bytes'
+            Suite = 'OfficeIMO.Pdf.MergeToBytes'
             ExpectedCases = @(
                 foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
@@ -1031,15 +1081,15 @@ function Get-LibraryComparisonDefinitions {
         }
         pdfselect = [pscustomobject]@{
             Area = 'pdf'
-            Title = 'PDF page selection'
+            Title = 'PDF page selection to bytes'
             Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfPageSelectionBenchmarks.*'
-            ComparisonId = 'pdf-page-selection'
-            Suite = 'OfficeIMO.Pdf.PageSelection'
+            ComparisonId = 'pdf-page-selection-to-bytes'
+            Suite = 'OfficeIMO.Pdf.PageSelectionToBytes'
             ExpectedCases = @(
                 foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
@@ -1109,8 +1159,9 @@ function Get-LibraryComparisonDefinitions {
             Suite = 'OfficeIMO.Word.ReadParagraphs'
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs.
-                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
+                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs; OfficeIMOPackageReader
+                    # and OfficeIMOStreamedBodyText are the SDK-free package reader and body-text pass underneath them.
+                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'OfficeIMOPackageReader', 'OfficeIMOStreamedBodyText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }

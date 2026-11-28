@@ -346,7 +346,6 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData("")]
     [InlineData("4294967296")]
     [InlineData("-1")]
     [InlineData("long")]

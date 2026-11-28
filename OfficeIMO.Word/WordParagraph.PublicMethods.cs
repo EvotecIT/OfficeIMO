@@ -18,6 +18,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">The text to be added to the paragraph.</param>
         /// <returns>The paragraph containing the new text.</returns>
         public WordParagraph AddText(string? text) {
+            if (_ownedTree != null && TryAddOwnedText(text ?? string.Empty) is { } ownedRun) return ownedRun;
             WordParagraph wordParagraph = ConvertToTextWithBreaks(text ?? string.Empty);
             //WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             //wordParagraph.Text = text;

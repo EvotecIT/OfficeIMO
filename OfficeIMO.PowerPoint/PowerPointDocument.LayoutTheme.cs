@@ -1,4 +1,6 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -14,11 +16,40 @@ namespace OfficeIMO.PowerPoint {
         internal bool OwnsLayoutTheme => _baseTheme != null;
         private PowerPointLayoutDeck? _layoutDeck;
 
+        /// <summary>The presentation part the layout system reads and restyles; reaching it opens the SDK.</summary>
+        internal OpenXml.PowerPointPartRef LayoutPresentationPartRef => OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart);
+
+        /// <summary>
+        ///     Replaces the child of <paramref name="parent"/> that <paramref name="markup"/> names with the element it
+        ///     describes, or adds it where the schema places it. The element keeps the namespace declarations the markup
+        ///     carries, as an element built from its outer XML does, so the layout system writes the same XML.
+        /// </summary>
+        internal static OfficeXmlNode ReplaceWithLayoutMarkup(OfficeXmlNode parent, string markup) {
+            OpenXmlElement target = parent.SdkElement as OpenXmlElement
+                ?? throw new InvalidOperationException("The layout system writes masters and layouts through the SDK.");
+            OpenXmlElement probe = target.CloneNode(false);
+            probe.InnerXml = markup;
+            OpenXmlElement child = probe.FirstChild ?? throw new InvalidOperationException("The markup holds no element.");
+            child.Remove();
+            OpenXmlElement? existing = target.ChildElements.FirstOrDefault(element =>
+                element.LocalName == child.LocalName && element.NamespaceUri == child.NamespaceUri);
+            if (existing != null) target.ReplaceChild(child, existing);
+            else if (target is OpenXmlCompositeElement composite) composite.AddChild(child, throwOnError: true);
+            else target.AppendChild(child);
+            return OfficeXmlNode.FromSdk(child);
+        }
+
+        /// <summary>Writes a part the layout system restyled back to its package part.</summary>
+        internal static void SaveLayoutPart(OpenXml.PowerPointPartRef part) {
+            if (part.Current.SdkPart is OpenXmlPart sdk) sdk.RootElement?.Save();
+            else part.MarkEdited();
+        }
+
         /// <summary>Writes the theme part, master text styles, placeholders and layouts of a new presentation.</summary>
         internal void ApplyLayoutTheme(OfficeTheme theme) {
             _baseTheme = theme;
             _layoutTheme = PowerPointLayoutTheme.From(theme);
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, _layoutTheme);
+            PowerPointLayoutMasterWriter.Apply(LayoutPresentationPartRef, _layoutTheme);
         }
 
         /// <summary>
@@ -31,9 +62,10 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(theme);
             SlideMasterPart? selected = masterIndex.HasValue ? GetSlideMasterPart(masterIndex.Value) : null;
-            bool allMasters = selected == null || _presentationPart.SlideMasterParts.Count() == 1;
+            bool allMasters = selected == null || SdkPresentationPart.SlideMasterParts.Count() == 1;
             PowerPointLayoutTheme layout = PowerPointLayoutTheme.From(theme);
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, layout, allMasters ? null : selected, keepMasterContent: !OwnsLayoutTheme);
+            PowerPointLayoutMasterWriter.Apply(LayoutPresentationPartRef, layout, allMasters ? default : OpenXml.PowerPointPartRef.FromSdk(selected),
+                keepMasterContent: !OwnsLayoutTheme);
             if (allMasters) SetThemeNameForAllMasters(theme.Name);
             else SetThemeName(theme.Name, masterIndex!.Value);
             if (allMasters && OwnsLayoutTheme) _baseTheme = theme;
@@ -55,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Rewrites the theme-derived parts for a designer theme mapped onto the presentation's theme.</summary>
         internal void ApplyLayoutTheme(PowerPointLayoutTheme theme) {
             _layoutTheme = theme;
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, theme);
+            PowerPointLayoutMasterWriter.Apply(LayoutPresentationPartRef, theme);
         }
 
         /// <summary>
@@ -66,59 +98,5 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Deck-level state of the layout system: section titles, numbering and footer text.</summary>
         internal PowerPointLayoutDeck LayoutDeck => _layoutDeck ??= new PowerPointLayoutDeck(this);
-
-        /// <summary>The Latin heading and body typefaces the first master's theme part names now.</summary>
-        internal (string? Heading, string? Body) ThemeFontFamilies() {
-            A.FontScheme? fonts = _presentationPart.SlideMasterParts.FirstOrDefault()?.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            string? heading = fonts?.MajorFont?.LatinFont?.Typeface?.Value;
-            string? body = fonts?.MinorFont?.LatinFont?.Typeface?.Value;
-            return (string.IsNullOrWhiteSpace(heading) ? null : heading, string.IsNullOrWhiteSpace(body) ? null : body);
-        }
-
-        /// <summary>Reads a master's current colours and fonts without restyling its native layouts.</summary>
-        internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0,
-            A.ColorScheme? colorsOverride = null, A.FontScheme? fontsOverride = null) {
-            OfficeTheme theme = _layoutTheme?.Theme ?? _baseTheme ?? OfficeTheme.Default;
-            SlideMasterPart? master = _presentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
-            A.Theme? nativeTheme = master?.ThemePart?.Theme;
-            A.ThemeElements? elements = nativeTheme?.ThemeElements;
-            if (elements == null && colorsOverride == null && fontsOverride == null) return PowerPointLayoutTheme.From(theme);
-
-            OfficeColor? Read(DocumentFormat.OpenXml.OpenXmlCompositeElement? slot) {
-                string? hex = slot?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
-                              ?? slot?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
-                if (string.IsNullOrWhiteSpace(hex) || hex!.Length != 6) return null;
-                try {
-                    return OfficeColor.ParseHex(hex);
-                } catch (FormatException) {
-                    return null;
-                }
-            }
-
-            A.ColorScheme? colors = colorsOverride ?? elements?.ColorScheme;
-            OfficeThemePalette palette = theme.Palette;
-            OfficeColor? text = Read(colors?.Dark1Color);
-            OfficeColor? background = Read(colors?.Light1Color);
-            palette = palette.With(
-                background: background,
-                text: text,
-                textMuted: Read(colors?.Dark2Color),
-                accent1: Read(colors?.Accent1Color),
-                accent2: Read(colors?.Accent2Color),
-                accent3: Read(colors?.Accent3Color),
-                accent4: Read(colors?.Accent4Color),
-                accent5: Read(colors?.Accent5Color),
-                accent6: Read(colors?.Accent6Color));
-            A.FontScheme? fontScheme = fontsOverride ?? elements?.FontScheme;
-            string? heading = fontScheme?.MajorFont?.LatinFont?.Typeface?.Value;
-            string? body = fontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            OfficeThemeFonts fonts = new(
-                string.IsNullOrWhiteSpace(heading) ? theme.Fonts.Heading : theme.Fonts.Heading.With(family: heading),
-                string.IsNullOrWhiteSpace(body) ? theme.Fonts.Body : theme.Fonts.Body.With(family: body));
-            string? name = nativeTheme?.Name?.Value;
-            return PowerPointLayoutTheme.From(theme.WithName(string.IsNullOrWhiteSpace(name) ? theme.Name : name!)
-                .WithPalette(palette).WithFonts(fonts)
-                .WithSurfaces(theme.Surfaces.With(surface: Read(colors?.Light2Color))));
-        }
     }
 }

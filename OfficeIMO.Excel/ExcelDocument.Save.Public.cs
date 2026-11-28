@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void EnsureWritableForSave() {
-            if (_spreadSheetDocument.FileOpenAccess == FileAccess.Read) {
+            if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("The workbook is read-only and cannot be saved.");
             }
         }
@@ -122,11 +122,16 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
+            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(path));
             if (TrySaveUnchangedXlsbToFile(path, options)) {
                 return;
             }
 
             if (TrySaveNativeLegacyXlsToFile(path, options)) {
+                return;
+            }
+
+            if (TryWriteDeferredPackageToFile(path, options)) {
                 return;
             }
 
@@ -286,11 +291,16 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
+            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(target));
             if (await TrySaveUnchangedXlsbToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 
             if (await TrySaveNativeLegacyXlsToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
+                return;
+            }
+
+            if (TryWriteDeferredPackageToFile(target, options, cancellationToken)) {
                 return;
             }
 
@@ -406,6 +416,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb);
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
             }
@@ -416,6 +427,10 @@ namespace OfficeIMO.Excel {
 
             if (TryWriteUnchangedPackageToStream(destination, options)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
+            if (TryWriteDeferredPackageToStream(destination, options)) {
                 return;
             }
 
@@ -567,6 +582,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb);
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
@@ -577,6 +593,10 @@ namespace OfficeIMO.Excel {
 
             if (await TryWriteUnchangedPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
+            if (await TryWriteDeferredPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 

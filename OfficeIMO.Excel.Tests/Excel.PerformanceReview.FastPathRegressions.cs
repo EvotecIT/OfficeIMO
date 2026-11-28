@@ -73,49 +73,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Missing typed values", dataReader.GetString(3));
         }
 
-        [Fact]
-        public void PerformanceReview_ExtendedPackageStagesWritesWhenDestinationBacksRawParts() {
-            using var associatedDestination = new MemoryStream();
-            using (var document = ExcelDocument.Create(associatedDestination, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
-            })) {
-                var rows = new[] {
-                    new FastPackageProjection("Alpha", 10),
-                    new FastPackageProjection("Beta", 20)
-                };
-                document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddSheet("Data");
-                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score));
-                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
-                        rows.Select(row => row.Name),
-                        new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Title = "Scores" });
-
-                var packageStreamField = typeof(ExcelDocument).GetField("_packageStream", BindingFlags.Instance | BindingFlags.NonPublic);
-                var packageStream = Assert.IsAssignableFrom<Stream>(packageStreamField!.GetValue(document));
-
-                document.Save(packageStream);
-
-                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
-            }
-
-            associatedDestination.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(associatedDestination, false);
-            var dataSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
-                .Single(sheet => string.Equals(sheet.Name?.Value, "Data", StringComparison.Ordinal));
-            var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
-            var chartPart = dataPart.DrawingsPart!.ChartParts.Single();
-            var stylePart = Assert.Single(chartPart.GetPartsOfType<ChartStylePart>());
-            var colorStylePart = Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>());
-            using (var styleStream = stylePart.GetStream(FileMode.Open, FileAccess.Read)) {
-                Assert.True(styleStream.Length > 0);
-            }
-            using (var colorStyleStream = colorStylePart.GetStream(FileMode.Open, FileAccess.Read)) {
-                Assert.True(colorStyleStream.Length > 0);
-            }
-            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
-        }
-
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

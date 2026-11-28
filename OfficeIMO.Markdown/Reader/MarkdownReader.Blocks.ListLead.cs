@@ -8,7 +8,7 @@ internal static partial class MarkdownReader {
     // a semantic parse otherwise skips. When collection saw such a line, the lines are collected
     // again with their slices; other items keep the plain-line path.
     private static List<string> ConsumeListLeadLines(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int nextIndex,
         int continuationIndent,
         string initialContent,
@@ -498,7 +498,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        return CountLeadingIndentColumns(lines[firstNonBlank] ?? string.Empty) >= 4;
+        return CountLeadingIndentColumns(lines[firstNonBlank]) >= 4;
     }
 
     private static bool StartsListItemLeadWithStandaloneBlock(List<string> lines, MarkdownLoadOptions options) {

@@ -1,331 +1,234 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
         public partial class PowerPointChart : PowerPointShape {
-        private PowerPointChart SetAxisTitle<TAxis>(string title, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+        private const string CategoryAxisName = "catAx";
+        private const string ValueAxisName = "valAx";
+
+        /// <summary>The first axis of the plot area with this name that matches <paramref name="predicate"/>, or none.</summary>
+        private OfficeXmlNode FindAxis(string axisName, Func<OfficeXmlNode, bool>? predicate) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
+                return default;
+            }
+
+            foreach (OfficeXmlNode axis in plotArea.Children(CNs, axisName)) {
+                if (predicate == null || predicate(axis)) return axis;
+            }
+            return default;
+        }
+
+        private PowerPointChart SetAxisTitle(string axisName, string title, Func<OfficeXmlNode, bool>? predicate = null) {
             ArgumentNullException.ThrowIfNull(title);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            axis.RemoveAllChildren<C.Title>();
-            InsertAxisTitle(axis, CreateAxisTitle(title));
-            Save();
+            axis.RemoveChildren(CNs, "title");
+            InsertAxisTitle(axis, CreateAxisTitle(axis, title));
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetAxisTitleTextStyle<TAxis>(OfficeLength? fontSize, bool? bold, bool? italic,
-            OfficeColor? color, string? fontFamily, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisTitleTextStyle(string axisName, OfficeLength? fontSize, bool? bold, bool? italic,
+            OfficeColor? color, string? fontFamily, Func<OfficeXmlNode, bool>? predicate = null) {
             ValidateTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
+            OfficeXmlNode title = axis.Child(CNs, "title");
+            if (title.IsNone) {
                 return this;
             }
 
-            C.Title? title = axis.GetFirstChild<C.Title>();
-            if (title == null) {
-                return this;
-            }
-
-            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
+            OfficeXmlNode chartText = title.Child(CNs, "tx");
+            if (chartText.IsNone) {
                 return this;
             }
 
             EnsureChartTextRunProperties(chartText);
             PowerPointTextContent.FormatRuns(chartText, properties => ApplyTextStyle(properties, fontSize, bold, italic, color, fontFamily));
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart ClearAxisTitleTextStyle<TAxis>(Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart ClearAxisTitleTextStyle(string axisName, Func<OfficeXmlNode, bool>? predicate = null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
+            OfficeXmlNode chartText = axis.Child(CNs, "title").Child(CNs, "tx");
+            if (chartText.IsNone) {
                 return this;
             }
 
-            C.ChartText? chartText = axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
-                return this;
-            }
-
-            foreach (A.RunProperties runProps in chartText.Descendants<A.RunProperties>()) {
+            foreach (OfficeXmlNode runProps in chartText.ContentDescendants(ANs, "rPr")) {
                 ClearTextStyle(runProps);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetAxisLabelTextStyle<TAxis>(OfficeLength? fontSize, bool? bold, bool? italic,
-            OfficeColor? color, string? fontFamily, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisLabelTextStyle(string axisName, OfficeLength? fontSize, bool? bold, bool? italic,
+            OfficeColor? color, string? fontFamily, Func<OfficeXmlNode, bool>? predicate = null) {
             ValidateTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSize, bold, italic, color, fontFamily);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart ClearAxisLabelTextStyle<TAxis>(Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
+        /// <summary>The axis label default run properties, or none.</summary>
+        private static OfficeXmlNode AxisLabelRunProperties(OfficeXmlNode axis) =>
+            axis.Child(CNs, "txPr").Child(ANs, "p").Child(ANs, "pPr").Child(ANs, "defRPr");
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            A.DefaultRunProperties? runProps = axis
-                .GetFirstChild<C.TextProperties>()?
-                .GetFirstChild<A.Paragraph>()?
-                .GetFirstChild<A.ParagraphProperties>()?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (runProps == null) {
-                return this;
-            }
-
-            ClearTextStyle(runProps);
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults(runProps,
-                ColorTheme);
-            Save();
-            return this;
-        }
-
-        private PowerPointChart SetAxisLabelRotation<TAxis>(double rotationDegrees, Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisLabelRotation(string axisName, double rotationDegrees, Func<OfficeXmlNode, bool>? predicate = null) {
             ValidateAxisLabelRotation(rotationDegrees);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
             EnsureTextPropertiesRunProperties(axis);
-            C.TextProperties? textProps = axis.GetFirstChild<C.TextProperties>();
-            if (textProps != null) {
-                A.BodyProperties body = textProps.GetFirstChild<A.BodyProperties>() ?? new A.BodyProperties();
-                body.Rotation = (int)Math.Round(rotationDegrees * 60000d);
-                if (body.Parent == null) {
-                    textProps.Append(body);
-                }
+            OfficeXmlNode textProps = axis.Child(CNs, "txPr");
+            if (textProps.Exists) {
+                GetOrAppend(textProps, ANs, "bodyPr").SetInt32Attribute("rot", (int)Math.Round(rotationDegrees * 60000d));
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetAxisTickLabelPosition<TAxis>(OfficeChartAxisTickLabelPosition position, Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart SetAxisTickLabelPosition(string axisName, OfficeChartAxisTickLabelPosition position, Func<OfficeXmlNode, bool>? predicate = null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            ReplaceAxisChild(axis, new C.TickLabelPosition { Val = position.ToOpenXml() });
-            Save();
+            ReplaceAxisChild(axis, "tickLblPos", position.ToOpenXmlToken());
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetAxisGridlines<TAxis>(bool showMajor, bool showMinor, OfficeColor? lineColor,
-            OfficeLength? lineWidth, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisGridlines(string axisName, bool showMajor, bool showMinor, OfficeColor? lineColor,
+            OfficeLength? lineWidth, Func<OfficeXmlNode, bool>? predicate = null) {
             ValidateAxisGridlinesStyle(lineColor, lineWidth);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidth);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart ClearAxisGridlines<TAxis>(Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart ClearAxisGridlines(string axisName, Func<OfficeXmlNode, bool>? predicate = null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            axis.RemoveAllChildren<C.MajorGridlines>();
-            axis.RemoveAllChildren<C.MinorGridlines>();
-            Save();
+            axis.RemoveChildren(CNs, "majorGridlines");
+            axis.RemoveChildren(CNs, "minorGridlines");
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetValueAxisDisplayUnitsCore(Action<C.DisplayUnits> configureUnits, bool showLabel,
-            string? labelText = null, Func<C.ValueAxis, bool>? predicate = null) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart SetValueAxisDisplayUnitsCore(Action<OfficeXmlNode> configureUnits, bool showLabel,
+            string? labelText = null, Func<OfficeXmlNode, bool>? predicate = null) {
+            OfficeXmlNode axis = FindAxis(ValueAxisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = predicate == null
-                ? plotArea.Elements<C.ValueAxis>().FirstOrDefault()
-                : plotArea.Elements<C.ValueAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
+            // A value axis keeps its extension list in its own type, which the SDK lookup never found: new units go last.
+            OfficeXmlNode displayUnits = GetOrAppend(axis, CNs, "dispUnits");
             configureUnits(displayUnits);
             ApplyDisplayUnitsLabel(displayUnits, showLabel, labelText);
-            if (displayUnits.Parent == null) {
-                OpenXmlElement? insertBefore = axis.GetFirstChild<C.ExtensionList>();
-                if (insertBefore != null) {
-                    axis.InsertBefore(displayUnits, insertBefore);
-                } else {
-                    axis.Append(displayUnits);
-                }
-            }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
-            where TAxis : OpenXmlCompositeElement {
+        /// <summary>Sets built-in display units, replacing whatever units were set.</summary>
+        private static void SetBuiltInDisplayUnit(OfficeXmlNode displayUnits, OfficeChartDisplayUnit unit) {
+            displayUnits.RemoveChildren(CNs, "custUnit");
+            displayUnits.RemoveChildren(CNs, "builtInUnit");
+            AppendNew(displayUnits, CNs, "builtInUnit").SetAttribute("val", unit.ToOpenXmlToken());
+        }
+
+        /// <summary>Sets a custom display unit, replacing whatever units were set.</summary>
+        private static void SetCustomDisplayUnit(OfficeXmlNode displayUnits, double customUnit) {
+            displayUnits.RemoveChildren(CNs, "builtInUnit");
+            displayUnits.RemoveChildren(CNs, "custUnit");
+            AppendNew(displayUnits, CNs, "custUnit").SetDoubleAttribute("val", customUnit);
+        }
+
+        private PowerPointChart SetAxisNumberFormat(string axisName, string formatCode, bool sourceLinked, Func<OfficeXmlNode, bool>? predicate = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            TAxis? axis = predicate == null
-                ? plotArea.Elements<TAxis>().FirstOrDefault()
-                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
+            OfficeXmlNode format = axis.Child(CNs, "numFmt");
+            if (format.IsNone) {
+                format = axis.InsertBefore(axis.CreateElement(CNs, "numFmt"), axis.FirstChild);
             }
+            format.SetAttribute("formatCode", formatCode);
+            format.SetBooleanAttribute("sourceLinked", sourceLinked);
 
-            C.NumberingFormat format = axis.GetFirstChild<C.NumberingFormat>() ?? new C.NumberingFormat();
-            format.FormatCode = formatCode;
-            format.SourceLinked = sourceLinked;
-            if (format.Parent == null) {
-                axis.InsertAt(format, 0);
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private static bool HasAxisPosition(C.ValueAxis axis, C.AxisPositionValues position) {
-            return axis.GetFirstChild<C.AxisPosition>()?.Val?.Value == position;
-        }
+        private static bool HasAxisPosition(OfficeXmlNode axis, string position) =>
+            string.Equals(axis.Child(CNs, "axPos").Attribute("val"), position, StringComparison.Ordinal);
 
-        private bool CanResolveScatterAxis(Func<C.PlotArea, C.ValueAxis?> resolver) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private static bool IsBottomAxis(OfficeXmlNode axis) => HasAxisPosition(axis, "b");
+
+        private static bool IsLeftAxis(OfficeXmlNode axis) => HasAxisPosition(axis, "l");
+
+        private bool CanResolveScatterAxis(Func<OfficeXmlNode, OfficeXmlNode> resolver) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return false;
             }
 
-            return resolver(plotArea) != null;
+            return resolver(plotArea).Exists;
         }
 
-        private static C.ValueAxis? ResolveScatterXAxis(C.PlotArea plotArea) {
-            if (plotArea.Elements<C.CategoryAxis>().Any()) {
-                return null;
+        private static OfficeXmlNode ResolveScatterXAxis(OfficeXmlNode plotArea) => ResolveScatterAxis(plotArea, "b");
+
+        private static OfficeXmlNode ResolveScatterYAxis(OfficeXmlNode plotArea) => ResolveScatterAxis(plotArea, "l");
+
+        private static OfficeXmlNode ResolveScatterAxis(OfficeXmlNode plotArea, string position) {
+            if (plotArea.Child(CNs, CategoryAxisName).Exists) {
+                return default;
             }
 
-            return plotArea.Elements<C.ValueAxis>()
-                .FirstOrDefault(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
-        }
-
-        private static C.ValueAxis? ResolveScatterYAxis(C.PlotArea plotArea) {
-            if (plotArea.Elements<C.CategoryAxis>().Any()) {
-                return null;
+            foreach (OfficeXmlNode axis in plotArea.Children(CNs, ValueAxisName)) {
+                if (HasAxisPosition(axis, position)) return axis;
             }
-
-            return plotArea.Elements<C.ValueAxis>()
-                .FirstOrDefault(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return default;
         }
 
         private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
@@ -368,63 +271,62 @@ namespace OfficeIMO.PowerPoint {
             return !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
-        private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
+        private static void ValidateCrossesAtForAxis(OfficeXmlNode axis, double? crossesAt) {
             if (crossesAt == null) {
                 return;
             }
 
-            C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
-            if (scaling?.GetFirstChild<C.LogBase>() != null && crossesAt.Value <= 0) {
+            if (axis.Child(CNs, "scaling").Child(CNs, "logBase").Exists && crossesAt.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt), "Crosses-at value must be greater than 0 for log scale.");
             }
         }
 
-        private static void ApplyAxisScale(OpenXmlCompositeElement axis, double? minimum, double? maximum,
+        private static void ApplyAxisScale(OfficeXmlNode axis, double? minimum, double? maximum,
             double? majorUnit, double? minorUnit, bool? reverseOrder, bool? logScale, double? logBase) {
             if (reverseOrder != null || minimum != null || maximum != null || logScale != null || logBase != null) {
-                C.Scaling scaling = EnsureScaling(axis);
+                OfficeXmlNode scaling = EnsureScaling(axis);
                 ValidateEffectiveAxisScale(scaling, minimum, maximum, logScale, logBase);
                 if (reverseOrder != null) {
-                    ReplaceChild(scaling, new C.Orientation {
-                        Val = reverseOrder.Value ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
-                    });
+                    ReplaceValChild(scaling, "orientation", reverseOrder.Value ? "maxMin" : "minMax");
                 }
                 if (minimum != null) {
-                    ReplaceChild(scaling, new C.MinAxisValue { Val = minimum.Value });
+                    ReplaceValChild(scaling, "min", minimum.Value);
                 }
                 if (maximum != null) {
-                    ReplaceChild(scaling, new C.MaxAxisValue { Val = maximum.Value });
+                    ReplaceValChild(scaling, "max", maximum.Value);
                 }
 
                 bool effectiveLog = logScale == true || logBase != null;
                 if (effectiveLog) {
                     double baseValue = logBase ?? 10d;
-                    ReplaceChild(scaling, new C.LogBase { Val = baseValue });
+                    ReplaceValChild(scaling, "logBase", baseValue);
                 } else if (logScale == false) {
-                    scaling.GetFirstChild<C.LogBase>()?.Remove();
+                    OfficeXmlNode existing = scaling.Child(CNs, "logBase");
+                    if (existing.Exists) existing.Remove();
                 }
 
                 NormalizeScalingOrder(scaling);
             }
 
             if (majorUnit != null) {
-                ReplaceChild(axis, new C.MajorUnit { Val = majorUnit.Value });
+                ReplaceValChild(axis, "majorUnit", majorUnit.Value);
             }
             if (minorUnit != null) {
-                ReplaceChild(axis, new C.MinorUnit { Val = minorUnit.Value });
+                ReplaceValChild(axis, "minorUnit", minorUnit.Value);
             }
         }
 
-        private static void ValidateEffectiveAxisScale(C.Scaling scaling, double? minimum, double? maximum, bool? logScale, double? logBase) {
-            double? effectiveMinimum = minimum ?? scaling.GetFirstChild<C.MinAxisValue>()?.Val?.Value;
-            double? effectiveMaximum = maximum ?? scaling.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
+        private static void ValidateEffectiveAxisScale(OfficeXmlNode scaling, double? minimum, double? maximum, bool? logScale, double? logBase) {
+            // A kept bound that can't be read throws, as the SDK's typed value did; a missing one is automatic.
+            double? effectiveMinimum = minimum ?? OfficeChartXml.DoubleVal(scaling.Child(CNs, "min"));
+            double? effectiveMaximum = maximum ?? OfficeChartXml.DoubleVal(scaling.Child(CNs, "max"));
             if (effectiveMinimum != null && effectiveMaximum != null && effectiveMinimum.Value >= effectiveMaximum.Value) {
                 throw new ArgumentException("Minimum must be less than maximum.");
             }
 
             bool effectiveLog = logScale == true || logBase != null;
             if (!effectiveLog && logScale != false) {
-                effectiveLog = scaling.GetFirstChild<C.LogBase>() != null;
+                effectiveLog = scaling.Child(CNs, "logBase").Exists;
             }
 
             if (!effectiveLog) {
@@ -439,62 +341,49 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static C.Scaling EnsureScaling(OpenXmlCompositeElement axis) {
-            C.Scaling scaling = axis.GetFirstChild<C.Scaling>() ?? new C.Scaling();
-            if (scaling.Parent == null) {
-                C.AxisId? axisId = axis.GetFirstChild<C.AxisId>();
-                if (axisId != null) {
-                    axis.InsertAfter(scaling, axisId);
-                } else {
-                    axis.PrependChild(scaling);
-                }
+        private static OfficeXmlNode EnsureScaling(OfficeXmlNode axis) {
+            OfficeXmlNode scaling = axis.Child(CNs, "scaling");
+            if (scaling.IsNone) {
+                scaling = axis.CreateElement(CNs, "scaling");
+                OfficeXmlNode axisId = axis.Child(CNs, "axId");
+                scaling = axisId.Exists ? axisId.InsertAfterSelf(scaling) : axis.InsertBefore(scaling, axis.FirstChild);
             }
 
-            if (scaling.GetFirstChild<C.Orientation>() == null) {
-                scaling.PrependChild(new C.Orientation { Val = C.OrientationValues.MinMax });
+            if (scaling.Child(CNs, "orientation").IsNone) {
+                scaling.InsertBefore(scaling.CreateElement(CNs, "orientation"), scaling.FirstChild).SetAttribute("val", "minMax");
             }
 
             return scaling;
         }
 
-        private static void NormalizeScalingOrder(C.Scaling scaling) {
-            C.Orientation? orientation = scaling.GetFirstChild<C.Orientation>();
-            C.MaxAxisValue? maxAxisValue = scaling.GetFirstChild<C.MaxAxisValue>();
-            C.MinAxisValue? minAxisValue = scaling.GetFirstChild<C.MinAxisValue>();
-            C.LogBase? logBase = scaling.GetFirstChild<C.LogBase>();
+        // Moves the scaling values last, in schema order, after anything else the scaling holds.
+        private static void NormalizeScalingOrder(OfficeXmlNode scaling) {
+            OfficeXmlNode orientation = scaling.Child(CNs, "orientation");
+            OfficeXmlNode maxAxisValue = scaling.Child(CNs, "max");
+            OfficeXmlNode minAxisValue = scaling.Child(CNs, "min");
+            OfficeXmlNode logBase = scaling.Child(CNs, "logBase");
 
-            orientation?.Remove();
-            maxAxisValue?.Remove();
-            minAxisValue?.Remove();
-            logBase?.Remove();
-
-            if (logBase != null) {
-                scaling.Append(logBase);
+            foreach (OfficeXmlNode value in new[] { orientation, maxAxisValue, minAxisValue, logBase }) {
+                if (value.Exists) value.Remove();
             }
-            if (orientation != null) {
-                scaling.Append(orientation);
-            }
-            if (maxAxisValue != null) {
-                scaling.Append(maxAxisValue);
-            }
-            if (minAxisValue != null) {
-                scaling.Append(minAxisValue);
+            foreach (OfficeXmlNode value in new[] { logBase, orientation, maxAxisValue, minAxisValue }) {
+                if (value.Exists) scaling.Append(value);
             }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
-            axis.GetFirstChild<C.Crosses>()?.Remove();
-            axis.GetFirstChild<C.CrossesAt>()?.Remove();
+        private static void ApplyAxisCrossing(OfficeXmlNode axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
+            OfficeXmlNode existing = axis.Child(CNs, "crosses");
+            if (existing.Exists) existing.Remove();
+            existing = axis.Child(CNs, "crossesAt");
+            if (existing.Exists) existing.Remove();
 
-            OpenXmlElement crossing = crossesAt != null
-                ? new C.CrossesAt { Val = crossesAt.Value }
-                : new C.Crosses { Val = crosses.ToOpenXml() };
-
-            C.CrossingAxis? crossAxis = axis.GetFirstChild<C.CrossingAxis>();
-            if (crossAxis != null) {
-                axis.InsertAfter(crossing, crossAxis);
+            OfficeXmlNode crossing = axis.CreateElement(CNs, crossesAt != null ? "crossesAt" : "crosses");
+            OfficeXmlNode crossAxis = axis.Child(CNs, "crossAx");
+            crossing = crossAxis.Exists ? crossAxis.InsertAfterSelf(crossing) : axis.Append(crossing);
+            if (crossesAt != null) {
+                crossing.SetDoubleAttribute("val", crossesAt.Value);
             } else {
-                axis.Append(crossing);
+                crossing.SetAttribute("val", crosses.ToOpenXmlToken());
             }
         }
 

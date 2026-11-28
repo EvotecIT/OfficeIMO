@@ -1,28 +1,25 @@
-using DocumentFormat.OpenXml.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextRun {
         /// <summary>Gets or sets the BCP 47 language tag applied to this text run.</summary>
         public string? Language {
-            get => RunProperties?.Language?.Value;
-            set {
-                A.RunProperties properties = EnsureRunProperties();
-                properties.Language = NormalizeLanguage(value);
-                SyncLineContinuation();
-            }
+            get => PropertiesElement.Attribute("lang");
+            set => SetProperty("lang", NormalizeLanguage(value));
         }
 
         /// <summary>Gets or sets the accessible tooltip associated with this run's click hyperlink.</summary>
         public string? HyperlinkTooltip {
-            get => RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Tooltip?.Value;
+            get => ClickHyperlinkElement.Attribute("tooltip");
             set {
-                A.HyperlinkOnClick? hyperlink = RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
-                if (hyperlink == null) {
+                OfficeXmlNode hyperlink = ClickHyperlinkElement;
+                if (hyperlink.IsNone) {
                     if (value == null) return;
                     throw new InvalidOperationException("A hyperlink must be assigned before setting its tooltip.");
                 }
-                hyperlink.Tooltip = string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
+                hyperlink.SetAttribute("tooltip", string.IsNullOrWhiteSpace(value) ? null : value!.Trim());
+                MarkEdited();
                 SyncLineContinuation();
             }
         }

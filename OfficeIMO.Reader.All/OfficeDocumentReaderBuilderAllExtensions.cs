@@ -1,3 +1,7 @@
+using OfficeIMO.Archives;
+using OfficeIMO.Comic;
+using OfficeIMO.Fb2;
+using OfficeIMO.Mobi;
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Chm;
@@ -58,12 +62,21 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddSourceCodeHandler()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cbr", new[] { ".cbr" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe,
+                classifyReadError: static error => error is Rar5EncryptionNotSupportedException ? ReaderErrorCodes.UnsupportedEncryption : null))
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cb7", new[] { ".cb7" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cbz", new[] { ".cbz" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
             .AddChmHandler(configured.Chm)
             .AddDbfHandler(configured.Dbf)
             .AddDocBookHandler(configured.DocBook)
             .AddDjVuHandler(configured.DjVu)
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("fb2", new[] { ".fb2", ".fb2.zip" },
+                ReaderInputKind.Fb2, Fb2Reader.MaximumInputBytes, Fb2Reader.Import, Fb2Reader.Probe))
             .AddExcelHandler(configured.Excel);
         if (configured.IncludeLegacySpreadsheet) {
             builder.AddLegacySpreadsheetHandler(configured.LegacySpreadsheet, configured.Excel);
@@ -75,6 +88,12 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".azw", ".azw3" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe, useDetectedKindFallback: true))
+            .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("mobi-prc", new[] { ".prc" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
+            .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("palmdoc", new[] { ".pdb" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
             .AddNotebookHandler(configured.Notebook)
             .AddOneNoteHandler(oneNoteOptions)
             .AddOpmlHandler(configured.Opml)

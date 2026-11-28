@@ -1,41 +1,34 @@
-using System.Text;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        // The slide's notes slide (p:notes), or none.
+        private OfficeXmlNode NotesRoot {
+            get {
+                OfficeXmlNode root = PartRef.RelatedPart(PowerPointPartRef.NotesSlideRelationshipType).Root;
+                return root.Is(OfficeXmlNamespaces.PresentationML, "notes") ? root : default;
+            }
+        }
+
         /// <summary>Whether the slide already contains a speaker-notes part.</summary>
-        public bool HasSpeakerNotes => _slidePart.NotesSlidePart?.NotesSlide != null;
+        public bool HasSpeakerNotes => !NotesRoot.IsNone;
 
         /// <summary>Reads existing speaker-note text without creating a notes part as a side effect.</summary>
         public string GetSpeakerNotesText() {
-            NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
-            if (notesSlide == null) return string.Empty;
-            List<string> blocks = notesSlide.CommonSlideData?.ShapeTree?
-                .Elements<Shape>()
-                .Select(ReadNotesShapeText)
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .ToList() ?? new List<string>();
-            return string.Join("\n\n", blocks);
-        }
-
-        private static string ReadNotesShapeText(Shape shape) {
-            List<string> paragraphs = shape.TextBody?
-                .Elements<A.Paragraph>()
-                .Select(ReadNotesParagraphText)
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .ToList() ?? new List<string>();
-            return string.Join("\n", paragraphs);
-        }
-
-        private static string ReadNotesParagraphText(A.Paragraph paragraph) {
-            var builder = new StringBuilder();
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
-                if (child is A.Run run) builder.Append(run.Text?.Text ?? string.Empty);
-                else if (child is A.Break) builder.AppendLine();
-                else if (child is A.Field field) builder.Append(field.Text?.Text ?? string.Empty);
+            OfficeXmlNode tree = NotesRoot.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree");
+            var blocks = new List<string>();
+            foreach (OfficeXmlNode shape in tree.Children(OfficeXmlNamespaces.PresentationML, "sp")) {
+                var paragraphs = new List<string>();
+                foreach (OfficeXmlNode paragraph in shape.Child(OfficeXmlNamespaces.PresentationML, "txBody").Children(OfficeXmlNamespaces.DrawingML, "p")) {
+                    string text = PowerPointNotes.ReadParagraphText(paragraph).Trim();
+                    if (!string.IsNullOrWhiteSpace(text)) paragraphs.Add(text);
+                }
+                string block = string.Join("\n", paragraphs);
+                if (!string.IsNullOrWhiteSpace(block)) blocks.Add(block);
             }
-            return builder.ToString().Trim();
+            return string.Join("\n\n", blocks);
         }
     }
 }

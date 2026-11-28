@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         /// <summary>Resolves authored row heights into physical Word cell boxes, including effective vertical cell margins.</summary>
         private static void ApplyNativeUnspacedTableRowMargins(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style) {
@@ -17,10 +17,12 @@ namespace OfficeIMO.Word.Pdf {
                 double top = GetNativeTableRowMargin(layout, style, row, top: true);
                 double bottom = GetNativeTableRowMargin(layout, style, row, top: false);
                 ApplyNativeRowVerticalMargins(layout, style, row, top, bottom);
-                W.TableRowHeight? height = sourceRows[row]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
-                if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
-                double points = height.Val.Value / 20D;
-                if (height.HeightType?.Value == W.HeightRuleValues.Exact) {
+                OfficeXmlNode height = sourceRows[row].Node().WChild("trPr").WChild("trHeight");
+                uint? heightValue = height.WUInt32("val");
+                string? heightRule = height.WAttr("hRule");
+                if (heightValue is not > 0 || heightRule == "auto") continue;
+                double points = heightValue.Value / 20D;
+                if (heightRule == "exact") {
                     fixedHeights[row] = points + bottom;
                     hasFixed = true;
                 } else {

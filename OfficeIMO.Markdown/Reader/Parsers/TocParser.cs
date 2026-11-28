@@ -10,8 +10,8 @@ internal static partial class MarkdownReader {
     ///   {:toc}
     ///   <!-- TOC --> or <!-- toc -->
     /// </summary>
-    internal sealed class TocParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class TocParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             var raw = lines[i]; if (string.IsNullOrWhiteSpace(raw)) return false;
             var t = raw.Trim();
 

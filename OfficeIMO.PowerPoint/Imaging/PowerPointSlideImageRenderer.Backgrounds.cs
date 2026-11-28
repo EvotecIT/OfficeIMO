@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -109,11 +109,11 @@ internal static partial class PowerPointSlideImageRenderer {
     private static (double Width, double Height) GetSlideSizePoints(PowerPointSlide slide) {
         long widthEmus = 12192000L;
         long heightEmus = 6858000L;
-        if (slide.SlidePart.OpenXmlPackage is DocumentFormat.OpenXml.Packaging.PresentationDocument presentationDocument) {
-            DocumentFormat.OpenXml.Presentation.SlideSize? size = presentationDocument.PresentationPart?.Presentation?.SlideSize;
-            widthEmus = size?.Cx?.Value ?? widthEmus;
-            heightEmus = size?.Cy?.Value ?? heightEmus;
-        }
+        OfficeXmlNode size = slide.OwnerDocument is { } document
+            ? document.PresentationPartRef.Root.Child(Pml, "sldSz")
+            : default;
+        widthEmus = size.Int32Attribute("cx") ?? widthEmus;
+        heightEmus = size.Int32Attribute("cy") ?? heightEmus;
 
         return (PowerPointUnits.ToPoints(widthEmus), PowerPointUnits.ToPoints(heightEmus));
     }

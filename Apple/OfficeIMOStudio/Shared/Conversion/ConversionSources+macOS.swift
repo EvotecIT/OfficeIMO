@@ -96,7 +96,9 @@ private final class ExtensionFilter: NSObject, NSOpenSavePanelDelegate {
     }
 
     func panel(_ sender: Any, shouldEnable url: URL) -> Bool {
-        url.hasDirectoryPath || extensions.contains(url.pathExtension.lowercased())
+        if url.hasDirectoryPath { return true }
+        let name = url.lastPathComponent.lowercased()
+        return extensions.contains { name.hasSuffix("." + $0) }
     }
 }
 #endif

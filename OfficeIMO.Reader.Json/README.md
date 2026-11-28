@@ -101,4 +101,4 @@ Comments and trailing commas are accepted. Malformed JSON produces a single `jso
 - **External:** `System.Text.Json`.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` owns chunking, limits, locations, warnings, and result projection.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

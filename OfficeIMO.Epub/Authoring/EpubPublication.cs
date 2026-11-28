@@ -14,7 +14,7 @@ public sealed partial class EpubPublication {
     internal static readonly XNamespace Ops = "http://www.idpf.org/2007/ops";
     private readonly XDocument _package;
     private readonly Dictionary<string, EpubManifestItem> _originalManifest;
-    private readonly Dictionary<string, byte[]> _entries;
+    private readonly EntryTable _entries;
     private readonly Dictionary<string, byte[]> _originalEntries;
     private readonly byte[]? _originalBytes;
     private readonly bool _originalHasZipSignature;
@@ -40,7 +40,7 @@ public sealed partial class EpubPublication {
             .GroupBy(element => (string?)element.Attribute("id") ?? string.Empty, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => new EpubManifestItem(new XElement(group.First()), path), StringComparer.Ordinal)
             ?? new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
-        _entries = entries;
+        _entries = new EntryTable(entries, OnEntryChanged);
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
         _entryOrigins = entries.Keys.ToDictionary(path => path, path => path, StringComparer.Ordinal);
         _originalBytes = originalBytes;
@@ -64,7 +64,8 @@ public sealed partial class EpubPublication {
         _modifiedAt = DateTimeOffset.UtcNow;
         _changed = originalBytes == null;
         if (originalBytes == null) EnsurePackageBudget(_package);
-        _package.Changed += (_, _) => MarkChanged();
+        _package.Changing += OnPackageChanging;
+        _package.Changed += OnPackageChanged;
     }
 
     /// <summary>Creates a publication with stable identity; newly authored packages need at least one linear chapter.</summary>
@@ -74,6 +75,7 @@ public sealed partial class EpubPublication {
         RequireText(title, nameof(title)); RequireText(language, nameof(language));
         EpubLanguageTag.Require(language, nameof(language));
         if (version != EpubVersion.Epub2 && version != EpubVersion.Epub3) throw new ArgumentOutOfRangeException(nameof(version));
+        bool generatedIdentifier = identifier == null;
         identifier ??= "urn:uuid:" + Guid.NewGuid().ToString("D");
         RequireText(identifier, nameof(identifier));
         var package = new XDocument(new XElement(Opf + "package",
@@ -93,7 +95,7 @@ public sealed partial class EpubPublication {
                     new XElement(container + "rootfile", new XAttribute("full-path", path),
                         new XAttribute("media-type", "application/oebps-package+xml"))))))
         };
-        var publication = new EpubPublication(path, package, entries, limits: limits);
+        var publication = new EpubPublication(path, package, entries, limits: limits) { HasGeneratedIdentifier = generatedIdentifier };
         publication.InitializeNavigation();
         return publication;
     }
@@ -138,6 +140,8 @@ public sealed partial class EpubPublication {
 
     /// <summary>Selected package document path. Other rootfiles and their payloads are preserved.</summary>
     public string PackagePath { get; }
+
+    internal const int MaximumContentValidationNodes = 1_000_000;
     /// <summary>Declared package version, preserved when editing.</summary>
     public string PackageVersion => (string?)Root.Attribute("version") ?? string.Empty;
     /// <summary>Typed manifest declarations in package order.</summary>

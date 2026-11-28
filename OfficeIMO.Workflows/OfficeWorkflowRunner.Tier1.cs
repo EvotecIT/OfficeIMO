@@ -10,7 +10,9 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflow.RegisterConversions();
         OfficeConversionOptions options = request.UnifiedConversionOptions?.Clone() ?? new();
         options.RouteId = request.Route!.Id;
-        options.SourceName = Path.GetFileName(request.InputPath);
+        options.SourceName = request.InputStream is { } provider &&
+            (OfficeWorkflow.IsManuscriptEpubRoute(request.Route.Id) || OfficeWorkflow.IsImportedEbookRoute(request.Route.Id))
+            ? provider.Name : Path.GetFileName(request.InputPath);
         options.TargetName = "output" + request.Route.TargetExtension;
         options.MaximumInputBytes = request.Limits.MaximumInputBytes;
         options.MaximumOutputBytes = request.Limits.MaximumOutputBytes;

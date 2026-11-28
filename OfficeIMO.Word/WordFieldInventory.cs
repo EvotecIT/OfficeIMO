@@ -1,10 +1,12 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
-    internal static class WordFieldInventory {
+    internal static partial class WordFieldInventory {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
         private static readonly Regex FieldTypeTokenPattern = new Regex(
             @"^\s*(?<field>[A-Za-z]+)",
             RegexOptions.CultureInvariant);
@@ -13,174 +15,213 @@ namespace OfficeIMO.Word {
             @"^(?<instruction>.*?)\s+\\#\s*(?<format>""[^""]*""|[^\s\\]+)(?<suffix>.*)$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
-        internal static IReadOnlyList<WordFieldInfo> Inspect(WordDocument document) =>
-            InspectWithSource(document).Select(finding => finding.Info).ToArray();
-
-        internal static IReadOnlyList<FieldInfoCandidate> InspectWithSource(WordDocument document) {
-            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-
-            var findings = new List<FieldInfoCandidate>();
-            int sequence = 0;
-
-            foreach (FieldRoot root in EnumerateFieldRoots(mainPart)) {
-                InspectRoot(root, findings, ref sequence);
-            }
-
-            FieldInfoCandidate[] ordered = findings.OrderBy(finding => finding.Sequence).ToArray();
-            for (int index = 0; index < ordered.Length; index++) ordered[index].InfoWithIndex(index);
-
-            return ordered;
+        internal static IReadOnlyList<WordFieldInfo> Inspect(WordDocument document) {
+            var findings = InspectStories(EnumerateStories(document));
+            return findings.Select(finding => finding.Info).ToArray();
         }
 
-        private static void InspectRoot(FieldRoot root, List<FieldInfoCandidate> findings, ref int sequence) {
+        private static FieldInfoCandidate[] InspectStories(IEnumerable<NodeFieldRoot> stories) {
+            var findings = new List<FieldInfoCandidate>();
+            foreach (NodeFieldRoot story in stories) InspectStory(story, findings);
+            return findings.ToArray();
+        }
+
+        private static void InspectStory(NodeFieldRoot story, List<FieldInfoCandidate> findings) {
             var stack = new Stack<ComplexFieldBuilder>();
-
-            foreach (OpenXmlElement element in root.Root.Descendants()) {
-                if (element is SimpleField simpleField) {
-                    AddSimpleField(root, simpleField, stack.Count, findings, ref sequence);
-                    continue;
-                }
-
-                if (element is Run run) {
-                    ProcessRun(root, run, stack, findings, ref sequence);
+            foreach (OfficeXmlNode element in EnumerateFieldContent(story.Root)) {
+                if (element.Is(W, "fldSimple")) {
+                    findings.Add(ReadSimpleField(story, element, stack.Count, findings.Count));
+                } else if (element.Is(W, "r")) {
+                    ProcessRun(story, element, stack, findings);
                 }
             }
 
             while (stack.Count > 0) {
                 ComplexFieldBuilder builder = stack.Pop();
                 builder.Diagnostics.Add("Complex field does not have an end marker.");
-                findings.Add(builder.ToCandidate(root));
+                findings[builder.Index] = builder.ToCandidate(story);
             }
         }
 
-        private static void AddSimpleField(
-            FieldRoot root,
-            SimpleField simpleField,
-            int complexNestingLevel,
-            List<FieldInfoCandidate> findings,
-            ref int sequence) {
-            string instructionText = simpleField.Instruction?.Value ?? string.Empty;
+        private static FieldInfoCandidate ReadSimpleField(NodeFieldRoot story, OfficeXmlNode field, int complexNestingLevel, int index) {
+            string instructionText = field.Attribute(W, "instr") ?? string.Empty;
             ParsedFieldInstruction parsed = ParseInstruction(instructionText);
-            int nestingLevel = complexNestingLevel + simpleField.Ancestors<SimpleField>().Count();
-            bool isDirty = simpleField.Dirty?.Value ?? false;
-            bool isLocked = simpleField.FieldLock?.Value ?? false;
-            string resultText = string.Concat(simpleField.Descendants<Text>().Select(text => text.Text));
+            int nestingLevel = complexNestingLevel;
+            for (OfficeXmlNode ancestor = field.Parent; ancestor.Exists; ancestor = ancestor.Parent) {
+                if (ancestor.Is(W, "fldSimple")) nestingLevel++;
+            }
+
+            var result = new StringBuilder();
+            bool hasStoredResult = false;
+            foreach (OfficeXmlNode child in EnumerateFieldContent(field)) {
+                if (child.Is(W, "t")) result.Append(child.InnerText);
+                if (child.Is(W, "r") || child.Is(W, "contentPart") || child.Is(W, "subDoc") ||
+                    child.NamespaceId == OfficeXmlNamespaces.Math) hasStoredResult = true;
+            }
 
             var info = new WordFieldInfo(
-                index: 0,
+                index: index,
                 representation: WordFieldRepresentation.Simple,
-                locationKind: root.LocationKind,
-                partUri: root.PartUri,
+                locationKind: story.LocationKind,
+                partUri: story.PartUri,
                 instructionText: instructionText,
-                resultText: resultText,
+                resultText: result.ToString(),
                 fieldType: parsed.FieldType,
                 instructions: parsed.Instructions,
                 switches: parsed.Switches,
                 formatSwitches: parsed.FormatSwitches,
-                isDirty: isDirty,
-                isLocked: isLocked,
+                isDirty: ReadFlag(field, "dirty"),
+                isLocked: ReadFlag(field, "fldLock"),
                 nestingLevel: nestingLevel,
-                isInTable: IsInTable(simpleField),
-                isInContentControl: IsInContentControl(simpleField),
-                isInTextBox: IsInTextBox(simpleField),
+                isInTable: field.Parent.AncestorOrSelf(W, "tbl").Exists,
+                isInContentControl: field.Parent.AncestorOrSelf(W, "sdt").Exists,
+                isInTextBox: IsInTextBox(field),
                 unsupportedParseDetails: parsed.Diagnostics);
 
-            // Range markers, proofing metadata and field data can occur without a
-            // cached result. A run (even an empty one), equation or content
-            // reference supplies result content, including inside inline wrappers.
-            bool hasStoredResult = simpleField.Descendants().Any(element =>
-                element is Run or ContentPart or SubDocumentReference ||
-                string.Equals(element.NamespaceUri, WordMath.MathNamespace, StringComparison.Ordinal));
-            findings.Add(new FieldInfoCandidate(sequence++, info, simpleField, hasStoredResult));
+            return new FieldInfoCandidate(info, field, hasStoredResult);
         }
 
-        private static void ProcessRun(
-            FieldRoot root,
-            Run run,
-            Stack<ComplexFieldBuilder> stack,
-            List<FieldInfoCandidate> findings,
-            ref int sequence) {
-            foreach (OpenXmlElement child in run.ChildElements) {
-                if (child is FieldChar fieldChar) {
-                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                    if (fieldCharType == FieldCharValues.Begin) {
-                        var builder = new ComplexFieldBuilder(sequence++, stack.Count, fieldChar) {
-                            IsDirty = fieldChar.Dirty?.Value ?? false,
-                            IsLocked = fieldChar.FieldLock?.Value ?? false,
-                            IsInTable = IsInTable(run),
-                            IsInContentControl = IsInContentControl(run),
+        private static void ProcessRun(NodeFieldRoot story, OfficeXmlNode run, Stack<ComplexFieldBuilder> stack,
+            List<FieldInfoCandidate> findings) {
+            foreach (OfficeXmlNode child in run.Children()) {
+                if (child.Is(W, "fldChar")) {
+                    string? fieldCharType = child.Attribute(W, "fldCharType");
+                    if (fieldCharType == "begin") {
+                        // Reserve the position at the begin marker, before any nested fields.
+                        stack.Push(new ComplexFieldBuilder(findings.Count, stack.Count, child) {
+                            IsDirty = ReadFlag(child, "dirty"),
+                            IsLocked = ReadFlag(child, "fldLock"),
+                            IsInTable = run.Parent.AncestorOrSelf(W, "tbl").Exists,
+                            IsInContentControl = run.Parent.AncestorOrSelf(W, "sdt").Exists,
                             IsInTextBox = IsInTextBox(run)
-                        };
-
-                        stack.Push(builder);
+                        });
+                        findings.Add(null!);
                         continue;
                     }
 
-                    if (stack.Count == 0) {
-                        continue;
-                    }
+                    if (stack.Count == 0) continue;
 
-                    if (fieldCharType == FieldCharValues.Separate) {
+                    if (fieldCharType == "separate") {
                         stack.Peek().HasSeparator = true;
-                        continue;
-                    }
-
-                    if (fieldCharType == FieldCharValues.End) {
+                    } else if (fieldCharType == "end") {
                         ComplexFieldBuilder completed = stack.Pop();
                         if (stack.Count > 0 && !stack.Peek().HasSeparator) {
                             stack.Peek().InstructionParts.Add(completed.ResultText);
                         }
 
-                        findings.Add(completed.ToCandidate(root));
+                        findings[completed.Index] = completed.ToCandidate(story);
                     }
-
                     continue;
                 }
 
-                if (stack.Count == 0) {
-                    continue;
-                }
+                if (stack.Count == 0) continue;
 
-                if (child is FieldCode fieldCode) {
-                    stack.Peek().InstructionParts.Add(fieldCode.Text ?? string.Empty);
-                    continue;
-                }
-
-                if (child is Text runText) {
-                    foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
-                        builder.ResultParts.Add(runText.Text);
+                if (child.Is(W, "instrText")) {
+                    stack.Peek().InstructionParts.Add(child.InnerText);
+                } else if (child.Is(W, "t")) {
+                    string text = child.InnerText;
+                    foreach (ComplexFieldBuilder builder in stack) {
+                        if (builder.HasSeparator) builder.ResultParts.Add(text);
                     }
                 }
             }
         }
 
-        internal static IEnumerable<FieldRoot> EnumerateFieldRoots(MainDocumentPart mainPart) {
-            if (mainPart.Document?.Body != null) {
-                yield return new FieldRoot(mainPart.Document.Body, WordFieldLocationKind.Body, mainPart.Uri.ToString());
+        internal static bool ReadFlag(OfficeXmlNode field, string attribute) =>
+            field.Attribute(W, attribute) is "true" or "1" or "on";
+
+        private static bool IsInTextBox(OfficeXmlNode element) {
+            for (OfficeXmlNode ancestor = element.Parent; ancestor.Exists; ancestor = ancestor.Parent) {
+                if (ancestor.LocalName is "txbxContent" or "textbox") return true;
+            }
+            return false;
+        }
+
+        internal static IEnumerable<NodeFieldRoot> EnumerateStories(WordDocument document) =>
+            WordPackageView.For(document).Main is { } main ? EnumerateFieldRoots(main) : Enumerable.Empty<NodeFieldRoot>();
+
+        /// <summary>The body, headers, footers, footnotes and endnotes of a package, in the order fields are inspected.</summary>
+        internal static IEnumerable<NodeFieldRoot> EnumerateFieldRoots(WordPartView mainPart) {
+            const int W = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.WordprocessingML;
+            OfficeXmlNode body = mainPart.RootNamed(W, "document").Child(W, "body");
+            if (!body.IsNone) {
+                yield return new NodeFieldRoot(body, WordFieldLocationKind.Body, mainPart.PartName, mainPart);
             }
 
-            foreach (HeaderPart headerPart in mainPart.HeaderParts.OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal)) {
-                if (headerPart.Header != null) {
-                    yield return new FieldRoot(headerPart.Header, WordFieldLocationKind.Header, headerPart.Uri.ToString());
+            foreach (WordPartView headerPart in mainPart.Parts(WordPackageView.HeaderRelationshipType)
+                .OrderBy(part => part.PartName, StringComparer.Ordinal)) {
+                OfficeXmlNode header = headerPart.RootNamed(W, "hdr");
+                if (!header.IsNone) {
+                    yield return new NodeFieldRoot(header, WordFieldLocationKind.Header, headerPart.PartName, headerPart);
                 }
             }
 
-            foreach (FooterPart footerPart in mainPart.FooterParts.OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal)) {
-                if (footerPart.Footer != null) {
-                    yield return new FieldRoot(footerPart.Footer, WordFieldLocationKind.Footer, footerPart.Uri.ToString());
+            foreach (WordPartView footerPart in mainPart.Parts(WordPackageView.FooterRelationshipType)
+                .OrderBy(part => part.PartName, StringComparer.Ordinal)) {
+                OfficeXmlNode footer = footerPart.RootNamed(W, "ftr");
+                if (!footer.IsNone) {
+                    yield return new NodeFieldRoot(footer, WordFieldLocationKind.Footer, footerPart.PartName, footerPart);
                 }
             }
 
-            FootnotesPart? footnotesPart = mainPart.FootnotesPart;
-            if (footnotesPart?.Footnotes != null) {
-                yield return new FieldRoot(footnotesPart.Footnotes, WordFieldLocationKind.Footnote, footnotesPart.Uri.ToString());
+            WordPartView? footnotesPart = mainPart.FirstPart(WordPackageView.FootnotesRelationshipType);
+            OfficeXmlNode footnotes = footnotesPart?.RootNamed(W, "footnotes") ?? default;
+            if (!footnotes.IsNone) {
+                yield return new NodeFieldRoot(footnotes, WordFieldLocationKind.Footnote, footnotesPart!.PartName, footnotesPart);
             }
 
-            EndnotesPart? endnotesPart = mainPart.EndnotesPart;
-            if (endnotesPart?.Endnotes != null) {
-                yield return new FieldRoot(endnotesPart.Endnotes, WordFieldLocationKind.Endnote, endnotesPart.Uri.ToString());
+            WordPartView? endnotesPart = mainPart.FirstPart(WordPackageView.EndnotesRelationshipType);
+            OfficeXmlNode endnotes = endnotesPart?.RootNamed(W, "endnotes") ?? default;
+            if (!endnotes.IsNone) {
+                yield return new NodeFieldRoot(endnotes, WordFieldLocationKind.Endnote, endnotesPart!.PartName, endnotesPart);
             }
+        }
+
+        // Walk the story in document order. Compatibility wrappers expose only their selected
+        // branch, and extension lists are opaque even when they contain WordprocessingML.
+        internal static IEnumerable<OfficeXmlNode> EnumerateFieldContent(OfficeXmlNode root, bool reserveInactiveCompatibilityIds = false) {
+            const int Mc = OfficeXmlNamespaces.MarkupCompatibility;
+            if (root.LocalName == "extLst") yield break;
+            if (!reserveInactiveCompatibilityIds && root.Is(Mc, "AlternateContent"))
+                root = WordAlternateContentResolver.SelectBranch(root);
+            OfficeXmlNode node = root.FirstChild;
+            while (node.Exists) {
+                OfficeXmlNode next = default;
+                if (!reserveInactiveCompatibilityIds && node.Is(Mc, "AlternateContent")) {
+                    next = WordAlternateContentResolver.SelectBranch(node).FirstChild;
+                } else if (node.LocalName != "extLst") {
+                    yield return node;
+                    next = node.FirstChild;
+                }
+
+                if (next.IsNone) {
+                    for (OfficeXmlNode up = node; up.Exists && up != root; up = up.Parent) {
+                        // Returning from a selected branch resumes after AlternateContent.
+                        if (!reserveInactiveCompatibilityIds && (up.Is(Mc, "Choice") || up.Is(Mc, "Fallback"))) continue;
+                        next = up.NextSibling;
+                        if (next.Exists) break;
+                    }
+                }
+                node = next;
+            }
+        }
+
+        /// <summary>A field root read through <see cref="WordPartView"/>, with the part that holds it.</summary>
+        internal sealed class NodeFieldRoot {
+            internal NodeFieldRoot(OfficeXmlNode root, WordFieldLocationKind locationKind, string partUri, WordPartView part) {
+                Root = root;
+                LocationKind = locationKind;
+                PartUri = partUri;
+                Part = part;
+            }
+
+            internal OfficeXmlNode Root { get; }
+
+            internal WordFieldLocationKind LocationKind { get; }
+
+            internal string PartUri { get; }
+
+            internal WordPartView Part { get; }
         }
 
         internal static ParsedFieldInstruction ParseInstruction(string instructionText) {
@@ -286,63 +327,31 @@ namespace OfficeIMO.Word {
                 Enum.TryParse(match.Groups["field"].Value, ignoreCase: true, out fieldType);
         }
 
-        private static bool IsInTable(OpenXmlElement element) => element.Ancestors<Table>().Any();
+        internal sealed partial class FieldInfoCandidate {
+            private readonly OfficeXmlNode _source;
 
-        private static bool IsInContentControl(OpenXmlElement element) => element.Ancestors<SdtElement>().Any();
-
-        private static bool IsInTextBox(OpenXmlElement element) =>
-            element.Ancestors().Any(ancestor =>
-                string.Equals(ancestor.LocalName, "txbxContent", StringComparison.Ordinal) ||
-                string.Equals(ancestor.LocalName, "textbox", StringComparison.Ordinal));
-
-        internal sealed class FieldRoot {
-            internal FieldRoot(OpenXmlCompositeElement root, WordFieldLocationKind locationKind, string partUri) {
-                Root = root;
-                LocationKind = locationKind;
-                PartUri = partUri;
-            }
-
-            internal OpenXmlCompositeElement Root { get; }
-
-            internal WordFieldLocationKind LocationKind { get; }
-
-            internal string PartUri { get; }
-        }
-
-        internal sealed class FieldInfoCandidate {
-            internal FieldInfoCandidate(int sequence, WordFieldInfo info, OpenXmlElement sourceElement, bool hasStoredResult) {
-                Sequence = sequence;
+            internal FieldInfoCandidate(WordFieldInfo info, OfficeXmlNode source, bool hasStoredResult) {
                 Info = info;
-                SourceElement = sourceElement;
+                _source = source;
                 HasStoredResult = hasStoredResult;
             }
 
-            internal int Sequence { get; }
-
             internal WordFieldInfo Info { get; }
-
-            internal OpenXmlElement SourceElement { get; }
-
             internal bool HasStoredResult { get; }
-
-            internal WordFieldInfo InfoWithIndex(int index) {
-                Info.Index = index;
-                return Info;
-            }
         }
 
         private sealed class ComplexFieldBuilder {
-            internal ComplexFieldBuilder(int sequence, int nestingLevel, OpenXmlElement startElement) {
-                Sequence = sequence;
+            internal ComplexFieldBuilder(int index, int nestingLevel, OfficeXmlNode startElement) {
+                Index = index;
                 NestingLevel = nestingLevel;
                 StartElement = startElement;
             }
 
-            internal int Sequence { get; }
+            internal int Index { get; }
 
             internal int NestingLevel { get; }
 
-            internal OpenXmlElement StartElement { get; }
+            internal OfficeXmlNode StartElement { get; }
 
             internal List<string> InstructionParts { get; } = new();
 
@@ -364,16 +373,16 @@ namespace OfficeIMO.Word {
 
             internal string ResultText => string.Concat(ResultParts);
 
-            internal FieldInfoCandidate ToCandidate(FieldRoot root) {
+            internal FieldInfoCandidate ToCandidate(NodeFieldRoot story) {
                 string instructionText = string.Concat(InstructionParts);
                 ParsedFieldInstruction parsed = ParseInstruction(instructionText);
                 var diagnostics = Diagnostics.Concat(parsed.Diagnostics).ToArray();
 
                 var info = new WordFieldInfo(
-                    index: 0,
+                    index: Index,
                     representation: WordFieldRepresentation.Complex,
-                    locationKind: root.LocationKind,
-                    partUri: root.PartUri,
+                    locationKind: story.LocationKind,
+                    partUri: story.PartUri,
                     instructionText: instructionText,
                     resultText: ResultText,
                     fieldType: parsed.FieldType,
@@ -388,7 +397,7 @@ namespace OfficeIMO.Word {
                     isInTextBox: IsInTextBox,
                     unsupportedParseDetails: diagnostics);
 
-                return new FieldInfoCandidate(Sequence, info, StartElement, HasSeparator);
+                return new FieldInfoCandidate(info, StartElement, HasSeparator);
             }
         }
 

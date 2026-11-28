@@ -50,4 +50,5 @@ $sharedTypeNames = [ordered]@{
     -ExtensionClassName 'WordOpenXmlValueTypeExtensions' `
     -AssemblyDirectory $AssemblyDirectory `
     -OutputPath $OutputPath `
-    -GeneratorName 'Build/Generate-WordOpenXmlValueTypes.ps1'
+    -GeneratorName 'Build/Generate-WordOpenXmlValueTypes.ps1' `
+    -EmitTokenParsers

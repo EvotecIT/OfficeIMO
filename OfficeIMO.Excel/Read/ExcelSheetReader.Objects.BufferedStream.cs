@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 
@@ -51,7 +50,7 @@ namespace OfficeIMO.Excel {
             Dictionary<int, CellRaw?[]> pendingRows, int r1, int c1, int r2, int c2, int cols,
             CancellationToken ct, bool enforcePendingLimit) {
             CellRaw?[]? headerCells = null;
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
@@ -94,17 +93,17 @@ namespace OfficeIMO.Excel {
             CancellationToken ct, bool enforcePendingLimit) {
             CellRaw?[]? headerCells = null;
             int visitedCells = 0;
-            foreach (Row row in EnumerateWorksheetRows(ct)) {
+            foreach (ReaderRow row in EnumerateWorksheetRows(ct)) {
                 ct.ThrowIfCancellationRequested();
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1 || rowIndex > r2) continue;
                 CellRaw?[] cells = rowIndex == r1
                     ? headerCells = new CellRaw?[cols]
                     : GetPendingTypedCells(pendingRows, rowIndex, cols, enforcePendingLimit);
                 int nextColumnIndex = 1;
-                foreach (Cell cell in row.Elements<Cell>()) {
+                foreach (ReaderCell cell in row.Cells()) {
                     if ((++visitedCells & 1023) == 0) ct.ThrowIfCancellationRequested();
-                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextColumnIndex);
+                    int columnIndex = cell.GetColumnIndex(ref nextColumnIndex);
                     if (columnIndex >= c1 && columnIndex <= c2)
                         cells[columnIndex - c1] = SnapshotCell(cell, rowIndex, columnIndex);
                 }

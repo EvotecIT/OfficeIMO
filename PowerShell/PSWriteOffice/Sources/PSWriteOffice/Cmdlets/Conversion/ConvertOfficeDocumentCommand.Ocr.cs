@@ -104,7 +104,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         if (Page != null || Dpi.HasValue || OcrOptions != null || Password != null || From != null)
             throw new PSArgumentException("An OCR review already captures its source and recognition settings. Convert it directly without Page, Dpi, OcrOptions, Password or From.");
         var target = OfficeFormatSelection.Parse(To ?? System.IO.Path.GetExtension(OutputPath))!;
-        var options = CaptureOptions(new[] { "review.pdf" }, target.Extension);
+        var options = CaptureOptions(new[] { "review.pdf" }, target.Extension, sourceNamesOnly: true);
         if (AsString && OutputPath != null) throw new PSArgumentException("AsString and OutputPath cannot be combined.");
         if (OutputPath == null) {
             OfficeImageExporter.ValidateTextExtension(target.Extension);

@@ -229,7 +229,7 @@ internal static partial class MarkdownReader {
     }
 
     internal static IReadOnlyList<IMarkdownBlock> ParseNestedBlocksFromLineRange(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         int lineCount,
         MarkdownLoadOptions options,
@@ -283,7 +283,7 @@ internal static partial class MarkdownReader {
 
         try {
             bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
-            string[] lines;
+            MarkdownSourceLines lines;
             if (preparedLines != null) {
                 // TryGetPreparedNestedLines checked that preparing and splitting the joined lines
                 // would return them unchanged, and that the last line is content.
@@ -297,9 +297,7 @@ internal static partial class MarkdownReader {
                 if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
                     state.SourceTextMap = new MarkdownSourceTextMap(text);
                 }
-                lines = captureSourceSpans
-                    ? text.Split('\n')
-                    : SplitMarkdownLines(text);
+                lines = MarkdownSourceLines.FromText(text);
             }
             int i = 0;
 
@@ -316,7 +314,7 @@ internal static partial class MarkdownReader {
                     }
                     i = closingIndex + 1;
                     // optional blank line after front matter
-                    if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
+                    if (i < lines.Length && lines.IsBlank(i)) i++;
                 }
 
                 var pipeline = GetPipeline(options, state);
@@ -324,12 +322,13 @@ internal static partial class MarkdownReader {
                 PreScanReferenceLinkDefinitions(lines, state, options);
                 PreScanAbbreviationDefinitions(lines, state, options);
                 while (i < lines.Length) {
-                    if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
+                    if (lines.IsBlank(i)) { i++; continue; }
                     if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
                     bool matched = false;
                     var parsers = pipeline.Parsers;
                     var blockStarts = pipeline.BlockStarts;
-                    char first = GetFirstNonWhiteSpaceCharacter(lines[i]);
+                    var sourceLinesParsers = pipeline.SourceLinesParsers;
+                    char first = lines.GetFirstNonWhiteSpaceCharacter(i);
                     int previousBlockCount = doc.Blocks.Count;
                     int startIndex = i;
                     int startLine = lineOffset + i;
@@ -338,7 +337,7 @@ internal static partial class MarkdownReader {
                             continue;
                         }
 
-                        if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
+                        if (sourceLinesParsers[p] is { } builtInParser ? builtInParser.TryParse(lines, ref i, options, doc, state) : parsers[p].TryParse(lines.ToArray(), ref i, options, doc, state)) {
                             matched = true;
                             if (doc.Blocks.Count > previousBlockCount
                                 && TryApplyPendingGenericAttributeBlock(doc, previousBlockCount, startLine, state, out var pendingAttributeStartLine)) {
@@ -357,7 +356,7 @@ internal static partial class MarkdownReader {
 
                         // A parser that declines may still have rewritten the line, as an
                         // extension can, so the next gates read it again.
-                        first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
+                        first = i < lines.Length ? lines.GetFirstNonWhiteSpaceCharacter(i) : '\0';
                     }
                     if (!matched) i++; // defensive: avoid infinite loop
                 }
@@ -588,37 +587,6 @@ internal static partial class MarkdownReader {
             current++;
         }
         return current == lineEnd;
-    }
-
-    private static readonly char[] LineEndingCharacters = { '\r', '\n' };
-
-    private static string[] SplitMarkdownLines(string markdown) {
-        if (markdown.IndexOf('\r') < 0) {
-            return markdown.Split('\n');
-        }
-
-        int lineCount = 1;
-        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
-            lineCount++;
-            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
-                i++;
-            }
-        }
-
-        var lines = new string[lineCount];
-        int lineIndex = 0;
-        int lineStart = 0;
-        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
-            lines[lineIndex++] = markdown.Substring(lineStart, i - lineStart);
-            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
-                i++;
-            }
-
-            lineStart = i + 1;
-        }
-
-        lines[lineIndex] = markdown.Substring(lineStart, markdown.Length - lineStart);
-        return lines;
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {

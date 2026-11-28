@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state) {
+    private static void PreScanReferenceLinkDefinitions(MarkdownSourceLines lines, MarkdownReaderState state) {
         PreScanReferenceLinkDefinitions(lines, state, new MarkdownLoadOptions());
     }
 
@@ -20,7 +20,7 @@ internal static partial class MarkdownReader {
             .ToArray();
     }
 
-    private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownLoadOptions options) {
+    private static void PreScanReferenceLinkDefinitions(MarkdownSourceLines lines, MarkdownReaderState state, MarkdownLoadOptions options) {
         if (!ContainsPotentialReferenceLinkDefinition(lines)) {
             return;
         }
@@ -36,26 +36,30 @@ internal static partial class MarkdownReader {
         int quotedFenceLen = 0;
 
         for (int idx = 0; idx < lines.Length; idx++) {
-            var line = lines[idx];
-            if (string.IsNullOrWhiteSpace(line)) {
+            // Lines are checked in place; only quote, fence and definition candidates become strings.
+            if (lines.IsBlank(idx)) {
                 openParagraph.Clear();
                 continue;
             }
 
-            if (TryUpdateQuotedFencePreScanState(line, ref inQuotedFence, ref quotedFenceChar, ref quotedFenceLen)) {
+            char first = lines.GetFirstNonWhiteSpaceCharacter(idx);
+            if (first != '>') {
+                // Not a quoted line, so it ends any quoted fence.
+                inQuotedFence = false;
+            } else if (TryUpdateQuotedFencePreScanState(lines[idx], ref inQuotedFence, ref quotedFenceChar, ref quotedFenceLen)) {
                 openParagraph.Clear();
                 continue;
             }
 
             // Ignore anything inside fenced code blocks.
             if (!inFence) {
-                if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
+                if (first is '`' or '~' && IsCodeFenceOpen(lines[idx], out _, out fenceChar, out fenceLen)) {
                     inFence = true;
                     openParagraph.Clear();
                     continue;
                 }
             } else {
-                if (IsCodeFenceClose(line, fenceChar, fenceLen)) {
+                if (IsCodeFenceClose(lines, idx, fenceChar, fenceLen)) {
                     inFence = false;
                 }
                 continue;
@@ -63,12 +67,13 @@ internal static partial class MarkdownReader {
 
             // Ignore indented code blocks (4+ leading spaces or a tab). Reference definitions are only valid
             // up to 3 leading spaces in typical Markdown implementations.
-            int leading = 0;
-            while (leading < line.Length && line[leading] == ' ') leading++;
-            if (leading >= 4) continue;
-            if (leading < line.Length && line[leading] == '\t') continue;
+            lines.GetSlice(idx, out var lineText, out int lineStart, out int lineEnd);
+            int leading = lineStart;
+            while (leading < lineEnd && lineText[leading] == ' ') leading++;
+            if (leading - lineStart >= 4) continue;
+            if (leading < lineEnd && lineText[leading] == '\t') continue;
 
-            bool containsPotentialDefinition = ContainsPotentialReferenceLinkDefinition(line);
+            bool containsPotentialDefinition = ContainsPotentialReferenceLinkDefinition(lineText, lineStart, lineEnd);
             if (containsPotentialDefinition && TryParseReferenceLinkDefinition(
                 lines,
                 idx,
@@ -134,13 +139,14 @@ internal static partial class MarkdownReader {
         }
     }
 
-    private static bool ContainsPotentialReferenceLinkDefinition(string[]? lines) {
-        if (lines == null || lines.Length == 0) {
+    private static bool ContainsPotentialReferenceLinkDefinition(MarkdownSourceLines? lines) {
+        if (lines == null || lines.Length == 0 || !lines.MayContain("]:")) {
             return false;
         }
 
         for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
-            if (ContainsPotentialReferenceLinkDefinition(lines[lineIndex] ?? string.Empty)) {
+            lines.GetSlice(lineIndex, out var text, out int start, out int end);
+            if (ContainsPotentialReferenceLinkDefinition(text, start, end)) {
                 return true;
             }
         }
@@ -148,16 +154,16 @@ internal static partial class MarkdownReader {
         return false;
     }
 
-    private static bool ContainsPotentialReferenceLinkDefinition(string line) {
-        if (string.IsNullOrEmpty(line)) {
+    private static bool ContainsPotentialReferenceLinkDefinition(string text, int start, int end) {
+        if (end - start < 2) {
             return false;
         }
 
-        int separator = line.IndexOf("]:", StringComparison.Ordinal);
-        return separator > 0 && line.LastIndexOf('[', separator) >= 0;
+        int separator = text.IndexOf("]:", start, end - start, StringComparison.Ordinal);
+        return separator > start && text.LastIndexOf('[', separator, separator - start + 1) >= 0;
     }
 
-    private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(string[] lines, int definitionIndex) {
+    private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(MarkdownSourceLines lines, int definitionIndex) {
         if (lines == null || definitionIndex <= 0 || definitionIndex > lines.Length) {
             return false;
         }
@@ -177,7 +183,7 @@ internal static partial class MarkdownReader {
 
     private static void CaptureConsumedSyntaxNodes(
         IMarkdownBlockParser parser,
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         MarkdownLoadOptions options,
         List<MarkdownSyntaxNode> syntaxNodes,
@@ -195,7 +201,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryBuildAbbreviationDefinitionSyntaxNode(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownReaderState state,
         out MarkdownSyntaxNode node) {
@@ -253,7 +259,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryBuildReferenceDefinitionSyntaxNode(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownLoadOptions options,
         MarkdownReaderState state,
@@ -295,7 +301,7 @@ internal static partial class MarkdownReader {
             state.SourceLineOffset + index + 1,
             state.SourceLineOffset + index + consumedLines);
         var literal = consumedLines > 1
-            ? string.Join("\n", lines.Skip(index).Take(consumedLines))
+            ? lines.Join("\n", index, Math.Min(consumedLines, Math.Max(0, lines.Length - index)))
             : lines[index];
 
         node = new MarkdownSyntaxNode(
@@ -323,7 +329,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseReferenceLinkDefinition(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownLoadOptions options,
         MarkdownReaderState? state,
@@ -447,14 +453,14 @@ internal static partial class MarkdownReader {
         return !string.IsNullOrEmpty(label);
     }
 
-    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownLoadOptions options, out string label, out string url, out string? title, out int consumedLines) =>
+    private static bool TryParseReferenceLinkDefinition(MarkdownSourceLines lines, int index, MarkdownLoadOptions options, out string label, out string url, out string? title, out int consumedLines) =>
         TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _, out _, out _);
 
-    private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) =>
+    private static bool TryParseReferenceTitleContinuation(MarkdownSourceLines lines, int index, out string? title) =>
         TryParseReferenceTitleContinuation(lines, index, state: null, out title, out _);
 
     private static bool TryParseReferenceTitleContinuation(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownReaderState? state,
         out string? title,
@@ -563,7 +569,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseReferenceDefinitionLabel(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownReaderState? state,
         out string label,
@@ -714,7 +720,7 @@ internal static partial class MarkdownReader {
     }
 
     private static void FindMultilineReferenceLabelContentStart(
-        string[] lines,
+        MarkdownSourceLines lines,
         int definitionStartIndex,
         int closingLineOffset,
         int closingBracket,
@@ -783,7 +789,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseReferenceDestinationContinuation(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         out string destinationLine,
         out int lineOffset,

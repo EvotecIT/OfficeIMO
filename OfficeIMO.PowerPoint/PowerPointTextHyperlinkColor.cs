@@ -1,40 +1,52 @@
-using A = DocumentFormat.OpenXml.Drawing;
-using H = DocumentFormat.OpenXml.Office2019.Drawing.HyperLinkColor;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Writes the native hyperlink color choice without changing targets, sounds or unrelated extensions.</summary>
-internal static class PowerPointTextHyperlinkColor {
+internal static partial class PowerPointTextHyperlinkColor {
     private const string ExtensionUri = "{A12FA001-AC4F-418D-AE19-62706E023703}";
+    private const string ColorNamespace = "http://schemas.microsoft.com/office/drawing/2018/hyperlinkcolor";
 
-    internal static bool? ReadChoice(A.HyperlinkType hyperlink) {
-        H.HyperlinkColor? color = hyperlink.HyperlinkExtensionList?
-            .Elements<A.HyperlinkExtension>().FirstOrDefault(extension =>
-                string.Equals(extension.Uri?.Value, ExtensionUri, StringComparison.OrdinalIgnoreCase))?
-            .GetFirstChild<H.HyperlinkColor>();
-        if (color?.Val?.Value == H.HyperlinkColorEnum.Tx) return true;
-        if (color?.Val?.Value == H.HyperlinkColorEnum.HLink) return false;
-        return null;
+    // The a:hlinkClick and a:hlinkHover children, in sequence order.
+    private static readonly OfficeXmlChildOrder HyperlinkOrder = new(
+        new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "snd", "extLst" });
+
+    internal static bool? ReadChoice(OfficeXmlNode hyperlink) {
+        OfficeXmlNode color = FindExtension(hyperlink).Child(ColorNamespace, "hlinkClr");
+        return color.Attribute("val") switch {
+            "tx" => true,
+            "hlink" => false,
+            _ => null
+        };
     }
 
-    internal static void SetChoice(A.HyperlinkType hyperlink, bool useTextColor) {
-        A.HyperlinkExtensionList list = hyperlink.HyperlinkExtensionList ?? new A.HyperlinkExtensionList();
-        if (list.Parent == null) hyperlink.AddChild(list, true);
-        A.HyperlinkExtension? extension = list.Elements<A.HyperlinkExtension>().FirstOrDefault(candidate =>
-            string.Equals(candidate.Uri?.Value, ExtensionUri, StringComparison.OrdinalIgnoreCase));
-        if (extension == null) {
-            extension = new A.HyperlinkExtension { Uri = ExtensionUri };
-            list.Append(extension);
+    internal static void SetChoice(OfficeXmlNode hyperlink, bool useTextColor) {
+        OfficeXmlNode list = hyperlink.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "extLst", HyperlinkOrder);
+        OfficeXmlNode extension = FindExtension(hyperlink);
+        if (extension.IsNone) {
+            extension = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "ext"));
+            extension.SetAttribute("uri", ExtensionUri);
         }
-        extension.RemoveAllChildren<H.HyperlinkColor>();
-        extension.Append(new H.HyperlinkColor {
-            Val = useTextColor ? H.HyperlinkColorEnum.Tx : H.HyperlinkColorEnum.HLink
-        });
+        foreach (OfficeXmlNode existing in extension.Children().ToList()) {
+            if (existing.Is(ColorNamespace, "hlinkClr")) existing.Remove();
+        }
+        OfficeXmlNode color = extension.CreateElement(ColorNamespace, "hlinkClr", "ahyp");
+        color.SetAttribute("val", useTextColor ? "tx" : "hlink");
+        extension.Append(color);
     }
 
-    internal static void UseExplicitTextColor(A.TextCharacterPropertiesType properties) {
-        foreach (A.HyperlinkType hyperlink in properties.Elements<A.HyperlinkType>()) {
-            SetChoice(hyperlink, true);
+    internal static void UseExplicitTextColor(OfficeXmlNode properties) {
+        foreach (OfficeXmlNode child in properties.Children().ToList()) {
+            if (child.Is(OfficeXmlNamespaces.DrawingML, "hlinkClick") || child.Is(OfficeXmlNamespaces.DrawingML, "hlinkMouseOver")) SetChoice(child, true);
         }
+    }
+
+    private static OfficeXmlNode FindExtension(OfficeXmlNode hyperlink) {
+        foreach (OfficeXmlNode extension in hyperlink.Child(OfficeXmlNamespaces.DrawingML, "extLst").Children(OfficeXmlNamespaces.DrawingML, "ext")) {
+            if (string.Equals(extension.Attribute("uri"), ExtensionUri, StringComparison.OrdinalIgnoreCase)) return extension;
+        }
+        return default;
     }
 }

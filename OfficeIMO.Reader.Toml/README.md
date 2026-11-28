@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.Toml - TOML reader adapter
 
-`OfficeIMO.Reader.Toml` adds TOML ingestion to `OfficeIMO.Reader.Core` through the [OfficeIMO.Toml](../OfficeIMO.Toml/README.md) engine. It reads `pyproject.toml`, `Cargo.toml`, `uv.lock`, Hugo and other TOML 1.1 files into path, type and value rows.
+`OfficeIMO.Reader.Toml` adds TOML ingestion to `OfficeIMO.Reader.Core` through the [OfficeIMO.Toml](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml/README.md) engine. It reads `pyproject.toml`, `Cargo.toml`, `uv.lock`, Hugo and other TOML 1.1 files into path, type and value rows.
 
 ## Install
 

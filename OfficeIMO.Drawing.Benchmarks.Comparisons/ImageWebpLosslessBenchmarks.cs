@@ -4,7 +4,7 @@ using ImageMagick;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 /// <summary>Equivalent static lossless WebP encode comparisons.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: SkiaSharp and Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageWebpLosslessEncodeBenchmarks {
     private OfficeRasterImage _image = null!;
     private MagickImage _magick = null!;
@@ -52,7 +52,7 @@ public class ImageWebpLosslessEncodeBenchmarks {
 }
 
 /// <summary>Equivalent static lossless WebP decode comparisons over synthetic, photographic, screenshot and transparent inputs.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: SkiaSharp and Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageWebpLosslessDecodeBenchmarks {
     private byte[] _magickEncoded = null!;
 

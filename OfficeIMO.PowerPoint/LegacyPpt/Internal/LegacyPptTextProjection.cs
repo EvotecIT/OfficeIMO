@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Security.Cryptography;
 using DocumentFormat.OpenXml.Packaging;

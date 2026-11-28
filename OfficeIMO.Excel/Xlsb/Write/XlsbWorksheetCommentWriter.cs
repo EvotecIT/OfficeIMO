@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         /// <summary>Reads and validates the worksheet's comments; null when the worksheet has none.</summary>
         internal static XlsbWorksheetCommentModel? Read(ExcelSheet sheet, string operation) {
+            sheet.CommitCommentVmlChanges();
             WorksheetPart worksheetPart = sheet.WorksheetPart;
             Worksheet worksheet = worksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");

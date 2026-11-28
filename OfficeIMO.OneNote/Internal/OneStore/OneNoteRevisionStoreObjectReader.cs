@@ -4,6 +4,7 @@ internal sealed class OneNoteRevisionStoreObjectReadResult {
     public List<OneNoteRevisionManifest> Revisions { get; } = new List<OneNoteRevisionManifest>();
     public List<OneNoteRevisionStoreObject> Objects { get; } = new List<OneNoteRevisionStoreObject>();
     public List<OneNoteFileDataStoreObject> FileDataObjects { get; } = new List<OneNoteFileDataStoreObject>();
+    public OneNotePropertySetDecodeScope? PropertySetScope { get; set; }
 }
 
 internal static class OneNoteRevisionStoreObjectReader {
@@ -34,6 +35,20 @@ internal static class OneNoteRevisionStoreObjectReader {
             _stream = stream;
             _declaredFileLength = declaredFileLength;
             _options = options;
+            _propertySetScope = new OneNotePropertySetDecodeScope(options);
+            Result.PropertySetScope = _propertySetScope;
+        }
+
+        private readonly OneNotePropertySetDecodeScope _propertySetScope;
+        private readonly Dictionary<uint, OneNoteJcid> _jcids = new Dictionary<uint, OneNoteJcid>();
+
+        // JCIDs are immutable and repeat for every object of a class, so one instance per value is shared.
+        private OneNoteJcid GetJcid(uint value) {
+            if (!_jcids.TryGetValue(value, out OneNoteJcid? jcid)) {
+                jcid = new OneNoteJcid(value);
+                _jcids.Add(value, jcid);
+            }
+            return jcid;
         }
 
         public OneNoteRevisionStoreObjectReadResult Result { get; } = new OneNoteRevisionStoreObjectReadResult();
@@ -52,7 +67,7 @@ internal static class OneNoteRevisionStoreObjectReader {
                 OneNoteFileNode node = frame.List.Nodes[frame.NextNodeIndex++];
                 switch (node.RawId) {
                     case (ushort)OneNoteFileNodeId.RevisionManifestListStart:
-                        frame.CurrentObjectSpace = ReadExtendedGuid(node.EncodedData.ToArray(24), 0);
+                        frame.CurrentObjectSpace = ReadExtendedGuid(node.GetEncodedBytes(24), 0);
                         break;
                     case (ushort)OneNoteFileNodeId.RevisionManifestStart4:
                     case (ushort)OneNoteFileNodeId.RevisionManifestStart6:
@@ -74,7 +89,7 @@ internal static class OneNoteRevisionStoreObjectReader {
                         break;
                     case (ushort)OneNoteFileNodeId.GlobalIdTableStart:
                     case (ushort)OneNoteFileNodeId.GlobalIdTableStart2:
-                        frame.GlobalIds.Clear();
+                        frame.StartGlobalIdTable();
                         break;
                     case (ushort)OneNoteFileNodeId.GlobalIdTableEntry:
                         ReadGlobalIdEntry(node, frame.GlobalIds);
@@ -91,7 +106,7 @@ internal static class OneNoteRevisionStoreObjectReader {
                     case (ushort)OneNoteFileNodeId.ReadOnlyObjectDeclaration2LargeRefCount:
                     case (ushort)OneNoteFileNodeId.ObjectRevisionWithRefCount:
                     case (ushort)OneNoteFileNodeId.ObjectRevisionWithRefCount2:
-                        ReadObject(node, frame.GlobalIds, frame.CurrentRevision);
+                        ReadObject(node, frame, frame.CurrentRevision);
                         break;
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationFileData3RefCount:
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationFileData3LargeRefCount:
@@ -119,14 +134,21 @@ internal static class OneNoteRevisionStoreObjectReader {
             }
 
             internal OneNoteFileNodeList List { get; }
-            internal Dictionary<uint, Guid> GlobalIds { get; } = new Dictionary<uint, Guid>();
+            // Each table gets its own dictionary so property sets decoded later still see the table they were declared under.
+            internal Dictionary<uint, Guid> GlobalIds { get; private set; } = new Dictionary<uint, Guid>();
+            internal OneNotePropertySetDecoder? PropertySetDecoder { get; set; }
+
+            internal void StartGlobalIdTable() {
+                GlobalIds = new Dictionary<uint, Guid>();
+                PropertySetDecoder = null;
+            }
             internal OneNoteRevisionManifest? CurrentRevision { get; set; }
             internal OneNoteExtendedGuid? CurrentObjectSpace { get; set; }
             internal int NextNodeIndex { get; set; }
         }
 
         private OneNoteRevisionManifest ReadRevisionManifest(OneNoteFileNode node) {
-            byte[] data = node.EncodedData.ToArray(128);
+            byte[] data = node.GetEncodedBytes(128);
             OneNoteExtendedGuid id = ReadExtendedGuid(data, 0);
             OneNoteExtendedGuid dependency = ReadExtendedGuid(data, 20);
             int roleOffset = node.RawId == (ushort)OneNoteFileNodeId.RevisionManifestStart4 ? 48 : 40;
@@ -147,7 +169,7 @@ internal static class OneNoteRevisionStoreObjectReader {
             OneNoteFileNode node,
             OneNoteExtendedGuid? currentObjectSpace,
             bool includesContext) {
-            byte[] data = node.EncodedData.ToArray(includesContext ? 44 : 24);
+            byte[] data = node.GetEncodedBytes(includesContext ? 44 : 24);
             OneNoteExtendedGuid revisionId = ReadExtendedGuid(data, 0);
             uint role = OneNoteBinary.ReadUInt32(data, 20);
             if (role > ushort.MaxValue) {
@@ -167,7 +189,7 @@ internal static class OneNoteRevisionStoreObjectReader {
         }
 
         private static void ReadGlobalIdEntry(OneNoteFileNode node, Dictionary<uint, Guid> globalIds) {
-            byte[] data = node.EncodedData.ToArray(20);
+            byte[] data = node.GetEncodedBytes(20);
             OneNoteBinary.EnsureRange(data, 0, 20);
             uint index = OneNoteBinary.ReadUInt32(data, 0);
             if (index >= 0xFFFFFFU || globalIds.ContainsKey(index)) {
@@ -184,7 +206,7 @@ internal static class OneNoteRevisionStoreObjectReader {
             OneNoteFileNode node,
             Dictionary<uint, Guid> globalIds,
             OneNoteRevisionManifest revision) {
-            byte[] data = node.EncodedData.ToArray(24);
+            byte[] data = node.GetEncodedBytes(24);
             OneNoteExtendedGuid objectId;
             int roleOffset;
             if (node.RawId == (ushort)OneNoteFileNodeId.RootObjectReference3) {
@@ -200,17 +222,18 @@ internal static class OneNoteRevisionStoreObjectReader {
 
         private void ReadObject(
             OneNoteFileNode node,
-            Dictionary<uint, Guid> globalIds,
+            ListFrame frame,
             OneNoteRevisionManifest? revision) {
+            Dictionary<uint, Guid> globalIds = frame.GlobalIds;
             if (Result.Objects.Count >= _options.MaxObjects) {
                 throw new OneNoteFormatException("ONENOTE_OBJECT_LIMIT", "The object declaration limit was exceeded.", node.FileOffset);
             }
-            if (node.ChunkReference == null || node.ChunkReference.IsNil || node.ChunkReference.IsZero) {
+            if (!node.HasUsableChunkReference) {
                 throw new OneNoteFormatException("ONENOTE_OBJECT_REFERENCE", "An object declaration does not reference object data.", node.FileOffset);
             }
 
-            byte[] data = node.EncodedData.ToArray(8192);
-            int bodyOffset = node.ChunkReference.EncodedLength;
+            byte[] data = node.GetEncodedBytes(8192);
+            int bodyOffset = node.ChunkEncodedLength;
             OneNoteExtendedGuid id = ResolveCompactId(data, bodyOffset, globalIds, node.FileOffset + bodyOffset);
             OneNoteJcid jcid;
             uint referenceCount;
@@ -219,13 +242,13 @@ internal static class OneNoteRevisionStoreObjectReader {
 
             if (node.RawId == (ushort)OneNoteFileNodeId.ObjectDeclarationWithRefCount ||
                 node.RawId == (ushort)OneNoteFileNodeId.ObjectDeclarationWithRefCount2) {
-                jcid = new OneNoteJcid(0x00020001U);
+                jcid = GetJcid(0x00020001U);
                 int countOffset = bodyOffset + 10;
                 referenceCount = node.RawId == (ushort)OneNoteFileNodeId.ObjectDeclarationWithRefCount
                     ? ReadByte(data, countOffset)
                     : OneNoteBinary.ReadUInt32(data, countOffset);
             } else if (isRevision) {
-                if (!_knownJcids.TryGetValue(new ExtendedGuidKey(id), out jcid!)) jcid = new OneNoteJcid(0);
+                if (!_knownJcids.TryGetValue(new ExtendedGuidKey(id), out jcid!)) jcid = GetJcid(0);
                 int flagsOffset = bodyOffset + 4;
                 if (node.RawId == (ushort)OneNoteFileNodeId.ObjectRevisionWithRefCount) {
                     byte flagsAndCount = ReadByte(data, flagsOffset);
@@ -234,7 +257,7 @@ internal static class OneNoteRevisionStoreObjectReader {
                     referenceCount = OneNoteBinary.ReadUInt32(data, flagsOffset + 4);
                 }
             } else {
-                jcid = new OneNoteJcid(OneNoteBinary.ReadUInt32(data, bodyOffset + 4));
+                jcid = GetJcid(OneNoteBinary.ReadUInt32(data, bodyOffset + 4));
                 int countOffset = bodyOffset + 9;
                 bool large = node.RawId == (ushort)OneNoteFileNodeId.ObjectDeclaration2LargeRefCount ||
                              node.RawId == (ushort)OneNoteFileNodeId.ReadOnlyObjectDeclaration2LargeRefCount;
@@ -247,9 +270,10 @@ internal static class OneNoteRevisionStoreObjectReader {
                 IsRevision = isRevision
             };
             if (!revision?.IsEncrypted ?? true) {
-                byte[] objectData = ReadReferencedBytes(node.ChunkReference, "object property set");
-                record.RawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(objectData);
-                record.PropertySet = OneNotePropertySetReader.Read(objectData, globalIds, _options, node.ChunkReference.Offset);
+                byte[] objectData = ReadReferencedBytes(node, "object property set");
+                OneNotePropertySetReader.Validate(objectData, globalIds, _options, node.ChunkOffset);
+                frame.PropertySetDecoder ??= new OneNotePropertySetDecoder(globalIds, _propertySetScope);
+                record.SetLazyPropertySet(objectData, frame.PropertySetDecoder);
             }
             Result.Objects.Add(record);
             if (jcid.Value != 0) _knownJcids[new ExtendedGuidKey(id)] = jcid;
@@ -262,9 +286,9 @@ internal static class OneNoteRevisionStoreObjectReader {
             if (Result.Objects.Count >= _options.MaxObjects) {
                 throw new OneNoteFormatException("ONENOTE_OBJECT_LIMIT", "The object declaration limit was exceeded.", node.FileOffset);
             }
-            byte[] data = node.EncodedData.ToArray(8192);
+            byte[] data = node.GetEncodedBytes(8192);
             OneNoteExtendedGuid id = ResolveCompactId(data, 0, globalIds, node.FileOffset);
-            var jcid = new OneNoteJcid(OneNoteBinary.ReadUInt32(data, 4));
+            OneNoteJcid jcid = GetJcid(OneNoteBinary.ReadUInt32(data, 4));
             bool large = node.RawId == (ushort)OneNoteFileNodeId.ObjectDeclarationFileData3LargeRefCount;
             uint referenceCount = large ? OneNoteBinary.ReadUInt32(data, 8) : ReadByte(data, 8);
             int position = large ? 12 : 9;
@@ -281,59 +305,59 @@ internal static class OneNoteRevisionStoreObjectReader {
         }
 
         private void ReadFileDataStoreObject(OneNoteFileNode node) {
-            if (node.ChunkReference == null || node.ChunkReference.IsNil || node.ChunkReference.IsZero) return;
-            byte[] nodeData = node.EncodedData.ToArray(128);
-            int guidOffset = node.ChunkReference.EncodedLength;
+            if (!node.HasUsableChunkReference) return;
+            byte[] nodeData = node.GetEncodedBytes(128);
+            int guidOffset = node.ChunkEncodedLength;
             Guid referenceId = OneNoteBinary.ReadGuid(nodeData, guidOffset);
-            if (node.ChunkReference.Length < 52) {
-                throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject is shorter than its required framing.", ToOffset(node.ChunkReference.Offset));
+            if (node.ChunkLength < 52) {
+                throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject is shorter than its required framing.", ToOffset(node.ChunkOffset));
             }
 
-            byte[] header = ReadReferencedRange(node.ChunkReference, 0, 36, "file-data store object header");
+            byte[] header = ReadReferencedRange(node, 0, 36, "file-data store object header");
             ulong length = OneNoteBinary.ReadUInt64(header, 16);
-            if (length > node.ChunkReference.Length - 52) {
-                throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject payload length exceeds its containing frame.", ToOffset(node.ChunkReference.Offset + 16));
+            if (length > node.ChunkLength - 52) {
+                throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject payload length exceeds its containing frame.", ToOffset(node.ChunkOffset + 16));
             }
             if (length > (ulong)_options.MaxAssetBytes || _totalAssetBytes > _options.MaxTotalAssetBytes - (long)length) {
                 throw new OneNoteFormatException("ONENOTE_ASSET_LIMIT", "An embedded OneNote asset exceeds the configured materialization limits.", node.FileOffset);
             }
             if (length > int.MaxValue) {
-                throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "A FileDataStoreObject payload is too large to materialize.", ToOffset(node.ChunkReference.Offset + 16));
+                throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "A FileDataStoreObject payload is too large to materialize.", ToOffset(node.ChunkOffset + 16));
             }
 
             byte[] footer = ReadReferencedRange(
-                node.ChunkReference,
-                node.ChunkReference.Length - 16,
+                node,
+                node.ChunkLength - 16,
                 16,
                 "file-data store object footer");
             if (OneNoteBinary.ReadGuid(header, 0) != FileDataHeader || OneNoteBinary.ReadGuid(footer, 0) != FileDataFooter) {
-                throw new OneNoteFormatException("ONENOTE_FILE_DATA_FRAMING", "A FileDataStoreObject has invalid framing GUIDs.", ToOffset(node.ChunkReference.Offset));
+                throw new OneNoteFormatException("ONENOTE_FILE_DATA_FRAMING", "A FileDataStoreObject has invalid framing GUIDs.", ToOffset(node.ChunkOffset));
             }
 
-            byte[] payload = ReadReferencedRange(node.ChunkReference, 36, (int)length, "file-data store object payload");
+            byte[] payload = ReadReferencedRange(node, 36, (int)length, "file-data store object payload");
             _totalAssetBytes += payload.Length;
             Result.FileDataObjects.Add(new OneNoteFileDataStoreObject(referenceId, OneNoteBinaryPayload.FromOwnedBytes(payload)));
         }
 
-        private byte[] ReadReferencedBytes(OneNoteFileNodeChunkReference reference, string name) {
-            if (reference.Length > int.MaxValue) {
-                throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "The " + name + " is too large to materialize.", ToOffset(reference.Offset));
+        private byte[] ReadReferencedBytes(OneNoteFileNode reference, string name) {
+            if (reference.ChunkLength > int.MaxValue) {
+                throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "The " + name + " is too large to materialize.", ToOffset(reference.ChunkOffset));
             }
-            return ReadReferencedRange(reference, 0, (int)reference.Length, name);
+            return ReadReferencedRange(reference, 0, (int)reference.ChunkLength, name);
         }
 
         private byte[] ReadReferencedRange(
-            OneNoteFileNodeChunkReference reference,
+            OneNoteFileNode node,
             ulong relativeOffset,
             int length,
             string name) {
-            if (reference.Offset > _declaredFileLength || reference.Length > _declaredFileLength - reference.Offset) {
-                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside the declared file length.", ToOffset(reference.Offset));
+            if (node.ChunkOffset > _declaredFileLength || node.ChunkLength > _declaredFileLength - node.ChunkOffset) {
+                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside the declared file length.", ToOffset(node.ChunkOffset));
             }
-            if (length < 0 || relativeOffset > reference.Length || (ulong)length > reference.Length - relativeOffset) {
-                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside its containing chunk reference.", ToOffset(reference.Offset));
+            if (length < 0 || relativeOffset > node.ChunkLength || (ulong)length > node.ChunkLength - relativeOffset) {
+                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside its containing chunk reference.", ToOffset(node.ChunkOffset));
             }
-            ulong absoluteOffset = checked(reference.Offset + relativeOffset);
+            ulong absoluteOffset = checked(node.ChunkOffset + relativeOffset);
             _stream.Position = ToOffset(absoluteOffset);
             var data = new byte[length];
             int total = 0;

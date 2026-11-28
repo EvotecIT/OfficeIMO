@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             var listErrors = new List<OfficeOpenXmlValidationError>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersion.ToOpenXml());
-            foreach (ValidationErrorInfo error in validator.Validate(_document!)) {
+            foreach (ValidationErrorInfo error in validator.Validate(SdkDocument!)) {
                 listErrors.Add(error.ToOfficeValidationError());
             }
 
@@ -226,22 +226,25 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocumentType? destinationType = null) {
             EnsureWritableForSave();
             ApplySignatureMutationPolicy(options);
+            if (TryCreateUnchangedPackageBytes(destinationType is not { } type || type == PresentationDocumentType.Presentation, out byte[] unchangedPackageBytes)) {
+                return unchangedPackageBytes;
+            }
             PersistFooterDefinitions();
             RefreshFooterFields();
-            foreach (PowerPointSlide slide in _slides) {
+            foreach (PowerPointSlide slide in LoadedSlides) {
                 slide.PrepareForPackageSave();
             }
-            PowerPointUtils.UpdateDocumentProperties(_presentationPart, _maximumSlideXmlCharacters);
+            PowerPointUtils.UpdateDocumentProperties(SdkPresentationPart, _maximumSlideXmlCharacters);
             // Saving the package persists every loaded part root, including slides, notes, and the presentation.
-            _document!.Save();
+            SdkDocument!.Save();
 
 #if NET8_0_OR_GREATER
-            PresentationDocumentType currentType = _document.DocumentType;
+            PresentationDocumentType currentType = SdkDocument.DocumentType;
             bool canSnapshotCurrentPackage = currentType
                 == PresentationDocumentType.Presentation
                 && (destinationType == null
                     || destinationType == PresentationDocumentType.Presentation)
-                && _presentationPart.VbaProjectPart == null;
+                && SdkPresentationPart.VbaProjectPart == null;
             if (canSnapshotCurrentPackage
                 && OfficePackageLoadSource.TryGetPackageBytes(_packageStream, out byte[] currentPackageBytes)) {
                 return currentPackageBytes;
@@ -249,7 +252,7 @@ namespace OfficeIMO.PowerPoint {
 #endif
 
             using var packageStream = new MemoryStream();
-            using (PresentationDocument clone = _document.Clone(
+            using (PresentationDocument clone = SdkDocument.Clone(
                        packageStream)) {
                 PresentationDocumentType resolvedDestinationType =
                     destinationType
@@ -271,7 +274,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 // A clone can omit pending properties when the source had no core properties part.
                 if (clone.CoreFilePropertiesPart == null) {
-                    OfficeOpenXmlPackagePayload.CopyCoreProperties(_document, clone);
+                    OfficeOpenXmlPackagePayload.CopyCoreProperties(SdkDocument, clone);
                 }
                 clone.Save();
                 // Dispose finalizes the cloned package before its bytes are committed.
@@ -375,9 +378,9 @@ namespace OfficeIMO.PowerPoint {
                 return originalBytes;
             }
             ApplySignatureMutationPolicy(options);
-            foreach (PowerPointSlide slide in _slides) slide.Save();
+            foreach (PowerPointSlide slide in LoadedSlides) slide.Save();
             PresentationRoot.Save();
-            _document!.Save();
+            SdkDocument!.Save();
             if (LegacyPptPreservingWriter.TryWriteDocument(this, out byte[] preservedBytes)) {
                 LegacyPptWritePreflight.ThrowIfBlocked(
                     AnalyzeLegacyPptWrite(), options);

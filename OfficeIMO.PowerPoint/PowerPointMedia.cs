@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -10,6 +11,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents an embedded audio or video media frame on a slide.
     /// </summary>
     public partial class PowerPointMedia : PowerPointImage {
+        internal PowerPointMedia(PowerPointSlide slide, OfficeXmlTree tree, int node, PowerPointMediaKind kind) : base(slide, tree, node) {
+            Kind = kind;
+        }
+
         internal PowerPointMedia(Picture picture, SlidePart slidePart, PowerPointMediaKind kind) : base(picture, slidePart) {
             Kind = kind;
         }

@@ -1,6 +1,10 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
+    // Authored layer indices start at zero. This slot ranks normal presentation hints
+    // before the first authored layer.
+    private static readonly CascadeLayerOrder PresentationalHintLayerOrder = new CascadeLayerOrder(new[] { -1 });
+
     private static readonly OfficeIMO.Html.Css.HtmlCssTokenizationOptions UnboundedPropertyTokenization =
         new OfficeIMO.Html.Css.HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
 

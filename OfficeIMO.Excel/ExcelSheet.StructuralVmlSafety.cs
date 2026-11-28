@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private void ValidateStructuralVmlControlSafety(MutationPlanScanBudget? budget = null) {
+            CommitPendingCommentDrawings(WorkbookPartRoot);
             IEnumerable<VmlDrawingPart> workbookVmlParts =
                 WorkbookPartRoot.WorksheetParts.SelectMany(part => part.VmlDrawingParts)
                     .Concat(WorkbookPartRoot.DialogsheetParts.SelectMany(part => part.VmlDrawingParts))

@@ -1,0 +1,14 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "iOS",
+  "locale": "it",
+  "metadata": {
+    "description": "Leggi e annota i PDF su iPhone e iPad. Apri i documenti dall’app File.\n\nCerca e seleziona il testo, aggiungi note e forme, compila i campi dei moduli compatibili e riordina le pagine. Salva le modifiche o condividi il documento.\n\nConverti in PDF i file compatibili e cerca parole nelle scansioni grazie al riconoscimento del testo (OCR). Puoi anche salvare una copia protetta da password oppure oscurare i dati riservati prima di condividere il documento.\n\nApri i file Word, Excel e PowerPoint in sola lettura, senza installare Microsoft Office. Per continuare a lavorarci, salvali come PDF.\n\nOfficeIMO Studio elabora i documenti sul tuo dispositivo. È un’app gratuita e open source con licenza MIT. Trovi il codice sorgente e il supporto della community su https://github.com/EvotecIT/OfficeIMO",
+    "keywords": "visualizzatore,modulo,scansione,ocr,convertitore,evidenziare,password,unire,docx,xlsx,pptx",
+    "promotionalText": "Aggiungi note ai PDF, compila moduli e cerca il testo nelle scansioni. Apri i documenti dall’app File su iPhone e iPad.",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}

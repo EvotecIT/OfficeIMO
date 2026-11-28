@@ -900,6 +900,8 @@ public partial class Excel {
     [Fact]
     public void PendingDirectCellValueMaterializationCanResumeAfterCancellation() {
         using var document = ExcelDocument.Create(new MemoryStream());
+        // The cell buffer serves the model, which a new workbook opens on first use.
+        document.OpenDeferredSdk("cell buffer test");
         ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 50_000; row++) {
             sheet.Cell(row, 1).SetValue(row);

@@ -4,13 +4,15 @@ using System.Runtime.InteropServices;
 #endif
 
 /// <summary>
-/// Registers PSWriteOffice's Windows PowerShell assembly resolver when the module is imported and removes it when the module is removed.
+/// Registers PSWriteOffice's retired-command hints and its Windows PowerShell assembly resolver when the module is imported,
+/// and removes them when the module is removed.
 /// </summary>
 public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemblyCleanup {
     /// <summary>
     /// OnImport is called when the module is imported.
     /// </summary>
     public void OnImport() {
+        PSWriteOffice.Support.OfficeCommandHints.Register();
 #if FRAMEWORK
         if (IsNetFramework()) {
             DesktopAssemblyResolver.Register();
@@ -23,6 +25,7 @@ public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemb
     /// </summary>
     /// <param name="module">The module being removed.</param>
     public void OnRemove(PSModuleInfo module) {
+        PSWriteOffice.Support.OfficeCommandHints.Unregister();
 #if FRAMEWORK
         if (IsNetFramework()) {
             DesktopAssemblyResolver.Unregister();

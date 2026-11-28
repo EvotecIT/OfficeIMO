@@ -112,6 +112,11 @@ internal static partial class MarkdownReader {
             return root;
         }
 
+        // Without autolinks, abbreviations or parser extensions a text run ends only at characters that
+        // FindPlainTextRunEnd searches for.
+        bool plainTextScan = inlineParserExtensions.Count == 0
+            && !options.Abbreviations
+            && (!allowLinks || !(options.AutolinkUrls || options.AutolinkWwwUrls || options.AutolinkBareSchemeUrls || options.AutolinkEmails));
         using var scanIndexScope = InlineScanIndexCache.Enter();
         inlineHtmlWrapperMatches ??= options.InlineHtml
             ? BuildInlineHtmlWrapperMatchIndex(text)
@@ -160,6 +165,8 @@ internal static partial class MarkdownReader {
             AddRawNode(node, start, closingStart + fenceLength - start);
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new MarkdownTextRun(literal), start, length);
+        // A run of the parsed text itself, which the run reads in place until its Text is needed.
+        void AddTextSlice(int start, int length) => AddRawNode(new MarkdownTextRun(text, start, length), start, length);
         void AddEscapedTextNode(char escapedCharacter, int start) {
             string escapedText = CharacterString(escapedCharacter);
             var node = new MarkdownTextRun(escapedText);
@@ -281,7 +288,7 @@ internal static partial class MarkdownReader {
             if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, start, options, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
                 var resolved = ResolveUrl(schemeHref, options);
                 if (resolved is null) {
-                    AddTextNode(text.Substring(start, schemeEnd - start), start, schemeEnd - start);
+                    AddTextSlice(start, schemeEnd - start);
                 } else {
                     AddAutolinkNode(schemeLabel, resolved!, start, schemeEnd - start, start, schemeEnd - start, angleWrapped: false);
                 }
@@ -552,7 +559,7 @@ internal static partial class MarkdownReader {
                 out int? imageLinkHrefTitleLength,
                 inlineHtmlWrapperMatches)) {
                 if (allowLinks && allowImages) {
-                    var imgResolved = ResolveUrl(img2, options);
+                    var imgResolved = ResolveImageUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
@@ -609,7 +616,7 @@ internal static partial class MarkdownReader {
                         inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
-                            var resolved = ResolveUrl(defImg.Url, options);
+                            var resolved = ResolveImageUrl(defImg.Url, options);
                             if (resolved is null) {
                                 AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state, imageAltDepth), pos, consumedRefImg);
                             } else {
@@ -628,7 +635,7 @@ internal static partial class MarkdownReader {
                             }
                         } else {
                             // Preserve literal syntax when the definition is missing.
-                            AddTextNode(text.Substring(pos, consumedRefImg), pos, consumedRefImg);
+                            AddTextSlice(pos, consumedRefImg);
                         }
                         pos += consumedRefImg; continue;
                     }
@@ -649,7 +656,7 @@ internal static partial class MarkdownReader {
                         out int? titleStartImg,
                         out int? titleLengthImg,
                         inlineHtmlWrapperMatches)) {
-                        var srcResolved = ResolveUrl(srcImg, options);
+                        var srcResolved = ResolveImageUrl(srcImg, options);
                         if (srcResolved is null) {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {
@@ -672,7 +679,7 @@ internal static partial class MarkdownReader {
                     }
 
                     if (TryConsumeLiteralInlineImage(text, pos, out int literalImageLength, inlineHtmlWrapperMatches)) {
-                        AddTextNode(text.Substring(pos, literalImageLength), pos, literalImageLength);
+                        AddTextSlice(pos, literalImageLength);
                         pos += literalImageLength; continue;
                     }
                 }
@@ -688,7 +695,7 @@ internal static partial class MarkdownReader {
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
                 if (!allowLinks || resolved is null) {
-                    AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
+                    AddTextSlice(pos, consumedAngle);
                 } else {
                     AddAutolinkNode(
                         labelAngle,
@@ -741,7 +748,7 @@ internal static partial class MarkdownReader {
                             pos += consumedC; continue;
                         }
 
-                        AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
+                        AddTextSlice(pos, consumedC);
                         pos += consumedC; continue;
                     }
                     if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out int lblLength, out var refLabel, inlineHtmlWrapperMatches)) {
@@ -796,7 +803,7 @@ internal static partial class MarkdownReader {
                             continue;
                         }
 
-                        AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
+                        AddTextSlice(pos, consumedS);
                         pos += consumedS;
                         continue;
                     }
@@ -1014,6 +1021,12 @@ internal static partial class MarkdownReader {
             }
 
             int start = pos; pos++;
+            if (plainTextScan) {
+                pos = FindPlainTextRunEnd(text, pos, options.InlineHtml, allowLinks, allowImages);
+                AddTextSlice(start, pos - start);
+                continue;
+            }
+
             while (pos < text.Length && !IsPotentialInlineStart(text[pos], options.InlineHtml, allowLinks, allowImages)) {
                 // Ensure our explicit inline handlers see these characters.
                 if (text[pos] == '\n') break;
@@ -1039,7 +1052,7 @@ internal static partial class MarkdownReader {
                         out _)) break;
                 pos++;
             }
-            AddTextNode(text.Substring(start, pos - start), start, pos - start);
+            AddTextSlice(start, pos - start);
         }
 
         // Unwind any unclosed emphasis frames: treat their markers as literal text.

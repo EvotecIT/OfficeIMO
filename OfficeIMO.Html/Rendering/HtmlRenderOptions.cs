@@ -206,7 +206,13 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     public int MaxInputCharacters { get; set; } = 72 * 1024 * 1024;
 
     /// <summary>Maximum DOM nodes accepted after parsing and before style or layout work begins.</summary>
-    public int MaxHtmlNodes { get; set; } = 100000;
+    public int MaxHtmlNodes {
+        get => _maxHtmlNodes ?? 100_000;
+        set => _maxHtmlNodes = value;
+    }
+
+    private int? _maxHtmlNodes;
+    internal bool HasExplicitHtmlNodeLimit => _maxHtmlNodes.HasValue;
 
     /// <summary>Maximum total repeated background-image tiles accepted in one render operation.</summary>
     public int MaxBackgroundImageTiles { get; set; } = 16384;
@@ -329,7 +335,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;
-        target.MaxHtmlNodes = MaxHtmlNodes;
+        target._maxHtmlNodes = _maxHtmlNodes;
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;

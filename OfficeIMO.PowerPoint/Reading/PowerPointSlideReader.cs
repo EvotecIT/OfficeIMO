@@ -26,10 +26,15 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointSlideReader : IDisposable {
         private readonly OfficeOpcPackage _package;
         private readonly Stream? _ownedStream;
+        // A reader over a package someone else keeps open leaves it open.
+        private bool _borrowedPackage;
         private readonly IReadOnlyList<SlideEntry> _slides;
         private readonly Dictionary<string, int> _slideNumbers;
         private readonly long _maximumCharacters;
         private bool _disposed;
+
+        private const string NotesSlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
+        private readonly bool _hasNotesParts;
 
         private PowerPointSlideReader(OfficeOpcPackage package, Stream? ownedStream, IReadOnlyList<SlideEntry> slides,
             long maximumCharacters) {
@@ -37,6 +42,9 @@ namespace OfficeIMO.PowerPoint {
             _ownedStream = ownedStream;
             _slides = slides;
             _maximumCharacters = maximumCharacters;
+            // A notes slide has the notes-slide content type, or the package is not one the model opens; without such
+            // a part no slide has notes, and the slides' relationships need not be read to find them.
+            _hasNotesParts = package.DeclaresContentType(NotesSlideContentType);
             // The first slide-list entry of each part numbers it, as slide hyperlinks resolve in the model.
             // Slides are keyed by part identity, so a hyperlink that spells the part with percent-encoding still finds it.
             _slideNumbers = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);
@@ -105,6 +113,13 @@ namespace OfficeIMO.PowerPoint {
                 buffered.Dispose();
                 throw;
             }
+        }
+
+        /// <summary>A reader over a package a loaded presentation already opened and checked, which stays open after it.</summary>
+        internal static PowerPointSlideReader OpenLoaded(OfficeOpcPackage package, long maximumCharacters, CancellationToken cancellationToken) {
+            string presentationPart = GetPresentationPart(package);
+            IReadOnlyList<SlideEntry> slides = ReadSlideList(package, presentationPart, maximumCharacters, cancellationToken);
+            return new PowerPointSlideReader(package, null, slides, maximumCharacters) { _borrowedPackage = true };
         }
 
         private static PowerPointSlideReader Open(Stream stream, bool ownsStream, PowerPointLoadOptions? options,
@@ -190,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
             if (_disposed) return;
             _disposed = true;
             try {
-                _package.Dispose();
+                if (!_borrowedPackage) _package.Dispose();
             } finally {
                 _ownedStream?.Dispose();
             }

@@ -94,6 +94,86 @@ Lead[^1]
         };
     }
 
+    [Fact]
+    public void Appending_blocks_one_at_a_time_keeps_every_tree_position_consistent() {
+        var parsed = MarkdownDocument.Parse("Moved **paragraph** with [a link](https://example.com).\n\n> quoted\n");
+        var document = MarkdownDocument.Create()
+            .H1("Title")
+            .P(inlines => inlines.Text("Lead ").Bold("bold").Text(" and ").Code("code"))
+            .Ul(list => list.Item("first").ItemTask("second", done: true))
+            .Code("csharp", "var x = 1;")
+            .Quote("quoted line")
+            .Ol(list => list.Item("one").Item("two"))
+            .Table(table => table.Headers("Name", "Value").Row("One", "1"));
+        foreach (IMarkdownBlock block in parsed.Blocks.ToArray()) {
+            document.Add(block);
+        }
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+
+        // Front matter becomes the first child, so every block after it moves.
+        document.FrontMatter(new { title = "Report" });
+        document.P("After front matter");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+    }
+
+    [Fact]
+    public void Editing_the_last_block_before_appending_the_next_keeps_its_new_inlines_bound() {
+        var document = MarkdownDocument.Create().P("before");
+        var paragraph = (ParagraphBlock)document.Blocks[document.Blocks.Count - 1];
+        paragraph.Inlines.Bold("after");
+
+        document.P("next");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        var bold = Assert.IsType<BoldInline>(paragraph.Inlines.Nodes[paragraph.Inlines.Nodes.Count - 1]);
+        Assert.Same(document, bold.Document);
+    }
+
+    [Fact]
+    public void Inlines_added_to_an_earlier_block_are_bound_as_they_are_added() {
+        var document = MarkdownDocument.Create().P("first").P("second");
+        var first = (ParagraphBlock)document.Blocks[0];
+
+        first.Inlines.Italic("later");
+        var italic = Assert.IsType<ItalicInline>(first.Inlines.Nodes[first.Inlines.Nodes.Count - 1]);
+        Assert.Same(document, italic.Document);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+
+        first.Inlines.ReplaceItems(new IMarkdownInline[] { new MarkdownTextRun("replaced"), new BoldInline("bold") });
+        Assert.Same(document, ((MarkdownObject)first.Inlines.Nodes[1]).Document);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+    }
+
+    [Fact]
+    public void Append_after_a_block_whose_children_failed_to_bind_binds_them() {
+        var document = MarkdownDocument.Create().P("lead");
+        var panel = new ThrowingPanelBlock(new ParagraphBlock(new InlineSequence().Text("inside"))) { ThrowOnChildBlocks = true };
+
+        Assert.Throws<InvalidOperationException>(() => document.Add(panel));
+        panel.ThrowOnChildBlocks = false;
+        document.P("after");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        Assert.Same(panel, ((MarkdownObject)panel.ChildBlocks[0]).Parent);
+    }
+
+    private sealed class ThrowingPanelBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer {
+        private readonly IMarkdownBlock[] _children;
+
+        internal ThrowingPanelBlock(params IMarkdownBlock[] children) => _children = children;
+
+        internal bool ThrowOnChildBlocks { get; set; }
+
+        public IReadOnlyList<IMarkdownBlock> ChildBlocks =>
+            ThrowOnChildBlocks ? throw new InvalidOperationException("Children are not available yet.") : _children;
+
+        public string RenderMarkdown() => string.Empty;
+
+        public string RenderHtml() => string.Empty;
+    }
+
     [Theory]
     [MemberData(nameof(RepresentativeMarkdownDocuments))]
     public void ParseWithSyntaxTree_RepresentativeDocuments_Satisfy_TreeInvariants(string markdown) {

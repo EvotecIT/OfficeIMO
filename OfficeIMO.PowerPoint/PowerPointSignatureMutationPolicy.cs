@@ -97,11 +97,11 @@ namespace OfficeIMO.PowerPoint {
                 throw new PowerPointSignedDocumentMutationException(LastSignatureReport);
             }
             if (policy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
-                DigitalSignatureOriginPart? origin = _document!.DigitalSignatureOriginPart;
-                if (origin != null) _document.DeletePart(origin);
-                if (_document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
-                    _document.ExtendedFilePropertiesPart.Properties.DigitalSignature = null;
-                    _document.ExtendedFilePropertiesPart.Properties.Save();
+                DigitalSignatureOriginPart? origin = SdkDocument!.DigitalSignatureOriginPart;
+                if (origin != null) SdkDocument.DeletePart(origin);
+                if (SdkDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                    SdkDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = null;
+                    SdkDocument.ExtendedFilePropertiesPart.Properties.Save();
                 }
                 LastSignatureReport = new PowerPointSignatureReport(inspection.HasOriginPart,
                     inspection.XmlSignaturePartCount, inspection.HasApplicationSignatureFlag,
@@ -116,15 +116,18 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSignatureReport CreateSignatureReport(OfficeSignatureMutationPolicy policy,
             PowerPointSignatureMutationAction action) {
             OfficePackageSignatureInfo? shared = null;
+            // A package works without the SDK only when it was loaded or created unsigned, and nothing edited without the
+            // SDK adds a signature, so there is nothing to inspect.
+            if (_legacyPptPackage == null && _sdkDocument == null && _sdkDeferred) return CreateSignatureReport(shared, policy, action);
             // A binary presentation is projected into a temporary Open XML package. Cloning that
             // projection can materialize deferred DOM state and invalidate the exact-no-op
             // preservation fingerprint, so its original binary signature carriers are inspected
             // directly below without serializing the projection.
-            if (_document != null && _legacyPptPackage == null) {
-                bool hasLiveSignatureCarrier =
-                    _document.DigitalSignatureOriginPart != null
-                    || _document.ExtendedFilePropertiesPart?.Properties?
-                        .DigitalSignature != null;
+            if (_legacyPptPackage == null) {
+                // Before the SDK opens, the package is as it was loaded, and a signed one opens the SDK at load.
+                bool hasLiveSignatureCarrier = _sdkDocument != null
+                    && (_sdkDocument.DigitalSignatureOriginPart != null
+                        || _sdkDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null);
 
                 // Inspect the encoded package directly for read-only documents, since
                 // a clone can omit unreferenced signature parts. For editable packages,
@@ -154,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 using var snapshot = new MemoryStream();
-                using (_document.Clone(snapshot)) { }
+                using (SdkDocument.Clone(snapshot)) { }
                 shared = OfficePackageSignatureService.Inspect(
                     snapshot.ToArray(),
                     new OfficePackageSignatureInspectionOptions { VerifyDigests = false });

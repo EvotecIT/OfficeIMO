@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private List<CachedSheetElement> _cachedSheetElements = new List<CachedSheetElement>();
         private readonly object _sheetCacheRebuildGate = new();
         private bool _customDocumentPropertiesDirty;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
@@ -223,6 +224,65 @@ namespace OfficeIMO.Excel {
             MarkPackageDirty();
         }
 
+        /// <summary>
+        /// Records a worksheet that was just appended to the workbook. A valid cache gains the new wrapper
+        /// (its sheet element is last in the workbook and its id is already registered), so adding sheets one
+        /// at a time doesn't rebuild a wrapper for every earlier sheet.
+        /// </summary>
+        private void AppendNewSheetToCache(ExcelSheet sheet)
+        {
+            if (SheetCachingEnabled && !_sheetCacheDirty && _cachedSheets != null) {
+                // The cache holds its own wrapper, as a rebuild would, rather than the one returned to the caller.
+                _cachedSheets.Add(new ExcelSheet(this, _spreadSheetDocument!, sheet.SheetElement));
+                _cachedSheetElements.Add(new CachedSheetElement(sheet.SheetElement));
+                MarkPackageDirty();
+                return;
+            }
+
+            MarkSheetCacheDirty();
+        }
+
+        /// <summary>
+        /// True when the workbook holds the same sheet elements, in the same order and with the same sheet and
+        /// relationship ids, as the cache was built from. Sheets added, removed, replaced, reordered or re-pointed
+        /// internally fail this check. Once the package has been handed out through <see cref="OpenXmlDocument"/>,
+        /// callers can change anything behind the cache (including the part a relationship resolves to), so the
+        /// cache is always rebuilt, as it was before new sheets were appended to it.
+        /// </summary>
+        private bool SheetCacheMatchesWorkbook()
+        {
+            if (_cachedSheets == null) return true;
+            if (_openXmlDocumentExposed) return false;
+            int index = 0;
+            var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
+            if (sheets != null) {
+                foreach (Sheet sheet in sheets.Elements<Sheet>()) {
+                    if (index >= _cachedSheetElements.Count) return false;
+                    CachedSheetElement cached = _cachedSheetElements[index];
+                    if (!ReferenceEquals(sheet, cached.Element)
+                        || sheet.SheetId?.Value != cached.SheetId
+                        || !string.Equals(sheet.Id?.Value, cached.RelationshipId, StringComparison.Ordinal)) return false;
+                    index++;
+                }
+            }
+
+            return index == _cachedSheetElements.Count;
+        }
+
+        private readonly struct CachedSheetElement
+        {
+            internal CachedSheetElement(Sheet element)
+            {
+                Element = element;
+                SheetId = element.SheetId?.Value;
+                RelationshipId = element.Id?.Value;
+            }
+
+            internal Sheet Element { get; }
+            internal uint? SheetId { get; }
+            internal string? RelationshipId { get; }
+        }
+
         private List<Sheet> ReadSheetElements()
         {
             var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
@@ -237,9 +297,10 @@ namespace OfficeIMO.Excel {
         {
             id.Clear();
             id.Add(0);
+            var seen = new HashSet<uint> { 0 };
             foreach (Sheet s in elements) {
                 var sheetId = s.SheetId;
-                if (sheetId != null && !id.Contains(sheetId)) {
+                if (sheetId != null && seen.Add(sheetId.Value)) {
                     id.Add(sheetId);
                 }
             }
@@ -265,8 +326,17 @@ namespace OfficeIMO.Excel {
             // Readers in a no-lock scope (GetPivotTables, for one) rebuild the cache while holding only the shared
             // workbook read lock, so several can arrive together; the rebuild writes shared state, so they take turns.
             lock (_sheetCacheRebuildGate) {
+                if (_deferredWorkbook is { } deferred) {
+                    UpdateDeferredSheetIdCache(deferred);
+                    // The SDK elements are bound into this list when the package opens.
+                    _cachedSheetElements = new List<CachedSheetElement>();
+                    _cachedSheets = SheetCachingEnabled ? MaterializeDeferredSheets(deferred) : null;
+                    _sheetCacheDirty = false;
+                    return;
+                }
                 var elements = ReadSheetElements();
                 UpdateSheetIdCache(elements);
+                _cachedSheetElements = elements.ConvertAll(element => new CachedSheetElement(element));
                 _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
                 _sheetCacheDirty = false;
             }
@@ -302,6 +372,7 @@ namespace OfficeIMO.Excel {
 
         private List<ExcelSheet> BuildSheetsWithoutCaching()
         {
+            if (_deferredWorkbook is { } deferred) return MaterializeDeferredSheets(deferred);
             var elements = ReadSheetElements();
             return MaterializeSheets(elements);
         }
@@ -391,6 +462,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
@@ -412,7 +484,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 SpreadsheetDocument document = _spreadSheetDocument;
-                CommitPendingStylesheet();
+                CommitPendingPartStreams();
                 ExcelSheet.MarkPackageExposed(document);
                 return document;
             }
@@ -421,6 +493,7 @@ namespace OfficeIMO.Excel {
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }
@@ -471,7 +544,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Diagnostics for the most recent save operation.
         /// </summary>
-        internal ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        internal ExcelSaveDiagnostics LastSaveDiagnostics {
+            get => _lastSaveDiagnostics;
+            private set {
+                _lastSaveDiagnostics = value;
+                Interlocked.Increment(ref _saveDiagnosticsVersion);
+            }
+        }
+
+        private ExcelSaveDiagnostics _lastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        // Counts diagnostics updates, so a save that reports after writing can tell whether another save reported meanwhile.
+        private int _saveDiagnosticsVersion;
 
         private const int StreamCopyBufferSize = 81920;
 

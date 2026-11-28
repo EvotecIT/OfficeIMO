@@ -105,7 +105,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Collection of sections contained in the document.
         /// </summary>
-        public List<WordSection> Sections { get; } = new List<WordSection>();
+        public List<WordSection> Sections {
+            get {
+                if (_ownedModel is { } model) return _ownedSections ??= WordSection.LoadOwnedSections(this, model);
+                if (IsDisposed && _wordprocessingDocumentValue == null && _ownedSections != null) return _ownedSections;
+                return _sections;
+            }
+        }
+
+        private List<WordSection> _sections = new List<WordSection>();
 
         /// <summary>
         /// Path to the file backing this document.
@@ -130,12 +138,28 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Manages application related properties.
         /// </summary>
-        public WordApplicationProperties ApplicationProperties { get; internal set; } = null!;
+        public WordApplicationProperties ApplicationProperties {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _applicationProperties;
+            }
+            internal set => _applicationProperties = value;
+        }
+
+        private WordApplicationProperties _applicationProperties = null!;
 
         /// <summary>
         /// Provides access to built-in document properties.
         /// </summary>
-        public WordBuiltinDocumentProperties Properties { get; internal set; } = null!;
+        public WordBuiltinDocumentProperties Properties {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _properties;
+            }
+            internal set => _properties = value;
+        }
+
+        private WordBuiltinDocumentProperties _properties = null!;
 
         private WordCoverPageProperties? _coverPageProperties;
 
@@ -147,21 +171,50 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Collection of custom document properties.
         /// </summary>
-        public Dictionary<string, WordCustomProperty> CustomProperties { get; } = new Dictionary<string, WordCustomProperty>();
+        public Dictionary<string, WordCustomProperty> CustomProperties {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _customProperties;
+            }
+        }
+
+        private readonly Dictionary<string, WordCustomProperty> _customProperties = new Dictionary<string, WordCustomProperty>();
         /// <summary>
         /// Collection of document variables accessible via <see cref="WordFieldType.DocVariable"/> fields.
         /// </summary>
-        public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
+        public Dictionary<string, string> DocumentVariables {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _documentVariables;
+            }
+        }
+
+        private readonly Dictionary<string, string> _documentVariables = new Dictionary<string, string>();
 
         /// <summary>
         /// Collection of bibliographic sources used in the document.
         /// </summary>
-        public Dictionary<string, WordBibliographySource> BibliographySources { get; } = new Dictionary<string, WordBibliographySource>();
+        public Dictionary<string, WordBibliographySource> BibliographySources {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _bibliographySources;
+            }
+        }
+
+        private readonly Dictionary<string, WordBibliographySource> _bibliographySources = new Dictionary<string, WordBibliographySource>();
 
         /// <summary>
         /// Provides basic statistics for the document.
         /// </summary>
-        public WordDocumentStatistics Statistics { get; internal set; } = null!;
+        public WordDocumentStatistics Statistics {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _statistics;
+            }
+            internal set => _statistics = value;
+        }
+
+        private WordDocumentStatistics _statistics = null!;
 
         /// <summary>
         /// Gets the persistence policy selected when the document was created or loaded.
@@ -174,19 +227,39 @@ namespace OfficeIMO.Word {
         public bool AutoUpdateToc { get; set; }
 
 
-        internal WordprocessingDocument _wordprocessingDocument = null!;
+        private WordprocessingDocument? _wordprocessingDocumentValue;
+
+        /// <summary>The SDK package. A document loaded without it opens it here, through the bridge, on first use.</summary>
+        internal WordprocessingDocument _wordprocessingDocument {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _wordprocessingDocumentValue!;
+            }
+            set => _wordprocessingDocumentValue = value;
+        }
 
         /// <summary>
         /// Root document element.
         /// </summary>
-        internal Document _document = null!;
+        internal Document _document {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _documentValue!;
+            }
+            set => _documentValue = value;
+        }
+
+        private Document? _documentValue;
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public WordprocessingDocument OpenXmlDocument {
             get {
                 // Once the mutable package escapes, Open XML edits cannot be observed reliably.
                 // Resolve against current parts instead of reusing a derived numbering catalog.
+                OpenSdkPackage("WordDocument.OpenXmlDocument");
                 _openXmlDocumentAccessed = true;
+                // Identifiers are rescanned on every allocation from now on.
+                WordDrawingIdAllocator.MarkPackageShared(_wordprocessingDocument);
                 WordStyleDefinitionsReader.StopStreaming(_wordprocessingDocument);
                 return _wordprocessingDocument;
             }
@@ -196,7 +269,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
-        public FileAccess FileOpenAccess => _wordprocessingDocument.FileOpenAccess;
+        public FileAccess FileOpenAccess => _ownedModel != null
+            ? IsOwnedReadOnly ? FileAccess.Read : FileAccess.ReadWrite
+            : _wordprocessingDocument.FileOpenAccess;
 
         /// <summary>Gets whether the document was loaded for reading or editing.</summary>
         public DocumentAccessMode AccessMode => FileOpenAccess == FileAccess.Read

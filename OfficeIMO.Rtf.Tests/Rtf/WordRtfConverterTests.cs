@@ -144,6 +144,46 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_To_Word_Keeps_Text_Authors_Dates_And_Anchors_For_Each_Imported_Comment() {
+        var expected = new[] {
+            (Target: "First target", Author: "Alice Reviewer", Text: "First note", Created: new DateTime(2026, 1, 2, 3, 4, 0)),
+            (Target: "Second target", Author: "Bob Editor", Text: "Second note", Created: new DateTime(2026, 2, 3, 4, 5, 0)),
+            (Target: "Third target", Author: "Alice Reviewer", Text: "Third note", Created: new DateTime(2026, 3, 4, 5, 6, 0))
+        };
+        RtfDocument source = RtfDocument.Create();
+        foreach (var item in expected) {
+            var note = new RtfNote(RtfNoteKind.Annotation) { Author = item.Author, Created = item.Created };
+            note.AddParagraph(item.Text);
+            source.AddParagraph().AddText(item.Target).SetNote(note);
+        }
+
+        using WordDocument converted = RtfDocument.Parse(source.ToRtf()).ToWord();
+        using var stream = new MemoryStream();
+        converted.Save(stream);
+        stream.Position = 0;
+        using WordDocument word = WordDocument.Load(stream);
+
+        Dictionary<string, WordComment> commentsById = word.Comments.ToDictionary(comment => comment.Id!, StringComparer.Ordinal);
+        Assert.Equal(expected.Length, commentsById.Count);
+        List<Paragraph> bodyParagraphs = word._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
+            .Where(paragraph => paragraph.Descendants<CommentReference>().Any())
+            .ToList();
+        Assert.Equal(expected.Length, bodyParagraphs.Count);
+        for (int index = 0; index < expected.Length; index++) {
+            Paragraph paragraph = bodyParagraphs[index];
+            string id = Assert.Single(paragraph.Descendants<CommentReference>()).Id!.Value!;
+            Assert.Equal(id, Assert.Single(paragraph.Elements<CommentRangeStart>()).Id!.Value);
+            Assert.Equal(id, Assert.Single(paragraph.Elements<CommentRangeEnd>()).Id!.Value);
+            Assert.Equal(expected[index].Target, string.Concat(paragraph.Descendants<Text>().Select(text => text.Text)));
+
+            WordComment comment = commentsById[id];
+            Assert.Equal(expected[index].Text, comment.Text);
+            Assert.Equal(expected[index].Author, comment.Author);
+            Assert.Equal(expected[index].Created, comment.DateTime);
+        }
+    }
+
+    [Fact]
     public void Word_Rtf_Bridge_Carries_Tab_Stops_And_Tab_Text() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Name");

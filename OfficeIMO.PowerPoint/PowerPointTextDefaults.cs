@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointTextDefaults {
@@ -8,6 +9,21 @@ namespace OfficeIMO.PowerPoint {
         internal const double DefaultVerticalInsetPoints = 3.6D;
         internal const string LegacyFallbackFontFamily = "Calibri";
 
+        internal static string ResolveBodyLatinFont(PowerPointSlide? slide) {
+            if (slide == null) return LegacyFallbackFontFamily;
+            PowerPointThemeScope scope = PowerPointThemeScope.For(slide.PartRef);
+            string? typeface = MinorLatinTypeface(scope.FontScheme);
+            if (!string.IsNullOrWhiteSpace(typeface)) return typeface!;
+
+            // An override can omit the Latin face. In that case fall back to the master font.
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            typeface = MinorLatinTypeface(scope.Theme.Child(drawing, "themeElements").Child(drawing, "fontScheme"));
+            return string.IsNullOrWhiteSpace(typeface) ? LegacyFallbackFontFamily : typeface!;
+        }
+
+        private static string? MinorLatinTypeface(OfficeXmlNode scheme) =>
+            scheme.Child(OfficeXmlNamespaces.DrawingML, "minorFont").Child(OfficeXmlNamespaces.DrawingML, "latin").Attribute("typeface");
+
         internal static int? ToDrawingFontSize(double? points, string parameterName) {
             if (!points.HasValue) return null;
             if (double.IsNaN(points.Value) || double.IsInfinity(points.Value)
@@ -16,21 +32,6 @@ namespace OfficeIMO.PowerPoint {
                     "DrawingML font size must be a finite value from 1 through 4000 points.");
             }
             return checked((int)Math.Round(points.Value * 100D, MidpointRounding.AwayFromZero));
-        }
-
-        internal static string ResolveBodyLatinFont(PowerPointSlide? slide) {
-            A.FontScheme? overrideScheme = slide?.SlidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                ?? slide?.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme;
-            string? overrideTypeface = overrideScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            if (!string.IsNullOrWhiteSpace(overrideTypeface)) {
-                return overrideTypeface!;
-            }
-
-            string? masterTypeface = slide?.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
-                .ThemeElements?.FontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            return string.IsNullOrWhiteSpace(masterTypeface)
-                ? LegacyFallbackFontFamily
-                : masterTypeface!;
         }
     }
 }

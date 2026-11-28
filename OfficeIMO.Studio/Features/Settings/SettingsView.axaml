@@ -92,7 +92,7 @@
             <TextBlock Text="{loc:Loc OcrSetup.Title}" Classes="sectionTitle" />
             <TextBlock Text="{loc:Loc OcrSetup.Description}" Classes="muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-            <StackPanel Spacing="{StaticResource StudioSpaceM}" IsVisible="{Binding IsAvailable}">
+            <StackPanel Spacing="{StaticResource StudioSpaceM}">
               <TextBlock Text="{loc:Loc OcrSetup.ExecutablePath}" Classes="settingLabel" />
               <TextBox Text="{Binding ExecutablePath, Mode=TwoWay}" PlaceholderText="{loc:Loc OcrSetup.AutomaticDiscovery}"
                        IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{loc:Loc OcrSetup.ExecutablePath}" />

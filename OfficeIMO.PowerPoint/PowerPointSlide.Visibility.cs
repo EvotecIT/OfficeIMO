@@ -1,115 +1,82 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
-        private SlideId? _cachedSlideId;
+        private OfficeXmlNode _cachedSlideId;
 
         /// <summary>
         ///     Gets or sets whether the slide is hidden in slide show mode.
         /// </summary>
         public bool Hidden {
             get {
-                if (SlideRoot.Show?.Value != null) {
-                    return !SlideRoot.Show.Value;
-                }
-
-                return IsHiddenShowValue(GetLegacySlideIdShowValue(GetSlideId()));
+                bool? show = PartRef.Root.BooleanAttribute("show");
+                return show.HasValue ? !show.Value : IsHiddenShowValue(GetSlideId().Attribute("show"));
             }
             set {
-                SlideId slideId = GetSlideId();
-                slideId.RemoveAttribute("show", string.Empty);
-
-                if (value) {
-                    SlideRoot.Show = false;
-                } else {
-                    SlideRoot.Show = null;
-                }
+                OfficeXmlNode root = PartRef.Root;
+                OfficeXmlNode id = GetSlideId();
+                id.RemoveAttribute("show");
+                root.SetBooleanAttribute("show", value ? false : null);
+                PartRef.MarkEdited();
+                OwnerDocument?.PresentationPartRef.MarkEdited();
             }
         }
 
-        /// <summary>
-        ///     Hides the slide in slide show mode.
-        /// </summary>
+        /// <summary>Hides the slide in slide show mode.</summary>
         public void Hide() => Hidden = true;
 
-        /// <summary>
-        ///     Shows the slide in slide show mode.
-        /// </summary>
+        /// <summary>Shows the slide in slide show mode.</summary>
         public void Show() => Hidden = false;
 
-        private SlideId GetSlideId() {
-            PresentationPart presentationPart = _slidePart.GetParentPresentationPart()
-                ?? throw new InvalidOperationException("Slide is not attached to a presentation.");
-
-            SlideIdList? slideIdList = presentationPart.Presentation?.SlideIdList;
-            if (slideIdList == null) {
-                throw new InvalidOperationException("Presentation has no slide list.");
+        private OfficeXmlNode GetSlideId() {
+            const int presentationNamespace = OfficeXmlNamespaces.PresentationML;
+            PowerPointPartRef slide = PartRef;
+            PowerPointDocument document = OwnerDocument ?? throw new InvalidOperationException("Slide is not attached to a presentation.");
+            if (!slide.IsSdk && document.GetPackageSlideEntry(slide.Name) is { } packageEntry) {
+                return new OfficeXmlNode(packageEntry.Tree, packageEntry.Node);
             }
 
-            // The slide list entry is found once and reused while it still points at this slide part.
-            SlideId? cached = _cachedSlideId;
-            if (cached != null && ReferenceEquals(cached.Parent, slideIdList)) {
-                string? cachedRelId = cached.RelationshipId?.Value;
-                if (cachedRelId is { Length: > 0 }
-                    && presentationPart.TryGetPartById(cachedRelId, out OpenXmlPart? cachedPart)
-                    && ReferenceEquals(cachedPart, _slidePart)) {
-                    return cached;
-                }
+            PowerPointPartRef presentation = document.PresentationPartRef;
+            OfficeXmlNode ids = presentation.Root.Child(presentationNamespace, "sldIdLst");
+            if (ids.IsNone) throw new InvalidOperationException("Presentation has no slide list.");
+            if (_cachedSlideId.Parent == ids && IdReferencesSlide(_cachedSlideId, presentation, slide)) {
+                return _cachedSlideId;
             }
 
-            string relId = presentationPart.GetIdOfPart(_slidePart);
-            SlideId? slideId = null;
-            foreach (SlideId candidate in slideIdList.Elements<SlideId>()) {
-                if (candidate.RelationshipId?.Value == relId) {
-                    slideId = candidate;
-                    break;
-                }
+            foreach (OfficeXmlNode entry in ids.Children(presentationNamespace, "sldId")) {
+                if (!IdReferencesSlide(entry, presentation, slide)) continue;
+                return _cachedSlideId = entry;
             }
 
-            if (slideId == null) {
-                throw new InvalidOperationException("Slide not found in presentation.");
-            }
-
-            _cachedSlideId = slideId;
-            return slideId;
+            throw new InvalidOperationException("Slide not found in presentation.");
         }
+
+        private static bool IdReferencesSlide(OfficeXmlNode id, PowerPointPartRef presentation, PowerPointPartRef slide) =>
+            id.Attribute(OfficeXmlNamespaces.Relationships, "id") is { } relationshipId
+            && presentation.TryGetRelationship(relationshipId, out PowerPointRelationship relationship)
+            && relationship.TargetPart.Equals(slide);
 
         /// <summary>Records the slide list entry the presentation just created or read for this slide.</summary>
-        internal void RememberSlideId(SlideId slideId) => _cachedSlideId = slideId;
+        internal void RememberSlideId(OfficeXmlNode slideId) => _cachedSlideId = slideId;
 
-        private static string? GetLegacySlideIdShowValue(SlideId slideId) {
-            // The legacy show flag is not part of the sldId schema, so it is only ever an extended attribute.
-            if (!slideId.HasAttributes) return null;
-            foreach (OpenXmlAttribute attribute in slideId.ExtendedAttributes) {
-                if (attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri)) {
-                    return attribute.Value;
-                }
-            }
-            return null;
-        }
-
-        private static bool IsHiddenShowValue(string? showValue) {
-            if (string.IsNullOrEmpty(showValue)) {
-                return false;
-            }
-
-            return string.Equals(showValue, "0", StringComparison.Ordinal) ||
-                   string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
-        }
+        private static bool IsHiddenShowValue(string? showValue) =>
+            string.Equals(showValue, "0", StringComparison.Ordinal) ||
+            string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
 
         private void NormalizeHiddenSlideMarkup() {
-            SlideId slideId = GetSlideId();
-            string? legacyShowValue = GetLegacySlideIdShowValue(slideId);
-            if (SlideRoot.Show?.Value == null && IsHiddenShowValue(legacyShowValue)) {
-                SlideRoot.Show = false;
+            OfficeXmlNode root = PartRef.Root;
+            OfficeXmlNode slideId = GetSlideId();
+            string? legacyShowValue = slideId.Attribute("show");
+            if (legacyShowValue == null) return;
+            if (root.BooleanAttribute("show") == null && IsHiddenShowValue(legacyShowValue)) {
+                root.SetBooleanAttribute("show", false);
+                PartRef.MarkEdited();
             }
 
-            slideId.RemoveAttribute("show", string.Empty);
+            slideId.RemoveAttribute("show");
+            OwnerDocument?.PresentationPartRef.MarkEdited();
         }
     }
 }

@@ -7,7 +7,7 @@ public sealed partial class PowerPointDocument {
     public OfficeVbaProject? ReadVbaProject(OfficeVbaReadOptions? options = null) {
         ThrowIfDisposed();
         options ??= new OfficeVbaReadOptions();
-        var part = _presentationPart.VbaProjectPart;
+        var part = SdkPresentationPart.VbaProjectPart;
         return part == null ? null : OfficeVbaProject.Load(OfficeVbaProjectPartEditor.Read(part, options.MaximumProjectBytes), options);
     }
 
@@ -20,6 +20,6 @@ public sealed partial class PowerPointDocument {
             throw new ArgumentException("PowerPoint source projects cannot contain document modules bound to another Office host.", nameof(project));
         }
         byte[] bytes = project.Write(options).GetBytes();
-        OfficeVbaProjectPartEditor.Apply(_presentationPart, _presentationPart.VbaProjectPart, bytes, options, out _);
+        OfficeVbaProjectPartEditor.Apply(SdkPresentationPart, SdkPresentationPart.VbaProjectPart, bytes, options, out _);
     }
 }

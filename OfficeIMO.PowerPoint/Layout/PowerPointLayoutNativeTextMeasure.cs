@@ -1,6 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -10,8 +11,8 @@ namespace OfficeIMO.PowerPoint {
     internal static class PowerPointLayoutNativeTextMeasure {
         internal static double MaximumSize(PowerPointParagraph paragraph, double fallback) =>
             paragraph.InlineNodes.Where(n => n.Run != null)
-                .Select(n => PowerPointEffectiveRunStyleResolver.Resolve(n.Run!, paragraph, null, null).FontSizePoints ?? fallback)
-                .DefaultIfEmpty(PowerPointEffectiveRunStyleResolver.ResolveParagraph(paragraph, null, null).FontSizePoints ?? fallback).Max();
+                .Select(n => PowerPointEffectiveRunStyleResolver.Resolve(n.Run!, paragraph).FontSizePoints ?? fallback)
+                .DefaultIfEmpty(PowerPointEffectiveRunStyleResolver.ResolveParagraph(paragraph).FontSizePoints ?? fallback).Max();
 
         internal static double Height(PowerPointLayoutContext context, PowerPointParagraph paragraph, double size,
             double width, double margin = 0D, double? spaceAfter = null, int start = 0, int? length = null,
@@ -25,8 +26,9 @@ namespace OfficeIMO.PowerPoint {
         private static double Height(OfficeRasterCanvas metrics, PowerPointLayoutContext context, PowerPointParagraph paragraph,
             double size, double width, double margin, double? spaceAfter, int start, int? length, PowerPointTextRole role) {
             var style = context.Style(role);
+            OfficeXmlNode properties = paragraph.Element.Child(Ns.DrawingML, "pPr");
             double available = Math.Max(1D, (width - (paragraph.LeftMargin?.ToPoints() ?? margin)
-                - (paragraph.Paragraph.ParagraphProperties?.RightMargin?.Value ?? 0) / 12700D
+                - (properties.Int32Attribute("marR") ?? 0) / 12700D
                 - Math.Max(0D, paragraph.Indent?.ToPoints() ?? 0D)) / 1.06D);
             double height = 0D, lineWidth = 0D, lineSize = 0D, wordWidth = 0D, wordSize = 0D, spaces = 0D;
             int position = 0, end = start + (length ?? paragraph.Text.Length);
@@ -58,15 +60,15 @@ namespace OfficeIMO.PowerPoint {
                 if (to <= from) continue;
                 text = text.Substring(from - inlineStart, to - from).Replace("\r\n", "\n").Replace('\r', '\n');
                 var effective = inline.Run == null
-                    ? PowerPointEffectiveRunStyleResolver.ResolveParagraph(paragraph, null, null)
-                    : PowerPointEffectiveRunStyleResolver.Resolve(inline.Run, paragraph, null, null);
+                    ? PowerPointEffectiveRunStyleResolver.ResolveParagraph(paragraph)
+                    : PowerPointEffectiveRunStyleResolver.Resolve(inline.Run, paragraph);
                 double points = effective.FontSizePoints ?? size;
                 string font = effective.FontName ?? context.FontOf(style);
                 bool bold = effective.Bold ?? style.Bold;
                 OfficeFontStyle fontStyle = bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular;
                 if (effective.Italic == true) fontStyle |= OfficeFontStyle.Italic;
-                double trackingPoints = inline.Run?.RunProperties?.Spacing?.Value / 100D
-                    ?? paragraph.Paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>()?.Spacing?.Value / 100D
+                double trackingPoints = inline.Run?.PropertiesElement.Int32Attribute("spc") / 100D
+                    ?? properties.Child(Ns.DrawingML, "defRPr").Int32Attribute("spc") / 100D
                     ?? style.Tracking * size;
                 // Drawing currently reports unsupported tracking. Reserve at least its untracked
                 // advance, and also retain room for positive tracking in native Office.
@@ -92,12 +94,12 @@ namespace OfficeIMO.PowerPoint {
             Word();
             Line();
             double markSize = maximumSize;
-            double Spacing(DocumentFormat.OpenXml.OpenXmlCompositeElement? spacing, double fallback) =>
-                spacing?.GetFirstChild<A.SpacingPoints>()?.Val?.Value / 100D
-                ?? spacing?.GetFirstChild<A.SpacingPercent>()?.Val?.Value / 100000D * markSize
+            double Spacing(OfficeXmlNode spacing, double fallback) =>
+                spacing.Child(Ns.DrawingML, "spcPts").Int32Attribute("val") / 100D
+                ?? spacing.Child(Ns.DrawingML, "spcPct").Int32Attribute("val") / 100000D * markSize
                 ?? fallback;
-            return height + Spacing(paragraph.Paragraph.ParagraphProperties?.SpaceBefore, 0D)
-                + Spacing(paragraph.Paragraph.ParagraphProperties?.SpaceAfter, spaceAfter ?? context.Theme.ParagraphAfter);
+            return height + Spacing(properties.Child(Ns.DrawingML, "spcBef"), 0D)
+                + Spacing(properties.Child(Ns.DrawingML, "spcAft"), spaceAfter ?? context.Theme.ParagraphAfter);
         }
 
         /// <summary>Splits only when required, preferring sentences and words and preserving every source character.</summary>

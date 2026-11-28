@@ -1,34 +1,19 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        // Slide master ids and slide layout ids share one identifier space that starts at 2^31.
-        private const uint FirstMasterOrLayoutId = 2147483648U;
+        // Master and layout wrappers by part name, so each part has one. Created on first use: an initializer would run
+        // in the constructors, which the SDK-bound members share.
+        private Dictionary<string, PowerPointMasterSurface>? _masterSurfaceMap;
 
-        private readonly Dictionary<OpenXmlPart, PowerPointMasterSurface> _masterSurfaces = new();
+        private Dictionary<string, PowerPointMasterSurface> MasterSurfaces => _masterSurfaceMap ??= new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Slide masters in the presentation; positions match the master indexes used by the layout APIs.</summary>
         public IReadOnlyList<PowerPointSlideMaster> SlideMasters {
             get {
                 ThrowIfDisposed();
-                return SlideMasterParts.Select(GetMaster).ToList();
+                return MasterPartRefs().Select(GetMaster).ToList();
             }
-        }
-
-        /// <summary>
-        ///     Adds a new slide master with the default Office theme and the standard set of layouts, at the end of
-        ///     the master list.
-        /// </summary>
-        public PowerPointSlideMaster AddSlideMaster(string? name = null) {
-            ThrowIfDisposed();
-            using var source = new MemoryStream(DefaultPackage.Value, writable: false);
-            using PresentationDocument template = PresentationDocument.Open(source, false);
-            SlideMasterPart templateMaster = template.PresentationPart?.SlideMasterParts.FirstOrDefault()
-                ?? throw new InvalidOperationException("The default presentation scaffold has no slide master.");
-            PowerPointSlideMaster master = CloneMaster(templateMaster);
-            master.Name = name ?? "Slide Master " + SlideMasterParts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            return master;
         }
 
         /// <summary>Adds a slide that uses the given layout.</summary>
@@ -42,99 +27,31 @@ namespace OfficeIMO.PowerPoint {
             return AddSlide(layout.Master.Index, layout.Index);
         }
 
-        internal List<SlideMasterPart> SlideMasterParts => _presentationPart.SlideMasterParts.ToList();
+        /// <summary>The slide master parts in relationship order, as the index-based APIs count them.</summary>
+        internal List<PowerPointPartRef> MasterPartRefs() => PresentationPartRef.RelatedParts(PowerPointPartRef.SlideMasterRelationshipType).ToList();
 
-        internal PowerPointSlideMaster GetMaster(SlideMasterPart part) {
-            if (!_masterSurfaces.TryGetValue(part, out PowerPointMasterSurface? surface)) {
+        internal PowerPointSlideMaster GetMaster(PowerPointPartRef part) {
+            if (!MasterSurfaces.TryGetValue(part.Name, out PowerPointMasterSurface? surface)) {
                 surface = new PowerPointSlideMaster(this, part);
-                _masterSurfaces[part] = surface;
+                MasterSurfaces[part.Name] = surface;
             }
 
             return (PowerPointSlideMaster)surface;
         }
 
-        internal PowerPointSlideLayout GetLayout(SlideLayoutPart part) {
-            if (!_masterSurfaces.TryGetValue(part, out PowerPointMasterSurface? surface)) {
+        internal PowerPointSlideLayout GetLayout(PowerPointPartRef part) {
+            if (!MasterSurfaces.TryGetValue(part.Name, out PowerPointMasterSurface? surface)) {
                 surface = new PowerPointSlideLayout(this, part);
-                _masterSurfaces[part] = surface;
+                MasterSurfaces[part.Name] = surface;
             }
 
             return (PowerPointSlideLayout)surface;
         }
 
-        internal PowerPointSlideMaster CloneMaster(SlideMasterPart source) {
-            SlideMasterPart clone = CloneSlideMasterPart(source, out _);
-            return GetMaster(clone);
+        // Forgets a removed master or layout, so a later part with its name gets a new wrapper.
+        private void ForgetSurface(PowerPointMasterSurface surface) {
+            MasterSurfaces.Remove(surface.PartName);
+            surface.MarkRemoved();
         }
-
-        internal void RemoveMaster(PowerPointSlideMaster master) {
-            List<SlideMasterPart> masters = SlideMasterParts;
-            if (masters.Count <= 1) {
-                throw new InvalidOperationException("A presentation must keep at least one slide master.");
-            }
-
-            int used = master.Layouts.Sum(layout => layout.Slides.Count);
-            if (used > 0) {
-                throw new InvalidOperationException("Slide master '" + master.Name + "' has layouts used by " + used
-                    + " slide(s). Move those slides to another master's layout first.");
-            }
-
-            string relationshipId = _presentationPart.GetIdOfPart(master.MasterPart);
-            PresentationRoot.SlideMasterIdList?.Elements<SlideMasterId>()
-                .FirstOrDefault(id => PowerPointUtils.GetRelationshipIdValue(id) == relationshipId)?.Remove();
-            foreach (PowerPointSlideLayout layout in master.Layouts) {
-                _masterSurfaces.Remove(layout.LayoutPart);
-                layout.MarkRemoved();
-            }
-
-            _presentationPart.DeletePart(master.MasterPart);
-            _masterSurfaces.Remove(master.MasterPart);
-            master.MarkRemoved();
-        }
-
-        internal void EnsureLayoutCanBeRemoved(PowerPointSlideLayout layout) {
-            PowerPointSlideMaster master = layout.Master;
-            if (master.MasterPart.SlideLayoutParts.Count() <= 1) {
-                throw new InvalidOperationException("Slide master '" + master.Name + "' must keep at least one layout.");
-            }
-        }
-
-        internal void RemoveLayout(PowerPointSlideLayout layout) {
-            EnsureLayoutCanBeRemoved(layout);
-            PowerPointSlideMaster master = layout.Master;
-
-            string relationshipId = master.MasterPart.GetIdOfPart(layout.LayoutPart);
-            master.Root.SlideLayoutIdList?.Elements<SlideLayoutId>()
-                .FirstOrDefault(id => id.RelationshipId?.Value == relationshipId)?.Remove();
-            master.MasterPart.DeletePart(layout.LayoutPart);
-            _masterSurfaces.Remove(layout.LayoutPart);
-            layout.MarkRemoved();
-        }
-
-        internal uint NextMasterOrLayoutId() {
-            uint max = FirstMasterOrLayoutId - 1U;
-            foreach (SlideMasterId id in PresentationRoot.SlideMasterIdList?.Elements<SlideMasterId>()
-                         ?? Enumerable.Empty<SlideMasterId>()) {
-                if (id.Id?.Value > max) max = id.Id.Value;
-            }
-
-            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
-                foreach (SlideLayoutId id in masterPart.SlideMaster?.SlideLayoutIdList?.Elements<SlideLayoutId>()
-                             ?? Enumerable.Empty<SlideLayoutId>()) {
-                    if (id.Id?.Value > max) max = id.Id.Value;
-                }
-            }
-
-            if (max == uint.MaxValue) {
-                throw new InvalidOperationException("The presentation has exhausted the slide master and layout identifier range.");
-            }
-
-            return max + 1U;
-        }
-
-        internal static string NextRelationshipId(OpenXmlPartContainer container) => GetNextRelationshipId(container);
-
-        internal static SlideLayoutPart CloneLayoutPart(SlideLayoutPart source, SlideMasterPart master, string relationshipId) =>
-            CloneSlideLayoutPart(source, master, relationshipId);
     }
 }

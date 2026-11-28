@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -9,58 +9,26 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal IReadOnlyList<PowerPointShape> GetInheritedShapesForExport() {
             var shapes = new List<PowerPointShape>();
-            if (!ShowsMasterShapes(SlideRoot)) {
-                return shapes;
+            PowerPointPartRef slide = PartRef;
+            if (slide.Root.BooleanAttribute("showMasterSp") == false) return shapes;
+
+            PowerPointPartRef layout = slide.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
+            if (layout.Root.BooleanAttribute("showMasterSp") != false) {
+                AddInheritedShapes(layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType), shapes);
             }
 
-            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
-            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
-            List<PowerPointShape> layoutShapes = CreateInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart);
-
-            if (ShowsMasterShapes(layoutPart?.SlideLayout)) {
-                // Master placeholders define geometry and styles for concrete slide/layout
-                // placeholders. Their editing prompts are not inherited slide content.
-                foreach (PowerPointShape masterShape in CreateInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart)) {
-                    if (!IsStructuralPlaceholder(masterShape)) {
-                        shapes.Add(masterShape);
-                    }
-                }
-            }
-
-            foreach (PowerPointShape layoutShape in layoutShapes) {
-                // Layout placeholders also supply geometry/styles and editing prompts.
-                // A visible field or text placeholder must be instantiated on the slide.
-                if (!IsStructuralPlaceholder(layoutShape)) {
-                    shapes.Add(layoutShape);
-                }
-            }
-
+            AddInheritedShapes(layout, shapes);
             return shapes;
         }
 
-        private static bool ShowsMasterShapes(Slide? slide) =>
-            slide?.ShowMasterShapes?.Value != false;
-
-        private static bool ShowsMasterShapes(SlideLayout? layout) =>
-            layout?.ShowMasterShapes?.Value != false;
-
-        private List<PowerPointShape> CreateInheritedShapes(ShapeTree? tree, OpenXmlPartContainer? ownerPart) {
-            var shapes = new List<PowerPointShape>();
-            if (tree == null || ownerPart == null) {
-                return shapes;
+        private void AddInheritedShapes(PowerPointPartRef part, List<PowerPointShape> shapes) {
+            const int presentation = OfficeXmlNamespaces.PresentationML;
+            OfficeXmlNode tree = part.Root.Child(presentation, "cSld").Child(presentation, "spTree");
+            foreach (OfficeXmlNode element in tree.Children()) {
+                PowerPointShape? shape = WrapSlideShape(element, part);
+                // Placeholders supply geometry and text styles. Their prompts appear only on the editing canvas.
+                if (shape != null && !shape.HasPlaceholderShape) shapes.Add(shape);
             }
-
-            foreach (OpenXmlElement element in tree.ChildElements) {
-                PowerPointShape? shape = CreateShapeFromElement(element, ownerPart);
-                if (shape != null) {
-                    shapes.Add(shape.AttachTo(this, ownerPart));
-                }
-            }
-
-            return shapes;
         }
-
-        private static bool IsStructuralPlaceholder(PowerPointShape shape) =>
-            shape.HasPlaceholderShape;
     }
 }

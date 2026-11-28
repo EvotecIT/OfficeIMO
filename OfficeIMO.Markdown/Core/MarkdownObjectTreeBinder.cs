@@ -215,35 +215,134 @@ internal static class MarkdownObjectTreeBinder {
         visited?.Add(node);
         // The walk's scratch collections are kept for the next binding on this thread; a binding
         // that starts while one is running takes its own.
-        var pending = t_pending ?? new Stack<MarkdownObject>();
-        var children = t_children ?? new List<MarkdownObject>();
+        var pending = t_pending ?? new ObjectBuffer();
+        var children = t_children ?? new ObjectBuffer();
         t_pending = null;
         t_children = null;
-        int largestPending = int.MaxValue;
         try {
-            largestPending = BindObjectTree(node, visited, pending, children);
+            BindObjectTree(node, visited, pending, children);
         } finally {
             pending.Clear();
             children.Clear();
-            if (children.Capacity <= MaxRetainedScratchCapacity && largestPending <= MaxRetainedScratchCapacity) {
+            if (children.Capacity <= MaxRetainedScratchCapacity && pending.Capacity <= MaxRetainedScratchCapacity) {
                 t_children = children;
                 t_pending = pending;
             }
         }
     }
 
-    private const int MaxRetainedScratchCapacity = 4096;
-    [ThreadStatic] private static Stack<MarkdownObject>? t_pending;
-    [ThreadStatic] private static List<MarkdownObject>? t_children;
+    /// <summary>
+    /// Places a block just appended to a bound document, so building a document block by block does not
+    /// re-bind every earlier block. The block before it is bound again too, which picks up edits made to the
+    /// most recently added block. Returns false when the document has to be bound in full instead.
+    /// </summary>
+    internal static bool TryBindAppendedBlock(MarkdownDocument document, IMarkdownBlock appended) {
+        if (appended is not MarkdownObject block) {
+            return true;
+        }
 
-    // Returns the largest number of objects waiting at once, which bounds the stack's capacity.
-    private static int BindObjectTree(
+        IReadOnlyList<IMarkdownBlock> blocks = document.Blocks;
+        if (blocks.Count == 0 || !ReferenceEquals(blocks[blocks.Count - 1], appended)) {
+            return false;
+        }
+
+        // The previous child is the nearest earlier block that is an object, or the front matter.
+        MarkdownObject? previous = null;
+        for (int i = blocks.Count - 2; i >= 0 && previous == null; i--) {
+            previous = blocks[i] as MarkdownObject;
+        }
+
+        previous ??= document.DocumentHeader;
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, document) || previous.NextSibling != null || previous.IndexInParent is not int previousIndex) {
+                return false;
+            }
+
+            index = previousIndex + 1;
+            // Builders often edit the block they just added (p.Inlines.Bold(...)) before adding the next
+            // one, so the previous block's subtree is bound again rather than only relinked.
+            BindObject(previous, document, previousIndex, previous.PreviousSibling, block, visited: null);
+        }
+
+        BindObject(block, document, index, previous, nextSibling: null, visited: null);
+        return true;
+    }
+
+    /// <summary>Places an inline just added to a sequence that is already part of a bound tree.</summary>
+    internal static void BindAppendedInline(InlineSequence sequence, IMarkdownInline appended) {
+        if (appended is not MarkdownObject node) {
+            return;
+        }
+
+        IReadOnlyList<IMarkdownInline> nodes = sequence.Nodes;
+        MarkdownObject? previous = null;
+        for (int i = nodes.Count - 2; i >= 0 && previous == null; i--) {
+            previous = nodes[i] as MarkdownObject;
+        }
+
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, sequence) || previous.IndexInParent is not int previousIndex) {
+                RebindSubtree(sequence);
+                return;
+            }
+
+            index = previousIndex + 1;
+            previous.SetTreePosition(sequence, previousIndex, previous.PreviousSibling, node);
+        }
+
+        BindObject(node, sequence, index, previous, nextSibling: null, visited: null);
+    }
+
+    /// <summary>Binds a node's subtree again in place, keeping the node's own position.</summary>
+    internal static void RebindSubtree(MarkdownObject node) =>
+        BindObject(node, node.Parent, node.IndexInParent, node.PreviousSibling, node.NextSibling, visited: null);
+
+    private const int MaxRetainedScratchCapacity = 4096;
+    [ThreadStatic] private static ObjectBuffer? t_pending;
+    [ThreadStatic] private static ObjectBuffer? t_children;
+
+    // A growable list of objects used as the walk's stack and child list. Objects are kept in a
+    // struct, so storing one needs no array type check (MarkdownObject is not sealed).
+    private sealed class ObjectBuffer {
+        private MarkdownObjectSequence.Slot[] _items = new MarkdownObjectSequence.Slot[16];
+
+        internal int Count;
+
+        internal int Capacity => _items.Length;
+
+        internal MarkdownObjectSequence.Slot[] Items => _items;
+
+        internal MarkdownObject this[int index] => _items[index].Value;
+
+        internal void Add(MarkdownObject item) {
+            if (Count == _items.Length) {
+                Array.Resize(ref _items, _items.Length * 2);
+            }
+
+            _items[Count++].Value = item;
+        }
+
+        internal MarkdownObject Pop() {
+            ref MarkdownObjectSequence.Slot slot = ref _items[--Count];
+            MarkdownObject item = slot.Value;
+            slot.Value = null!;
+            return item;
+        }
+
+        internal void Clear() {
+            Array.Clear(_items, 0, Count);
+            Count = 0;
+        }
+    }
+
+    private static void BindObjectTree(
         MarkdownObject node,
         MarkdownObjectSequence? visited,
-        Stack<MarkdownObject> pending,
-        List<MarkdownObject> children) {
-        int largestPending = 1;
-        pending.Push(node);
+        ObjectBuffer pending,
+        ObjectBuffer children) {
+        pending.Add(node);
 
         while (pending.Count > 0) {
             MarkdownObject current = pending.Pop();
@@ -261,28 +360,32 @@ internal static class MarkdownObjectTreeBinder {
                 }
             }
 
-            visited?.AddRange(children);
+            visited?.AddRange(children.Items, children.Count);
             for (int i = children.Count - 1; i >= 0; i--) {
                 MarkdownObject child = children[i];
                 if (!IsLeafObject(child)) {
-                    pending.Push(child);
+                    pending.Add(child);
                 }
             }
-
-            if (pending.Count > largestPending) {
-                largestPending = pending.Count;
-            }
         }
-
-        return largestPending;
     }
 
-    // Sealed types that never hold child objects.
-    private static bool IsLeafObject(MarkdownObject node) =>
-        node is MarkdownTextRun or CodeSpanInline or SoftBreakInline or HardBreakInline or CodeBlock
-            or ImageInline or HtmlRawInline or HorizontalRuleBlock or HtmlRawBlock;
+    // Sealed types that never hold child objects. Text runs are the most common leaf, and sequences,
+    // paragraphs and list items the most common containers, so those are answered first.
+    private static bool IsLeafObject(MarkdownObject node) {
+        if (node is MarkdownTextRun) {
+            return true;
+        }
 
-    private static bool TryCollectKnownChildren(MarkdownObject parent, List<MarkdownObject> output) {
+        if (node is InlineSequence or ParagraphBlock or ListItem) {
+            return false;
+        }
+
+        return node is CodeSpanInline or SoftBreakInline or HardBreakInline or CodeBlock
+            or ImageInline or HtmlRawInline or HorizontalRuleBlock or HtmlRawBlock;
+    }
+
+    private static bool TryCollectKnownChildren(MarkdownObject parent, ObjectBuffer output) {
         switch (parent) {
             // The two most common containers come first; neither matches an earlier case below.
             case InlineSequence inlineSequence:
@@ -301,8 +404,13 @@ internal static class MarkdownObjectTreeBinder {
                 CollectOnlyChild(parent, heading.Inlines, output);
                 return true;
 
-            case IMarkdownListBlock listBlock:
-                CollectChildren(parent, leadingChild: null, listBlock.ListItems, output);
+            // Sealed list types are matched by class before the interface check.
+            case UnorderedListBlock unorderedList:
+                CollectChildren(parent, leadingChild: null, ((IMarkdownListBlock)unorderedList).ListItems, output);
+                return true;
+
+            case OrderedListBlock orderedList:
+                CollectChildren(parent, leadingChild: null, ((IMarkdownListBlock)orderedList).ListItems, output);
                 return true;
 
             case ListItem listItem when !listItem.HasAdditionalParagraphs:
@@ -317,6 +425,10 @@ internal static class MarkdownObjectTreeBinder {
 
             case ListItem listItem:
                 CollectChildren(parent, leadingChild: null, listItem.ChildBlocks, output);
+                return true;
+
+            case IMarkdownListBlock listBlock:
+                CollectChildren(parent, leadingChild: null, listBlock.ListItems, output);
                 return true;
 
             case TableBlock table:
@@ -353,22 +465,23 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
-    private static void CollectOnlyChild(MarkdownObject parent, MarkdownObject child, List<MarkdownObject> output) {
+    private static void CollectOnlyChild(MarkdownObject parent, MarkdownObject child, ObjectBuffer output) {
         child.SetTreePosition(parent, indexInParent: 0, previousSibling: null, nextSibling: null);
         output.Add(child);
     }
 
-    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownInline> children, List<MarkdownObject> output) {
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownInline> children, ObjectBuffer output) {
         // A non-generic copy per element type: shared generic code over reference types looks up
         // its type arguments at run time, which made this the binder's hottest path.
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
         int count = children.Count;
-        var list = children as List<IMarkdownInline>;
+        // Inline sequences store their nodes in InlineNodeList; reading it directly avoids interface calls.
+        var nodes = children as InlineNodeList;
 
         for (int i = 0; i < count; i++) {
-            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+            if ((nodes != null ? nodes[i] : children[i]) is not MarkdownObject child) {
                 continue;
             }
 
@@ -387,7 +500,7 @@ internal static class MarkdownObjectTreeBinder {
             output.Add(pendingChild);
         }
     }
-    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownBlock> children, List<MarkdownObject> output) {
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownBlock> children, ObjectBuffer output) {
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
@@ -414,7 +527,7 @@ internal static class MarkdownObjectTreeBinder {
             output.Add(pendingChild);
         }
     }
-    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<ListItem> children, List<MarkdownObject> output) {
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<ListItem> children, ObjectBuffer output) {
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
@@ -441,7 +554,7 @@ internal static class MarkdownObjectTreeBinder {
             output.Add(pendingChild);
         }
     }
-    private static void CollectChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children, List<MarkdownObject> output) {
+    private static void CollectChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children, ObjectBuffer output) {
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;

@@ -52,6 +52,11 @@ internal readonly struct PdfPageColorSpace {
     internal bool HasUncertifiableShadingTransform =>
         _custom?.HasUncertifiableShadingTransform == true;
 
+    /// <summary>DeviceGray, DeviceRGB or DeviceCMYK as named in content, with no custom definition or paint suppression.</summary>
+    internal bool IsPlainDeviceColorSpace =>
+        Kind is PdfPageColorSpaceKind.DeviceGray or PdfPageColorSpaceKind.DeviceRgb or PdfPageColorSpaceKind.DeviceCmyk &&
+        _custom == null && _calRgb == null && !_suppressesPaint;
+
     internal bool IsNativeDeviceGray =>
         Kind == PdfPageColorSpaceKind.DeviceGray && _custom == null;
 

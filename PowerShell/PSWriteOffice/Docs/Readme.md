@@ -7,7 +7,7 @@ Locale: en-US
 ---
 # PSWriteOffice Module
 ## Description
-PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.
+PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, Jupyter notebooks, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.
 
 ## PSWriteOffice Cmdlets
 ### [Add-OfficeAccessColumn](Add-OfficeAccessColumn.md)
@@ -153,6 +153,12 @@ Adds a Markdown task list.
 
 ### [Add-OfficeMarkdownText](Add-OfficeMarkdownText.md)
 Adds styled Markdown text to a paragraph or list item content block.
+
+### [Add-OfficeNotebookCell](Add-OfficeNotebookCell.md)
+Appends a Markdown, code, or raw cell to a live notebook.
+
+### [Add-OfficeNotebookOutput](Add-OfficeNotebookOutput.md)
+Attaches saved output or supplied console text to a code cell.
 
 ### [Add-OfficeOpenDocumentHeading](Add-OfficeOpenDocumentHeading.md)
 Adds a heading to an OpenDocument text document.
@@ -451,6 +457,9 @@ Clears any AutoFilter on the current worksheet.
 ### [Clear-OfficeExcelRange](Clear-OfficeExcelRange.md)
 Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.
 
+### [Clear-OfficeNotebookOutput](Clear-OfficeNotebookOutput.md)
+Clears saved results from a code cell, optionally including its execution count.
+
 ### [Close-OfficeAccess](Close-OfficeAccess.md)
 Closes a native database without implicitly saving it.
 
@@ -462,6 +471,9 @@ Closes a live Excel workbook without saving pending changes.
 
 ### [Close-OfficeMarkdown](Close-OfficeMarkdown.md)
 Completes a live Markdown document's lifetime without saving.
+
+### [Close-OfficeNotebook](Close-OfficeNotebook.md)
+Closes a notebook and releases its source-backed values without writing a file.
 
 ### [Close-OfficeOpenDocument](Close-OfficeOpenDocument.md)
 Releases a live OpenDocument document without saving.
@@ -558,6 +570,9 @@ Exports PowerShell objects to an Excel workbook using an operator-friendly surfa
 
 ### [Export-OfficeExcelGoogleSpreadsheet](Export-OfficeExcelGoogleSpreadsheet.md)
 Plans, compiles or exports Excel workbooks to Google Sheets.
+
+### [Export-OfficeNotebook](Export-OfficeNotebook.md)
+Exports a live notebook or a selected saved structured output, returning the conversion report.
 
 ### [Export-OfficePdfLayoutOverlay](Export-OfficePdfLayoutOverlay.md)
 Exports native PDF word, line, region and reading-order diagnostics as PNG or SVG.
@@ -678,6 +693,12 @@ Gets the OfficeIMO.Markdown object tree from Markdown content.
 
 ### [Get-OfficeMarkdownTable](Get-OfficeMarkdownTable.md)
 Gets Markdown tables from a Markdown document.
+
+### [Get-OfficeNotebookCell](Get-OfficeNotebookCell.md)
+Streams notebook cells in document order, optionally by position or cell kind.
+
+### [Get-OfficeNotebookOutput](Get-OfficeNotebookOutput.md)
+Returns saved notebook outputs in cell order without running any code.
 
 ### [Get-OfficePdfAnnotation](Get-OfficePdfAnnotation.md)
 Gets page annotations and action evidence from a PDF.
@@ -853,6 +874,9 @@ Sorts the used range on the current worksheet.
 ### [Invoke-OfficeExcelTemplate](Invoke-OfficeExcelTemplate.md)
 Fills {{Marker}} placeholders, repeats template rows or sheets, and keeps or removes optional rows.
 
+### [Invoke-OfficeNotebook](Invoke-OfficeNotebook.md)
+Runs selected PowerShell notebook cells in one persistent session and records their outputs.
+
 ### [Invoke-OfficeProjectSchedule](Invoke-OfficeProjectSchedule.md)
 Explicitly calculates a schedule and optionally applies its dates.
 
@@ -867,6 +891,9 @@ Appends worksheet rows or merges a source range into a target worksheet.
 
 ### [Move-OfficeExcelSheet](Move-OfficeExcelSheet.md)
 Moves a worksheet to a one-based workbook position.
+
+### [Move-OfficeNotebookCell](Move-OfficeNotebookCell.md)
+Moves a cell within a live notebook while keeping its identity and saved content.
 
 ### [Move-OfficePdfPage](Move-OfficePdfPage.md)
 Move PDF pages through the native PDF engine.
@@ -996,6 +1023,9 @@ Creates native MarkdownRtfExportOptions settings for document operations.
 
 ### [New-OfficeMarkdownWordOptions](New-OfficeMarkdownWordOptions.md)
 Creates native Markdown-to-Word settings, including an engine-owned template path.
+
+### [New-OfficeNotebook](New-OfficeNotebook.md)
+Creates a live Jupyter notebook that can be populated and saved without running cells.
 
 ### [New-OfficeOcrOptions](New-OfficeOcrOptions.md)
 Creates OCR settings without starting a provider or downloading language data.
@@ -1174,6 +1204,9 @@ Parses a LaTeX file or source string into OfficeIMO's native document model.
 ### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
 Opens native Markdown from a file or parses text; a file content block saves atomically.
 
+### [Open-OfficeNotebook](Open-OfficeNotebook.md)
+Opens a Jupyter notebook or imports a saved notebook source into the editable model.
+
 ### [Open-OfficeOneNote](Open-OfficeOneNote.md)
 Reads an offline OneNote section, notebook hierarchy, or packaged notebook.
 
@@ -1234,6 +1267,9 @@ Removes manual print page breaks from selected open worksheets.
 ### [Remove-OfficeHiddenData](Remove-OfficeHiddenData.md)
 Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.
 
+### [Remove-OfficeNotebookCell](Remove-OfficeNotebookCell.md)
+Removes a cell from a live notebook.
+
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes native annotations selected by identity, page and subtype.
 
@@ -1290,6 +1326,9 @@ Saves an OfficeIMO LaTeX document.
 
 ### [Save-OfficeMarkdown](Save-OfficeMarkdown.md)
 Saves a live Markdown document using its native save policy and keeps it available.
+
+### [Save-OfficeNotebook](Save-OfficeNotebook.md)
+Atomically saves a live notebook as .ipynb and leaves it open for further editing.
 
 ### [Save-OfficeOpenDocument](Save-OfficeOpenDocument.md)
 Saves a native OpenDocument model with entry-level preservation diagnostics.
@@ -1404,6 +1443,9 @@ Applies an OfficeTheme or theme XML to a workbook.
 
 ### [Set-OfficeExcelValidation](Set-OfficeExcelValidation.md)
 Sets prompt and error messages on existing validation rules.
+
+### [Set-OfficeNotebookCell](Set-OfficeNotebookCell.md)
+Updates cell text or a saved code-cell execution count without running code.
 
 ### [Set-OfficeOpenDocumentCell](Set-OfficeOpenDocumentCell.md)
 Sets a typed zero-based cell value in an OpenDocument spreadsheet.
@@ -1576,3 +1618,5 @@ Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML do
 ## About Topics
 
 ### [about_PSWriteOffice](About/about_PSWriteOffice.md)
+
+### [about_PSWriteOffice_Notebook](About/about_PSWriteOffice_Notebook.md)

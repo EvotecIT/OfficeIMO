@@ -25,8 +25,12 @@ public class OdsReadComparisonBenchmarks {
                 $"ODS read validation failed for {Scale}: expected {expected}; " +
                 $"OfficeIMO {officeIMO}; OpenStandardLibrary {openStandardLibrary}.");
         }
-        BenchmarkOutputValidationLog.Passed("OfficeIMO", $"Scale={Scale}; characters={officeIMO}");
-        BenchmarkOutputValidationLog.Passed("OpenStandardLibrary", $"Scale={Scale}; characters={openStandardLibrary}");
+        OdsOutputEvidence officeIMOCells = OdsComparisonValidation.Inspect("OfficeIMO", scale, _package);
+        long openStandardLibraryCells = OdsComparisonValidation.InspectOpenStandardLibrary(scale, _package);
+        BenchmarkOutputValidationLog.Passed("OfficeIMO",
+            $"Scale={Scale}; all {officeIMOCells.RecordCount} cell values compared by position; characters={officeIMO}");
+        BenchmarkOutputValidationLog.Passed("OpenStandardLibrary",
+            $"Scale={Scale}; all {openStandardLibraryCells} cell values compared by position; characters={openStandardLibrary}");
     }
 
     /// <summary>Opens and enumerates every populated cell through OfficeIMO.</summary>

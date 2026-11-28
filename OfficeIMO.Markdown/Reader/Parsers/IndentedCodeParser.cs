@@ -7,10 +7,10 @@ internal static partial class MarkdownReader {
     /// Parses indented code blocks (4-space indented). This is a pragmatic subset intended to improve
     /// compatibility with common Markdown sources; output is represented as a fenced <see cref="CodeBlock"/>.
     /// </summary>
-    internal sealed class IndentedCodeParser : IMarkdownBlockParser {
+    internal sealed class IndentedCodeParser : MarkdownSourceLinesBlockParser {
         private const int IndentedCodeMinimumSpaces = 4;
 
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.IndentedCodeBlocks) return false;
             if (lines == null || i < 0 || i >= lines.Length) return false;
 

@@ -133,16 +133,42 @@ public sealed class OneNoteFileNode {
         OneNoteFileNodeBaseType baseType,
         long fileOffset,
         OneNoteFileNodeChunkReference? chunkReference,
-        byte[] encodedData) {
+        byte[] encodedData)
+        : this(rawId, size, stpFormat, cbFormat, baseType, fileOffset, encodedData, 0, encodedData.Length) {
+        if (chunkReference != null) SetChunkReference(chunkReference.Offset, chunkReference.Length, chunkReference.IsNil, chunkReference.EncodedLength);
+    }
+
+    // Nodes share the fragment buffer they were read from instead of copying their payload.
+    internal OneNoteFileNode(
+        ushort rawId,
+        int size,
+        byte stpFormat,
+        byte cbFormat,
+        OneNoteFileNodeBaseType baseType,
+        long fileOffset,
+        byte[] buffer,
+        int dataOffset,
+        int dataLength) {
         RawId = rawId;
         Size = size;
         StpFormat = stpFormat;
         CbFormat = cbFormat;
         BaseType = baseType;
         FileOffset = fileOffset;
-        ChunkReference = chunkReference;
-        EncodedData = OneNoteBinaryPayload.FromOwnedBytes(encodedData);
+        _buffer = buffer;
+        _dataOffset = dataOffset;
+        _dataLength = dataLength;
     }
+
+    // A section has dozens of nodes per page, so the node keeps only plain fields and creates
+    // the public wrappers on access.
+    private readonly byte[] _buffer;
+    private readonly int _dataOffset;
+    private readonly int _dataLength;
+    private ulong _chunkOffset;
+    private ulong _chunkLength;
+    private byte _chunkEncodedLength;
+    private byte _chunkState;
 
     /// <summary>Raw 10-bit file-node identifier.</summary>
     public ushort RawId { get; }
@@ -166,10 +192,36 @@ public sealed class OneNoteFileNode {
     public long FileOffset { get; }
 
     /// <summary>Leading decoded chunk reference for base types 1 and 2.</summary>
-    public OneNoteFileNodeChunkReference? ChunkReference { get; }
+    public OneNoteFileNodeChunkReference? ChunkReference => HasChunkReference
+        ? new OneNoteFileNodeChunkReference(_chunkOffset, _chunkLength, ChunkIsNil, _chunkEncodedLength)
+        : null;
 
     /// <summary>Complete encoded <c>fnd</c> payload, including any leading chunk reference.</summary>
-    public OneNoteBinaryPayload EncodedData { get; }
+    public OneNoteBinaryPayload EncodedData => OneNoteBinaryPayload.FromOwnedRange(_buffer, _dataOffset, _dataLength);
+
+    // The chunk reference is kept as fields so most nodes never allocate the public wrapper.
+    internal bool HasChunkReference => _chunkState != 0;
+    internal bool ChunkIsNil => _chunkState == 2;
+    internal bool HasUsableChunkReference => _chunkState == 1 && (_chunkOffset != 0 || _chunkLength != 0);
+    internal ulong ChunkOffset => _chunkOffset;
+    internal ulong ChunkLength => _chunkLength;
+    internal int ChunkEncodedLength => _chunkEncodedLength;
+
+    internal void SetChunkReference(ulong offset, ulong length, bool isNil, int encodedLength) {
+        _chunkOffset = offset;
+        _chunkLength = length;
+        _chunkEncodedLength = checked((byte)encodedLength);
+        _chunkState = isNil ? (byte)2 : (byte)1;
+    }
+
+    // Copies the payload for the reader's decoders, with the same bounds check as EncodedData.ToArray(maxBytes).
+    internal byte[] GetEncodedBytes(int maxBytes) {
+        if (_dataLength > maxBytes) throw new IOException("The OneNote payload exceeds the requested materialization limit.");
+        if (_dataLength == 0) return Array.Empty<byte>();
+        var copy = new byte[_dataLength];
+        Buffer.BlockCopy(_buffer, _dataOffset, copy, 0, _dataLength);
+        return copy;
+    }
 
     /// <summary>Decoded child list when this node has file-node-list base type.</summary>
     public OneNoteFileNodeList? ReferencedFileNodeList { get; internal set; }

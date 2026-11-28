@@ -48,6 +48,8 @@ struct DocumentFacts: Decodable, Sendable {
     let canMakeSearchable: Bool?
     /// Whether the document's form fields can be filled.
     let canFillForms: Bool?
+    /// Whether form fields can be added, changed and removed.
+    let canAuthorForms: Bool?
     /// Whether a password protects the document.
     let isEncrypted: Bool?
     /// Whether its password protection can change without the owner password.

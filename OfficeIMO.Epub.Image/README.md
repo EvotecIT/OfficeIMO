@@ -40,6 +40,12 @@ External URLs never select retained package bytes. Use asynchronous export with
 `ResourceResolver` to supply policy-approved external resources; synchronous
 export reports external images that still need resolution.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Epub.Image
+```
+
 ## Fixed-layout canvas inspection
 
 Inspect one retained XHTML chapter declared `pre-paginated` before exporting it:

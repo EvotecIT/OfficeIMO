@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class UnorderedListParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class UnorderedListParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.UnorderedLists) return false;
             if (!IsUnorderedListLine(lines[i], options.TaskLists, out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
             if (!TryGetUnorderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out char firstMarker)) return false;
@@ -74,13 +74,14 @@ internal static partial class MarkdownReader {
             while (j < lines.Length) {
                 bool separatedByBlankLine = false;
                 int itemStart = j;
-                while (itemStart < lines.Length && string.IsNullOrWhiteSpace(lines[itemStart])) {
+                while (itemStart < lines.Length && lines.IsBlank(itemStart)) {
                     separatedByBlankLine = true;
                     itemStart++;
                 }
 
                 if (itemStart >= lines.Length
-                    || LooksLikeHr(lines[itemStart])
+                    || LooksLikeHr(lines, itemStart)
+                    || !lines.MayStartListItem(itemStart)
                     || !IsUnorderedListLine(lines[itemStart], options.TaskLists, out var lvlAbs, out var isTask2, out var done2, out var content2)
                     || lvlAbs < level0Abs
                     || !TryGetUnorderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out char marker)

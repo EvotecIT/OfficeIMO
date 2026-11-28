@@ -17,7 +17,7 @@ internal sealed record PdfConversionResult(string Route, string Source, long Out
 
 /// <summary>
 /// Converts documents to PDF through the same workflow routes as OfficeIMO Studio's Convert window: Word, Excel,
-/// PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw and Publisher files. PDFs convert to Word, Excel,
+/// PowerPoint, RTF, text, HTML, Markdown, Jupyter Notebook, XPS, Visio, Draw and Publisher files. PDFs convert to Word, Excel,
 /// PowerPoint and HTML the same way.
 /// </summary>
 internal static class PdfConversion {
@@ -32,7 +32,7 @@ internal static class PdfConversion {
     /// HTML or Markdown, then any that lists it.
     /// </summary>
     internal static PdfConversionSource? RouteFor(string path) {
-        string extension = Path.GetExtension(path);
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(path);
         if (string.IsNullOrEmpty(extension)) return null;
         return Sources.FirstOrDefault(source => string.Equals(source.Extensions.FirstOrDefault(), extension, StringComparison.OrdinalIgnoreCase))
             ?? Sources.FirstOrDefault(source => source.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase));

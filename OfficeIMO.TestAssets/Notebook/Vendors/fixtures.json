@@ -1,0 +1,59 @@
+{
+  "producers": [
+    {
+      "project": "deepnote/deepnote",
+      "revision": "10992a61d3b389d20c47e9c05fc2c7a3d21a89e2",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "file": "deepnote-LICENSE",
+          "sourcePath": "LICENSE",
+          "sha256": "df932fc64f318c2acae8bf6cb6dfbccd0ca8d82c1e42bdc62446487aaaed261d"
+        },
+        {
+          "file": "deepnote-hello.deepnote",
+          "sourcePath": "examples/1_hello_world.deepnote",
+          "sha256": "a4fa96ba76a5cc3fbc0fcf6966d07121a37951288d220cbeb0423a30176ee321"
+        },
+        {
+          "file": "deepnote-hello.snapshot.deepnote",
+          "sourcePath": "examples/snapshots/hello-world_18aaab73-3599-4bb5-b2ab-c05ac09f597d_latest.snapshot.deepnote",
+          "sha256": "7725c00eb3b672566c0e0ea9d401c434ac1f2b269ef174ef421f5909b02abd22"
+        },
+        {
+          "file": "deepnote-rich.snapshot.deepnote",
+          "sourcePath": "examples/snapshot-showcase.snapshot.deepnote",
+          "sha256": "c1d45af4c7cfeb7954541db628d283a5252b4a01c848fee99d8140726def1527"
+        }
+      ]
+    },
+    {
+      "project": "apache/zeppelin",
+      "revision": "9e0fcc7b8ea48167be3e71d135378a934e3f4b25",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "file": "zeppelin-LICENSE",
+          "sourcePath": "LICENSE",
+          "sha256": "f15ff9ca7d6daab292d4149dc03c671ea0413b89b3fea2ed3703847c634d4508"
+        },
+        {
+          "file": "zeppelin-NOTICE",
+          "sourcePath": "NOTICE",
+          "sha256": "0c139d43eb94db41488eb7fd159e8aade609c7614cf101d15c9d7c6f1cfff9ed"
+        },
+        {
+          "file": "zeppelin-spark.zpln",
+          "sourcePath": "notebook/Spark Tutorial/2. Spark Basic Features_2A94M5J1Z.zpln",
+          "sha256": "616fdea2a0de40b68904318528f9bf35524877f1cfde4c869190728760568107"
+        },
+        {
+          "file": "zeppelin-image.zpln",
+          "sourcePath": "notebook/Spark Tutorial/8. PySpark Conda Env in Yarn Mode_2GE79Y5FV.zpln",
+          "sha256": "7882a74c29b2c6e925e6ca4893d3252eab531c8604ac51e64dc9e3c4ad98d6d9"
+        }
+      ],
+      "release": "v0.12.0"
+    }
+  ]
+}

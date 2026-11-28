@@ -1,37 +1,38 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         /// <summary>Left of the shape.</summary>
         public OfficeLength Left {
-            get => OfficeLength.Emus(PeekOffset()?.X?.Value ?? 0L);
+            get => OfficeLength.Emus(TransformPoint("off", create: false).Int64Attribute("x") ?? 0L);
             set {
-                GetOffset().X = value.ToEmus();
+                SetTransformValue("off", "x", value.ToEmus());
                 OnGeometryChanged();
             }
         }
         /// <summary>Top of the shape.</summary>
         public OfficeLength Top {
-            get => OfficeLength.Emus(PeekOffset()?.Y?.Value ?? 0L);
+            get => OfficeLength.Emus(TransformPoint("off", create: false).Int64Attribute("y") ?? 0L);
             set {
-                GetOffset().Y = value.ToEmus();
+                SetTransformValue("off", "y", value.ToEmus());
                 OnGeometryChanged();
             }
         }
         /// <summary>Width of the shape.</summary>
         public OfficeLength Width {
-            get => OfficeLength.Emus(PeekExtents()?.Cx?.Value ?? 0L);
+            get => OfficeLength.Emus(TransformPoint("ext", create: false).Int64Attribute("cx") ?? 0L);
             set {
-                GetExtents().Cx = value.ToEmus();
+                SetTransformValue("ext", "cx", value.ToEmus());
                 OnGeometryChanged();
             }
         }
         /// <summary>Height of the shape.</summary>
         public OfficeLength Height {
-            get => OfficeLength.Emus(PeekExtents()?.Cy?.Value ?? 0L);
+            get => OfficeLength.Emus(TransformPoint("ext", create: false).Int64Attribute("cy") ?? 0L);
             set {
-                GetExtents().Cy = value.ToEmus();
+                SetTransformValue("ext", "cy", value.ToEmus());
                 OnGeometryChanged();
             }
         }
@@ -47,22 +48,6 @@ namespace OfficeIMO.PowerPoint {
 
         // Glued connectors follow geometry edits made through this API.
         internal void OnGeometryChanged() => OwnerSlide?.RerouteConnectorsAttachedTo(this);
-
-        internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
-            bool found = TryGetBoundsPoints(out left, out top, out width, out height);
-            if (found && width > 0D && height > 0D) return true;
-            if (OwnerSlide != null && GetPlaceholderShape() is { } placeholder) {
-                PowerPointLayoutBox? bounds = OwnerSlide.GetExportPlaceholderBounds(placeholder);
-                if (bounds.HasValue) {
-                    left = bounds.Value.Left.ToPoints();
-                    top = bounds.Value.Top.ToPoints();
-                    width = bounds.Value.Width.ToPoints();
-                    height = bounds.Value.Height.ToPoints();
-                    return width > 0D && height > 0D;
-                }
-            }
-            return found;
-        }
 
         internal bool TryGetBoundsPoints(out double left, out double top, out double width, out double height) {
             left = 0D;
@@ -195,123 +180,82 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        // Reading a position must not write an empty transform: a placeholder without one inherits its layout's
-        // geometry, and an empty <a:off/> is invalid.
-        private A.Offset? PeekOffset() => Element switch {
-            Shape s => s.ShapeProperties?.Transform2D?.Offset,
-            ConnectionShape c => c.ShapeProperties?.Transform2D?.Offset,
-            Picture p => p.ShapeProperties?.Transform2D?.Offset,
-            GraphicFrame g => g.Transform?.Offset,
-            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Offset,
-            _ => GetOffset()
-        };
+        // The children of p:sp, p:cxnSp and p:pic before and after their shape properties, in sequence order.
+        private static readonly OfficeXmlChildOrder ConnectorOrder = new(
+            new[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new[] { "nvCxnSpPr", "spPr", "style", "extLst" });
+        private static readonly OfficeXmlChildOrder PictureOrder = new(
+            new[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new[] { "nvPicPr", "blipFill", "spPr", "style", "extLst" });
+        private static readonly OfficeXmlChildOrder GraphicFrameOrder = new(
+            new[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.PresentationML }, new[] { "nvGraphicFramePr", "xfrm", "graphic", "extLst" });
+        private static readonly OfficeXmlChildOrder GroupOrder = new(
+            new[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new[] { "nvGrpSpPr", "grpSpPr" });
+        private static readonly OfficeXmlChildOrder TransformOrder = new(
+            new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "off", "ext", "chOff", "chExt" });
 
-        private A.Extents? PeekExtents() => Element switch {
-            Shape s => s.ShapeProperties?.Transform2D?.Extents,
-            ConnectionShape c => c.ShapeProperties?.Transform2D?.Extents,
-            Picture p => p.ShapeProperties?.Transform2D?.Extents,
-            GraphicFrame g => g.Transform?.Extents,
-            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Extents,
-            _ => GetExtents()
-        };
-
-        private A.Offset GetOffset() {
-            switch (Element) {
-                case Shape s:
-                    s.ShapeProperties ??= new ShapeProperties();
-                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    s.ShapeProperties.Transform2D.Offset ??= new A.Offset();
-                    return s.ShapeProperties.Transform2D.Offset;
-                case ConnectionShape c:
-                    c.ShapeProperties ??= new ShapeProperties();
-                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    c.ShapeProperties.Transform2D.Offset ??= new A.Offset();
-                    return c.ShapeProperties.Transform2D.Offset;
-                case Picture p:
-                    p.ShapeProperties ??= new ShapeProperties();
-                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    p.ShapeProperties.Transform2D.Offset ??= new A.Offset();
-                    return p.ShapeProperties.Transform2D.Offset;
-                case GraphicFrame g:
-                    g.Transform ??= new Transform();
-                    g.Transform.Offset ??= new A.Offset();
-                    return g.Transform.Offset;
-                case GroupShape g:
-                    A.TransformGroup transform = EnsureTransformGroup(g);
-                    transform.Offset ??= new A.Offset();
-                    return transform.Offset;
+        // The shape's transform: a:xfrm in its shape properties (p:xfrm for a graphic frame). Reading must not write an
+        // empty transform: a placeholder without one inherits its layout's geometry, and an empty a:off is invalid.
+        private OfficeXmlNode TransformElement(bool create) {
+            OfficeXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML) {
+                return create ? throw new NotSupportedException() : default;
+            }
+            switch (element.LocalName) {
+                case "sp":
+                case "cxnSp":
+                case "pic": {
+                    OfficeXmlChildOrder order = element.LocalName == "sp" ? PShapeView.Order : element.LocalName == "cxnSp" ? ConnectorOrder : PictureOrder;
+                    OfficeXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spPr", order) : element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+                    return create ? properties.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "xfrm") : properties.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+                }
+                case "graphicFrame":
+                    return create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "xfrm", GraphicFrameOrder) : element.Child(OfficeXmlNamespaces.PresentationML, "xfrm");
+                case "grpSp": {
+                    OfficeXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "grpSpPr", GroupOrder) : element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
+                    if (!create) return properties.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+                    // A group transform carries its child offset and extents as well.
+                    OfficeXmlNode transform = properties.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "xfrm");
+                    foreach (string point in new[] { "off", "ext", "chOff", "chExt" }) EnsurePoint(transform, point);
+                    return transform;
+                }
                 default:
-                    throw new NotSupportedException();
+                    return create ? throw new NotSupportedException() : default;
             }
         }
 
-        private A.Extents GetExtents() {
-            switch (Element) {
-                case Shape s:
-                    s.ShapeProperties ??= new ShapeProperties();
-                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    s.ShapeProperties.Transform2D.Extents ??= new A.Extents();
-                    return s.ShapeProperties.Transform2D.Extents;
-                case ConnectionShape c:
-                    c.ShapeProperties ??= new ShapeProperties();
-                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    c.ShapeProperties.Transform2D.Extents ??= new A.Extents();
-                    return c.ShapeProperties.Transform2D.Extents;
-                case Picture p:
-                    p.ShapeProperties ??= new ShapeProperties();
-                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    p.ShapeProperties.Transform2D.Extents ??= new A.Extents();
-                    return p.ShapeProperties.Transform2D.Extents;
-                case GraphicFrame g:
-                    g.Transform ??= new Transform();
-                    g.Transform.Extents ??= new A.Extents();
-                    return g.Transform.Extents;
-                case GroupShape g:
-                    A.TransformGroup transform = EnsureTransformGroup(g);
-                    transform.Extents ??= new A.Extents();
-                    return transform.Extents;
-                default:
-                    throw new NotSupportedException();
-            }
+        // a:off, a:ext, a:chOff or a:chExt of a transform, added with zero values when missing.
+        private static OfficeXmlNode EnsurePoint(OfficeXmlNode transform, string point) {
+            OfficeXmlNode existing = transform.Child(OfficeXmlNamespaces.DrawingML, point);
+            if (!existing.IsNone) return existing;
+            OfficeXmlNode created = transform.AddOrdered(OfficeXmlNamespaces.DrawingML, point, TransformOrder);
+            bool extents = point is "ext" or "chExt";
+            created.SetAttribute(extents ? "cx" : "x", "0");
+            created.SetAttribute(extents ? "cy" : "y", "0");
+            return created;
+        }
+
+        private OfficeXmlNode TransformPoint(string point, bool create) {
+            OfficeXmlNode transform = TransformElement(create);
+            return create ? EnsurePoint(transform, point) : transform.Child(OfficeXmlNamespaces.DrawingML, point);
+        }
+
+        private void SetTransformValue(string point, string attribute, long value) {
+            TransformPoint(point, create: true).SetInt64Attribute(attribute, value);
+            OwnerPartRef.MarkEdited();
         }
 
         private bool TryGetTransformValues(out long x, out long y, out long cx, out long cy) {
-            x = 0L;
-            y = 0L;
-            cx = 0L;
-            cy = 0L;
-            (A.Offset? offset, A.Extents? extents) = Element switch {
-                Shape s => (s.ShapeProperties?.Transform2D?.Offset, s.ShapeProperties?.Transform2D?.Extents),
-                ConnectionShape c => (c.ShapeProperties?.Transform2D?.Offset, c.ShapeProperties?.Transform2D?.Extents),
-                Picture p => (p.ShapeProperties?.Transform2D?.Offset, p.ShapeProperties?.Transform2D?.Extents),
-                GraphicFrame g => (g.Transform?.Offset, g.Transform?.Extents),
-                GroupShape g => (g.GroupShapeProperties?.TransformGroup?.Offset, g.GroupShapeProperties?.TransformGroup?.Extents),
-                _ => (null, null)
-            };
-
-            long? offsetX = offset?.X?.Value;
-            long? offsetY = offset?.Y?.Value;
-            long? width = extents?.Cx?.Value;
-            long? height = extents?.Cy?.Value;
-            if (!offsetX.HasValue || !offsetY.HasValue || !width.HasValue || !height.HasValue) {
+            x = y = cx = cy = 0L;
+            OfficeXmlNode transform = TransformElement(create: false);
+            OfficeXmlNode offset = transform.Child(OfficeXmlNamespaces.DrawingML, "off"), extents = transform.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            if (offset.Int64Attribute("x") is not long offsetX || offset.Int64Attribute("y") is not long offsetY
+                || extents.Int64Attribute("cx") is not long width || extents.Int64Attribute("cy") is not long height) {
                 return false;
             }
-
-            x = offsetX.Value;
-            y = offsetY.Value;
-            cx = width.Value;
-            cy = height.Value;
+            x = offsetX;
+            y = offsetY;
+            cx = width;
+            cy = height;
             return true;
-        }
-
-        private static A.TransformGroup EnsureTransformGroup(GroupShape group) {
-            group.GroupShapeProperties ??= new GroupShapeProperties();
-            A.TransformGroup transform = group.GroupShapeProperties.TransformGroup ??= new A.TransformGroup();
-            transform.Offset ??= new A.Offset();
-            transform.Extents ??= new A.Extents();
-            transform.ChildOffset ??= new A.ChildOffset();
-            transform.ChildExtents ??= new A.ChildExtents();
-            return transform;
         }
 
         private static (double x, double y) ResolveAnchorPoint(PowerPointLayoutBox bounds, PowerPointShapeAnchor anchor) {

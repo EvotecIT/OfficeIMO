@@ -6,7 +6,7 @@ public sealed partial class PowerPointDocument {
     /// <summary>Inventories the VBA part and signature relationship without reading its bytes or decoding module names. Payload length remains unknown.</summary>
     public OfficeVbaProjectInfo? InspectVbaProjectMetadata() {
         ThrowIfDisposed();
-        return _presentationPart.VbaProjectPart is { } part ? OfficeOpenXmlPackagePayload.CreateVbaDescriptor(part) : null;
+        return SdkPresentationPart.VbaProjectPart is { } part ? OfficeOpenXmlPackagePayload.CreateVbaDescriptor(part) : null;
     }
 
     /// <summary>Inventories inert native payloads and creates a bounded cumulative read session. Keep this presentation open for new reads; returned streams are detached and caller-owned.</summary>

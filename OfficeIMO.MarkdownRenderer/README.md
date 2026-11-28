@@ -113,11 +113,11 @@ string updateScript = MarkdownRenderer.RenderUpdateScript(markdownText, options)
 
 ## Related packages
 
-- [OfficeIMO.Markdown](../OfficeIMO.Markdown/README.md)
-- [OfficeIMO.Markdown.Html](../OfficeIMO.Markdown.Html/README.md)
-- [OfficeIMO.MarkdownRenderer.Wpf](../OfficeIMO.MarkdownRenderer.Wpf/README.md)
-- [OfficeIMO.MarkdownRenderer.IntelligenceX](../OfficeIMO.MarkdownRenderer.IntelligenceX/README.md)
-- [OfficeIMO.MarkdownRenderer.SamplePlugin](../OfficeIMO.MarkdownRenderer.SamplePlugin/README.md)
+- [OfficeIMO.Markdown](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markdown/README.md)
+- [OfficeIMO.Markdown.Html](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markdown.Html/README.md)
+- [OfficeIMO.MarkdownRenderer.Wpf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.MarkdownRenderer.Wpf/README.md)
+- [OfficeIMO.MarkdownRenderer.IntelligenceX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.MarkdownRenderer.IntelligenceX/README.md)
+- [OfficeIMO.MarkdownRenderer.SamplePlugin](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.MarkdownRenderer.SamplePlugin/README.md)
 
 ## Targets and license
 
@@ -130,4 +130,4 @@ string updateScript = MarkdownRenderer.RenderUpdateScript(markdownText, options)
 - **External:** `System.Text.Json`; optional Mermaid, chart, math, and Prism behavior is carried as shell assets rather than managed runtime packages.
 - **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Markdown.Html` own parsing and HTML mapping; this package owns shells, presets, updates, and plug-in registration.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

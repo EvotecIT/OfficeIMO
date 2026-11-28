@@ -2,6 +2,41 @@
 
 This guide shows every `OfficeIMO.Pdf` workflow with an example. Installation and the shortest examples are in the [package README](../OfficeIMO.Pdf/README.md); exact coverage and known limits are in [PDF current state](officeimo.pdf.current-state.md).
 
+## Embedded fonts and color emoji
+
+Embedded fonts follow their OS/2 `fsType` licence, read the least restrictive way when several permissions are set. A font that forbids embedding or allows only bitmaps is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that forbids subsetting is embedded whole.
+
+Color emoji fonts keep their color. Text in a run with COLR glyphs (Segoe UI Emoji) or CBDT/sbix PNG glyphs (Noto Color Emoji, Apple Color Emoji) is written as invisible, searchable text, and each glyph's color layers or image are painted at the same position, so extraction and `ActualText` return the exact source. The artwork follows the text's rotation and skew, including in text watermarks, and translucent palette colors keep their alpha. COLR v1 gradients are painted as solid layers, and SVG glyphs are reported by the text encoding preflight.
+
+## Read a few pages of a large PDF
+
+For a large, stable PDF when you only need a few pages, use `PdfDocument.LoadSeekable(...)`.
+Initial admission scans the complete PDF with a bounded read cache. Later page reads fetch the
+encoded ranges they need. Saving, fingerprinting and operations that need the exact source read
+the complete PDF. The library holds a path open until disposal when the operating system can
+exclude writes. Otherwise the path overload takes a bounded snapshot.
+
+Pass a seekable stream at the start of the PDF, with a length when it occupies part of a larger
+stream. Keep the input available and unchanged until the document is disposed. The document
+preserves the stream position during its reads.
+
+## Rendering with ICC output profiles
+
+Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
+
+## Extract PDF assets
+
+```csharp
+using var pdf = PdfDocument.Load("artwork.pdf");
+IReadOnlyList<string> files = pdf.ExtractAssets("artwork-assets");
+```
+
+The new folder contains distinct images and embedded font programs, ICC profiles and an SVG for each page. Open `report.html` to browse the files and see image placement DPI, page boxes in millimetres, spot colorants and font subset status. `report.json` contains the same inventory in a machine-readable form.
+
+Supported image soft masks are saved as RGBA PNGs by default. Pass `CompositeSoftMasks = false` in `PdfAssetExtractionOptions` to use the ordinary image extraction formats. Standalone TrueType and OpenType programs with unusable names receive a repaired name table. Font subsets keep the glyphs the PDF embedded, and raw CFF and Type 1 programs keep their decoded bytes.
+
+Use `ExtractAssetsTo` to open a stream for each bundle file, or `ExtractEmbeddedFonts` to save the fonts alone. The same extraction is available in the browser. [Extract PDF assets](https://officeimo.com/browser/extract-pdf-assets/)
+
 ## Find your task
 
 | I want to | Go to |
@@ -377,7 +412,7 @@ PdfDocument.Create(document => document
 
 Decorated elements use a scoped flow frame rather than a second layout engine. Rows, sections, multi-column flow, layers, deferred content, nested elements, and explicit page breaks therefore retain their normal pagination behavior inside an element, while its background and borders continue across page fragments. `KeepTogether` and `KeepWithNext` are strict promises: content that depends on a dynamic page callback, automatic multi-column pagination, a deferred table, a generated table of contents, a canvas, or an explicit page boundary cannot be preflighted and is rejected when such a promise requires its complete height. Move that content outside the constrained element or flow instead of relying on best-effort pagination.
 
-Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`. `Managed` selects the shared dependency-light provider for its [horizontal static-font Arabic/Hebrew/Latin profile](../OfficeIMO.Core/README.md#managed-multilingual-shaping), including supported mark attachment and required Arabic ligatures. A declined run reports approximation loss, so `ThrowIfLoss()` rejects its fallback. Supply a profile containing your embedded font family, fallbacks, language and shaping provider when the document requires broader scripts or reproducible font selection.
+Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`. `Managed` selects the shared dependency-light provider for its [horizontal static-font Arabic/Hebrew/Latin profile](officeimo.core-guide.md#managed-multilingual-shaping), including supported mark attachment and required Arabic ligatures. A declined run reports approximation loss, so `ThrowIfLoss()` rejects its fallback. Supply a profile containing your embedded font family, fallbacks, language and shaping provider when the document requires broader scripts or reproducible font selection.
 
 For a complete generated sample, see [`Pdf.AuthoringModel.cs`](../OfficeIMO.Examples/Pdf/Pdf.AuthoringModel.cs). The existing report, invoice, label-sheet, ticket, table-style, drawing, dashboard, and statement examples build on the same public content model.
 
@@ -608,7 +643,7 @@ Emoji ZWJ, keycap, skin-tone, flag and tag sequences shape to the font's own lig
 
 The static multilingual profile declines device-dependent or variable anchors, feature variations, Indic and Southeast Asian syllable shaping, and true vertical glyph layout. Keep a full OpenType provider such as the optional `OfficeIMO.Drawing.HarfBuzz` adapter when those operations are needed. These limits are separate from the font loader's broader TrueType, CFF/CFF2 and variation support. Inspect conversion diagnostics and use a strict no-loss policy when approximated fallback is unacceptable.
 
-See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust) for supported substitutions and limits, and the [shared managed shaping contract](../OfficeIMO.Core/README.md#managed-multilingual-shaping) for source-cluster and provider behavior.
+See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust) for supported substitutions and limits, and the [shared managed shaping contract](officeimo.core-guide.md#managed-multilingual-shaping) for source-cluster and provider behavior.
 
 `PdfParagraph.FeatureSettings(...)` applies the same per-run policy to subsequent plain, styled, linked and fallback text. Use `ResetFeatureSettings()` to restore the default policy. Runs supplied through `Runs(...)` retain their own feature settings.
 
@@ -1060,6 +1095,10 @@ PdfDocumentReadResult rtl = PdfDocument.Load("arabic-report.pdf").Read(
 ```
 
 Table schema remains evidence-based. Tagged header roles or distinct header typography can establish the first row as a header. Otherwise `SchemaKind` is `Unknown`, every source row remains data, and `Columns` contains empty names; the parser does not invent translated or English column labels.
+
+Structured reads, the default profile, read tagged tables from their structure when the catalog declares `/MarkInfo /Marked true`. Each `TH` and `TD` takes its text from the marked content it references, so wrapped lines join into one cell value and cells keep their grid position whatever their spacing on the page. `RowSpan` and `ColSpan` place cells on the grid: the spanning cell holds the text and reports `RowSpan` or `ColumnSpan` on `PdfLogicalTableCell`, and the positions it covers stay empty with `IsCoveredBySpan`. Rows and columns that hold no text anywhere in the table are dropped; a row span that starts in a dropped row starts on the first remaining row it covers, and empty cells inside the remaining grid stay. `THead` rows, or a first row of `TH` cells, become the header; stacked header rows join each column's texts top to bottom into its name and stay out of the body rows. When the header is repeated on later pages, each page's table starts with it; otherwise later pages take their column names from it. Segments of one `Table` element on consecutive pages with the same column count form one continuation group, whatever their position on the page and whatever other tables sit between them, so Excel export writes them as one table; a page without a segment, or a change in column count, starts a new group. Word export merges spanned cells; Excel tables cannot hold merged cells, so covered positions stay empty there.
+
+Tagged reconstruction is skipped, and geometric detection reads the page as it would without tags, when its tags do not hold together: children other than row groups, rows and cells, overlapping spans, a row whose cells reference content on two pages, cells that reference marked content the page does not contain, rows whose cell order contradicts the cells' positions, or no row with two filled cells (a layout table). `PdfDocumentReadResult.TaggedTableDiagnostics` lists each skipped table with its page and reason; geometry may or may not find a table there. Files without `/Marked true` skip this step and use geometry only.
 
 The structured reader handles repeated column gutters, mixed Latin/Hebrew/Arabic fragments, and dominant quarter-turn text layouts while retaining source-page geometry. Invisible searchable-text boxes use their selection geometry for line and table recovery. Reconstructed columns expose full source-page rectangles in `PdfLogicalTableColumn.VisualBounds`; at 90 or 270 degrees, distinct columns can share the same X projection in `From` and `To`. Continuation matching uses their actual progression axis. For OCR providers that merge columns into one line, opt into [`ReconstructLayout`](../OfficeIMO.Pdf.Ocr/README.md#reconstruct-columns-and-mixed-direction-text). The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md) records exact fixture coverage and recognition limits.
 

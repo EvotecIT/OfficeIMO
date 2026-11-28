@@ -87,8 +87,11 @@ provenance before entering the maintained corpus.
 Run with .NET 10, Python 3 and Java 21 installed, or dispatch **EPUBCheck evidence**
 in GitHub Actions. The script downloads the pinned EPUBCheck 5.4.0 ZIP at run time
 and verifies its SHA-256 before extracting it. It validates native books,
-DOCX, Markdown and HTML manuscript imports, and books after chapter splits,
-merges, resource renames, fixed-layout changes and narration edits.
+DOCX, Markdown and HTML manuscript imports and catalog exports, and books after
+chapter splits, merges, resource renames, fixed-layout changes and narration
+edits. The catalog fixtures preserve the exact bytes produced by the one-step
+export. They record the native preflight finding for missing reviewed accessibility
+metadata and still run the same EPUBCheck checks as the authored fixtures.
 
 ```sh
 python3 Build/Epub/check_fixtures.py --output /path/to/task-evidence/epubcheck

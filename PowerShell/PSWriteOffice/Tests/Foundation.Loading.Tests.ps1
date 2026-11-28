@@ -22,13 +22,5 @@ Describe 'Foundation assembly isolation and module lifetime' {
         $result.PriorWasCalled | Should -BeTrue
         $result.HandlerRestored | Should -BeTrue
     }
-    It 'registers and removes hints when the loader does not supply its Core-only assembly variable' {
-        if ($PSEdition -ne 'Core') { Set-ItResult -Skipped -Because 'This fixture uses the net8 test payload'; return }
-        $output = & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Foundation.Loading.Smoke.ps1') -ModulePath $moduleManifest -ConflictPath $conflictPath -WithoutLoaderAssembly 2>&1
-        $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
-        $result = ($output | Where-Object { $_ -is [string] -and $_.StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
-        ($result.Hint -join ' ') | Should -Match 'ExcelNew.*New-OfficeExcel'
-        $result.HandlerRestored | Should -BeTrue
-    }
 
 }

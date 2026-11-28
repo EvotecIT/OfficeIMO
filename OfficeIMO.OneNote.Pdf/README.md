@@ -2,6 +2,12 @@
 
 `OfficeIMO.OneNote.Pdf` converts the typed offline OneNote model to PDF without Microsoft Graph, a OneNote installation, or a commercial dependency. It provides a semantic document path and a position-preserving page path.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.OneNote.Pdf
+```
+
 ## Semantic PDF
 
 The semantic path projects OneNote through `OfficeIMO.OneNote.Markdown`, then uses the first-party `OfficeIMO.Markdown.Pdf` and `OfficeIMO.Pdf` engines. It favors selectable text and normal document reflow:

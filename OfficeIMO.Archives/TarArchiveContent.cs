@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Archives;
 
-/// <summary>The kind of a TAR member.</summary>
+/// <summary>The kind of an archive member.</summary>
 public enum ArchiveEntryKind {
     /// <summary>A regular file with content.</summary>
     File,

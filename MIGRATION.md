@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 518 commands and 180 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 534 commands and 180 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -45,6 +45,7 @@ For .NET code:
 - **PDF links in Markdown.** With `PdfLogicalMarkdownOptions.IncludeLinkAnnotations` on, which the Reader's default PDF profile sets, web and mail links are written as Markdown links on the text they cover, such as `[the project site](https://example.com)`, instead of a separate `[Link: ...]` line per annotation. Links to places inside the document (citations, cross-references, page jumps) and viewer actions such as NextPage no longer add a line; their text is already in the body. A web link whose text cannot be matched, a link to another PDF file (including one on a contents entry) and a link with an unsupported URI scheme are listed once per target in the old `[Link: ...]` form; an unmatched web link adds no line when another link on the same page already shows that target inline. Set `PdfLogicalMarkdownOptions.LinkStyle = PdfLogicalMarkdownLinkStyle.List` to keep one line per annotation.
 - **Chart snapshot values and axis crossings.** PowerPoint, Word and Excel chart snapshots report an empty cell (a point Office left out of the chart cache, or a blank source cell) as `double.NaN` instead of 0, and `OfficeChartLayout.BlankDisplay` says whether it is drawn as a gap, a connecting line or zero. Skip non-finite values when you total snapshot data. `OfficeChartLayout.HorizontalAxisCrossingPosition` and `VerticalAxisCrossingPosition` now come from the `c:crosses` of the axis they place, so a PowerPoint or Word value axis with `crosses="max"` reports a vertical crossing at the maximum rather than a horizontal one. Charts written without a title now set `c:autoTitleDeleted` to 1: Excel otherwise titles a one-series chart with its series name. Setting a title clears it.
 - **Chart fidelity in image and PDF export.** Word, Excel and PowerPoint image and PDF export draw a chart only when the shared renderer reproduces it exactly. A chart with formatting the renderer cannot draw, such as a PowerPoint chart surface it cannot reproduce or a trendline dash pattern it has no equivalent for, is skipped with `unsupported-chart` and the reason, where some of these charts used to be drawn with that formatting left out. Set `ChartRendering.Fidelity = OfficeChartFidelity.BestEffort` on the image or PDF options (or `-ChartFidelity BestEffort` on the `New-Office*ImageOptions` and `New-Office*PdfOptions` cmdlets) to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning. A chart number format that cannot be read, which used to skip the chart, is now drawn as General with a `chart-approximation` warning. `ExcelChart.ToImage` throws `NotSupportedException` with the reason when a chart cannot be drawn, instead of `InvalidOperationException`; catch `NotSupportedException`, or both while you support older versions.
+- **Lossless WebP effort.** `OfficeImageEncodingEffort.Balanced`, the default, searches much harder. In our benchmarks it writes lossless WebP files about the size of libwebp's default output, much smaller than before, but takes 5 to 10 times as long. It needs about 40 bytes of working memory per pixel; when the managed memory limit leaves less room than that, the image is written as exact uncompressed pixels, where the previous Balanced could still compress it. If you relied on the previous Balanced speed or memory use, set `Effort = OfficeImageEncodingEffort.Fast` on `OfficeWebpEncodeOptions`: in the same benchmarks it runs about as fast as the previous Balanced and still writes smaller files.
 - **Argument validation.** Nonblank string guards use the .NET throw helpers: null values throw `ArgumentNullException`, while empty or whitespace-only values throw `ArgumentException`. If you match exact exception types or messages, handle null separately and check `ParamName` instead of localized message text. Catching `ArgumentException` still catches both.
 
 ### Common jobs
@@ -6862,6 +6863,25 @@ To keep the previous stored values, register the handler with
 `ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
 that option or updated expectations.
 
+## Reader transport for Mobipocket and Kindle
+
+Reader uses `ReaderInputKind.Mobi` (`33`) for MOBI, PalmDOC and KF8 imports,
+which require Reader JSON schema version 18. Use
+`OfficeDocumentReadResultSchema.GetJsonSchema()` to validate current output.
+OfficeIMO reads versions 5 through 18.
+
+
+## Reader transport for FictionBook
+
+Reader uses `ReaderInputKind.Fb2` (`32`) for FB2 and FB2.ZIP imports, which require
+Reader JSON schema version 17. OfficeIMO also reads earlier schemas, including
+version 16 for `ReaderInputKind.Comic` (`34`) in CBZ imports.
+
+## Reader transport for comic archives
+
+Reader uses `ReaderInputKind.Comic` (`34`) for CBZ imports. Version 16 introduced this
+kind and remains readable.
+
 ## TOML Reader identity and transport
 
 Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.
@@ -7132,7 +7152,7 @@ Decimal field extraction rejects precision loss and underflow instead of returni
 
 Native paragraph `Text`, inline snapshots and Draw text projection now collapse literal XML spaces, tabs, carriage returns and line feeds across supported spans and hyperlinks, and remove leading and trailing literal whitespace. Applications that previously treated source XML indentation as visible text should use the decoded paragraph view or inspect detached XML through `ToXml()` when they need the source syntax. Source character limits still count removed whitespace.
 
-Intentional whitespace written through typed `Text` remains encoded as explicit ODF whitespace elements. Existing `text:s`, `text:tab` and `text:line-break` content and non-XML Unicode spaces retain their characters. Ruby annotations no longer appear in paragraph text; ruby base text remains visible. See the [paragraph whitespace profile](OfficeIMO.OpenDocument/README.md#paragraph-whitespace) for cached-field and native appearance limits.
+Intentional whitespace written through typed `Text` remains encoded as explicit ODF whitespace elements. Existing `text:s`, `text:tab` and `text:line-break` content and non-XML Unicode spaces retain their characters. Ruby annotations no longer appear in paragraph text; ruby base text remains visible. See the [paragraph whitespace profile](Docs/officeimo.opendocument-guide.md#paragraph-whitespace) for cached-field and native appearance limits.
 
 ## Draw window-dependent text colors
 
@@ -7142,7 +7162,7 @@ ODG-to-PDF conversion with `ThrowOnSkippedOrUnsupported` now reject this fallbac
 where earlier versions could accept it. Use `ReportOnly` when the saved RGB
 fallback is acceptable, or give the source a fixed foreground policy. ODG/FODG
 saves retain the original declarations. See the
-[Draw text style cascade](OfficeIMO.OpenDocument/README.md#draw-text-style-cascade).
+[Draw text style cascade](Docs/officeimo.opendocument-guide.md#draw-text-style-cascade).
 
 ## ODF style identifiers
 
@@ -7380,9 +7400,9 @@ have independent versions.
 
 Draw `ToDrawing` uses `OfficeDrawingRichText` with paragraph descriptors instead of uniform `OfficeDrawingText` labels. Consumers inspecting drawing elements should read `PlainText`, `Runs` and `Paragraphs`; SVG, raster and PDF resolve paragraph positions with the configured fonts at render time. Supported text can now be present when its custom geometry is skipped. Inspect per-shape text mappings for unsupported layout, retained field caches, list labels, malformed or oversized input, and producer-specific defaults. Use `ThrowOnAnyLoss` when approximation is unacceptable.
 
-Draw projection approximates explicit width, height or both-axis growth for ordinary text boxes with horizontal text and top placement. Width grows first; height uses the selected wrapping option at that resolved width. Absolute instance minima replace the corresponding saved frame dimensions, and matching-unit maxima cap growth. A minimum can shrink a frame; a cap that clips text fails strict projection. Constrained and growing frames require both growth axes explicitly enabled or disabled. Relative, pixel, orphaned or inconsistent constraints and fitting combined with growth still fail strict projection. Width growth reserves horizontal ink insets before alignment and wrapping. Capped no-wrap text keeps its paragraph and text-area anchor. Width caps with unwrapped paint overflow and fixed-height wrapped clipping reject strict projection; growth does not enlarge pages. Chained text-box sources and incoming targets report unsupported flow even when the local target is empty. Source stories, links and saved geometry remain unchanged. See the [text-box sizing contract](OfficeIMO.OpenDocument/README.md#draw-text-box-sizing).
+Draw projection approximates explicit width, height or both-axis growth for ordinary text boxes with horizontal text and top placement. Width grows first; height uses the selected wrapping option at that resolved width. Absolute instance minima replace the corresponding saved frame dimensions, and matching-unit maxima cap growth. A minimum can shrink a frame; a cap that clips text fails strict projection. Constrained and growing frames require both growth axes explicitly enabled or disabled. Relative, pixel, orphaned or inconsistent constraints and fitting combined with growth still fail strict projection. Width growth reserves horizontal ink insets before alignment and wrapping. Capped no-wrap text keeps its paragraph and text-area anchor. Width caps with unwrapped paint overflow and fixed-height wrapped clipping reject strict projection; growth does not enlarge pages. Chained text-box sources and incoming targets report unsupported flow even when the local target is empty. Source stories, links and saved geometry remain unchanged. See the [text-box sizing contract](Docs/officeimo.opendocument-guide.md#draw-text-box-sizing).
 
-Draw projection now reports `text-clipped` when shared layout omits content or clips text paint in fixed text frames and line/connector captions, including text without fitting. The check includes frame bounds, paragraph margins, padding, tabs, glyphs, decorations, highlights and shared layout limits. `ThrowOnSkippedOrUnsupported` rejects these cases instead of accepting a preview with missing text. Adjust the frame, margins, padding, line spacing or font sizes; inspect the report when using `ReportOnly`. Pass an `OfficeRenderingProfile` to the new `ToDrawing` or `ToDrawings` overload when supplying custom fonts or shaping. ODG-to-PDF checks use its final `PdfCreateOptions` font selection. Later font-provider changes to returned drawings can alter the result. Unembedded PDF standard fonts use Adobe metrics; reader substitutes can paint outside those bounds. Configure licensed embedded fonts when predictable font selection is required. See the [Draw text fitting contract](OfficeIMO.OpenDocument/README.md#draw-text-fitting).
+Draw projection now reports `text-clipped` when shared layout omits content or clips text paint in fixed text frames and line/connector captions, including text without fitting. The check includes frame bounds, paragraph margins, padding, tabs, glyphs, decorations, highlights and shared layout limits. `ThrowOnSkippedOrUnsupported` rejects these cases instead of accepting a preview with missing text. Adjust the frame, margins, padding, line spacing or font sizes; inspect the report when using `ReportOnly`. Pass an `OfficeRenderingProfile` to the new `ToDrawing` or `ToDrawings` overload when supplying custom fonts or shaping. ODG-to-PDF checks use its final `PdfCreateOptions` font selection. Later font-provider changes to returned drawings can alter the result. Unembedded PDF standard fonts use Adobe metrics; reader substitutes can paint outside those bounds. Configure licensed embedded fonts when predictable font selection is required. See the [Draw text fitting contract](Docs/officeimo.opendocument-guide.md#draw-text-fitting).
 
 Draw groups reject assignment to `Transform`, because ODF does not allow `draw:transform` on a group and native applications can discard it. Add children first and call `TransformChildren` to apply the operation to their geometry. The operation rejects attached connectors and unknown elements before changing any child; detach those ends or transform supported leaf shapes individually. Existing free connector routes and lines have their coordinates baked into native output.
 
@@ -10466,3 +10486,24 @@ Word output passes `text-align` from `body`, and from a `div` around a list, to 
 Word saves built-in styles under their English built-in name (`heading 1`, `Quote`, `toc 1`) but a translated identifier, such as `Titre1` and `Citation` in French or `berschrift1` in German. OfficeIMO now finds built-in styles by that name. `WordParagraph.Style` reads `Titre1` as `Heading1`, and setting a built-in style, `SetStyleId("Quote")`, `Styles.GetOrAdd`, lists, tables of contents, and HTML and Markdown imports reuse the template's definition instead of adding an English `Heading1` beside it. Word-to-HTML and Markdown export localized headings and quotes as headings and quotes, and PDF and OpenDocument export localized headings as headings. Code that compared `StyleId` with `"Heading1"` to find headings should read `Style` instead.
 
 HTML imported into Word now indents a block quote directly only when neither the document's quote style nor a CSS class style formats it, and a class style on `dt` or `dd` is no longer replaced by the definition-list styles. Remove workarounds that reapplied class styles or removed the quote indent after import. `HtmlWordExportOptions.DefaultParagraphStyleId`, `PreferDocumentStyles` and `IgnoreCssFormatting`, and `MarkdownWordExportOptions.DefaultParagraphStyleId` and `PreferDocumentStyles`, keep imported content on the target document's styles.
+
+## Jupyter Markdown conversion
+
+`officeimo convert lab.ipynb lab.md` uses the notebook export route and includes
+supported saved outputs and embedded images. Use
+`officeimo read lab.ipynb --format markdown --output lab.md` for the previous
+Reader projection, or pass `--assets` to extract assets separately.
+
+## Large XLSX worksheets are checked while rows are read
+
+On .NET 8 and later, `ExcelDocument.OpenReader` checks an XLSX worksheet of 1 MB or more that
+declares its dimension while it returns rows, instead of before the first row. Every returned row is
+valid, but an invalid cell or malformed XML later in the worksheet now raises its exception from the
+`Read` that reaches it, after the rows before it were returned. A cell outside the declared dimension
+raises `InvalidDataException` at its row.
+
+If your code applies rows as it reads them and cannot undo a part-way read, set
+`new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to keep the previous behaviour.
+Setting `Execution.Mode = ExcelExecutionMode.Sequential` also validates first, without background
+threads.
+

@@ -1566,7 +1566,7 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/comments.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:comments xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:comment w:initials="PK" w:author="Przemysław" w:date="9999-12-31T23:59:59.9999999" w:id="1">
     <w:p>
       <w:r>

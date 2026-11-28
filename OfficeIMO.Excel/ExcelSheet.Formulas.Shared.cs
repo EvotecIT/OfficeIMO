@@ -1,6 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -19,18 +17,19 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyDictionary<uint, SharedFormulaDefinition> BuildSharedFormulaDefinitions(
-            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
-            IEnumerable<Cell>? cells = null) {
+            IReadOnlyDictionary<ExcelFormulaCell, (int Row, int Column)>? effectiveCoordinates = null,
+            IEnumerable<ExcelFormulaCell>? cells = null) {
             var definitions = new Dictionary<uint, SharedFormulaDefinition>();
             if (cells == null && !HasSharedFormulas()) return definitions;
             effectiveCoordinates ??= BuildEffectiveCellCoordinates();
-            cells ??= ExcelWorksheetScan.Cells(WorksheetRoot);
-            foreach (Cell cell in cells) {
-                CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
-                if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
-                    || cellFormula.SharedIndex?.Value is not uint sharedIndex
-                    || string.IsNullOrWhiteSpace(cellFormula.Text)
-                    || cellFormula.Text.Length > MaxSupportedFormulaLength
+            cells ??= EnumerateFormulaCells();
+            foreach (ExcelFormulaCell cell in cells) {
+                if (cell.FormulaKind != ExcelFormulaKind.Shared
+                    || !cell.HasFormula
+                    || cell.SharedIndex is not uint sharedIndex
+                    || cell.FormulaText is not string text
+                    || string.IsNullOrWhiteSpace(text)
+                    || text.Length > MaxSupportedFormulaLength
                     || !effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     continue;
                 }
@@ -41,49 +40,48 @@ namespace OfficeIMO.Excel {
                         new SharedFormulaDefinition(
                             coordinate.Row,
                             coordinate.Column,
-                            cellFormula.Text,
-                            cellFormula.Reference?.Value));
+                            text,
+                            cell.FormulaReference));
                 }
             }
 
             return definitions;
         }
 
-        private static bool HasSharedFormulas(List<Cell> formulaCells) {
-            foreach (Cell cell in formulaCells) {
-                if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value == CellFormulaValues.Shared) return true;
+        private static bool HasSharedFormulas(List<ExcelFormulaCell> formulaCells) {
+            foreach (ExcelFormulaCell cell in formulaCells) {
+                if (cell.FormulaKind == ExcelFormulaKind.Shared) return true;
             }
             return false;
         }
 
         private bool HasSharedFormulas() {
-            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
-                if (formula.FormulaType?.Value == CellFormulaValues.Shared) return true;
+            foreach (ExcelFormulaCell cell in EnumerateFormulaCells()) {
+                if (cell.FormulaKind == ExcelFormulaKind.Shared) return true;
             }
             return false;
         }
 
         private string ResolveCellFormulaText(
-            Cell cell,
+            ExcelFormulaCell cell,
             IReadOnlyDictionary<uint, SharedFormulaDefinition>? sharedFormulaDefinitions = null,
-            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null) {
-            CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
-            if (cellFormula == null) {
+            IReadOnlyDictionary<ExcelFormulaCell, (int Row, int Column)>? effectiveCoordinates = null) {
+            if (!cell.HasFormula) {
                 return string.Empty;
             }
 
-            string formula = cellFormula.Text ?? string.Empty;
-            if (cellFormula.FormulaType?.Value != CellFormulaValues.Shared || formula.Length > 0) {
+            string formula = cell.FormulaText ?? string.Empty;
+            if (cell.FormulaKind != ExcelFormulaKind.Shared || formula.Length > 0) {
                 return formula;
             }
 
-            if (cellFormula.SharedIndex?.Value is not uint sharedIndex) {
+            if (cell.SharedIndex is not uint sharedIndex) {
                 return string.Empty;
             }
 
             int row;
             int column;
-            if (!ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out row, out column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(cell.Reference, out row, out column)) {
                 effectiveCoordinates ??= BuildEffectiveCellCoordinates();
                 if (!effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     return string.Empty;
@@ -123,16 +121,16 @@ namespace OfficeIMO.Excel {
 
         internal IReadOnlyDictionary<string, string> BuildResolvedFormulaTextMap() {
             var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
+            List<ExcelFormulaCell> formulaCells = EnumerateFormulaCells().ToList();
             // The coordinate map covers every cell of the sheet, so a sheet without formulas skips building it.
             if (formulaCells.Count == 0) {
                 return formulas;
             }
 
-            IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
+            IReadOnlyDictionary<ExcelFormulaCell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
-            foreach (Cell cell in formulaCells) {
+            foreach (ExcelFormulaCell cell in formulaCells) {
                 if (effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     formulas[BuildCellReference(coordinate.Row, coordinate.Column)] =
                         ResolveCellFormulaText(cell, sharedFormulaDefinitions, effectiveCoordinates);
@@ -140,147 +138,6 @@ namespace OfficeIMO.Excel {
             }
 
             return formulas;
-        }
-
-        private IReadOnlyList<string> ResolveSharedFormulaTextsForStructuralValidation() {
-            List<Cell> sharedCells = FindSharedFormulaCells();
-            if (sharedCells.Count == 0) {
-                return Array.Empty<string>();
-            }
-
-            IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
-            IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions =
-                BuildSharedFormulaDefinitions(effectiveCoordinates);
-
-            var resolved = new List<string>();
-            foreach (Cell cell in sharedCells) {
-                string text = ResolveCellFormulaText(cell, definitions, effectiveCoordinates);
-                if (string.IsNullOrWhiteSpace(text)) {
-                    throw new InvalidOperationException(
-                        $"Cannot edit rows because shared formula group {ExcelWorksheetScan.FindFormula(cell)!.SharedIndex!.Value} cannot be validated safely.");
-                }
-                resolved.Add(text);
-            }
-            return resolved;
-        }
-
-        private List<Cell> FindSharedFormulaCells() {
-            var cells = new List<Cell>();
-            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
-                if (formula.FormulaType?.Value == CellFormulaValues.Shared
-                    && formula.SharedIndex?.Value != null
-                    && formula.Parent is Cell cell) {
-                    cells.Add(cell);
-                }
-            }
-            return cells;
-        }
-
-        private void MaterializeWorkbookSharedFormulasForStructuralEdit() {
-            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
-                if (sheetElement.Id?.Value is not string relationshipId
-                    || WorkbookPartRoot.GetPartById(relationshipId) is not DocumentFormat.OpenXml.Packaging.WorksheetPart worksheetPart) {
-                    continue;
-                }
-
-                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
-                    ? this
-                    : new ExcelSheet(
-                        _excelDocument,
-                        _spreadSheetDocument,
-                        sheetElement,
-                        registerSheetWrapper: false);
-                sheet.MaterializeSharedFormulasForStructuralEdit();
-            }
-        }
-
-        private void ValidateWorkbookSharedFormulasForStructuralEdit() {
-            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
-                if (sheetElement.Id?.Value is not string relationshipId
-                    || WorkbookPartRoot.GetPartById(relationshipId) is not DocumentFormat.OpenXml.Packaging.WorksheetPart worksheetPart) {
-                    continue;
-                }
-
-                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
-                    ? this
-                    : new ExcelSheet(
-                        _excelDocument,
-                        _spreadSheetDocument,
-                        sheetElement,
-                        registerSheetWrapper: false);
-                sheet.ResolveSharedFormulaTextsForStructuralValidation();
-            }
-        }
-
-        private void MaterializeSharedFormulasForStructuralEdit() {
-            List<Cell> sharedCells = FindSharedFormulaCells();
-            if (sharedCells.Count == 0) {
-                return;
-            }
-
-            IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
-            IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions =
-                BuildSharedFormulaDefinitions(effectiveCoordinates);
-            var resolved = new List<(CellFormula Formula, string Text)>();
-            foreach (Cell cell in sharedCells) {
-                CellFormula formula = ExcelWorksheetScan.FindFormula(cell)!;
-                if (formula.SharedIndex?.Value is not uint sharedIndex) {
-                    continue;
-                }
-
-                string text = ResolveCellFormulaText(cell, definitions, effectiveCoordinates);
-                if (string.IsNullOrWhiteSpace(text)) {
-                    throw new InvalidOperationException(
-                        $"Cannot edit rows because shared formula group {sharedIndex} cannot be materialized safely.");
-                }
-
-                resolved.Add((formula, text));
-            }
-
-            foreach ((CellFormula formula, string text) in resolved) {
-                formula.Text = text;
-                formula.FormulaType = null;
-                formula.SharedIndex = null;
-                formula.Reference = null;
-                formula.CalculateCell = true;
-            }
-        }
-
-        private IReadOnlyDictionary<Cell, (int Row, int Column)> BuildEffectiveCellCoordinates(
-            IEnumerable<Row>? rows = null,
-            IEnumerable<Cell>? cells = null) {
-            var coordinates = new Dictionary<Cell, (int Row, int Column)>();
-            uint previousRow = 0U;
-            rows ??= WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
-                ?? Enumerable.Empty<Row>();
-            ILookup<OpenXmlElement?, Cell>? cellsByRow =
-                cells?.ToLookup(cell => cell.Parent);
-            foreach (Row row in rows) {
-                uint effectiveRow = GetEffectiveRowIndex(row, previousRow);
-                int previousColumn = 0;
-                IEnumerable<Cell> rowCells = cellsByRow == null
-                    ? row.Elements<Cell>()
-                    : cellsByRow[row];
-                foreach (Cell cell in rowCells) {
-                    int effectiveColumn = previousColumn + 1;
-                    if (ExcelA1.TryParseCellReferenceFast(
-                        cell.CellReference?.Value,
-                        out int explicitRow,
-                        out int explicitColumn)) {
-                        coordinates[cell] = (explicitRow, explicitColumn);
-                        effectiveColumn = explicitColumn;
-                    } else if (effectiveRow <= (uint)ExcelA1.MaxRows
-                        && effectiveColumn <= ExcelA1.MaxColumns) {
-                        coordinates[cell] = (checked((int)effectiveRow), effectiveColumn);
-                    }
-
-                    previousColumn = effectiveColumn;
-                }
-
-                previousRow = effectiveRow;
-            }
-
-            return coordinates;
         }
 
         private static bool ContainsSharedFormulaCell(SharedFormulaDefinition definition, int row, int column) {

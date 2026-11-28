@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -19,28 +20,8 @@ namespace OfficeIMO.PowerPoint {
             long nativeHeight = (height ?? defaults.Height).ToEmus();
             PreflightTitleReflow(top ?? defaults.Top, height ?? defaults.Height);
 
-            string name = GenerateUniqueName("Title");
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Title })
-                ),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                ),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))
-                )
-            );
-
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, _slidePart));
+            PowerPointTextBox textBox = BuildTextShape(text, "rect", GenerateUniqueName("Title"), nativeLeft,
+                nativeTop, nativeWidth, nativeHeight, isTitle: true);
             ReflowAuthoringContent();
             return textBox;
         }
@@ -62,30 +43,52 @@ namespace OfficeIMO.PowerPoint {
             long nativeWidth = (width ?? OfficeLength.Emus(7772400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(3962400L)).ToEmus();
             ArgumentNullException.ThrowIfNull(text);
+            return BuildTextShape(text, "rect", GenerateUniqueName("TextBox"), nativeLeft,
+                nativeTop, nativeWidth, nativeHeight, isTextBox: true);
+        }
 
-            string name = GenerateUniqueName("TextBox");
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }) { TextBox = true },
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                ),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))
-                )
-            );
+        private PowerPointTextBox BuildTextShape(string text, string preset, string name, long left, long top,
+            long width, long height, bool isTextBox = false, bool isTitle = false) {
+            const int presentation = OfficeXmlNamespaces.PresentationML;
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            uint id = AllocateShapeId();
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode tree = EnsureCommonSlideData(part).GetOrAddChild(presentation, "spTree", PCommonSlideDataView.Order);
+            OfficeXmlNode shape = tree.CreateElement(presentation, "sp");
+            OfficeXmlNode nonVisual = shape.Append(shape.CreateElement(presentation, "nvSpPr"));
+            OfficeXmlNode drawingProperties = nonVisual.Append(nonVisual.CreateElement(presentation, "cNvPr"));
+            drawingProperties.SetUInt32Attribute("id", id);
+            drawingProperties.SetAttribute("name", name);
+            OfficeXmlNode shapeDrawing = nonVisual.Append(nonVisual.CreateElement(presentation, "cNvSpPr"));
+            if (isTextBox) shapeDrawing.SetBooleanAttribute("txBox", true);
+            shapeDrawing.Append(shapeDrawing.CreateElement(drawing, "spLocks")).SetBooleanAttribute("noGrp", true);
+            OfficeXmlNode application = nonVisual.Append(nonVisual.CreateElement(presentation, "nvPr"));
+            if (isTitle) application.Append(application.CreateElement(presentation, "ph")).SetAttribute("type", "title");
 
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, _slidePart));
-            return textBox;
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(presentation, "spPr"));
+            OfficeXmlNode transform = properties.Append(properties.CreateElement(drawing, "xfrm"));
+            OfficeXmlNode offset = transform.Append(transform.CreateElement(drawing, "off"));
+            offset.SetInt64Attribute("x", left);
+            offset.SetInt64Attribute("y", top);
+            OfficeXmlNode extents = transform.Append(transform.CreateElement(drawing, "ext"));
+            extents.SetInt64Attribute("cx", width);
+            extents.SetInt64Attribute("cy", height);
+            OfficeXmlNode geometry = properties.Append(properties.CreateElement(drawing, "prstGeom"));
+            geometry.SetAttribute("prst", preset);
+            geometry.Append(geometry.CreateElement(drawing, "avLst"));
+            OfficeXmlNode body = shape.Append(shape.CreateElement(presentation, "txBody"));
+            body.Append(body.CreateElement(drawing, "bodyPr"));
+            body.Append(body.CreateElement(drawing, "lstStyle"));
+            OfficeXmlNode paragraph = body.Append(body.CreateElement(drawing, "p"));
+            if (paragraph.Tree is { } package) {
+                PowerPointTreeText.AppendInlineContent(package, paragraph.Node, text, OfficeXmlTree.NoNode);
+            } else {
+                PowerPointTextContent.InsertInlineContent(paragraph, text, default, default);
+            }
+
+            shape = tree.Append(shape);
+            part.MarkEdited();
+            return TrackShape((PowerPointTextBox)WrapSlideShape(shape, part)!);
         }
 
         /// <summary>

@@ -573,17 +573,17 @@ namespace OfficeIMO.Excel {
 
         private void EnsureCommentVmlShape(int row, int column, bool visible = false, ExcelCommentAnchor? commentAnchor = null) {
             var vmlPart = GetOrCreateCommentVmlPart();
-            var doc = LoadOrCreateVmlDocument(vmlPart);
+            var doc = LoadCommentVmlDocument(vmlPart);
             var root = doc.Root;
             if (root == null) return;
 
-            RemoveVmlShape(root, row, column);
-
-            AppendCommentVmlShape(root, row, column, visible, commentAnchor, NextVmlShapeId(root));
-            SaveVmlDocument(vmlPart, doc);
+            CommentVmlShapeIndex shapes = GetCommentVmlShapeIndex(doc, root);
+            shapes.RemoveCell(row, column);
+            shapes.Add(AppendCommentVmlShape(root, row, column, visible, commentAnchor, shapes.NextShapeId));
+            KeepVmlDocument(vmlPart, doc);
         }
 
-        private static void AppendCommentVmlShape(XElement root, int row, int column, bool visible, ExcelCommentAnchor? commentAnchor, int shapeId) {
+        private static XElement AppendCommentVmlShape(XElement root, int row, int column, bool visible, ExcelCommentAnchor? commentAnchor, int shapeId) {
             var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
             var o = XNamespace.Get("urn:schemas-microsoft-com:office:office");
             var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
@@ -615,6 +615,7 @@ namespace OfficeIMO.Excel {
             );
 
             root.Add(shape);
+            return shape;
         }
 
         private bool RemoveCommentVmlShape(int row, int column) {

@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -9,10 +9,9 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="tooltip">Optional screen tip.</param>
         public void SetHyperlink(Uri uri, string? tooltip = null) {
             ArgumentNullException.ThrowIfNull(uri);
-            if (!uri.IsAbsoluteUri && OwnerSlide != null
-                && PowerPointHyperlinkResolver.TryResolveSlideFragment(
-                    OwnerSlide.SlidePart, uri, out SlidePart? targetSlidePart)) {
-                SetInternalHyperlink(targetSlidePart!, tooltip);
+            if (!uri.IsAbsoluteUri && OwnerSlide?.OwnerDocument is { } document
+                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { IsNone: false } target) {
+                SetInternalHyperlink(target, tooltip);
                 return;
             }
             if (!uri.IsAbsoluteUri) {
@@ -23,16 +22,10 @@ namespace OfficeIMO.PowerPoint {
             if (OwnerSlide == null) {
                 throw new InvalidOperationException("Hyperlinks require a shape attached to a slide.");
             }
-            if (GetNonVisualDrawingProperties(create: true) == null) {
-                throw new NotSupportedException(
-                    "This shape type does not expose non-visual drawing properties.");
-            }
+            RequireNonVisualDrawing();
 
-            OpenXmlPart ownerPart = RelationshipOwnerPart ?? OwnerSlide.SlidePart;
-            HyperlinkRelationship relationship = ownerPart.AddHyperlinkRelationship(uri, true);
-            var replacement = new A.HyperlinkOnClick { Id = relationship.Id };
-            if (!string.IsNullOrWhiteSpace(tooltip)) replacement.Tooltip = tooltip;
-            ReplaceShapeHyperlink(replacement);
+            string relationshipId = HyperlinkOwnerPart.AddExternalHyperlink(uri);
+            ReplaceShapeHyperlink(relationshipId, action: null, tooltip, remove: false);
         }
 
         /// <summary>Sets an internal click hyperlink to another slide in the same presentation.</summary>
@@ -41,123 +34,77 @@ namespace OfficeIMO.PowerPoint {
         public void SetHyperlink(PowerPointSlide targetSlide,
             string? tooltip = null) {
             ArgumentNullException.ThrowIfNull(targetSlide);
-            SetInternalHyperlink(targetSlide.SlidePart, tooltip);
+            SetInternalHyperlink(targetSlide.PartRef, tooltip);
         }
 
-        private void SetInternalHyperlink(SlidePart targetSlidePart,
-            string? tooltip) {
+        // The part the shape's hyperlink relationships belong to: the part that holds it, or its slide's part.
+        private PowerPointPartRef HyperlinkOwnerPart {
+            get {
+                PowerPointPartRef owner = OwnerPartRef;
+                return owner.IsNone ? OwnerSlide!.PartRef : owner;
+            }
+        }
+
+        private void SetInternalHyperlink(PowerPointPartRef targetSlidePart, string? tooltip) {
             if (OwnerSlide == null) {
                 throw new InvalidOperationException(
                     "Hyperlinks require a shape attached to a slide.");
             }
-            if (GetNonVisualDrawingProperties(create: true) == null) {
-                throw new NotSupportedException(
-                    "This shape type does not expose non-visual drawing properties.");
-            }
-
-            SlidePart sourceSlidePart = OwnerSlide.SlidePart;
-            PresentationPart? sourcePresentation = sourceSlidePart.GetParentPresentationPart();
-            PresentationPart? targetPresentation = targetSlidePart.GetParentPresentationPart();
-            if (sourcePresentation == null
-                || !ReferenceEquals(sourcePresentation, targetPresentation)) {
+            RequireNonVisualDrawing();
+            if (OwnerSlide.OwnerDocument is null || !ReferenceEquals(OwnerSlide.OwnerDocument, targetSlidePart.Document)) {
                 throw new ArgumentException(
                     "The hyperlink target must belong to the same presentation.",
                     "targetSlide");
             }
 
-            OpenXmlPart ownerPart = RelationshipOwnerPart ?? sourceSlidePart;
-            string relationshipId;
-            if (ownerPart is not SlidePart) {
-                Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(ownerPart, targetSlidePart);
-                HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships.FirstOrDefault(
-                    candidate => !candidate.IsExternal && candidate.Uri == targetUri)
-                    ?? ownerPart.AddHyperlinkRelationship(targetUri, false);
-                relationshipId = relationship.Id;
-            } else {
-                if (!ownerPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, targetSlidePart)))
-                    ownerPart.AddPart(targetSlidePart);
-                relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
-            }
-            var replacement = new A.HyperlinkOnClick {
-                Id = relationshipId,
-                Action = "ppaction://hlinksldjump"
-            };
-            if (!string.IsNullOrWhiteSpace(tooltip)) replacement.Tooltip = tooltip;
-            ReplaceShapeHyperlink(replacement);
+            PowerPointPartRef owner = HyperlinkOwnerPart;
+            string relationshipId = owner.Kind != PowerPointPartKind.Slide
+                ? owner.GetOrAddRelativeHyperlink(targetSlidePart)
+                : owner.GetOrAddSlideRelationship(targetSlidePart);
+            ReplaceShapeHyperlink(relationshipId, PowerPointHyperlinkResolver.SlideJumpAction, tooltip, remove: false);
         }
 
         /// <summary>Removes the click hyperlink from this shape.</summary>
-        public void ClearHyperlink() => ReplaceShapeHyperlink(replacement: null);
+        public void ClearHyperlink() => ReplaceShapeHyperlink(relationshipId: null, action: null, tooltip: null, remove: true);
 
-        private void ReplaceShapeHyperlink(A.HyperlinkOnClick? replacement) {
-            NonVisualDrawingProperties? properties = GetNonVisualDrawingProperties(create: replacement != null);
-            if (properties == null && replacement == null) return;
-            if (properties == null) {
+        // Replaces the shape's click hyperlinks with one to the relationship, keeping the previous one's sound, and
+        // removes relationships nothing uses any more.
+        private void ReplaceShapeHyperlink(string? relationshipId, string? action, string? tooltip, bool remove) {
+            OfficeXmlNode properties = NonVisualDrawingElement(create: !remove);
+            if (properties.IsNone && remove) return;
+            if (properties.IsNone) {
                 throw new NotSupportedException(
                     "This shape type does not expose non-visual drawing properties.");
             }
-            A.HyperlinkOnClick[] previous = properties.Elements<A.HyperlinkOnClick>().ToArray();
-            if (replacement != null) {
-                A.HyperlinkSound? sound = previous.SelectMany(link =>
-                    link.Elements<A.HyperlinkSound>()).FirstOrDefault();
-                if (sound != null) replacement.Append((A.HyperlinkSound)sound.CloneNode(true));
-                bool? endSound = previous.Select(link => link.EndSound?.Value)
-                    .FirstOrDefault(value => value.HasValue);
-                if (endSound.HasValue) replacement.EndSound = endSound.Value;
+            List<OfficeXmlNode> previous = properties.Children(OfficeXmlNamespaces.DrawingML, "hlinkClick").ToList();
+            OfficeXmlNode sound = default;
+            bool? endSound = null;
+            var relationshipIds = new List<string>();
+            var soundIds = new List<string>();
+            foreach (OfficeXmlNode link in previous) {
+                foreach (OfficeXmlNode linkSound in link.Children(OfficeXmlNamespaces.DrawingML, "snd")) {
+                    if (sound.IsNone) sound = linkSound.Clone();
+                    if (linkSound.Attribute(OfficeXmlNamespaces.Relationships, "embed") is { Length: > 0 } embed && !soundIds.Contains(embed)) soundIds.Add(embed);
+                }
+                endSound ??= link.BooleanAttribute("endSnd");
+                if (link.Attribute(OfficeXmlNamespaces.Relationships, "id") is { Length: > 0 } id && !relationshipIds.Contains(id)) relationshipIds.Add(id);
             }
-            string[] previousRelationshipIds = previous
-                .Select(link => link.Id?.Value)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            string[] soundRelationshipIds = previous
-                .SelectMany(link => link.Elements<A.HyperlinkSound>())
-                .Select(sound => sound.Embed?.Value)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            properties.RemoveAllChildren<A.HyperlinkOnClick>();
-            if (replacement != null) properties.Append(replacement);
+            foreach (OfficeXmlNode link in previous) link.Remove();
+            if (!remove) {
+                OfficeXmlNode replacement = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "hlinkClick");
+                replacement.SetAttribute(OfficeXmlNamespaces.Relationships, "id", relationshipId);
+                if (action != null) replacement.SetAttribute("action", action);
+                if (!string.IsNullOrWhiteSpace(tooltip)) replacement.SetAttribute("tooltip", tooltip);
+                if (endSound.HasValue) replacement.SetBooleanAttribute("endSnd", endSound.Value);
+                replacement = properties.Append(replacement);
+                if (!sound.IsNone) replacement.Append(sound);
+            }
+            OwnerPartRef.MarkEdited();
             if (OwnerSlide == null) return;
 
-            OpenXmlPart ownerPart = RelationshipOwnerPart ?? OwnerSlide.SlidePart;
-            foreach (string relationshipId in previousRelationshipIds) {
-                if (ReferencesRelationship(ownerPart.RootElement, relationshipId)) {
-                    continue;
-                }
-                HyperlinkRelationship? relationship = ownerPart.HyperlinkRelationships
-                    .FirstOrDefault(candidate => string.Equals(candidate.Id, relationshipId,
-                        StringComparison.Ordinal));
-                if (relationship != null) {
-                    ownerPart.DeleteReferenceRelationship(relationship);
-                    continue;
-                }
-                if (ownerPart.Parts.Any(pair => string.Equals(
-                        pair.RelationshipId, relationshipId,
-                        StringComparison.Ordinal))) {
-                    ownerPart.DeletePart(relationshipId);
-                }
-            }
-            foreach (string relationshipId in soundRelationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, relationshipId);
-            }
+            PowerPointPartRef owner = HyperlinkOwnerPart;
+            foreach (string id in relationshipIds) owner.RemoveRelationshipIfUnused(id, SlidePartRef);
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, SlidePartRef);
         }
-
-        private static bool ReferencesRelationship(
-            OpenXmlPartRootElement? root, string relationshipId) => root != null
-            && (root.GetAttributes().Any(attribute => string.Equals(
-                    attribute.NamespaceUri,
-                    PowerPointUtils.RelationshipIdNamespace,
-                    StringComparison.Ordinal)
-                && string.Equals(attribute.Value, relationshipId,
-                    StringComparison.Ordinal))
-                || root.Descendants().Any(element => element.GetAttributes()
-                    .Any(attribute => string.Equals(attribute.NamespaceUri,
-                            PowerPointUtils.RelationshipIdNamespace,
-                            StringComparison.Ordinal)
-                        && string.Equals(attribute.Value, relationshipId,
-                            StringComparison.Ordinal))));
     }
 }

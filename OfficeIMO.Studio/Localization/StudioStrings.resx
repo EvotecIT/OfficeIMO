@@ -2633,7 +2633,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.Description" xml:space="preserve"><value>Inspect electronic invoice data, validate exact XML, create another format, or edit selected source headers.</value></data>
   <data name="Invoice.EditingHint" xml:space="preserve"><value>Blank fields retain their current values. Replacements require an existing unique field. Signed XML is protected; related references change only when supplied separately.</value></data>
   <data name="Invoice.StandardsHint" xml:space="preserve"><value>Standards checks require the pinned rule files and a Java/Saxon runtime. Requested checks must pass before output is created.</value></data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve"><value>External Java/Saxon standards checks are unavailable in the Mac App Store edition. XML inspection, model checks, conversion and PDF creation remain available.</value></data>
   <data name="Invoice.NoInput" xml:space="preserve"><value>No invoice selected</value></data>
   <data name="Assembly.Status.Ready" xml:space="preserve"><value>Add documents, images, folders, or ZIPs in the order you want.</value></data>
   <data name="Assembly.Summary.Empty" xml:space="preserve"><value>No assembly run yet</value></data>
@@ -3024,19 +3023,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Discard changes</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>The destination file is read-only, so it was left unchanged. Choose another name or folder, or clear its read-only setting.</value></data>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>Working…</value></data>
-  <data name="Mobile.ChoosePdf" xml:space="preserve"><value>Choose a PDF document.</value></data>
-  <data name="Mobile.NothingToShare" xml:space="preserve"><value>The saved document has no location to share.</value></data>
-  <data name="Mobile.ReadingPositionFailed" xml:space="preserve"><value>The reading position could not be saved: {0}</value></data>
-  <data name="Mobile.ClipboardUnavailable" xml:space="preserve"><value>The clipboard is unavailable.</value></data>
-  <data name="Mobile.AnswerSourceChanged" xml:space="preserve"><value>The source or destination changed. Export the current answer to a separate file.</value></data>
-  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve"><value>Studio&apos;s document folder on this device is unavailable.</value></data>
-  <data name="Mobile.BrowseOutputFolder" xml:space="preserve"><value>Browse the selected output folder in Files. Open an individual result to share it.</value></data>
-  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve"><value>Studio is not ready to open a link yet.</value></data>
-  <data name="Mobile.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
-  <data name="Mobile.UseOutputFormat" xml:space="preserve"><value>Use the selected output format: {0}.</value></data>
-  <data name="Mobile.FileName" xml:space="preserve"><value>File name</value></data>
-  <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Choose a folder in Files next. Your document is written after you finish the review.</value></data>
-  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Annotations are unavailable for this document.</value></data>
   <data name="Apple.Document" xml:space="preserve"><value>Document</value></data>
   <data name="Apple.ToolsMenu" xml:space="preserve"><value>Tools</value></data>
   <data name="Apple.Help" xml:space="preserve"><value>Help</value></data>
@@ -3050,7 +3036,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.ChooseFont" xml:space="preserve"><value>Choose font</value></data>
   <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Choose a font to embed</value></data>
   <data name="Invoice.FontFiles" xml:space="preserve"><value>Fonts</value></data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Folder PDF export needs ongoing access to whole folders, which this edition of Studio does not have. Use Add files and Run pending to convert several documents.</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Select all annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Failed</value></data>
@@ -3591,9 +3576,6 @@ Option 2</value>
     <value>Assembly failed</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Choose a local output folder. Use Save As to save individual documents to cloud storage.</value></data>
-  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
-    <value>“{0}” already exists. Save will replace it after any remaining review. Continue?</value>
-  </data>
   <data name="Output.PublicationTooLarge" xml:space="preserve"><value>The output exceeds the supported document size.</value></data>
   <data name="Output.DestinationChanged" xml:space="preserve"><value>The destination file changed. Choose another location to preserve both versions.</value></data>
   <data name="Output.VerificationChanged" xml:space="preserve"><value>The saved file changed during verification. Check it before trying again.</value></data>

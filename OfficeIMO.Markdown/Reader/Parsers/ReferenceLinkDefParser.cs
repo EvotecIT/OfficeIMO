@@ -5,8 +5,8 @@ internal static partial class MarkdownReader {
     /// Parses reference-style link definitions: [label]: url "title".
     /// Definitions are stored in state and the lines are consumed (not added to the doc).
     /// </summary>
-    internal sealed class ReferenceLinkDefParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class ReferenceLinkDefParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (state.PendingGenericAttributeBlock != null
                 && IsStandaloneAttributeReferenceDefinitionParagraphTarget(lines, i, options)) {
                 return false;

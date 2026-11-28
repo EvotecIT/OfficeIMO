@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
                     _tableProperties?.TableStyle?.Remove();
                     return;
                 }
-                SetStyleId(WordTableStyles.GetStyle(value.Value).Val!.Value!);
+                SetStyleId(WordTableStyles.GetStyleId(value.Value));
             }
         }
 
@@ -326,12 +326,12 @@ namespace OfficeIMO.Word {
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, int textWidthTwips) {
             string columnWidth = GetDefaultColumnWidthTwips(textWidthTwips, columns).ToString(System.Globalization.CultureInfo.InvariantCulture);
             document.MarkTableNormalizationRequired();
-            document.EnsureStyleDefinition(WordTableStyles.GetStyle(tableStyle).Val!.Value!);
+            document.EnsureStyleDefinition(WordTableStyles.GetStyleId(tableStyle));
             Table table = new Table();
             table.AddAnnotation(new DerivedGrid());
 
             TableProperties tableProperties1 = new TableProperties();
-            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);
+            TableStyle tableStyle1 = new TableStyle { Val = WordTableStyles.GetStyleId(tableStyle) };
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
             TableLook tableLook1 = CreateTableLook(firstRow: true, lastRow: false, firstColumn: true, lastColumn: false, noHorizontalBand: false, noVerticalBand: true);
 
@@ -486,8 +486,8 @@ namespace OfficeIMO.Word {
             List<TableRow> rowElements = GetRowElements();
             _table.Append(row._tableRow);
             rowElements.Add(row._tableRow);
+            // AddCells refreshes the grid once the cells exist.
             AddCells(row, cellsCount);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
             return row;
         }
 
@@ -512,9 +512,15 @@ namespace OfficeIMO.Word {
             if (cellsCount == 0) {
                 // Match the previous row when available; otherwise use the
                 // declared grid width retained by an initially empty table.
-                List<WordTableRow> rows = Rows;
-                cellsCount = rows.Count > 1
-                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2]._tableRow)
+                // Read the preceding row from the current XML: other wrappers and direct package edits don't
+                // update this wrapper's row cache. Only a row wrapped in other markup needs the full row walk.
+                TableRow? previous = row._tableRow.PreviousSibling() switch {
+                    TableRow sibling => sibling,
+                    null or TableProperties or TableGrid => null,
+                    _ => WordTableContent.Rows(_table).TakeWhile(candidate => !ReferenceEquals(candidate, row._tableRow)).LastOrDefault()
+                };
+                cellsCount = previous != null
+                    ? WordTableContent.GridColumnCount(previous)
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {

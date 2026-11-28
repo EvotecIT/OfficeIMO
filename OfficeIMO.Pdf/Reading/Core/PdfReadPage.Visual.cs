@@ -2753,7 +2753,26 @@ public sealed partial class PdfReadPage {
         internal bool HasObjectPaint { get; private set; }
         internal bool HasVectorPaint { get; private set; }
 
+        /// <summary>The fewest straight sides that can draw a grid of two by two cells.</summary>
+        internal const int MinimumGridSegments = 6;
+
+        /// <summary>Straight sides the content constructs (a rectangle has four), capped once a grid is possible.</summary>
+        internal int StraightSegments { get; private set; }
+
+        /// <summary>
+        /// The same answer without object paint, for a pass that reads only the page's own paths: image and
+        /// inline-image invocations add nothing to it, so walking them would only cost content passes.
+        /// </summary>
+        internal PdfPageInvokedResourceNames WithoutObjectPaint() {
+            var copy = new PdfPageInvokedResourceNames { IsComplete = IsComplete, HasVectorPaint = HasVectorPaint, StraightSegments = StraightSegments };
+            copy.ColorSpaces.UnionWith(ColorSpaces);
+            return copy;
+        }
+
         internal void ObserveOperator(string op) {
+            if (op == "re") StraightSegments = Math.Min(MinimumGridSegments, StraightSegments + 4);
+            // A closing operator may draw the last side (m l l l h is a frame of four).
+            else if (op is "l" or "h" or "s" or "b" or "b*" && StraightSegments < MinimumGridSegments) StraightSegments++;
             if (op is "Do" or "BI") HasObjectPaint = true;
             if (op is "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "sh") HasVectorPaint = true;
         }

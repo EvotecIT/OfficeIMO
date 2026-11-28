@@ -9,7 +9,11 @@ namespace OfficeIMO.Excel {
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
     public partial class ExcelSheet : IDisposable {
-        private Sheet _sheet;
+        private Sheet? _sheetValue;
+        private Sheet _sheet {
+            get => _sheetValue ?? BindDeferredSheet()._sheetValue!;
+            set => _sheetValue = value;
+        }
         internal Sheet SheetElement => _sheet;
 
         /// <summary>
@@ -17,28 +21,37 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name {
             get {
+                if (_sheetValue == null && _deferredEntry != null) return _deferredEntry.Name;
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
                 _excelDocument.RenameWorksheet(this, value, ExcelSheetNameValidationMode.Strict);
             }
         }
-        private UInt32Value _id;
+        private UInt32Value? _idValue;
+        private UInt32Value _id {
+            get => _idValue ?? BindDeferredSheet()._idValue!;
+            set => _idValue = value;
+        }
         private WorksheetPart _worksheetPart {
             get {
                 _excelDocument.FlushPendingPackageEditsIfAny();
-                return _worksheetPartValue;
+                return _worksheetPartValue ?? BindDeferredSheet()._worksheetPartValue!;
             }
             set => _worksheetPartValue = value;
         }
 
-        private WorksheetPart _worksheetPartValue = null!;
+        private WorksheetPart? _worksheetPartValue;
+        /// <summary>The worksheet part as an identity, without flushing pending package edits.</summary>
+        private WorksheetPart BoundWorksheetPart => _worksheetPartValue ?? BindDeferredSheet()._worksheetPartValue!;
         internal WorksheetPart WorksheetPart {
             get {
                 CaptureOriginalDynamicSpillFingerprintIfSafe();
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                     MaterializeDeferredDataSetImportIfNeeded();
                 }
+                // Callers of the part may read its note drawing stream.
+                CommitCommentVmlChanges();
                 return _worksheetPart;
             }
         }
@@ -46,12 +59,12 @@ namespace OfficeIMO.Excel {
         private SpreadsheetDocument _spreadSheetDocument {
             get {
                 _excelDocument.FlushPendingPackageEditsIfAny();
-                return _spreadSheetDocumentValue;
+                return _spreadSheetDocumentValue ?? BindDeferredSheet()._spreadSheetDocumentValue!;
             }
             set => _spreadSheetDocumentValue = value;
         }
 
-        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
+        private SpreadsheetDocument? _spreadSheetDocumentValue;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
         private Row? _lastAccessedRow;
@@ -192,6 +205,8 @@ namespace OfficeIMO.Excel {
                 return createdCell;
             }
 
+            // A write into a row flagged for non-canonical cells first rewrites it as Excel's recovery does.
+            if (NormalizeReadRuleRow(rowElement)) _lastAccessedCell = null;
             if (rowElement is ExcelStoredRow storedRow && storedRow.IsStoreAvailable) {
                 int storedIndex = storedRow.Find(column);
                 if (storedIndex >= 0) {
@@ -201,8 +216,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 // The new cell joins the row's DOM cells in column order; stored cells merge with them when written.
-                using (ExcelStoredRow.BeginRawAccess()) {
-                    return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                // A row with DOM cells that lack canonical references is read whole, so implicit columns count stored cells.
+                if (storedRow.HasOrderedCells) {
+                    using (ExcelStoredRow.BeginRawAccess()) {
+                        return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                    }
                 }
             }
 
@@ -215,6 +233,14 @@ namespace OfficeIMO.Excel {
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
 
+            // A row flagged for non-canonical cells is rewritten canonical and in column order before the scan.
+            if (NormalizeReadRuleRow(rowElement)) _lastAccessedCell = null;
+            // References the letters-only scan resolves are compared as before. From the first cell it cannot resolve
+            // (no reference, or no row digits), columns follow the read rule, so a write updates the cell a read
+            // returns for that column.
+            bool tracking = false;
+            bool implicitColumn = false;
+            int nextImplicitColumn = 0;
             if (_lastAccessedCell != null
                 && _lastAccessedCellRowIndex == row
                 && ReferenceEquals(_lastAccessedCell.Parent, rowElement)) {
@@ -223,11 +249,17 @@ namespace OfficeIMO.Excel {
                 } else if (_lastAccessedCellColumnIndex < targetColumnIndex) {
                     insertAfterCell = _lastAccessedCell;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
-                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
-                            continue;
+                        int nextColumnIndex = 0;
+                        if (!tracking) {
+                            if (next.CellReference?.Value is string nextRefValue && nextRefValue.Length != 0) {
+                                nextColumnIndex = GetRowQualifiedColumnIndex(nextRefValue);
+                            }
+                            if (nextColumnIndex == 0) {
+                                tracking = true;
+                                nextImplicitColumn = GetImplicitColumnStart(next, row);
+                            }
                         }
-
-                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        if (tracking) nextColumnIndex = GetWriteColumnIndex(next, ref nextImplicitColumn, out implicitColumn);
                         if (nextColumnIndex == targetColumnIndex) {
                             cell = next;
                             break;
@@ -243,12 +275,19 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell == null && insertAfterCell == null) {
+                tracking = false;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
-                    if (c.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
-                        continue;
+                    int existingColumnIndex = 0;
+                    if (!tracking) {
+                        if (c.CellReference?.Value is string existingRefValue && existingRefValue.Length != 0) {
+                            existingColumnIndex = GetRowQualifiedColumnIndex(existingRefValue);
+                        }
+                        if (existingColumnIndex == 0) {
+                            tracking = true;
+                            nextImplicitColumn = GetImplicitColumnStart(c, row);
+                        }
                     }
-
-                    int existingColumnIndex = GetColumnIndex(existingRefValue);
+                    if (tracking) existingColumnIndex = GetWriteColumnIndex(c, ref nextImplicitColumn, out implicitColumn);
                     if (existingColumnIndex == targetColumnIndex) {
                         cell = c;
                         break;
@@ -272,22 +311,17 @@ namespace OfficeIMO.Excel {
                         rowElement.InsertAfter(cell, insertAfterCell);
                     }
                 } else {
-                    // Insert at beginning or append when row is empty or existing first cell has larger column index
+                    // Every cell has a column here, so without an earlier cell the first cell follows the new one.
                     var firstCell = rowElement.Elements<Cell>().FirstOrDefault();
                     if (firstCell != null) {
-                        if (firstCell.CellReference?.Value is string firstRefValue && firstRefValue.Length > 0) {
-                            if (GetColumnIndex(firstRefValue) > targetColumnIndex) {
-                                rowElement.InsertBefore(cell, firstCell);
-                            } else {
-                                rowElement.Append(cell);
-                            }
-                        } else {
-                            rowElement.Append(cell);
-                        }
+                        rowElement.InsertBefore(cell, firstCell);
                     } else {
                         rowElement.Append(cell);
                     }
                 }
+            } else if (implicitColumn) {
+                // The written cell keeps the column it was read in, now under its canonical reference.
+                cell.CellReference = BuildCellReference(row, column);
             }
 
             CacheLastAccessedCell(rowElement, row, column, cell);
@@ -657,6 +691,51 @@ namespace OfficeIMO.Excel {
             return columnName;
         }
 
+        /// <summary>
+        /// The letters-only column scan, or 0 when it never reaches a character after the letters, as for a reference
+        /// without row digits. Those references take the read rule instead.
+        /// </summary>
+        internal static int GetRowQualifiedColumnIndex(string cellReference) {
+            int columnIndex = 0;
+            for (int i = 0; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch >= 'A' && ch <= 'Z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'A' + 1);
+                    continue;
+                }
+
+                if (ch >= 'a' && ch <= 'z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'a' + 1);
+                    continue;
+                }
+
+                if (columnIndex > 0) {
+                    return columnIndex;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// The implicit column a cell would take after its previous sibling, which the letters-only scan resolved, or
+        /// which is the last accessed cell of this row.
+        /// </summary>
+        private int GetImplicitColumnStart(Cell cell, int row) {
+            Cell? previous = cell.PreviousSibling<Cell>();
+            if (previous == null) return 1;
+            if (ReferenceEquals(previous, _lastAccessedCell) && _lastAccessedCellRowIndex == row) return _lastAccessedCellColumnIndex + 1;
+            return GetRowQualifiedColumnIndex(previous.CellReference?.Value ?? string.Empty) + 1;
+        }
+
+        private static int GetWriteColumnIndex(Cell cell, ref int nextImplicitColumn, out bool implicitColumn) {
+            string? reference = cell.CellReference?.Value;
+            int columnIndex = string.IsNullOrEmpty(reference) ? 0 : ExcelA1.ParseColumnIndexFromCellReferenceFast(reference);
+            implicitColumn = columnIndex <= 0;
+            if (implicitColumn) columnIndex = nextImplicitColumn;
+            nextImplicitColumn = columnIndex + 1;
+            return columnIndex;
+        }
+
         private static int GetColumnIndex(string cellReference) {
             int columnIndex = 0;
             for (int i = 0; i < cellReference.Length; i++) {
@@ -727,7 +806,7 @@ namespace OfficeIMO.Excel {
 
         internal SharedStringCache BuildCellTextSharedStringSnapshot() {
             if (_formulaCalculationContext is { IsDisposed: false } context) {
-                return context.GetSharedStrings(_spreadSheetDocument, _excelDocument.CaptureFormulaInputMutationVersion());
+                return context.GetSharedStrings(() => SharedStringCache.Build(_spreadSheetDocument), _excelDocument.CaptureFormulaInputMutationVersion());
             }
             if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                 return SharedStringCache.Build(_spreadSheetDocument);

@@ -1,0 +1,2 @@
+*.ipynb -text -whitespace
+LICENSE.*.txt -text -whitespace

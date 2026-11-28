@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
             root.RightToLeft = settings.RightToLeft;
             root.EmbedTrueTypeFonts = settings.SaveWithFonts;
             root.SaveSubsetFonts = settings.SaveWithFonts;
-            ViewProperties? view = target._presentationPart.ViewPropertiesPart?.ViewProperties;
+            ViewProperties? view = target.SdkPresentationPart.ViewPropertiesPart?.ViewProperties;
             if (view != null) view.ShowComments = settings.ShowComments;
         }
 

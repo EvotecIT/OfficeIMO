@@ -515,7 +515,6 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
-                "OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoicePreservedXml.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfile.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfileDeclaration.cs",
@@ -532,6 +531,10 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Numerics/OfficeRounding.cs",
                 "OfficeIMO.SharedSource/Numerics/OfficeRoundTripNumberText.cs",
                 "OfficeIMO.SharedSource/Numerics/OfficeRoundTripNumberText.Parse.cs",
+                "OfficeIMO.SharedSource/OpenXml/IOfficeChartPart.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeChartOpenXmlViews.Generated.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeChartXml.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeDrawingColorTransforms.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlHiddenData.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
@@ -539,7 +542,17 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlReadOnlyPackage.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeXmlNode.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeXmlThemeColors.cs",
+                "OfficeIMO.SharedSource/OpenXmlSdk/OfficeSdkChartPart.cs",
+                "OfficeIMO.SharedSource/OpenXmlSdk/OfficeSdkXml.cs",
+                "OfficeIMO.SharedSource/Packaging/OfficeCrc32Combine.cs",
+                "OfficeIMO.SharedSource/Packaging/OfficeDeflateEncoder.cs",
+                "OfficeIMO.SharedSource/Packaging/OfficeZipWriter.cs",
                 "OfficeIMO.SharedSource/Patching/JsonPointer.cs",
+                "OfficeIMO.SharedSource/Processes/OfficeProcessArguments.cs",
+                "OfficeIMO.SharedSource/Processes/OfficeUnixProcessGroup.cs",
+                "OfficeIMO.SharedSource/Processes/OfficeWindowsProcessJob.cs",
                 "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs",
                 "OfficeIMO.SharedSource/Query/StructuredQuery.cs",
                 "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs",
@@ -926,7 +939,14 @@ public sealed class PackageDependencyGuardrailTests {
         // ReaderAllOptions exposes ArchiveTraversalOptions directly; the owning package
         // must remain a visible dependency rather than relying on an adapter's transitives.
         Assert.Contains(archives, references, StringComparer.Ordinal);
-        Assert.All(references.Where(reference => !string.Equals(reference, archives, StringComparison.Ordinal)), reference =>
+        // The preset supplies these importers to the shared EPUB adapter. Modular EPUB entry points stay independent.
+        const string comic = "../OfficeIMO.Comic/OfficeIMO.Comic.csproj";
+        const string fb2 = "../OfficeIMO.Fb2/OfficeIMO.Fb2.csproj";
+        const string mobi = "../OfficeIMO.Mobi/OfficeIMO.Mobi.csproj";
+        Assert.Contains(comic, references, StringComparer.Ordinal);
+        Assert.Contains(fb2, references, StringComparer.Ordinal);
+        Assert.Contains(mobi, references, StringComparer.Ordinal);
+        Assert.All(references.Where(reference => reference != archives && reference != comic && reference != fb2 && reference != mobi), reference =>
             Assert.StartsWith("../OfficeIMO.Reader.", reference, StringComparison.Ordinal));
         Assert.Contains("../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj", references, StringComparer.Ordinal);

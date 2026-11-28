@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
                         action(this);
                     }
                 } finally {
-                    CommitCommentVmlChanges();
+                    CommitBatchRewrittenCommentVml();
                 }
                 return;
             }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
                 } finally {
                     // Batch is not a transaction: edits made before a callback throws still need to reach Save.
                     try {
-                        CommitCommentVmlChanges();
+                        CommitBatchRewrittenCommentVml();
                         if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
                     } finally {
                         _isBatchOperation = wasBatchOperation;
@@ -61,6 +61,16 @@ namespace OfficeIMO.Excel {
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// Structural and range edits in a batch leave their note-drawing rewrites to its end, where the part stream
+        /// becomes current as it would be after the same edits outside a batch. Notes set one at a time stay loaded until the save.
+        /// </summary>
+        private void CommitBatchRewrittenCommentVml() {
+            if (!_batchRewroteCommentVml) return;
+            _batchRewroteCommentVml = false;
+            CommitCommentVmlChanges();
         }
 
         internal sealed class NoLockContext : IDisposable {
@@ -110,6 +120,16 @@ namespace OfficeIMO.Excel {
         }
 
         private void MaterializeDeferredDataSetImportIfNeeded() {
+            // A caller here works on the worksheet next; recorded values reach it, or the cell buffer, through the replay.
+            _excelDocument.OpenDeferredSdkBeforeReadingRecordedChanges();
+            MaterializeDirectDataSetImportIfNeeded();
+        }
+
+        /// <summary>
+        /// Moves a pending data set import into the worksheet. Formulas call it directly: their model reads the
+        /// recorded values of a workbook that has not opened its SDK package itself.
+        /// </summary>
+        private void MaterializeDirectDataSetImportIfNeeded() {
             if (_excelDocument.IsPreservingDirectDataSetExternalCellMutation
                 && _excelDocument.HasDeferredDirectDataSetImport
                 && !_excelDocument.HasPendingDirectCellValues) {

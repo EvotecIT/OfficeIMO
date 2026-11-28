@@ -142,7 +142,7 @@ test("Canopy report fallbacks keep unsafe links and genuine unsupported presenta
   const input = diagnostics => capture([{ id: "r", cells: { Name: cell("#r", "=visible", { diagnostics }) } }]);
   assert.equal(await (await exportCanopy(input(["relative-link"]), "csv")).text(), "Name\r\n'=visible\r\n");
   await assert.rejects(exportCanopy(input(["relative-link", "unsafe-link"]), "xlsx"), /unsafe-link/);
-  await assert.rejects(exportCanopy(input(["history-series", "custom-renderer"]), "xlsx"), /custom-renderer/);
+  await assert.rejects(exportCanopy(input(["history-series", "custom-widget"]), "xlsx"), /custom-widget/);
   const unsafe = capture([{ id: "r", cells: { Name: cell("#r", "Visible", { diagnostics: ["relative-link"], link: { target: "javascript:alert(1)" } }) } }]);
   await assert.rejects(exportCanopy(unsafe, "xlsx"), /absolute HTTP/);
   await assert.rejects(exportCanopy(input(["relative-link"]), "xlsx", { onDiagnostic: async () => {} }), /synchronous/);

@@ -244,9 +244,9 @@ namespace OfficeIMO.PowerPoint {
                     IncludeNotes = true,
                     IncludeTables = true
                 }, new PowerPointExtractChunkingOptions { MaxChars = int.MaxValue }).ToList();
-            var slides = new List<PowerPointVisualSlideProof>(_slides.Count);
-            for (int index = 0; index < _slides.Count; index++) {
-                PowerPointSlide slide = _slides[index];
+            var slides = new List<PowerPointVisualSlideProof>(LoadedSlides.Count);
+            for (int index = 0; index < LoadedSlides.Count; index++) {
+                PowerPointSlide slide = LoadedSlides[index];
                 PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(
                     new PowerPointImageExportOptions { IncludeHiddenShapes = true });
                 byte[] png = OfficeDrawingRasterRenderer.ToPng(snapshot.Drawing);

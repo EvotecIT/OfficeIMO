@@ -47,6 +47,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                NormalizeReadRuleRow(existingRow);
+
                 foreach (var existingCell in existingRow.Elements<Cell>()) {
                     int existingColumnIndex = 0;
                     string? reference = existingCell.CellReference?.Value;
@@ -201,6 +203,8 @@ namespace OfficeIMO.Excel {
                 if (existingRowIndex <= 0 || !existingRow.HasChildren) {
                     continue;
                 }
+
+                NormalizeReadRuleRow(existingRow);
 
                 foreach (var existingCell in existingRow.Elements<Cell>()) {
                     int existingColumnIndex = 0;

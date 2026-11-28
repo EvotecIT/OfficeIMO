@@ -294,7 +294,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
 
             var features = new List<PowerPointFeatureFinding>();
-            var allParts = EnumeratePowerPointPartsAndPackage(_document!, _presentationPart).ToList();
+            var allParts = EnumeratePowerPointPartsAndPackage(SdkDocument!, SdkPresentationPart).ToList();
             var packageFoundationDetails = DescribePackageFoundationParts(allParts);
             var tableMetadataDetails = DescribeTableMetadata();
             var chartDetails = DescribePartsByType<ChartPart>(allParts);
@@ -441,14 +441,14 @@ namespace OfficeIMO.PowerPoint {
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             bool hasEditableVbaProject = vbaParts.Length == 1
-                && ReferenceEquals(vbaParts[0], _presentationPart.VbaProjectPart)
-                && IsValidEditableVbaProject(_presentationPart.VbaProjectPart);
+                && ReferenceEquals(vbaParts[0], SdkPresentationPart.VbaProjectPart)
+                && IsValidEditableVbaProject(SdkPresentationPart.VbaProjectPart);
             OfficeFeatureSupportLevel vbaSupportLevel = vbaParts.Length == 0 || hasEditableVbaProject
                 ? OfficeFeatureSupportLevel.Editable
                 : OfficeFeatureSupportLevel.Preserved;
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
-            if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+            if (SdkDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
 
@@ -637,17 +637,17 @@ namespace OfficeIMO.PowerPoint {
                     }
                     string? relationshipId = entry.Id?.Value;
                     if (string.IsNullOrWhiteSpace(relationshipId)
-                        || !_presentationPart.TryGetPartById(relationshipId!,
+                        || !SdkPresentationPart.TryGetPartById(relationshipId!,
                             out OpenXmlPart? part)
                         || part is not SlidePart slidePart
-                        || !_slides.Any(slide => ReferenceEquals(
+                        || !LoadedSlides.Any(slide => ReferenceEquals(
                             slide.SlidePart, slidePart))) {
                         details.Add(scope + $" slide {entryIndex + 1} has an unresolved slide relationship.");
                     }
                 }
             }
 
-            foreach (PowerPointSlide slide in _slides) {
+            foreach (PowerPointSlide slide in LoadedSlides) {
                 foreach (A.HyperlinkType hyperlink in slide.SlidePart.Slide?
                              .Descendants<A.HyperlinkType>()
                          ?? Enumerable.Empty<A.HyperlinkType>()) {
@@ -1148,12 +1148,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool HasEditableCommentGraph() {
-            P.CommentAuthor[] classicAuthors = _presentationPart
+            P.CommentAuthor[] classicAuthors = SdkPresentationPart
                 .CommentAuthorsPart?.CommentAuthorList?
                 .Elements<P.CommentAuthor>().ToArray()
                 ?? Array.Empty<P.CommentAuthor>();
-            if (_presentationPart.CommentAuthorsPart != null
-                && _presentationPart.CommentAuthorsPart.CommentAuthorList == null) {
+            if (SdkPresentationPart.CommentAuthorsPart != null
+                && SdkPresentationPart.CommentAuthorsPart.CommentAuthorList == null) {
                 return false;
             }
             var classicIdentities = new HashSet<string>(StringComparer.Ordinal);
@@ -1217,12 +1217,12 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            P188.Author[] modernAuthors = _presentationPart.Parts
+            P188.Author[] modernAuthors = SdkPresentationPart.Parts
                 .Select(pair => pair.OpenXmlPart)
                 .OfType<PowerPointAuthorsPart>()
                 .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
                     ?? Enumerable.Empty<P188.Author>()).ToArray();
-            if (_presentationPart.Parts.Select(pair => pair.OpenXmlPart)
+            if (SdkPresentationPart.Parts.Select(pair => pair.OpenXmlPart)
                     .OfType<PowerPointAuthorsPart>()
                     .Any(part => part.AuthorList == null)
                 || modernAuthors.Any(author => string.IsNullOrWhiteSpace(
@@ -1384,7 +1384,7 @@ namespace OfficeIMO.PowerPoint {
             List<string> details = Slides
                 .SelectMany((slide, index) => DescribeRichNotesContent(slide, index + 1))
                 .ToList();
-            details.AddRange(DescribeRichNotesContent(_presentationPart.NotesMasterPart?.NotesMaster, "notes master"));
+            details.AddRange(DescribeRichNotesContent(SdkPresentationPart.NotesMasterPart?.NotesMaster, "notes master"));
             return details;
         }
 
@@ -1535,12 +1535,7 @@ namespace OfficeIMO.PowerPoint {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 byte[] workbookBytes =
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(stream);
-                using var workbookStream = new MemoryStream(workbookBytes, writable: false);
-                using SpreadsheetDocument workbook = SpreadsheetDocument.Open(
-                    workbookStream,
-                    false,
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.CreateOpenSettings());
-                return PowerPointChartWorkbookEditor.IsSafelyEditable(workbook);
+                return PowerPointChartWorkbookEditor.IsSafelyEditable(workbookBytes);
             } catch (FileFormatException) {
                 return false;
             } catch (OpenXmlPackageException) {

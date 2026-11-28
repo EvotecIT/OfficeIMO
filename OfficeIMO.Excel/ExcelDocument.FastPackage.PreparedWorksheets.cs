@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using OfficeIMO.SharedSource.Packaging;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
@@ -16,7 +17,7 @@ namespace OfficeIMO.Excel {
             private readonly DirectDataSetWorkbookWriter.ExtendedDirectWritePlan _plan;
             private readonly List<(DirectDataSetSheetModel Sheet, string? TableRelationshipId)> _sheets;
             private readonly Dictionary<WorksheetPart, int> _ordinals;
-            private readonly Task<ExcelZipWriter.PreparedEntry>?[] _tasks;
+            private readonly Task<OfficeZipWriter.PreparedEntry>?[] _tasks;
             private readonly CancellationTokenSource _cancellation;
             private readonly int _window;
             private int _started;
@@ -33,7 +34,7 @@ namespace OfficeIMO.Excel {
                 _sheets = sheets;
                 _ordinals = ordinals;
                 _window = window;
-                _tasks = new Task<ExcelZipWriter.PreparedEntry>?[sheets.Count];
+                _tasks = new Task<OfficeZipWriter.PreparedEntry>?[sheets.Count];
                 _cancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 while (_started < Math.Min(_window, _sheets.Count)) Start();
             }
@@ -85,9 +86,9 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                ExcelZipWriter.PreparedEntry entry = task.GetAwaiter().GetResult();
+                OfficeZipWriter.PreparedEntry entry = task.GetAwaiter().GetResult();
                 _tasks[ordinal] = null;
-                _archive.WritePrepared(path, entry);
+                _archive.Writer.WritePrepared(path, entry);
                 if (_started < _sheets.Count) Start();
                 return true;
             }
@@ -96,7 +97,7 @@ namespace OfficeIMO.Excel {
                 int ordinal = _started++;
                 var (sheet, tableRelationshipId) = _sheets[ordinal];
                 CancellationToken token = _cancellation.Token;
-                _tasks[ordinal] = Task.Run(() => ExcelZipWriter.Prepare(output =>
+                _tasks[ordinal] = Task.Run(() => OfficeZipWriter.Prepare(output =>
                     DirectDataSetWorkbookWriter.WriteExtendedWorksheetContents(output, _plan, sheet, tableRelationshipId, token)), token);
             }
 
@@ -106,8 +107,8 @@ namespace OfficeIMO.Excel {
                 foreach (var task in _tasks) {
                     if (task == null) continue;
                     try {
-                        task.Wait();
-                    } catch (AggregateException) {
+                        task.GetAwaiter().GetResult().Content.Release();
+                    } catch {
                         // The save already failed or completed; an abandoned sheet's error has nothing to report to.
                     }
                 }

@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf {
+
     internal static class TableLayoutCache {
         private const int MaxTableGridColumns = 16_384;
         private const int MaxTableNestingDepth = 128;
@@ -164,10 +163,8 @@ namespace OfficeIMO.Word.Pdf {
         private static int[] ResolveRowGridOffsets(WordTable table, int rowCount, bool before) {
             int[] offsets = new int[rowCount];
             for (int rowIndex = 0; rowIndex < rowCount && rowIndex < table.Rows.Count; rowIndex++) {
-                TableRowProperties? properties = table.Rows[rowIndex]._tableRow.TableRowProperties;
-                offsets[rowIndex] = before
-                    ? ToNonNegativeInt(properties?.GetFirstChild<GridBefore>()?.Val?.Value)
-                    : ToNonNegativeInt(properties?.GetFirstChild<GridAfter>()?.Val?.Value);
+                OfficeXmlNode properties = table.Rows[rowIndex].Node().WChild("trPr");
+                offsets[rowIndex] = ToNonNegativeInt(WordXml.ParseInt32(properties.ChildVal(before ? "gridBefore" : "gridAfter")));
             }
 
             return offsets;

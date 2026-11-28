@@ -1,0 +1,14 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "iOS",
+  "locale": "de-DE",
+  "metadata": {
+    "description": "Mit OfficeIMO Studio liest und bearbeitest du PDFs auf dem iPhone und iPad. Öffne deine Dokumente direkt aus der App „Dateien“.\n\nDurchsuche deine PDFs, wähle Text aus und füge Markierungen, Notizen oder Formen hinzu. Fülle unterstützte Formularfelder aus, ordne Seiten neu an und speichere oder teile das Ergebnis.\n\nWandle unterstützte Dateien in PDFs um und mache Scans mit der integrierten Texterkennung durchsuchbar. Schütze PDF-Kopien mit einem Passwort oder schwärze vertrauliche Stellen vor dem Weitergeben.\n\nWord-, Excel- und PowerPoint-Dateien kannst du auch ohne Microsoft Office schreibgeschützt öffnen. Speichere eine Kopie als PDF, um sie weiterzubearbeiten.\n\nOfficeIMO Studio verarbeitet deine Dokumente direkt auf deinem Gerät. Die App ist kostenlos und quelloffen (MIT-Lizenz). Quellcode und Hilfe von der Community findest du unter https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "formular,ausfüllen,scannen,texterkennung,ocr,konverter,schwärzen,docx,xlsx,pptx,passwort",
+    "promotionalText": "Markiere PDFs, fülle Formulare aus und mache Scans durchsuchbar. Die Verarbeitung läuft direkt auf deinem iPhone oder iPad.",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}

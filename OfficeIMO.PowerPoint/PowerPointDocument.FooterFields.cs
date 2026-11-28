@@ -25,9 +25,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Refreshes field caches from the final physical order, including reopened and appended decks.</summary>
         private void RefreshFooterFields() {
-            if (LayoutDeck.Footers.Count == 0 && !_slides.Any(slide => slide.NativeFooters.Count != 0)) return;
-            for (int index = 0; index < _slides.Count; index++) {
-                var root = _slides[index].SlidePart.Slide!;
+            if (LayoutDeck.Footers.Count == 0 && !LoadedSlides.Any(slide => slide.NativeFooters.Count != 0)) return;
+            for (int index = 0; index < LoadedSlides.Count; index++) {
+                var root = LoadedSlides[index].SlidePart.Slide!;
                 var frames = root.CommonSlideData!.ShapeTree!.Descendants<P.Shape>().Where(shape =>
                     shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
                         .GetFirstChild<A.NonVisualDrawingPropertiesExtensionList>()?
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
                     }
                     foreach (var run in frame.Descendants<A.Run>().Where(IsFooterTotal)) {
                         run.Text ??= new A.Text();
-                        run.Text.Text = " / " + _slides.Count.ToString(CultureInfo.InvariantCulture);
+                        run.Text.Text = " / " + LoadedSlides.Count.ToString(CultureInfo.InvariantCulture);
                     }
                 }
             }

@@ -4,6 +4,16 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private string AddSdkBackgroundImagePart(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension) {
+            string uri = PowerPointPartFactory.GetIndexedPartUri(SlidePart.OpenXmlPackage, "ppt/media", "image",
+                extension, allowBaseWithoutIndex: false);
+            ImagePart part = PowerPointPartFactory.CreatePart<ImagePart>(SlidePart, imageType.ToPartTypeInfo().ContentType, uri);
+            if (image.CanSeek) image.Position = 0;
+            part.FeedData(image);
+            return SlidePart.GetIdOfPart(part);
+        }
+
+
         /// <summary>
         ///     Adds an image from the given file path.
         /// </summary>
@@ -30,9 +40,10 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
             if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg) return AddImage(source, imageType, left, top, width, height);
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
+            byte[] imageBytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
+            if (TryAddPackageImage(imageBytes, imageType, imageType.ToPartTypeInfo().ContentType, imageExtension, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
             uint shapeId = AllocateShapeId();
-            (string relationshipId, int pixelWidth, int pixelHeight) = AddSlideImagePart(
-                OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source), imageType, imageExtension);
+            (string relationshipId, int pixelWidth, int pixelHeight) = AddSlideImagePart(imageBytes, imageType, imageExtension);
 
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
@@ -54,7 +65,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointImage pic = TrackShape(new PowerPointImage(picture, _slidePart));
+            PowerPointImage pic = TrackShape(new PowerPointImage(picture, SlidePart));
             // Keep the image's own aspect ratio inside the requested box instead of stretching it.
             pic.ContainInFrame(pixelWidth, pixelHeight);
             return pic;
@@ -92,6 +103,9 @@ namespace OfficeIMO.PowerPoint {
             }
             // An SVG picture stores its PNG fallback in the ordinary blip and the SVG in the Office 2016 blip extension.
             byte[] imageBytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(image);
+            if (TryAddPackageImage(imageBytes, imageType, imageType.ToPartTypeInfo().ContentType, PowerPointPartFactory.GetImageExtension(imageType), nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) {
+                return added;
+            }
             uint shapeId = AllocateShapeId();
             string relationshipId;
             int pixelWidth, pixelHeight;
@@ -128,7 +142,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointImage pic = TrackShape(new PowerPointImage(picture, _slidePart));
+            PowerPointImage pic = TrackShape(new PowerPointImage(picture, SlidePart));
             // Keep the image's own aspect ratio inside the requested box instead of stretching it.
             pic.ContainInFrame(pixelWidth, pixelHeight);
             return pic;
@@ -155,7 +169,7 @@ namespace OfficeIMO.PowerPoint {
         private bool TryAddSvgImageParts(byte[] svg, out string fallbackRelationshipId, out string svgRelationshipId,
             out int pixelWidth, out int pixelHeight) {
             PowerPointDocument? document = OwnerDocument;
-            OpenXmlPackage package = _slidePart.OpenXmlPackage;
+            OpenXmlPackage package = SlidePart.OpenXmlPackage;
             string fallbackKey = PowerPointDocument.CreateImageContentKey("svg-fallback", svg);
             if (document != null && document.TryGetReusableImagePart(fallbackKey, package, out ReusableImagePart fallback)) {
                 fallbackRelationshipId = LinkImagePart(fallback.Part);
@@ -182,7 +196,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.Drawing.OfficeImageFormat imageType, string? imageExtension = null, string? contentKey = null) {
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             PowerPointDocument? document = OwnerDocument;
-            OpenXmlPackage package = _slidePart.OpenXmlPackage;
+            OpenXmlPackage package = SlidePart.OpenXmlPackage;
             string key = contentKey ?? PowerPointDocument.CreateImageContentKey(partTypeInfo.ContentType, data);
             if (document != null && document.TryGetReusableImagePart(key, package, out ReusableImagePart reusable)) {
                 return (LinkImagePart(reusable.Part), reusable.Width, reusable.Height);
@@ -195,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
                 imageExtension ?? PowerPointPartFactory.GetImageExtension(imageType),
                 allowBaseWithoutIndex: false);
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
+                SlidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
             using (var source = new MemoryStream(data, writable: false)) {
@@ -205,14 +219,14 @@ namespace OfficeIMO.PowerPoint {
                 width = height = 0;
             }
             document?.RegisterReusableImagePart(key, new ReusableImagePart(imagePart, width, height));
-            return (_slidePart.GetIdOfPart(imagePart), width, height);
+            return (SlidePart.GetIdOfPart(imagePart), width, height);
         }
 
         private string LinkImagePart(ImagePart part) {
-            foreach (IdPartPair pair in _slidePart.Parts) {
+            foreach (IdPartPair pair in SlidePart.Parts) {
                 if (ReferenceEquals(pair.OpenXmlPart, part)) return pair.RelationshipId;
             }
-            return _slidePart.CreateRelationshipToPart(part);
+            return SlidePart.CreateRelationshipToPart(part);
         }
 
         private static OfficeIMO.Drawing.OfficeImageFormat GetImagePartType(string imagePath) {

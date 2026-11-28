@@ -2,11 +2,13 @@ using OfficePdfDocument = OfficeIMO.Pdf.PdfDocument;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
+// Every lane ends with the serialized output bytes. Post-save checks run once in each suite's setup with PdfPig,
+// outside timing: reopening the output with the producing library inside the timed operation measured readers of
+// different depth (PDFsharp's import mode parses every object; others only resolve the page tree).
 internal static partial class PdfManipulationEngines {
     internal static byte[][] SplitWithOfficeImo(byte[] source, int pagesPerDocument) {
         using var documentStream = new MemoryStream(source, writable: false);
         using OfficePdfDocument document = OfficePdfDocument.Load(documentStream);
-        int sourcePageCount = document.Pages.Count;
         IReadOnlyList<OfficePdfDocument> outputs = pagesPerDocument == 1
             ? document.Pages.Split()
             : document.Pages.Split(pagesPerDocument);
@@ -14,10 +16,6 @@ internal static partial class PdfManipulationEngines {
         try {
             for (int index = 0; index < outputs.Count; index++) {
                 bytes[index] = outputs[index].ToBytes();
-                int expectedPageCount = Math.Min(
-                    pagesPerDocument,
-                    sourcePageCount - (index * pagesPerDocument));
-                ValidateOfficeImoReadback(bytes[index], expectedPageCount);
             }
             return bytes;
         } finally {
@@ -33,9 +31,7 @@ internal static partial class PdfManipulationEngines {
                 documents.Add(OfficePdfDocument.Load(input));
             }
             using OfficePdfDocument merged = OfficePdfDocument.Merge(documents);
-            byte[] bytes = merged.ToBytes();
-            ValidateOfficeImoReadback(bytes, merged.Pages.Count);
-            return bytes;
+            return merged.ToBytes();
         } finally {
             foreach (OfficePdfDocument document in documents) document.Dispose();
         }
@@ -45,18 +41,7 @@ internal static partial class PdfManipulationEngines {
         using var input = new MemoryStream(source, writable: false);
         using OfficePdfDocument document = OfficePdfDocument.Load(input);
         using OfficePdfDocument output = document.Pages.Extract(pageNumbers);
-        byte[] bytes = output.ToBytes();
-        ValidateOfficeImoReadback(bytes, pageNumbers.Length);
-        return bytes;
+        return output.ToBytes();
     }
 
-    private static void ValidateOfficeImoReadback(byte[] bytes, int outputPageCount) {
-        using var input = new MemoryStream(bytes, writable: false);
-        using OfficePdfDocument document = OfficePdfDocument.Load(input);
-        int actualPageCount = document.Pages.Count;
-        if (actualPageCount != outputPageCount) {
-            throw new InvalidDataException(
-                $"OfficeIMO post-save validation found {actualPageCount} pages; expected {outputPageCount}.");
-        }
-    }
 }

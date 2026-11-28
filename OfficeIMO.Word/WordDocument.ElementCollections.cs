@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Word.OpenXml;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -91,6 +92,7 @@ namespace OfficeIMO.Word {
         /// <returns>List of <see cref="WordFootNote"/> items representing footnote references.</returns>
         public List<WordFootNote> FootNotes {
             get {
+                if (_ownedModel is { } model && !WordOwnedParagraphs.HasFootnotes(model)) return new List<WordFootNote>();
                 List<WordFootNote> list = new List<WordFootNote>();
                 using (UseBodySectionSnapshot()) {
                     foreach (var section in this.Sections) {

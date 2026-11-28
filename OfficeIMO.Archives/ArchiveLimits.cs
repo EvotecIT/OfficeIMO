@@ -7,7 +7,7 @@ internal sealed partial class ArchiveLimits {
         if (options.AllowedFormats != null) {
             AllowedFormats = new HashSet<ArchiveFormat>(options.AllowedFormats);
             foreach (ArchiveFormat format in AllowedFormats)
-                if (format < ArchiveFormat.Cab || format > ArchiveFormat.GZip)
+                if (format < ArchiveFormat.Cab || format > ArchiveFormat.Rar5)
                     throw new ArgumentOutOfRangeException(nameof(options.AllowedFormats));
         }
         if (options.ZipLegacyCodePage <= 0) throw new ArgumentOutOfRangeException(nameof(options.ZipLegacyCodePage));

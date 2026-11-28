@@ -59,7 +59,9 @@ public enum OfficeDocumentFormat {
     /// <summary>Microsoft Publisher publication content.</summary>
     Publisher = 29,
     /// <summary>TOML content.</summary>
-    Toml = 30
+    Toml = 30,
+    /// <summary>Jupyter computational notebook content.</summary>
+    Notebook = 31
 }
 
 /// <summary>

@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -9,15 +9,13 @@ namespace OfficeIMO.Word {
         /// their source font metrics instead of the destination document defaults.
         /// </summary>
         internal void CopyRunFormattingToParagraphMark() {
-            RunProperties? runProperties = _runProperties;
-            if (runProperties == null) return;
+            OfficeXmlNode runProperties = OwnRunPropertiesNode;
+            if (runProperties.IsNone) return;
 
-            var markProperties = new ParagraphMarkRunProperties();
-            foreach (OpenXmlElement property in runProperties.ChildElements) {
-                markProperties.Append(property.CloneNode(true));
+            OfficeXmlNode mark = WordXmlEdits.ReplaceChild(EditParagraphProperties(), "rPr", WPPrView.Order);
+            foreach (OfficeXmlNode property in runProperties.Children()) {
+                mark.Append(property.Clone());
             }
-            ParagraphProperties properties = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.ParagraphMarkRunProperties = markProperties;
         }
     }
 }

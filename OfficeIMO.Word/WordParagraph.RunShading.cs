@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
@@ -6,40 +7,29 @@ namespace OfficeIMO.Word {
         /// <summary>Native run shading fill as an uppercase six-digit hexadecimal string; empty removes it.</summary>
         internal string RunShadingFillValue {
             get {
-                RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
-                Shading? shading = runProperties?.Shading;
-                if (shading?.Val?.Value == ShadingPatternValues.Nil) {
-                    return string.Empty;
-                }
-
-                string? fill = shading?.Fill?.Value;
+                // A hyperlink's run, or the paragraph's own run; a content control's run doesn't count here.
+                OfficeXmlNode shading = RunPropertiesIgnoringContentControl.Child(W, "shd");
+                if (shading.IsNone || shading.Attribute(W, "val") == "nil") return string.Empty;
+                string? fill = shading.Attribute(W, "fill");
                 return fill != null ? fill.ToUpperInvariant() : string.Empty;
             }
             set {
-                RunProperties runProperties;
-                if (IsHyperLink) {
-                    var hyperlink = Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
+                OfficeXmlNode properties = EditRunProperties(hyperlinkInContentControl: true);
+                if (string.IsNullOrWhiteSpace(value)) {
+                    WordXmlEdits.RemoveChild(properties, "shd");
+                    return;
                 }
-
-                if (!string.IsNullOrWhiteSpace(value)) {
-                    runProperties.Shading ??= new Shading();
-                    runProperties.Shading.Fill = value.Replace("#", string.Empty).ToUpperInvariant();
-                    runProperties.Shading.ThemeFill = null;
-                    runProperties.Shading.ThemeFillTint = null;
-                    runProperties.Shading.ThemeFillShade = null;
-                    runProperties.Shading.Color = null;
-                    runProperties.Shading.ThemeColor = null;
-                    runProperties.Shading.ThemeTint = null;
-                    runProperties.Shading.ThemeShade = null;
-                    runProperties.Shading.Val = ShadingPatternValues.Clear;
-                } else {
-                    runProperties.Shading?.Remove();
-                }
+                // An existing shading becomes a clear fill of this colour, without theme or pattern colours.
+                OfficeXmlNode shading = properties.GetOrAddChild(W, "shd", WRPrView.Order);
+                shading.SetAttribute(W, "val", "clear");
+                shading.SetAttribute(W, "fill", value.Replace("#", string.Empty).ToUpperInvariant());
+                foreach (string attribute in ShadingThemeAttributes) shading.RemoveAttribute(W, attribute);
             }
         }
+
+        private static readonly string[] ShadingThemeAttributes = {
+            "themeFill", "themeFillTint", "themeFillShade", "color", "themeColor", "themeTint", "themeShade"
+        };
 
         /// <summary>
         /// Gets or sets the background (run shading fill) color applied to the current text run.

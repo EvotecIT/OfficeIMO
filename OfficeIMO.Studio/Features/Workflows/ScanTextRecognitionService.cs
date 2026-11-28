@@ -6,13 +6,14 @@ using OfficeIMO.Pdf.Ocr;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 internal interface IScanTextRecognitionService {
-    Task<PdfSearchableOcrReview> PrepareAsync(byte[] source, SearchablePdfOcrOptions options, CancellationToken cancellationToken);
+    // The review can retain the supplied private storage snapshot for subsequent page reads.
+    Task<PdfSearchableOcrReview> PrepareAsync(byte[] ownedSource, SearchablePdfOcrOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class ScanTextRecognitionService : IScanTextRecognitionService {
     private readonly StudioOcrRuntime? _runtime;
     internal ScanTextRecognitionService(StudioOcrRuntime? runtime = null) => _runtime = runtime;
-    public async Task<PdfSearchableOcrReview> PrepareAsync(byte[] source, SearchablePdfOcrOptions options, CancellationToken cancellationToken) {
+    public async Task<PdfSearchableOcrReview> PrepareAsync(byte[] ownedSource, SearchablePdfOcrOptions options, CancellationToken cancellationToken) {
         var sessionOptions = new TesseractOcrSessionOptions {
             Languages = options.Languages, ProvisionMissingLanguageData = options.ProvisionMissingLanguageData
         };
@@ -20,6 +21,7 @@ internal sealed class ScanTextRecognitionService : IScanTextRecognitionService {
             : _runtime.CreateSessionAsync(sessionOptions, cancellationToken)).ConfigureAwait(false);
         var settings = options.Pdf.Clone();
         settings.Language = options.Languages.ToTesseractExpression();
-        return await PdfDocument.Load(new MemoryStream(source)).PrepareSearchableOcrAsync(session.Engine, settings, cancellationToken).ConfigureAwait(false);
+        using PdfDocument document = PdfDocument.LoadOwned(ownedSource, cancellationToken: cancellationToken);
+        return await document.PrepareSearchableOcrAsync(session.Engine, settings, cancellationToken).ConfigureAwait(false);
     }
 }

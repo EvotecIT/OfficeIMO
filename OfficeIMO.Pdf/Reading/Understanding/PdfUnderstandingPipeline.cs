@@ -137,7 +137,14 @@ internal sealed partial class PdfUnderstandingPipeline {
     internal IReadOnlyList<PdfUnderstandingPageResult> RunPages(
         PdfReadDocument document,
         int[] pageNumbers,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        RunPages(document, pageNumbers, skipPaintedBorders: null, cancellationToken);
+
+    internal IReadOnlyList<PdfUnderstandingPageResult> RunPages(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        ISet<int>? skipPaintedBorders,
+        CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         if (pageNumbers.Length > _maxPages) throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _maxPages, pageNumbers.Length);
@@ -145,7 +152,8 @@ internal sealed partial class PdfUnderstandingPipeline {
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
-            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber, cancellationToken));
+            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber, cancellationToken,
+                skipPaintedBorders?.Contains(pageNumber) == true));
         }
         return pages.AsReadOnly();
     }
@@ -248,9 +256,12 @@ internal sealed partial class PdfUnderstandingPipeline {
         }
     }
 
-    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
+    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken,
+        bool skipPaintedBorders = false) {
         using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
-        return RunPage(CreateContext(page, pageNumber, cancellationToken), cancellationToken);
+        PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
+        context.SkipPaintedBorders = skipPaintedBorders;
+        return RunPage(context, cancellationToken);
     }
 
     internal PdfUnderstandingPageResult RunInspectionPage(PdfReadPage page, int pageNumber, bool recoverDecodableText,
@@ -306,10 +317,108 @@ internal sealed partial class PdfUnderstandingPipeline {
         EnsureCount(lines.Count, _limits.MaxLinesPerPage);
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("line-grouping", _lineGrouping.GetType(), words.Count, lines.Count));
-        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = NotNull(
-            _tableDetection.DetectTables(context, lines),
-            nameof(IPdfTableDetectionStage));
-        return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+        long consumedBeforeTables = context.WorkUnitsConsumed;
+        List<PdfUnderstandingStageTrace>? traceBeforeTables = context.SkipPaintedBorders ? new List<PdfUnderstandingStageTrace>(trace) : null;
+        // A page whose tables the tagged structure is expected to supply holds back the built-in detection entirely; the
+        // read then either takes its tables from the tags or analyses it again with detection.
+        // Pages in a reading frame keep detection: tagged tables are read in page coordinates and segmentation runs in the
+        // frame's.
+        bool holdDetection = traceBeforeTables is not null && context.ReadingFrame is null &&
+            ReferenceEquals(_tableDetection, PdfAdvancedUnderstandingStages.TableDetection);
+        // A held page stops at its lines, which is all the tagged read needs; it is segmented once, afterwards, either
+        // with its tagged tables or after detection.
+        PdfUnderstandingPageResult result = holdDetection
+            ? new PdfUnderstandingPageResult(
+                context.PageNumber,
+                runs,
+                words,
+                lines,
+                Array.Empty<PdfUnderstandingRegion>(),
+                Array.Empty<PdfUnderstandingRegion>(),
+                Array.Empty<PdfReadingOrderEvidence>(),
+                Array.Empty<PdfUnderstandingSemanticElement>(),
+                trace.AsReadOnly(),
+                context.ConsumeWork,
+                context.ThrowIfCancellationRequested,
+                context.CompleteOperation,
+                logicalProjectionLines: null,
+                restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder,
+                tableCandidates: Array.Empty<PdfUnderstandingTableCandidate>(),
+                imagePlacements: context.ImagePlacements,
+                imageRegions: Array.Empty<PdfUnderstandingImageRegion>(),
+                maxWorkUnitsPerPage: context.MaxWorkUnitsPerPage,
+                textDecodingDiagnostics: context.TextDecodingDiagnostics)
+            : RunFromLines(context, runs, words, lines,
+                NotNull(_tableDetection.DetectTables(context, lines), nameof(IPdfTableDetectionStage)),
+                _tableDetection.GetType(), trace, cancellationToken);
+        if (traceBeforeTables is not null) {
+            result.RedoWithPaintedBorders = () => {
+                using PdfReadPage.DecodedContentReuseScope contentReuse = context.Page.ReuseDecodedContent();
+                context.RewindWork(consumedBeforeTables);
+                context.SkipPaintedBorders = false;
+                var redoTrace = new List<PdfUnderstandingStageTrace>(traceBeforeTables);
+                IReadOnlyList<PdfUnderstandingTableCandidate> tables = NotNull(
+                    _tableDetection.DetectTables(context, lines),
+                    nameof(IPdfTableDetectionStage));
+                return RunFromLines(context, runs, words, lines, tables, _tableDetection.GetType(), redoTrace, cancellationToken);
+            };
+            if (holdDetection) {
+                result.WithTablesFromTags = tables => {
+                    using PdfReadPage.DecodedContentReuseScope contentReuse = context.Page.ReuseDecodedContent();
+                    context.RewindWork(consumedBeforeTables);
+                    // Text the tags place outside every table may still be laid out as one (a grid tagged as a
+                    // paragraph): detection over the remaining lines decides, and any table it finds leaves the page to
+                    // full detection.
+                    List<PdfUnderstandingLine> remaining = LinesOutsideTables(lines, tables, context.DecodedRuns, out List<PdfTextSpan> remainingRuns);
+                    if (remaining.Count >= 2) {
+                        // Detection rebuilds its lines from the page's runs, so it sees only the runs outside the tables.
+                        IReadOnlyList<PdfTextSpan> pageRuns = context.DecodedRuns;
+                        context.DecodedRuns = remainingRuns;
+                        try {
+                            if (NotNull(_tableDetection.DetectTables(context, remaining), nameof(IPdfTableDetectionStage)).Count > 0) return null;
+                        } finally {
+                            context.DecodedRuns = pageRuns;
+                        }
+                    }
+                    context.RewindWork(consumedBeforeTables);
+                    var taggedTrace = new List<PdfUnderstandingStageTrace>(traceBeforeTables);
+                    return RunFromLines(context, runs, words, lines, tables, typeof(PdfDocumentSemanticEnricher), taggedTrace, cancellationToken);
+                };
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The lines with a visible run that none of the tables holds, and the page's decoded runs that none of them holds.
+    /// </summary>
+    private static List<PdfUnderstandingLine> LinesOutsideTables(
+        IReadOnlyList<PdfUnderstandingLine> lines,
+        IReadOnlyList<PdfUnderstandingTableCandidate> tables,
+        IReadOnlyList<PdfTextSpan> pageRuns,
+        out List<PdfTextSpan> remainingRuns) {
+        var tableRuns = new HashSet<PdfTextSpan>();
+        foreach (PdfUnderstandingTableCandidate table in tables) {
+            IReadOnlyList<PdfTextSpan> runs = table.NativeSourceRuns;
+            for (int index = 0; index < runs.Count; index++) tableRuns.Add(runs[index]);
+        }
+        remainingRuns = new List<PdfTextSpan>();
+        for (int index = 0; index < pageRuns.Count; index++) {
+            if (!tableRuns.Contains(pageRuns[index])) remainingRuns.Add(pageRuns[index]);
+        }
+        var remaining = new List<PdfUnderstandingLine>();
+        foreach (PdfUnderstandingLine line in lines) {
+            bool outside = false;
+            for (int wordIndex = 0; wordIndex < line.Words.Count && !outside; wordIndex++) {
+                IReadOnlyList<PdfTextSpan> wordRuns = line.Words[wordIndex].SourceRuns;
+                for (int runIndex = 0; runIndex < wordRuns.Count; runIndex++) {
+                    PdfTextSpan run = wordRuns[runIndex];
+                    if (!run.IsArtifactContent && !string.IsNullOrWhiteSpace(run.Text) && !tableRuns.Contains(run)) { outside = true; break; }
+                }
+            }
+            if (outside) remaining.Add(line);
+        }
+        return remaining;
     }
 
     private PdfUnderstandingPageContext CreateContext(

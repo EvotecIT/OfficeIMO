@@ -6,14 +6,15 @@ using PSWriteOffice.Services;
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 public sealed partial class ConvertOfficeDocumentCommand {
+    // sourceNamesOnly: the inputs name in-memory sources (literal text, a live document, an OCR review), not paths.
     private OfficeConversionOptions CaptureOptions(IReadOnlyList<string> inputs, string target,
-        IReadOnlyList<OfficeConversionCapability>? selectedRoutes = null) {
+        IReadOnlyList<OfficeConversionCapability>? selectedRoutes = null, bool sourceNamesOnly = false) {
         target = target.ToLowerInvariant();
         var inputFormat = CaptureInputFormat();
-        bool hasDirectory = inputs.Any(Directory.Exists);
+        bool hasDirectory = !sourceNamesOnly && inputs.Any(Directory.Exists);
         // Each input's source extension is the same for every route, so it is resolved once.
         string[] inputExtensions = hasDirectory ? Array.Empty<string>()
-            : inputs.Select(input => System.IO.Path.GetExtension(OfficeConverter.ConversionSourceName(input, inputFormat))).ToArray();
+            : inputs.Select(input => OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, inputFormat))).ToArray();
         var routes = selectedRoutes ?? OfficeWorkflowCommandUtilities.SupportedConversionRoutes.Where(route =>
             (Route == null || string.Equals(route.Id, Route, StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase) &&

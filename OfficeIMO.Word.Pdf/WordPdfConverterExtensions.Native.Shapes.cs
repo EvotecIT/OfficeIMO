@@ -1,13 +1,7 @@
 using System.Globalization;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using static OfficeIMO.Word.OpenXml.WordXml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -16,7 +10,7 @@ namespace OfficeIMO.Word.Pdf {
             if (shape == null) {
                 return false;
             }
-            bool alignToLineTop = shape._drawing == null ||
+            bool alignToLineTop = shape.DrawingNode().IsNone ||
                 (shape.TryGetLayoutSnapshot(out WordDrawingLayoutInfo layout) && layout.Placement == WordDrawingPlacementKind.Anchored);
             // Hidden flow shapes retain their occupied line height while omitting paint.
             if (shape.Hidden == true && GetNativeShapeDimensions(shape) is { Height: > 0D } dimensions) {
@@ -40,11 +34,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             OfficeShape? nativeShape;
-            if (shape.Line != null) {
-                (double x1, double y1) = ParseNativeShapePoint(shape.Line.From?.Value ?? "0pt,0pt");
-                (double x2, double y2) = ParseNativeShapePoint(shape.Line.To?.Value ?? "0pt,0pt");
+            OfficeXmlNode line = shape.VmlLineNode();
+            OfficeXmlNode polygon = shape.VmlPolygonNode();
+            if (line.Exists) {
+                (double x1, double y1) = ParseNativeShapePoint(line.Attr("from") ?? "0pt,0pt");
+                (double x2, double y2) = ParseNativeShapePoint(line.Attr("to") ?? "0pt,0pt");
                 nativeShape = OfficeShape.Line(x1, y1, x2, y2);
-            } else if (shape._polygon != null && TryCreateNativePolygonShape(shape._polygon.Points?.Value, out nativeShape)) {
+            } else if (polygon.Exists && TryCreateNativePolygonShape(polygon.Attr("points"), out nativeShape)) {
             } else {
                 (double Width, double Height)? dimensions = GetNativeShapeDimensions(shape);
                 if (!dimensions.HasValue) {
@@ -53,9 +49,9 @@ namespace OfficeIMO.Word.Pdf {
 
                 double width = dimensions.Value.Width;
                 double height = dimensions.Value.Height;
-                if (shape._ellipse != null) {
+                if (shape.VmlOvalNode().Exists) {
                     nativeShape = OfficeShape.Ellipse(width, height);
-                } else if (shape._roundRectangle != null) {
+                } else if (shape.VmlRoundRectangleNode().Exists) {
                     double arcSize = shape.ArcSize ?? 0.25D;
                     double cornerRadius = Math.Min(width, height) * Math.Max(0D, Math.Min(1D, arcSize)) / 2D;
                     nativeShape = OfficeShape.RoundedRectangle(width, height, cornerRadius);
@@ -73,14 +69,15 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(GetNativeShapeSourcePart(shape));
+            IReadOnlyDictionary<string, OfficeColor> themeColors = GetNativeDrawingThemeColors(GetNativeShapeSourcePart(shape));
             ApplyNativeShapeStyle(nativeShape, shape, themeColors);
             return nativeShape;
         }
 
-        private static OpenXmlPart? GetNativeShapeSourcePart(WordShape shape) {
-            OpenXmlPartRootElement? root = shape.Run?.Ancestors<OpenXmlPartRootElement>().FirstOrDefault();
-            return root?.OpenXmlPart;
+        /// <summary>The root element of the part that holds the shape's run, or <see cref="OfficeXmlNode.None"/>.</summary>
+        private static OfficeXmlNode GetNativeShapeSourcePart(WordShape shape) {
+            OfficeXmlNode run = shape.RunNode();
+            return run.IsNone ? default : run.PartRoot();
         }
 
         private static (double Width, double Height)? GetNativeShapeDimensions(WordShape shape) {
@@ -90,13 +87,12 @@ namespace OfficeIMO.Word.Pdf {
                 return (width, height);
             }
 
-            A.Extents? extents = shape._wpsShape?
-                .GetFirstChild<Wps.ShapeProperties>()?
-                .GetFirstChild<A.Transform2D>()?
-                .Extents;
+            OfficeXmlNode shapeProperties = GetNativeWpsShapeProperties(shape.WpsShapeNode());
+            OfficeXmlNode transform = shapeProperties.IsNone ? default : shapeProperties.Child(A, "xfrm");
+            OfficeXmlNode extents = transform.IsNone ? default : transform.Child(A, "ext");
 
-            long? cx = extents?.Cx?.Value;
-            long? cy = extents?.Cy?.Value;
+            long? cx = extents.Int64Attr("cx");
+            long? cy = extents.Int64Attr("cy");
             if (!cx.HasValue || !cy.HasValue || cx.Value <= 0 || cy.Value <= 0) {
                 return null;
             }
@@ -105,22 +101,16 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool TryGetNativeDrawingPreset(WordShape shape, out string? presetName) {
-            A.PresetGeometry? geometry = shape._wpsShape?
-                .GetFirstChild<Wps.ShapeProperties>()?
-                .GetFirstChild<A.PresetGeometry>();
+            OfficeXmlNode shapeProperties = GetNativeWpsShapeProperties(shape.WpsShapeNode());
+            OfficeXmlNode geometry = shapeProperties.IsNone ? default : shapeProperties.Child(A, "prstGeom");
 
-            presetName = geometry?.Preset?.InnerText;
-            if (!string.IsNullOrWhiteSpace(presetName)) {
-                return true;
-            }
-
-            if (geometry?.Preset?.Value is A.ShapeTypeValues value) {
-                presetName = value.ToString();
-                return true;
-            }
-
-            return false;
+            presetName = geometry.Attr("prst");
+            return !string.IsNullOrWhiteSpace(presetName);
         }
+
+        /// <summary>The <c>wps:spPr</c> of a <c>wps:wsp</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
+        private static OfficeXmlNode GetNativeWpsShapeProperties(OfficeXmlNode wpsShape) =>
+            wpsShape.IsNone ? default : wpsShape.Elements(Wps, "spPr").FirstOrDefault();
 
         private static OfficeShape? CreateNativeDrawingPresetShape(string? presetName, double width, double height) {
             if (IsNativeDrawingLinePreset(presetName)) {
@@ -169,10 +159,11 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
-            Wps.ShapeProperties? shapeProperties = wordShape._wpsShape?.GetFirstChild<Wps.ShapeProperties>();
+        private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape, IReadOnlyDictionary<string, OfficeColor> themeColors) {
+            OfficeXmlNode wpsShape = wordShape.WpsShapeNode();
+            OfficeXmlNode shapeProperties = GetNativeWpsShapeProperties(wpsShape);
             if (nativeShape.Kind != OfficeShapeKind.Line) {
-                if (shapeProperties?.GetFirstChild<A.NoFill>() != null) {
+                if (HasNativeDrawingNoFill(shapeProperties)) {
                     nativeShape.FillColor = null;
                 } else if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient, themeColors)) {
                     nativeShape.FillGradient = drawingGradient;
@@ -189,16 +180,16 @@ namespace OfficeIMO.Word.Pdf {
                 // gradient stops. A separate FillOpacity would apply it twice.
             }
 
-            A.Outline? drawingOutline = shapeProperties?.GetFirstChild<A.Outline>();
-            bool drawingOutlineNoFill = drawingOutline?.GetFirstChild<A.NoFill>() != null;
-            bool hasDrawingStroke = drawingOutline != null && !drawingOutlineNoFill;
+            OfficeXmlNode drawingOutline = shapeProperties.IsNone ? default : shapeProperties.Child(A, "ln");
+            bool drawingOutlineNoFill = HasNativeDrawingNoFill(drawingOutline);
+            bool hasDrawingStroke = drawingOutline.Exists && !drawingOutlineNoFill;
             OfficeColor drawingStroke = default;
             bool hasDrawingStrokeColor = hasDrawingStroke && TryGetNativeDrawingSolidFillColor(drawingOutline, out drawingStroke, themeColors);
             bool drawStroke = !drawingOutlineNoFill &&
                               (nativeShape.Kind == OfficeShapeKind.Line ||
                                wordShape.Stroked == true ||
                                hasDrawingStrokeColor ||
-                               (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorValue)));
+                               (wpsShape.Exists && !string.IsNullOrWhiteSpace(wordShape.StrokeColorValue)));
             if (!drawStroke) {
                 nativeShape.StrokeColor = null;
                 nativeShape.StrokeWidth = 0;
@@ -217,9 +208,9 @@ namespace OfficeIMO.Word.Pdf {
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
         }
 
-        private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(A.Outline? outline) {
-            A.PresetDash? presetDash = outline?.GetFirstChild<A.PresetDash>();
-            string? value = presetDash?.Val?.InnerText;
+        private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(OfficeXmlNode outline) {
+            OfficeXmlNode presetDash = outline.IsNone ? default : outline.Child(A, "prstDash");
+            string? value = presetDash.Attr("val");
             if (string.IsNullOrWhiteSpace(value)) {
                 return OfficeStrokeDashStyle.Solid;
             }

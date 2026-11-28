@@ -34,7 +34,7 @@ function value<T extends ExportValue>(result: T): T {
 export function portableSheet(options: PortableSheetOptions = {}): PortableSheetOptions {
   options = captureFields(options, sheetOptionFields as readonly (keyof PortableSheetOptions)[]);
   if ((options as { headerStyle?: unknown }).headerStyle !== undefined)
-    throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader, headerFill, headerBorder and headerWrap.");
   style(options.alternatingRowStyle); style(options.title?.style); style(options.footer?.style);
   options.footer?.values?.forEach(value);
   const rowStyle = options.rowStyle, cellStyle = options.cellStyle;

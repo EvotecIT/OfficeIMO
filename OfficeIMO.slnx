@@ -142,9 +142,12 @@
   <Project Path="OfficeIMO.Chm.Pdf/OfficeIMO.Chm.Pdf.csproj" />
   <Project Path="OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj" />
   <Project Path="OfficeIMO.Chm/OfficeIMO.Chm.csproj" />
+  <Project Path="OfficeIMO.Comic/OfficeIMO.Comic.csproj" />
+  <Project Path="OfficeIMO.Comic.Tests/OfficeIMO.Comic.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence/OfficeIMO.Confluence.csproj" />
   <Project Path="OfficeIMO.Core/OfficeIMO.Core.csproj" />
+  <Project Path="OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj" />
   <Project Path="OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj" />
   <Project Path="OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj" />
   <Project Path="OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
@@ -177,6 +180,8 @@
   <Project Path="OfficeIMO.Email/OfficeIMO.Email.csproj" />
   <Project Path="OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj" />
   <Project Path="OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
+  <Project Path="OfficeIMO.Fb2/OfficeIMO.Fb2.csproj" />
+  <Project Path="OfficeIMO.Fb2.Tests/OfficeIMO.Fb2.Tests.csproj" />
   <Project Path="OfficeIMO.Examples/OfficeIMO.Examples.csproj">
     <BuildDependency Project="OfficeIMO.Word/OfficeIMO.Word.csproj" />
   </Project>
@@ -223,6 +228,8 @@
   <Project Path="OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj" />
   <Project Path="OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj" />
   <Project Path="OfficeIMO.Markdown/OfficeIMO.Markdown.csproj" />
+  <Project Path="OfficeIMO.Mobi/OfficeIMO.Mobi.csproj" />
+  <Project Path="OfficeIMO.Mobi.Tests/OfficeIMO.Mobi.Tests.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.IntelligenceX/OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.SamplePlugin/OfficeIMO.MarkdownRenderer.SamplePlugin.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj" />
@@ -242,6 +249,15 @@
   <Project Path="OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj" />
   <Project Path="OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj" />
   <Project Path="OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj" />
+  <Project Path="OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+  <Project Path="OfficeIMO.Notebook.PowerShell/OfficeIMO.Notebook.PowerShell.csproj" />
+  <Project Path="OfficeIMO.Notebook.Import/OfficeIMO.Notebook.Import.csproj" />
+  <Project Path="OfficeIMO.Notebook.Markdown/OfficeIMO.Notebook.Markdown.csproj" />
+  <Project Path="OfficeIMO.Notebook.Pdf/OfficeIMO.Notebook.Pdf.csproj" />
+  <Project Path="OfficeIMO.Notebook.Html/OfficeIMO.Notebook.Html.csproj" />
+  <Project Path="OfficeIMO.Notebook.Word/OfficeIMO.Notebook.Word.csproj" />
+  <Project Path="OfficeIMO.Notebook.Spreadsheet/OfficeIMO.Notebook.Spreadsheet.csproj" />
+  <Project Path="OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj" />
   <Project Path="OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj" />
   <Project Path="OfficeIMO.OneNote/OfficeIMO.OneNote.csproj" />
   <Project Path="OfficeIMO.OpenDocument.Benchmarks/OfficeIMO.OpenDocument.Benchmarks.csproj" />
@@ -287,6 +303,8 @@
   <Project Path="OfficeIMO.Reader.Dbf/OfficeIMO.Reader.Dbf.csproj" />
   <Project Path="OfficeIMO.Reader.DjVu/OfficeIMO.Reader.DjVu.csproj" />
   <Project Path="OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction/OfficeIMO.Reader.DocumentExtraction.csproj" />
   <Project Path="OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj" />
   <Project Path="OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj" />
   <Project Path="OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj" />
@@ -320,6 +338,7 @@
   <Project Path="OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj" />
   <Project Path="OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj" />
   <Project Path="OfficeIMO.Rtf/OfficeIMO.Rtf.csproj" />
+  <Project Path="OfficeIMO.Scaling.Benchmarks/OfficeIMO.Scaling.Benchmarks.csproj" />
   <Project Path="OfficeIMO.Security.Tests/OfficeIMO.Security.Tests.csproj" />
   <Project Path="OfficeIMO.Security/OfficeIMO.Security.csproj" />
   <Project Path="OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj" />

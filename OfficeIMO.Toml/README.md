@@ -4,7 +4,13 @@ OfficeIMO's own TOML 1.1 engine. It reads, edits and writes TOML without changin
 
 The package provides `TomlDocument`, a lossless editable model, `TomlReader`, a forward-only pull reader, `TomlWriter`, a forward-only emitter, and `TomlSerializer`, which maps .NET objects to TOML with a NativeAOT source generator.
 
-To read TOML files through `Microsoft.Extensions.Configuration` (`AddTomlFile`), add [OfficeIMO.Toml.Configuration](../OfficeIMO.Toml.Configuration/README.md).
+To read TOML files through `Microsoft.Extensions.Configuration` (`AddTomlFile`), add [OfficeIMO.Toml.Configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml.Configuration/README.md).
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Toml
+```
 
 ## Loading and editing a document
 
@@ -102,7 +108,7 @@ foreach (JsonSchemaFinding finding in project.Validate(schema).Findings) {
 }
 ```
 
-`ToJsonData()` on a node or the document returns the converted value. The keywords, formats and limits are described in [JSON Schema validation](../Docs/officeimo.json-schema-design.md).
+`ToJsonData()` on a node or the document returns the converted value. The keywords, formats and limits are described in [JSON Schema validation](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.json-schema-design.md).
 
 ## Reading tokens
 
@@ -237,4 +243,4 @@ Invalid input throws `TomlException` with a stable `Code` from `TomlErrorCodes`,
 
 ## Conformance
 
-The engine passes all 214 valid and 467 invalid TOML 1.1 cases of [toml-test](https://github.com/toml-lang/toml-test) 2.2.0, and every valid case and real-world corpus file (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) saves back byte for byte. An opt-in run over about 5,400 pinned real-world files (crates.io and workspace manifests, lock files, `pyproject.toml`, Hugo sites) also checks stream reading, scripted edits and hostile mutations; the [TOML engine design](../Docs/officeimo.toml-engine-design.md#qualification) has the results and the benchmark comparison with Tomlyn.
+The engine passes all 214 valid and 467 invalid TOML 1.1 cases of [toml-test](https://github.com/toml-lang/toml-test) 2.2.0, and every valid case and real-world corpus file (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) saves back byte for byte. An opt-in run over about 5,400 pinned real-world files (crates.io and workspace manifests, lock files, `pyproject.toml`, Hugo sites) also checks stream reading, scripted edits and hostile mutations; the [TOML engine design](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.toml-engine-design.md#qualification) has the results and the benchmark comparison with Tomlyn.

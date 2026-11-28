@@ -65,6 +65,41 @@ internal static partial class TextContentParser {
 
     // A graphics state is several hundred bytes. Restoring reads it in place, where Stack<T>.Pop
     // would copy the whole state out and again into the caller for every Q operator.
+    private const int MaximumGlyphMemosPerFont = 4096;
+    private const int MaximumPooledGlyphMemos = 16;
+    private const int MaximumPooledGlyphMemoEntries = 1024;
+
+    // Each content stream memoizes its fonts' codes; later streams on this thread reuse the cleared tables.
+    [ThreadStatic]
+    private static List<Dictionary<int, GlyphMemo>>? t_glyphMemoPool;
+
+    private static Dictionary<int, GlyphMemo> RentGlyphMemo() {
+        List<Dictionary<int, GlyphMemo>>? pool = t_glyphMemoPool;
+        if (pool is null || pool.Count == 0) return new Dictionary<int, GlyphMemo>();
+        Dictionary<int, GlyphMemo> memo = pool[pool.Count - 1];
+        pool.RemoveAt(pool.Count - 1);
+        return memo;
+    }
+
+    private static void ReturnGlyphMemos(Dictionary<string, Dictionary<int, GlyphMemo>>? memos) {
+        if (memos is null) return;
+        List<Dictionary<int, GlyphMemo>> pool = t_glyphMemoPool ??= new List<Dictionary<int, GlyphMemo>>();
+        foreach (Dictionary<int, GlyphMemo> memo in memos.Values) {
+            if (pool.Count >= MaximumPooledGlyphMemos || memo.Count > MaximumPooledGlyphMemoEntries) continue;
+            memo.Clear();
+            pool.Add(memo);
+        }
+    }
+
+    private static int GetGlyphMemoKey(byte[] code) => code.Length == 1 ? code[0] : 0x10000 | (code[0] << 8) | code[1];
+
+    // Decoded text and advance of one character code of one font resource; either may be unknown yet.
+    private struct GlyphMemo {
+        public string? Text;
+        public double Width;
+        public bool HasWidth;
+    }
+
     private sealed class TextGraphicsStateStack {
         private TextGraphicsState[] _items = new TextGraphicsState[8];
 
@@ -478,7 +513,8 @@ internal static partial class TextContentParser {
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
         bool retainEditingEvidence = true,
         FormInvocationCollector? formInvocations = null,
-        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
+        Action<string>? operatorVisitor = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -501,6 +537,11 @@ internal static partial class TextContentParser {
         // Decoders and width providers read probe and glyph codes without retaining them.
         byte[]? reusableSingleByteCode = null;
         byte[]? reusableTwoByteCode = null;
+        // A font resource name selects the same decoder and width provider for the whole stream, so the text and
+        // width of each one- or two-byte code are computed once per font instead of once per painted glyph.
+        Dictionary<string, Dictionary<int, GlyphMemo>>? glyphMemos = null;
+        string? glyphMemoFont = null;
+        Dictionary<int, GlyphMemo>? glyphMemo = null;
         var spans = new List<PdfTextSpan>();
         PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
@@ -624,16 +665,26 @@ internal static partial class TextContentParser {
         var pendingPersistentTextStates = new List<PendingPersistentTextState>();
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
-        int? currentContentStreamObjectNumber = contentStreamObjectNumber;
+        // Only text runs read the stream that holds the current operation, so it is looked up on demand.
+        bool currentContentStreamObjectNumberResolved = true;
+        int? currentContentStreamObjectNumberValue = contentStreamObjectNumber;
+        int? CurrentContentStreamObjectNumber() {
+            if (!currentContentStreamObjectNumberResolved) {
+                currentContentStreamObjectNumberValue = contentStreamObjectNumberAtOffset?.Invoke(currentOperatorOffset)
+                    ?? contentStreamObjectNumber;
+                currentContentStreamObjectNumberResolved = true;
+            }
+            return currentContentStreamObjectNumberValue;
+        }
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
+            operatorVisitor?.Invoke(operation.Name);
             // The form collector reads this operation's operands before the text visitor consumes them.
             formInvocations?.Visit(operation);
-            currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
-                ?? contentStreamObjectNumber;
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             currentOperatorOffset = operation.OperatorOffset;
             currentContentOrderKeyResolved = false;
+            currentContentStreamObjectNumberResolved = false;
             string op = operation.Name;
             if (onCompletedDrawingActualText != null && !HasActiveHiddenContent() && IsDrawingPaintOperator(op))
                 GetActiveDrawingActualTextState()?.ObserveDrawingPaint();
@@ -642,7 +693,8 @@ internal static partial class TextContentParser {
                 textObjectFirstSpanIndex = spans.Count;
                 textObjectPersistentState = PersistentGraphicsStateFlags.None;
                 textObjectHasCollateralVisual = false;
-            } else {
+            } else if (retainEditingEvidence) {
+                // Persistent-state tracking only decides which spans can be restamped, an editing concern.
                 PersistentGraphicsStateFlags changedState = GetPersistentGraphicsStateFlag(op);
                 if (changedState != PersistentGraphicsStateFlags.None) {
                     OverridePendingPersistentState(changedState);
@@ -667,75 +719,11 @@ internal static partial class TextContentParser {
                 case "Tz": if (args.Count >= 1) { hScale = args.NumberOrZero(args.Count - 1) / 100.0; args.Clear(); } break;
                 case "Ts": if (args.Count >= 1) { textRise = args.NumberOrZero(args.Count - 1); args.Clear(); } break;
                 case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(args.NumberOrZero(args.Count - 1)); args.Clear(); } break;
-                case "q":
-                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection, strokeWidth, strokeLineCap, strokeLineJoin, miterLimit, strokeDashIdentity, strokeColorResolved));
-                    args.Clear();
-                    break;
-                case "Q":
-                    if (gstack.Count > 0) {
-                        ref readonly TextGraphicsState state = ref gstack.Top;
-                        ctm = state.Ctm;
-                        font = state.Font;
-                        size = state.Size;
-                        leading = state.Leading;
-                        charSpacing = state.CharSpacing;
-                        wordSpacing = state.WordSpacing;
-                        hScale = state.HScale;
-                        textRise = state.TextRise;
-                        fillColor = state.FillColor;
-                        fillColorSpace = state.FillColorSpace;
-                        strokeColor = state.StrokeColor;
-                        strokeColorSpace = state.StrokeColorSpace;
-                        fillOpacity = state.FillOpacity;
-                        strokeOpacity = state.StrokeOpacity;
-                        textRenderingMode = state.TextRenderingMode;
-                        clipPath = state.ClipPath;
-                        blendMode = state.BlendMode;
-                        hasSoftMask = state.HasSoftMask;
-                        hasUnsupportedEffect = state.HasUnsupportedEffect;
-                        fillColorResolved = state.FillColorResolved;
-                        strokeColorResolved = state.StrokeColorResolved;
-                        renderingIntent = state.RenderingIntent;
-                        fillColorSelection = state.FillColorSelection;
-                        strokeColorSelection = state.StrokeColorSelection;
-                        strokeWidth = state.StrokeWidth;
-                        strokeLineCap = state.StrokeLineCap;
-                        strokeLineJoin = state.StrokeLineJoin;
-                        miterLimit = state.MiterLimit;
-                        strokeDashIdentity = state.StrokeDashIdentity;
-                        gstack.DiscardTop();
-                    } else {
-                        ctm = Matrix2D.Identity;
-                        fillColor = effectiveInitialFillColor;
-                        fillColorSpace = effectiveInitialFillColorSpace;
-                        strokeColor = effectiveInitialStrokeColor;
-                        strokeColorSpace = effectiveInitialStrokeColorSpace;
-                        fillOpacity = null;
-                        strokeOpacity = null;
-                        textRenderingMode = 0;
-                        clipPath = null;
-                        blendMode = OfficeBlendMode.Normal;
-                        hasSoftMask = false;
-                        hasUnsupportedEffect = initialUnsupportedEffect;
-                        fillColorResolved = initialFillColorResolved && effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
-                        strokeColorResolved = initialStrokeColorResolved && effectiveInitialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
-                        renderingIntent = initialRenderingIntent;
-                        fillColorSelection = effectiveInitialFillColorSelection;
-                        strokeColorSelection = effectiveInitialStrokeColorSelection;
-                        strokeWidth = initialStrokeWidth;
-                        strokeLineCap = initialStrokeLineCap;
-                        strokeLineJoin = initialStrokeLineJoin;
-                        miterLimit = initialMiterLimit;
-                        strokeDashIdentity = initialStrokeDashIdentity;
-                    }
-                    args.Clear();
-                    break;
                 case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(args.NumberOrZero(args.Count - 6), args.NumberOrZero(args.Count - 5), args.NumberOrZero(args.Count - 4), args.NumberOrZero(args.Count - 3), args.NumberOrZero(args.Count - 2), args.NumberOrZero(args.Count - 1)); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
                 case "w": if (args.Count >= 1) strokeWidth = args.NumberOrZero(args.Count - 1); args.Clear(); break;
                 case "J": if (args.Count >= 1) strokeLineCap = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
                 case "j": if (args.Count >= 1) strokeLineJoin = (int)args.NumberOrZero(args.Count - 1); args.Clear(); break;
                 case "M": if (args.Count >= 1) miterLimit = args.NumberOrZero(args.Count - 1); args.Clear(); break;
-                case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
                 case "re":
                     if (args.Count >= 4) {
                         clipPathBuilder.AddRectanglePath(
@@ -804,17 +792,6 @@ internal static partial class TextContentParser {
                     clipPathBuilder.ClosePath();
                     args.Clear();
                     break;
-                case "W":
-                case "W*":
-                    if (!clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        // An empty clipping path removes paint; it does not leave
-                        // text unclipped. Keep searchable source spans separately.
-                        parsedClipPath = PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D);
-                    }
-                    clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
-
-                    args.Clear();
-                    break;
                 case "n":
                     clipPathBuilder.Clear();
                     args.Clear();
@@ -835,43 +812,94 @@ internal static partial class TextContentParser {
                     clipPathBuilder.Clear();
                     args.Clear();
                     break;
-                case "gs":
-                    if (args.Count >= 1) {
-                        ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
-                    }
-
-                    args.Clear();
+                case "Tj": if (args.Count >= 1) { ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
+                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
+                case "q": SaveGraphicsState(); break;
+                case "Q": RestoreGraphicsState(); break;
+                case "rg": case "RG": case "g": case "G": case "k": case "K": case "sc": case "scn": case "SC": case "SCN":
+                    InterpretColorOperator(op);
                     break;
-                case "cs":
-                    fillColorSelection = null;
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
-                        fillColorSelection = null;
-                        fillColorSpace = parsedColorSpace;
-                        fillColorResolved = TryCreateInitialTextPaint(parsedColorSpace, renderingIntent,
-                            outputIntentColorTransform, out fillColorSelection, out OfficeColor initialSpaceFill);
-                        if (fillColorResolved) fillColor = initialSpaceFill;
-                    } else {
-                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
-                        fillColorResolved = false;
-                    }
+                case "BDC": case "BMC": case "EMC": InterpretMarkedContentOperator(op, operation); break;
+                default: InterpretStateOperator(op, operation, paintOrder); break;
+            }
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args, maxGraphicsStateDepth: maxGraphicsStateDepth);
+        ApplyPendingTextClippingPath();
+        ReturnGlyphMemos(glyphMemos);
+        return spans;
 
-                    args.Clear();
-                    break;
-                case "CS":
-                    strokeColorSelection = null;
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
-                        strokeColorSelection = null;
-                        strokeColorSpace = parsedStrokeColorSpace;
-                        strokeColorResolved = TryCreateInitialTextPaint(parsedStrokeColorSpace, renderingIntent,
-                            outputIntentColorTransform, out strokeColorSelection, out OfficeColor initialSpaceStroke);
-                        if (strokeColorResolved) strokeColor = initialSpaceStroke;
-                    } else {
-                        strokeColorSpace = PdfPageColorSpaceKind.Pattern;
-                        strokeColorResolved = false;
-                    }
+        // Helpers
+        // Graphics-state, color, marked-content and less frequent operators run outside the per-operation callback,
+        // so the callback keeps a small stack frame: the runtime clears a method's whole frame on every call.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void SaveGraphicsState() {
+            gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection, strokeWidth, strokeLineCap, strokeLineJoin, miterLimit, strokeDashIdentity, strokeColorResolved));
+            args.Clear();
+        }
 
-                    args.Clear();
-                    break;
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void RestoreGraphicsState() {
+            if (gstack.Count > 0) {
+                ref readonly TextGraphicsState state = ref gstack.Top;
+                ctm = state.Ctm;
+                font = state.Font;
+                size = state.Size;
+                leading = state.Leading;
+                charSpacing = state.CharSpacing;
+                wordSpacing = state.WordSpacing;
+                hScale = state.HScale;
+                textRise = state.TextRise;
+                fillColor = state.FillColor;
+                fillColorSpace = state.FillColorSpace;
+                strokeColor = state.StrokeColor;
+                strokeColorSpace = state.StrokeColorSpace;
+                fillOpacity = state.FillOpacity;
+                strokeOpacity = state.StrokeOpacity;
+                textRenderingMode = state.TextRenderingMode;
+                clipPath = state.ClipPath;
+                blendMode = state.BlendMode;
+                hasSoftMask = state.HasSoftMask;
+                hasUnsupportedEffect = state.HasUnsupportedEffect;
+                fillColorResolved = state.FillColorResolved;
+                strokeColorResolved = state.StrokeColorResolved;
+                renderingIntent = state.RenderingIntent;
+                fillColorSelection = state.FillColorSelection;
+                strokeColorSelection = state.StrokeColorSelection;
+                strokeWidth = state.StrokeWidth;
+                strokeLineCap = state.StrokeLineCap;
+                strokeLineJoin = state.StrokeLineJoin;
+                miterLimit = state.MiterLimit;
+                strokeDashIdentity = state.StrokeDashIdentity;
+                gstack.DiscardTop();
+            } else {
+                ctm = Matrix2D.Identity;
+                fillColor = effectiveInitialFillColor;
+                fillColorSpace = effectiveInitialFillColorSpace;
+                strokeColor = effectiveInitialStrokeColor;
+                strokeColorSpace = effectiveInitialStrokeColorSpace;
+                fillOpacity = null;
+                strokeOpacity = null;
+                textRenderingMode = 0;
+                clipPath = null;
+                blendMode = OfficeBlendMode.Normal;
+                hasSoftMask = false;
+                hasUnsupportedEffect = initialUnsupportedEffect;
+                fillColorResolved = initialFillColorResolved && effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                strokeColorResolved = initialStrokeColorResolved && effectiveInitialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                renderingIntent = initialRenderingIntent;
+                fillColorSelection = effectiveInitialFillColorSelection;
+                strokeColorSelection = effectiveInitialStrokeColorSelection;
+                strokeWidth = initialStrokeWidth;
+                strokeLineCap = initialStrokeLineCap;
+                strokeLineJoin = initialStrokeLineJoin;
+                miterLimit = initialMiterLimit;
+                strokeDashIdentity = initialStrokeDashIdentity;
+            }
+            args.Clear();
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void InterpretColorOperator(string op) {
+            switch (op) {
                 case "rg":
                     if (args.Count >= 3 && TryApplyFillColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbFill)) {
                         fillColor = rgbFill;
@@ -944,41 +972,12 @@ internal static partial class TextContentParser {
 
                     args.Clear();
                     break;
-                case "ri":
-                    if (args.Count == 1 && args[0] is string renderingIntentName) {
-                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName));
-                    } else {
-                        hasUnsupportedEffect = true;
-                        MarkPendingPersistentStateAsUnsafe();
-                        if (inText) textObjectHasCollateralVisual = true;
-                    }
-                    args.Clear();
-                    break;
-                case "BI":
-                    args.Clear();
-                    break;
-                case "'": // move to next line and show text
-                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
-                    args.Clear();
-                    break;
-                case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = args.NumberOrZero(args.Count - 3); charSpacing = args.NumberOrZero(args.Count - 2); MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
-                    args.Clear();
-                    break;
-                case "Tj": if (args.Count >= 1) { ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
-                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
-                case "Do":
-                    // Share replacement ownership with visible Form paint, retaining its
-                    // real glyph geometry when no page-level text anchor emits it first.
-                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText) {
-                        formActualText.RejectLogicalLayoutEvidence();
-                        onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
-                    } else if (onCompletedDrawingActualText != null && args.Count >= 1 &&
-                        !HasActiveHiddenContent() && GetActiveDrawingActualTextState() is { } drawingActualText) {
-                        onActualTextForm?.Invoke(operation.OperatorOffset, drawingActualText);
-                    }
-                    args.Clear();
-                    break;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void InterpretMarkedContentOperator(string op, PdfContentOperation operation) {
+            switch (op) {
                 case "BDC": {
                     var markedState = new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
@@ -1018,14 +1017,100 @@ internal static partial class TextContentParser {
 
                     args.Clear();
                     break;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void InterpretStateOperator(string op, PdfContentOperation operation, double paintOrder) {
+            switch (op) {
+                case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
+                case "W":
+                case "W*":
+                    if (!clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        // An empty clipping path removes paint; it does not leave
+                        // text unclipped. Keep searchable source spans separately.
+                        parsedClipPath = PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D);
+                    }
+                    clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
+
+                    args.Clear();
+                    break;
+                case "gs":
+                    if (args.Count >= 1) {
+                        ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "cs":
+                    fillColorSelection = null;
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
+                        fillColorSelection = null;
+                        fillColorSpace = parsedColorSpace;
+                        fillColorResolved = TryCreateInitialTextPaint(parsedColorSpace, renderingIntent,
+                            outputIntentColorTransform, out fillColorSelection, out OfficeColor initialSpaceFill);
+                        if (fillColorResolved) fillColor = initialSpaceFill;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
+                    }
+
+                    args.Clear();
+                    break;
+                case "CS":
+                    strokeColorSelection = null;
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
+                        strokeColorSelection = null;
+                        strokeColorSpace = parsedStrokeColorSpace;
+                        strokeColorResolved = TryCreateInitialTextPaint(parsedStrokeColorSpace, renderingIntent,
+                            outputIntentColorTransform, out strokeColorSelection, out OfficeColor initialSpaceStroke);
+                        if (strokeColorResolved) strokeColor = initialSpaceStroke;
+                    } else {
+                        strokeColorSpace = PdfPageColorSpaceKind.Pattern;
+                        strokeColorResolved = false;
+                    }
+
+                    args.Clear();
+                    break;
+                case "ri":
+                    if (args.Count == 1 && args[0] is string renderingIntentName) {
+                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName));
+                    } else {
+                        hasUnsupportedEffect = true;
+                        MarkPendingPersistentStateAsUnsafe();
+                        if (inText) textObjectHasCollateralVisual = true;
+                    }
+                    args.Clear();
+                    break;
+                case "BI":
+                    args.Clear();
+                    break;
+                case "'": // move to next line and show text
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
+                    args.Clear();
+                    break;
+                case "\"": // set spacing and show text
+                    if (args.Count >= 3) { wordSpacing = args.NumberOrZero(args.Count - 3); charSpacing = args.NumberOrZero(args.Count - 2); MoveToNextTextLine(); ShowTextRun(BorrowTextOperand(args.Count - 1), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
+                    args.Clear();
+                    break;
+                case "Do":
+                    // Share replacement ownership with visible Form paint, retaining its
+                    // real glyph geometry when no page-level text anchor emits it first.
+                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText) {
+                        formActualText.RejectLogicalLayoutEvidence();
+                        onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
+                    } else if (onCompletedDrawingActualText != null && args.Count >= 1 &&
+                        !HasActiveHiddenContent() && GetActiveDrawingActualTextState() is { } drawingActualText) {
+                        onActualTextForm?.Invoke(operation.OperatorOffset, drawingActualText);
+                    }
+                    args.Clear();
+                    break;
                 default: args.Clear(); break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args, maxGraphicsStateDepth: maxGraphicsStateDepth);
-        ApplyPendingTextClippingPath();
-        return spans;
+        }
 
-        // Helpers
         void QueueCurrentTextObjectPersistentState() {
+            if (!retainEditingEvidence) return;
             int spanCount = spans.Count - textObjectFirstSpanIndex;
             if (spanCount <= 0) return;
             if (textObjectHasCollateralVisual) {
@@ -1065,7 +1150,9 @@ internal static partial class TextContentParser {
         void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
             if (!retainEditingEvidence) return;
             int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
-            for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
+            for (int index = firstSpanIndex; index < end; index++) {
+                if (spans[index].CanRestamp) spans[index] = spans[index].WithCanRestamp(false);
+            }
         }
 
         static PersistentGraphicsStateFlags GetPersistentGraphicsStateFlag(string name) => name switch {
@@ -1166,12 +1253,45 @@ internal static partial class TextContentParser {
                 if (retryAsOperands) return false;
                 // A missing painted CID has no advance. The independent line matrix
                 // remains available to the next explicit text position or line move.
-                unknownTextPosition = (failure, currentContentStreamObjectNumber);
+                unknownTextPosition = (failure, CurrentContentStreamObjectNumber());
                 sbOutGlobal.Length = textLength;
                 pendingGapPt = 0;
-                onUnmappableText(failure, currentContentStreamObjectNumber);
+                onUnmappableText(failure, CurrentContentStreamObjectNumber());
                 return true;
             }
+        }
+
+        Dictionary<int, GlyphMemo> GetGlyphMemo() {
+            if (glyphMemo is null || !ReferenceEquals(glyphMemoFont, font)) {
+                glyphMemos ??= new Dictionary<string, Dictionary<int, GlyphMemo>>(StringComparer.Ordinal);
+                if (!glyphMemos.TryGetValue(font, out glyphMemo)) {
+                    glyphMemo = RentGlyphMemo();
+                    glyphMemos.Add(font, glyphMemo);
+                }
+                glyphMemoFont = font;
+            }
+            return glyphMemo;
+        }
+        void RememberGlyphText(byte[] code, string text) {
+            Dictionary<int, GlyphMemo> memos = GetGlyphMemo();
+            int key = GetGlyphMemoKey(code);
+            if (!memos.TryGetValue(key, out GlyphMemo memo) && memos.Count >= MaximumGlyphMemosPerFont) return;
+            memo.Text = text;
+            memos[key] = memo;
+        }
+        double GetGlyphWidth1000(byte[] code) {
+            if (code.Length is not (1 or 2)) return sumWidth1000ForFont(font, code);
+            Dictionary<int, GlyphMemo> memos = GetGlyphMemo();
+            int key = GetGlyphMemoKey(code);
+            bool known = memos.TryGetValue(key, out GlyphMemo memo);
+            if (memo.HasWidth) return memo.Width;
+            double width = sumWidth1000ForFont(font, code);
+            if (known || memos.Count < MaximumGlyphMemosPerFont) {
+                memo.Width = width;
+                memo.HasWidth = true;
+                memos[key] = memo;
+            }
+            return width;
         }
 
         bool ProcessTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte,
@@ -1190,10 +1310,17 @@ internal static partial class TextContentParser {
                 if (remaining == 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
+                bool memoize = value.Length is 1 or 2;
+                if (memoize && GetGlyphMemo().TryGetValue(GetGlyphMemoKey(value), out GlyphMemo memo) &&
+                    memo.Text is string memoText && memoText.Length <= remaining) {
+                    return memoText;
+                }
                 try {
-                    return decodeWithFontWithinLimit != null
+                    string decoded = decodeWithFontWithinLimit != null
                         ? decodeWithFontWithinLimit(font, value, remaining)
                         : decodeWithFont(font, value);
+                    if (memoize && decoded != null) RememberGlyphText(value, decoded);
+                    return decoded!;
                 } catch (PdfUnsupportedTextMappingException error) when (probe || recoverRun ||
                     (useLogicalTextFilters && !requireMappedText && (isArtifact || isHidden || actualTextState is not null))) {
                     // Width probes may supply only a prefix of a composite code. Logical
@@ -1221,10 +1348,10 @@ internal static partial class TextContentParser {
                 pairCode[1] = bytes[1];
                 string one = DecodeRun(firstCode, probe: true);
                 string two = DecodeRun(pairCode, probe: true);
-                double firstByteWidth = sumWidth1000ForFont(font, firstCode);
+                double firstByteWidth = GetGlyphWidth1000(firstCode);
                 firstCode[0] = bytes[1];
-                double secondByteWidth = sumWidth1000ForFont(font, firstCode);
-                double pairWidth = sumWidth1000ForFont(font, pairCode);
+                double secondByteWidth = GetGlyphWidth1000(firstCode);
+                double pairWidth = GetGlyphWidth1000(pairCode);
                 twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
@@ -1305,7 +1432,7 @@ internal static partial class TextContentParser {
                     ch = t[0];
                     decodedGlyphCharacters++;
                 }
-                double w1000 = sumWidth1000ForFont(font, g);
+                double w1000 = GetGlyphWidth1000(g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)
                     + (kerningAfterByte != null ? kerningAfterByte[idx + step - 1] : 0D)) * hScale;
                 if (ch != '\0') {
@@ -1329,7 +1456,7 @@ internal static partial class TextContentParser {
             }
             textOutputBudget.ChargeDecodedText(Math.Max(wholeDecoded.Length, decodedGlyphCharacters));
             if (recoverRun && wholeRunMappingFailure is not null) {
-                onUnmappableText!(wholeRunMappingFailure, currentContentStreamObjectNumber);
+                onUnmappableText!(wholeRunMappingFailure, CurrentContentStreamObjectNumber());
                 // A failed run still advances text and may participate in clipping.
                 ApplyTextClippingPath(advTotal);
                 textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
@@ -1425,12 +1552,12 @@ internal static partial class TextContentParser {
             }
 
             bool logicalAnchor = textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedRun);
-            actualTextState?.ObserveLogicalPaint(spans, currentContentStreamObjectNumber, font, size,
+            actualTextState?.ObserveLogicalPaint(spans, CurrentContentStreamObjectNumber(), font, size,
                 dx, dy, endX, endY, Matrix2D.Multiply(ctm, textMatrix), spanClipPath, pageHeight, paintedRun,
                 isHidden || isArtifact || hasUndecodableGlyph || characterAdvanceDirection < 0D ||
                 (!logicalAnchor && (!isVisibleText || textRenderingMode != 0 || visibleColor.A <= 3)),
                 logicalAnchor, pendingLineBreaks);
-            actualTextState?.ObserveLogicalBaselinePaint(spans, currentContentStreamObjectNumber, font, size,
+            actualTextState?.ObserveLogicalBaselinePaint(spans, CurrentContentStreamObjectNumber(), font, size,
                 dx, dy, endX, endY, Matrix2D.Multiply(ctm, textMatrix), spanClipPath, pageHeight, paintedRun,
                 isHidden || isArtifact || hasUndecodableGlyph || characterAdvanceDirection < 0D ||
                 !isVisibleText || textRenderingMode != 0 || visibleColor.A <= 3,
@@ -1515,6 +1642,9 @@ internal static partial class TextContentParser {
                     paintedText = spanText;
                 }
 
+                int spanGlyphCharacters = 0;
+                for (int index = 0; index < spanGlyphCharacterLengths.Count; index++) spanGlyphCharacters += spanGlyphCharacterLengths[index];
+                bool spanGlyphsCoverPaintedText = retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacters == paintedText.Length;
                 var span = new PdfTextSpan(
                     spanText,
                     font,
@@ -1540,19 +1670,16 @@ internal static partial class TextContentParser {
                     paintedText,
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
                     GetActiveMcid(),
-                    currentContentStreamObjectNumber,
+                    CurrentContentStreamObjectNumber(),
                     currentTextObjectOrderKey,
                     Matrix2D.Multiply(ctm, spanTextMatrix),
                     retainGlyphAndPaintEvidence ? GetVisualPaintIdentity() : null,
-                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
-                        ? spanGlyphCharacterLengths
-                        : null,
-                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
-                        spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
+                    spanGlyphsCoverPaintedText ? spanGlyphCharacterLengths : null,
+                    spanGlyphsCoverPaintedText && spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
                         ? spanGlyphBytes
                         : null,
                     spanGlyphPaintedAdvances?.Length == spanGlyphCharacterLengths.Count &&
-                        !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
+                        !hasUndecodableGlyph && spanGlyphCharacters == paintedText.Length
                         ? spanGlyphPaintedAdvances
                         : null,
                     characterAdvanceDirection,
@@ -1567,7 +1694,8 @@ internal static partial class TextContentParser {
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
-                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length),
+                    adoptEvidenceArrays: true);
                 PdfTextDecodingEvidence decodingEvidence = wholeRunMappingFailure is not null
                     ? new PdfTextDecodingEvidence(PdfTextDecodingSource.Unmappable,
                         wholeRunMappingFailure.EncodingName, wholeRunMappingFailure.HasDeclaredToUnicode)
@@ -1935,9 +2063,9 @@ internal static partial class TextContentParser {
             return OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * Clamp01(opacity.Value)));
         }
         bool TryApplyFillColor(PdfPageColorSpace colorSpace, out OfficeColor color) =>
-            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out fillColorSelection, out color, outputIntentColorTransform);
+            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, fillColorSelection, out fillColorSelection, out color, outputIntentColorTransform);
         bool TryApplyStrokeColor(PdfPageColorSpace colorSpace, out OfficeColor color) =>
-            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out strokeColorSelection, out color, outputIntentColorTransform);
+            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, strokeColorSelection, out strokeColorSelection, out color, outputIntentColorTransform);
         bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":

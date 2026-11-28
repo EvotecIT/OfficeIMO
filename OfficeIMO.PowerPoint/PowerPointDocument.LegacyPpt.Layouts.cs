@@ -266,18 +266,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private sealed class LegacyPptLayoutCatalog {
-            private readonly Dictionary<string, LegacyPptLayoutTarget> _slides =
+            private readonly Dictionary<string, LegacyPptLayoutTarget> LoadedSlides =
                 new(StringComparer.Ordinal);
             private readonly Dictionary<uint, LegacyPptLayoutTarget> _fallbacks = new();
 
             internal void Add(LegacyPptSlide slide, LegacyPptLayoutTarget target) =>
-                _slides[CreateKey(slide)] = target;
+                LoadedSlides[CreateKey(slide)] = target;
 
             internal void AddMasterFallback(uint masterId, LegacyPptLayoutTarget target) =>
                 _fallbacks[masterId] = target;
 
             internal bool TryGet(LegacyPptSlide slide, out LegacyPptLayoutTarget target) =>
-                _slides.TryGetValue(CreateKey(slide), out target)
+                LoadedSlides.TryGetValue(CreateKey(slide), out target)
                 || _fallbacks.TryGetValue(slide.MasterId, out target);
 
             internal static string CreateKey(LegacyPptSlide slide) =>

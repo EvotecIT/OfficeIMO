@@ -10,6 +10,8 @@ public sealed partial class EpubPublication {
     public string Title { get => GetDc("title"); set => SetDc("title", value); }
     /// <summary>Primary language. Chapter-level language declarations are edited independently.</summary>
     public string Language { get => GetDc("language"); set => SetDc("language", value); }
+    internal bool HasGeneratedIdentifier { get; private set; }
+
     /// <summary>Selected package identity. Identity changes are rejected for obfuscated/encrypted packages.</summary>
     public string Identifier {
         get => IdentifierElement?.Value ?? string.Empty;
@@ -18,6 +20,7 @@ public sealed partial class EpubPublication {
             if (_encryption.Count != 0 && value != _originalIdentifier) throw new NotSupportedException("Changing encrypted/obfuscated package identity requires re-keying resources.");
             XElement element = IdentifierElement ?? throw new InvalidDataException("Selected package identifier is missing.");
             EditPackageElement(element, proposed => proposed.Value = value);
+            HasGeneratedIdentifier = false;
         }
     }
     /// <summary>Primary creator, preserving other contributors and refinements.</summary>
@@ -103,6 +106,6 @@ public sealed partial class EpubPublication {
     }
     private void VerifyAvailableId(string id) {
         XmlConvert.VerifyNCName(id);
-        if (Root.DescendantsAndSelf().Any(element => (string?)element.Attribute("id") == id)) throw new ArgumentException("Package id already exists: " + id);
+        if (PackageIdExists(id)) throw new ArgumentException("Package id already exists: " + id);
     }
 }

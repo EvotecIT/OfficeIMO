@@ -8,17 +8,14 @@ namespace OfficeIMO.Word {
     // Provides functionality for creating, loading and manipulating Word documents.
     public partial class WordDocument : IDisposable {
 
-        internal int BookmarkId {
-            get {
-                return Bookmarks.Select(bookmark => bookmark.Id).DefaultIfEmpty(0).Max() + 1;
-            }
-        }
+        internal int BookmarkId => GetNextBookmarkId();
 
         /// <summary>
         /// Gets the table of contents defined in the document.
         /// </summary>
         public WordTableOfContent? TableOfContent {
             get {
+                if (WordTableOfContent.TryGetOwnedTable(this, out var owned)) return owned;
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
                 return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
             }

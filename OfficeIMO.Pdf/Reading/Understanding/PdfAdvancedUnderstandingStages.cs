@@ -26,8 +26,17 @@ internal static partial class PdfAdvancedUnderstandingStages {
     internal static T[] CopyAndSort<T>(
         PdfUnderstandingPageContext context,
         IReadOnlyList<T> values,
-        Comparison<T> comparison) {
+        Comparison<T> comparison) => CopyAndSort(context, values, comparison, out _);
+
+    // Stable merge sort that charges one work unit per copied value and per comparison.
+    // The total is reported so a caller that reuses the result can charge the same work again.
+    internal static T[] CopyAndSort<T>(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<T> values,
+        Comparison<T> comparison,
+        out long work) {
         var source = new T[values.Count];
+        work = source.Length;
         for (int index = 0; index < values.Count; index++) {
             context.ConsumeWork();
             source[index] = values[index];
@@ -44,6 +53,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 int output = left;
                 while (first < middle && second < right) {
                     context.ConsumeWork();
+                    work++;
                     target[output++] = comparison(source[first], source[second]) <= 0
                         ? source[first++]
                         : source[second++];
@@ -219,11 +229,14 @@ internal static partial class PdfAdvancedUnderstandingStages {
             context.ThrowIfCancellationRequested();
             Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText =
                 context.InspectionTextRecovery is { } recovery ? recovery.RecordUnmappableText : null;
+            // Each call decodes fresh spans that nothing else holds, so they take the page font size in place.
             IReadOnlyList<PdfTextSpan> source = context.Page.GetTextSpans(context.CancellationToken, onUnmappableText);
             var runs = new PdfTextSpan[source.Count];
             for (int index = 0; index < runs.Length; index++) {
                 context.ConsumeWork();
-                runs[index] = source[index].WithPageFontSize();
+                PdfTextSpan run = source[index];
+                run.ApplyPageFontSize();
+                runs[index] = run;
             }
             return Array.AsReadOnly(runs);
         }
@@ -1012,11 +1025,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 PdfVisualBounds tableBounds = pageRegions.GetBounds(regionIndex);
                 double tableWidth = tableBounds.Right - tableBounds.Left;
                 if (candidateWidth <= 0D || tableWidth <= 0D || candidateWidth > tableWidth * 1.1D) continue;
-                double[] tableFontSizes = table.Lines
-                    .Select(static line => line.FontSize)
-                    .OrderBy(static size => size)
-                    .ToArray();
-                double tableMedianFontSize = tableFontSizes[(tableFontSizes.Length - 1) / 2];
+                double tableMedianFontSize = pageRegions.GetMedianFontSize(regionIndex);
                 if (candidate.Lines[0].FontSize > tableMedianFontSize * 0.95D) continue;
                 double overlap = Math.Min(candidateBounds.Right, tableBounds.Right) - Math.Max(candidateBounds.Left, tableBounds.Left);
                 if (overlap <= 0D || overlap / candidateWidth < 0.8D) continue;
@@ -1122,6 +1131,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
             private readonly bool[] _hasBounds;
             private int[]? _nonTableIndicesByTop;
             private bool _nonTableIndicesByTopUnavailable;
+            private double?[]? _medianFontSizes;
 
             internal ClassificationRegions(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) {
                 _context = context;
@@ -1148,6 +1158,19 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     _hasBounds[index] = true;
                 }
                 return _bounds[index];
+            }
+
+            /// <summary>The region's median line font size (the lower middle one for an even count), worked out once.</summary>
+            internal double GetMedianFontSize(int index) {
+                _medianFontSizes ??= new double?[Count];
+                if (_medianFontSizes[index] is double cached) return cached;
+                double[] fontSizes = Regions[index].Lines
+                    .Select(static line => line.FontSize)
+                    .OrderBy(static size => size)
+                    .ToArray();
+                double median = fontSizes[(fontSizes.Length - 1) / 2];
+                _medianFontSizes[index] = median;
+                return median;
             }
 
             /// <summary>Non-table region indices ordered by visual top, then page order; null when a top is NaN.</summary>
@@ -1197,6 +1220,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
         internal double Angle { get; }
         internal double Normal { get; set; }
         internal List<PdfUnderstandingWord> Words { get; } = new();
+        // Words ordered along the baseline, computed once after grouping, and the work that ordering cost.
+        internal PdfUnderstandingWord[]? AlongOrdered { get; set; }
+        internal long AlongOrderWork { get; set; }
     }
 
     private static double WordAnchorX(PdfUnderstandingWord word) => (word.XStart + word.XEnd) / 2D;

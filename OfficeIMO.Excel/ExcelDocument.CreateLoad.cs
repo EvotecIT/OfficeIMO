@@ -18,78 +18,6 @@ using System.Diagnostics;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        /// <summary>Creates a detached workbook that must be saved explicitly to a path or stream.</summary>
-        /// <param name="options">Creation options. SaveOnDispose is invalid without an associated destination.</param>
-        public static ExcelDocument Create(ExcelCreateOptions? options = null) {
-            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
-            if (resolved.Template != null || resolved.TemplateStream != null) return CreateFromUnifiedOptions(null, null, resolved);
-            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
-            }
-
-            var packageStream = new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType.ToOpenXml(), autoSave: false);
-            return CreateNewDocument(
-                spreadSheetDocument,
-                filePath: null,
-                packageStream,
-                sourceStream: null,
-                resolved.PersistenceMode,
-                copyPackageToSourceOnDispose: false,
-                leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
-        }
-
-        /// <summary>
-        /// Creates a new Excel document at the specified path.
-        /// </summary>
-        /// <param name="filePath">Path to the new file.</param>
-        /// <param name="options">Creation and persistence options.</param>
-        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(string filePath, ExcelCreateOptions? options = null) {
-            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
-            if (resolved.Template != null || resolved.TemplateStream != null) return CreateFromUnifiedOptions(filePath, null, resolved);
-            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
-            if (saveOnDispose && string.IsNullOrEmpty(filePath)) {
-                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(filePath));
-            }
-
-            Stream packageStream = saveOnDispose
-                ? new NonDisposingMemoryStream(StreamBufferSize)
-                : new MemoryStream(StreamBufferSize);
-            SpreadsheetDocumentType documentType = ResolveSpreadsheetDocumentType(filePath) ?? resolved.DocumentType.ToOpenXml();
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, documentType, autoSave: false);
-            return CreateNewDocument(
-                spreadSheetDocument,
-                filePath,
-                packageStream,
-                sourceStream: null,
-                resolved.PersistenceMode,
-                copyPackageToSourceOnDispose: false,
-                leaveSourceStreamOpen: true,
-                copyPackageToFilePathOnDispose: saveOnDispose, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
-        }
-
-        /// <summary>
-        /// Creates a new Excel document in memory and optionally persists it to the provided stream on dispose.
-        /// </summary>
-        /// <param name="stream">Destination stream to receive the workbook package.</param>
-        /// <param name="options">Creation and persistence options.</param>
-        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(Stream stream, ExcelCreateOptions? options = null) {
-            OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
-            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
-            if (resolved.Template != null || resolved.TemplateStream != null) return CreateFromUnifiedOptions(null, stream, resolved);
-            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
-
-            Stream packageStream = saveOnDispose
-                ? new NonDisposingMemoryStream(StreamBufferSize)
-                : new MemoryStream(StreamBufferSize);
-
-            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType.ToOpenXml(), false);
-            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
-        }
-
         private static SpreadsheetDocumentType? ResolveSpreadsheetDocumentType(string? filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) {
                 return null;
@@ -127,55 +55,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static ExcelDocument CreateNewDocument(
-            SpreadsheetDocument spreadSheetDocument,
-            string? filePath,
-            Stream? packageStream,
-            Stream? sourceStream,
-            DocumentPersistenceMode persistenceMode,
-            bool copyPackageToSourceOnDispose,
-            bool leaveSourceStreamOpen,
-            bool copyPackageToFilePathOnDispose = false,
-            Stream? ownedOpenStream = null,
-            string? firstSheetName = null, OfficeTheme? theme = null) {
-            bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
-            var document = new ExcelDocument {
-                FilePath = filePath,
-                _spreadSheetDocument = spreadSheetDocument,
-                _persistenceMode = persistenceMode,
-                _creationTheme = theme ?? OfficeTheme.Default,
-                _defaultFontTheme = theme
-            };
-
-            // Add a WorkbookPart to the document.
-            WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
-            workbookpart.Workbook = new Workbook();
-            document._workBookPart = workbookpart;
-            document.EnsureWorkbookThemeAndStyles();
-
-            document._packageStream = keepPackageStream ? packageStream : null;
-            document._sourceStream = sourceStream;
-            document._ownedOpenStream = ownedOpenStream;
-            document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
-            document._copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath);
-            document._leaveSourceStreamOpen = leaveSourceStreamOpen;
-            document._packageContentTypesKnownNormalized = false;
-            document._simplePackageContentKnown = false;
-            document._requiresSavePreflight = true;
-            document._packageDirty = true;
-            document._packagePropertiesDirty = false;
-            document._unchangedPackageBytes = null;
-
-            // Initialize document property helpers
-            document.Properties = new ExcelBuiltinDocumentProperties(document);
-            document.ApplicationProperties = new ExcelApplicationProperties(document);
-            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
-            document.LoadCustomDocumentProperties();
-
-            if (theme != null) document.ApplyTheme(theme);
-            if (firstSheetName != null) document.AddSheet(firstSheetName);
-            return document;
-        }
         private static ExcelDocument CreateDocument(
             SpreadsheetDocument spreadSheetDocument,
             string? filePath,
@@ -213,6 +92,70 @@ namespace OfficeIMO.Excel {
             document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.ReadChartRelationships(document._spreadSheetDocument);
+            return document;
+        }
+
+        /// <summary>
+        /// Creates a new workbook over a package OfficeIMO writes itself; the SDK opens over it when something needs the model.
+        /// </summary>
+        private static ExcelDocument CreateOwnedDocument(ExcelCreateOptions options, ExcelDocumentType type, string? filePath, Stream? sourceStream) {
+            string mainContentType = CreatedMainContentType(type) ?? throw new ArgumentOutOfRangeException(nameof(options), type, "Unknown workbook type.");
+            byte[] bytes = CreateWorkbookShell(mainContentType, options.Theme);
+            var deferred = new ExcelDeferredWorkbook(CreatedWorkbookPartName, new List<ExcelDeferredSheet>(), date1904: false);
+            // A workbook saved on dispose writes itself to its file or stream then, as any dirty workbook does.
+            ExcelDocument document = CreateDeferredDocument(deferred, bytes, CreateOpenSettings(null), readOnly: false, filePath, sourceStream,
+                leaveSourceStreamOpen: true, options.PersistenceMode);
+            document._deferredCreated = true;
+            document._deferredPackageWrittenHere = true;
+            // Its destination receives the workbook on dispose even when a copy was saved elsewhere meanwhile.
+            bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            document._copyPackageToSourceOnDispose = saveOnDispose && sourceStream != null;
+            document._copyPackageToFilePathOnDispose = saveOnDispose && filePath != null;
+            document._creationTheme = options.Theme ?? OfficeTheme.Default;
+            document._defaultFontTheme = options.Theme;
+            // A new workbook is saved even before anything changes, as one created through the model is.
+            document._packageDirty = true;
+            document._unchangedPackageBytes = null;
+            // Its package is OfficeIMO's own, so the fast writers may rewrite it as they do a workbook the model creates.
+            document._packageContentTypesKnownNormalized = false;
+            if (options.FirstSheetName != null) document.AddSheet(options.FirstSheetName);
+            return document;
+        }
+
+        /// <summary>Creates a document over a loaded package whose SDK opens on first use; see <see cref="OpenDeferredSdk"/>.</summary>
+        private static ExcelDocument CreateDeferredDocument(
+            ExcelDeferredWorkbook deferred,
+            byte[] packageBytes,
+            OpenSettings openSettings,
+            bool readOnly,
+            string? filePath,
+            Stream? sourceStream,
+            bool leaveSourceStreamOpen,
+            DocumentPersistenceMode persistenceMode) {
+            var document = new ExcelDocument {
+                FilePath = filePath,
+                _deferredWorkbook = deferred,
+                _deferredPackageBytes = packageBytes,
+                _deferredOpenSettings = openSettings,
+                _deferredReadOnly = readOnly,
+                _sourceStream = sourceStream,
+                _leaveSourceStreamOpen = leaveSourceStreamOpen,
+                _packageContentTypesKnownNormalized = true,
+                _simplePackageContentKnown = false,
+                _requiresSavePreflight = false,
+                _packageDirty = false,
+                _packagePropertiesDirty = false,
+                _unchangedPackageBytes = packageBytes,
+                _persistenceMode = persistenceMode,
+                _sourceMaxCharactersInPart = openSettings.MaxCharactersInPart,
+                _readSnapshotAllowed = true,
+            };
+
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ExcelApplicationProperties(document);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            // The load declined packages with custom properties, so there are none to read.
+            document.CustomProperties.ReplaceWith(new Dictionary<string, ExcelCustomProperty>(StringComparer.OrdinalIgnoreCase));
             return document;
         }
 
@@ -287,6 +230,16 @@ namespace OfficeIMO.Excel {
                 byte[] unchangedPackageBytes;
                 if (!shouldRetainPackageStream && Utilities.ExcelPackageUtilities.TryNormalizeContentTypes(
                         bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
+                    ExcelDeferredWorkbook? deferred = options.PersistenceMode == DocumentPersistenceMode.Explicit
+                        && !OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
+                        && IsPlainOpenSettings(effectiveOpenSettings)
+                        ? TryReadDeferredWorkbook(normalizedBytes)
+                        : null;
+                    if (deferred != null) {
+                        ExcelDocument deferredDocument = CreateDeferredDocument(deferred, normalizedBytes, effectiveOpenSettings, readOnly,
+                            filePath, associatedStream, leaveOriginalStreamOpen, options.PersistenceMode);
+                        return captureSourcePackageSecurity ? WithSourcePackageInspection(deferredDocument, bytes, options) : deferredDocument;
+                    }
                     normalizedStream = OfficePackageLoadSource.CreatePackageStream(normalizedBytes, DocumentAccessMode.ReadWrite);
                     unchangedPackageBytes = normalizedBytes;
                 } else {

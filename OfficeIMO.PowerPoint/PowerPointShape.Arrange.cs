@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -7,40 +8,41 @@ namespace OfficeIMO.PowerPoint {
         ///     Moves the shape to the front (top) of the z-order within its parent.
         /// </summary>
         public void BringToFront() {
-            OpenXmlElement? parent = Element.Parent;
-            if (parent == null) {
+            OfficeXmlNode element = XmlElement;
+            OfficeXmlNode parent = element.Parent;
+            if (parent.IsNone) {
                 return;
             }
 
-            Element.Remove();
-            parent.Append(Element);
+            element.Remove();
+            parent.Append(element);
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Moves the shape to the back (bottom) of the z-order within its parent.
         /// </summary>
         public void SendToBack() {
-            OpenXmlElement? parent = Element.Parent;
-            if (parent == null) {
+            OfficeXmlNode element = XmlElement;
+            OfficeXmlNode parent = element.Parent;
+            if (parent.IsNone) {
                 return;
             }
 
-            Element.Remove();
+            element.Remove();
 
-            OpenXmlElement? insertBefore = null;
-            foreach (OpenXmlElement child in parent.ChildElements) {
-                if (child is NonVisualGroupShapeProperties || child is GroupShapeProperties) {
+            // The group's own properties stay first.
+            OfficeXmlNode insertBefore = default;
+            foreach (OfficeXmlNode child in parent.Children()) {
+                if (child.Is(OfficeXmlNamespaces.PresentationML, "nvGrpSpPr") || child.Is(OfficeXmlNamespaces.PresentationML, "grpSpPr")) {
                     continue;
                 }
                 insertBefore = child;
                 break;
             }
 
-            if (insertBefore != null) {
-                parent.InsertBefore(Element, insertBefore);
-            } else {
-                parent.Append(Element);
-            }
+            parent.InsertBefore(element, insertBefore);
+            OwnerPartRef.MarkEdited();
         }
     }
 }

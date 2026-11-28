@@ -61,6 +61,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Text {
             get {
+                if (_ownedTree != null && TryGetOwnedText(out string ownedText)) return ownedText;
                 if (_run != null) {
                     return ReadVisibleText(_visibleRun ?? _run);
                 }
@@ -104,6 +105,7 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedText(value)) return;
                 if (_officeMath != null) {
                     WordMath.SetText(_officeMath, value);
                     return;

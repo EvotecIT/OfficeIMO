@@ -152,8 +152,11 @@ public sealed class OfficeRasterImage {
         }
     }
 
+    // Whether GetPixels can copy the pixels within the managed working-set limit.
+    internal bool CanCopyPixels => _pixels.LongLength * 2L + 64L * 1024L <= OfficeRasterGuards.MaximumDecodedBytes;
+
     private void EnsureSnapshotWorkingSet() {
-        if (_pixels.LongLength * 2L + 64L * 1024L > OfficeRasterGuards.MaximumDecodedBytes) {
+        if (!CanCopyPixels) {
             throw new ArgumentException("Copying the RGBA image exceeds the managed image working-set limit.");
         }
     }

@@ -34,6 +34,20 @@ internal static class WordRunColor {
         return native;
     }
 
+    /// <summary>The <c>w:themeColor</c> token for a theme colour, or null for a literal colour.</summary>
+    internal static string? ThemeColorToken(OfficeColor color) => color.ThemeSlot == null ? null : color.Role switch {
+        OfficeColorRole.Accent1 => "accent1",
+        OfficeColorRole.Accent2 => "accent2",
+        OfficeColorRole.Accent3 => "accent3",
+        OfficeColorRole.Accent4 => "accent4",
+        OfficeColorRole.Accent5 => "accent5",
+        OfficeColorRole.Accent6 => "accent6",
+        OfficeColorRole.Text => "dark1",
+        OfficeColorRole.TextMuted => "dark2",
+        OfficeColorRole.Background => "light1",
+        _ => "none"
+    };
+
     /// <summary>Writes native DrawingML slots, resolving status colors against the destination document.</summary>
     internal static A.SolidFill CreateDrawingFill(OfficeColor color, WordDocument? document) {
         if (color.ThemeSlot is string slot) {
@@ -67,12 +81,16 @@ internal static class WordRunColor {
         return OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme);
     }
 
-    internal static OfficeColor? Read(Color? native) {
-        if (native?.ThemeColor != null && native.ThemeTint == null && native.ThemeShade == null) {
-            OfficeColor? role = ReadRole(native.ThemeColor.InnerText);
+    internal static OfficeColor? Read(Color? native) =>
+        native == null ? null : Read(native.ThemeColor?.InnerText, native.ThemeTint != null, native.ThemeShade != null, native.Val?.Value);
+
+    /// <summary>Reads a <c>w:color</c> element from its attributes: a theme slot without tint or shade, else its value.</summary>
+    internal static OfficeColor? Read(string? themeColor, bool hasThemeTint, bool hasThemeShade, string? value) {
+        if (themeColor != null && !hasThemeTint && !hasThemeShade) {
+            OfficeColor? role = ReadRole(themeColor);
             if (role.HasValue) return role;
         }
-        return OfficeColor.TryParseHex(native?.Val?.Value, out var color) ? color : null;
+        return OfficeColor.TryParseHex(value, out var color) ? color : null;
     }
 
     private static OfficeColor? ReadRole(string? slot) => slot switch {

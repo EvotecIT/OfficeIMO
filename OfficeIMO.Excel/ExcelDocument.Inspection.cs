@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
         /// out of the worksheets, so a save that follows keeps them on that writer.
         /// </summary>
         internal bool HasWorksheets => ExecuteReadWithoutMaterializing(() =>
-            _directDataSetSaveCandidate?.Model.Sheets.Count > 0
+            _deferredWorkbook is { } deferred ? deferred.Sheets.Any(sheet => sheet.IsWorksheet)
+            : _directDataSetSaveCandidate?.Model.Sheets.Count > 0
             || _materializedDirectDataSetFastSaveModel?.Sheets.Count > 0
             || ReadSheetElements().Any(sheet => sheet.Id?.Value is string id && WorkbookPartRoot.GetPartById(id) is WorksheetPart));
 
@@ -173,7 +174,16 @@ namespace OfficeIMO.Excel {
                                 }
 
                                 // One walk over the cell's children; each SDK child property searches them again.
-                                ExcelSheetReader.GetCellChildren(cell, out CellFormula? cellFormula, out CellValue? cellValue, out InlineString? inlineString);
+                                CellFormula? cellFormula = null;
+                                CellValue? cellValue = null;
+                                InlineString? inlineString = null;
+                                for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                                    switch (child) {
+                                        case CellFormula formulaChild: cellFormula ??= formulaChild; break;
+                                        case CellValue valueChild: cellValue ??= valueChild; break;
+                                        case InlineString inlineChild: inlineString ??= inlineChild; break;
+                                    }
+                                }
                                 string? storedFormula = cellFormula?.Text;
                                 uint? cellStyleIndex = cell.StyleIndex?.Value;
                                 worksheetSnapshot.AddCell(new ExcelCellInfo {

@@ -7,7 +7,7 @@ internal static class UrlOriginPolicy {
     }
 
     internal static bool IsAllowedHttpImage(MarkdownHtmlExportOptions? o, string? url) {
-        if (!IsSafeImageUrl(url)) return false;
+        if (!IsSafeImageUrl(o, url)) return false;
         if (o == null) return true;
         var u = (url ?? string.Empty).Trim();
         if (u.Length == 0) return true;
@@ -100,7 +100,7 @@ internal static class UrlOriginPolicy {
             string.Equals(candidate?.Trim(), scheme, StringComparison.OrdinalIgnoreCase)) == true;
     }
 
-    private static bool IsSafeImageUrl(string? url) {
+    private static bool IsSafeImageUrl(MarkdownHtmlExportOptions? options, string? url) {
         string value = (url ?? string.Empty).Trim();
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
@@ -110,7 +110,7 @@ internal static class UrlOriginPolicy {
         }
 
         if (scheme == "cid") return true;
-        return scheme == "data" && IsSafeRasterDataImage(value);
+        return scheme == "data" && IsAllowedDataImage(value, options?.AllowTrustedSvgDataImages == true);
     }
 
     private static bool IsWellFormedAbsoluteHttpUrl(string value, string expectedScheme) {
@@ -125,8 +125,34 @@ internal static class UrlOriginPolicy {
         int colon = value.IndexOf(':');
         if (colon <= 0) return false;
 
-        int slash = value.IndexOfAny(new[] { '/', '?', '#' });
-        if (slash >= 0 && slash < colon) return false;
+        for (int i = 0; i < colon; i++) {
+            if (value[i] is '/' or '?' or '#') return false;
+        }
+
+        // The scheme is the text before the colon without white space or control characters, lowercased.
+        // Plain lowercase ASCII schemes, the usual case, are checked in place.
+        bool plain = true;
+        for (int i = 0; i < colon; i++) {
+            char current = value[i];
+            if (current is not ((>= 'a' and <= 'z') or (>= '0' and <= '9') or '+' or '-' or '.')) {
+                plain = false;
+                break;
+            }
+        }
+
+        if (plain) {
+            if (value[0] is < 'a' or > 'z') {
+                scheme = string.Empty;
+                return true;
+            }
+
+            scheme = colon switch {
+                4 when string.CompareOrdinal(value, 0, "http", 0, 4) == 0 => "http",
+                5 when string.CompareOrdinal(value, 0, "https", 0, 5) == 0 => "https",
+                _ => value.Substring(0, colon)
+            };
+            return true;
+        }
 
         var builder = new System.Text.StringBuilder(colon);
         for (int i = 0; i < colon; i++) {
@@ -152,7 +178,7 @@ internal static class UrlOriginPolicy {
         return true;
     }
 
-    private static bool IsSafeRasterDataImage(string value) {
+    private static bool IsAllowedDataImage(string value, bool allowTrustedSvg) {
         int comma = value.IndexOf(',');
         if (comma <= 5) return false;
 
@@ -163,7 +189,8 @@ internal static class UrlOriginPolicy {
         bool base64 = parameters.Split(';').Any(parameter => string.Equals(parameter.Trim(), "base64", StringComparison.OrdinalIgnoreCase));
         if (!base64) return false;
 
-        return mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
+        return (allowTrustedSvg && mediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase))
+            || mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/gif", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/webp", StringComparison.OrdinalIgnoreCase)

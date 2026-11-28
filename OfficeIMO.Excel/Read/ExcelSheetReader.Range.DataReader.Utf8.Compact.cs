@@ -202,7 +202,10 @@ namespace OfficeIMO.Excel {
                         }
                         hasStyle = true;
                         if (!TryParseNonNegativeInt(_buffer, valueStart, valueLength, out styleIndex)) {
-                            return false;
+                            if (valueLength != 0) return false;
+                            // Excel repairs an empty style to the default style; keep the cell unstyled.
+                            ReportEmptyCellStyle(hasReference, referenceStart, referenceLength);
+                            styleIndex = -1;
                         }
                     } else if (AsciiEquals(attributeStart, attributeLength, "xml:space")) {
                         // Some writers put xml:space on the cell. The general parser ignores it and
@@ -218,7 +221,8 @@ namespace OfficeIMO.Excel {
                 }
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer, referenceStart, referenceLength);
-                    if (columnIndex <= 0) {
+                    if (columnIndex <= 0
+                        && !TryResolveUnparsedCellColumn(referenceStart, referenceLength, nextColumn, out columnIndex)) {
                         return false;
                     }
                 } else {
@@ -404,43 +408,54 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                bool isEmpty = false;
-                if (_buffer[cursor] == (byte)'>') {
-                    // Number cell without an explicit style or type.
-                } else if (_buffer[cursor] == (byte)'/'
-                           && cursor + 1 < _length
-                           && _buffer[cursor + 1] == (byte)'>') {
-                    isEmpty = true;
-                    cursor++;
-                } else if (cursor <= _length - 7
-                           && _buffer[cursor] == (byte)' '
-                           && _buffer[cursor + 1] == (byte)'t'
-                           && _buffer[cursor + 2] == (byte)'='
-                           && _buffer[cursor + 3] == (byte)'\"'
-                           && _buffer[cursor + 4] == (byte)'s'
-                           && _buffer[cursor + 5] == (byte)'\"'
-                           && _buffer[cursor + 6] == (byte)'>') {
-                    kind = Utf8CellKind.SharedString;
-                    cursor += 6;
-                } else if (cursor <= _length - 6
-                           && _buffer[cursor] == (byte)' '
-                           && _buffer[cursor + 1] == (byte)'s'
-                           && _buffer[cursor + 2] == (byte)'='
-                           && _buffer[cursor + 3] == (byte)'\"') {
+                // Excel writes r, then s, then t; other attribute orders use the general tag parser.
+                if (cursor <= _length - 6
+                    && _buffer[cursor] == (byte)' '
+                    && _buffer[cursor + 1] == (byte)'s'
+                    && _buffer[cursor + 2] == (byte)'='
+                    && _buffer[cursor + 3] == (byte)'\"') {
                     cursor += 4;
                     int styleStart = cursor;
                     while (cursor < _length && _buffer[cursor] is >= (byte)'0' and <= (byte)'9') {
                         cursor++;
                     }
                     if (cursor == styleStart
-                        || cursor + 1 >= _length
-                        || _buffer[cursor++] != (byte)'\"'
-                        || _buffer[cursor] != (byte)'>') {
+                        || cursor >= _length
+                        || _buffer[cursor] != (byte)'\"'
+                        || !TryParseNonNegativeInt(_buffer, styleStart, cursor - styleStart, out styleIndex)) {
                         return false;
                     }
-                    if (!TryParseNonNegativeInt(_buffer, styleStart, cursor - styleStart - 1, out styleIndex)) {
+                    cursor++;
+                }
+                if (cursor <= _length - 6
+                    && _buffer[cursor] == (byte)' '
+                    && _buffer[cursor + 1] == (byte)'t'
+                    && _buffer[cursor + 2] == (byte)'='
+                    && _buffer[cursor + 3] == (byte)'\"') {
+                    cursor += 4;
+                    int typeStart = cursor;
+                    while (cursor < _length && _buffer[cursor] is >= (byte)'a' and <= (byte)'z' or >= (byte)'A' and <= (byte)'Z') {
+                        cursor++;
+                    }
+                    if (cursor >= _length
+                        || _buffer[cursor] != (byte)'\"'
+                        || !TryParseCellKind(typeStart, cursor - typeStart, out kind)) {
                         return false;
                     }
+                    cursor++;
+                }
+
+                bool isEmpty = false;
+                if (cursor >= _length) {
+                    return false;
+                }
+                if (_buffer[cursor] == (byte)'>') {
+                    // The start tag ends here.
+                } else if (_buffer[cursor] == (byte)'/'
+                           && cursor + 1 < _length
+                           && _buffer[cursor + 1] == (byte)'>') {
+                    isEmpty = true;
+                    cursor++;
                 } else {
                     return false;
                 }

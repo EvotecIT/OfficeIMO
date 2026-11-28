@@ -182,6 +182,24 @@ bootstrapper. Development imports prefer Debug, then Release;
 The build synchronizes the compiled module's project version with the manifest
 and derives command exports and help from the binary and XML comments.
 
+Before publishing, build [Verify.OfficeIMO](https://github.com/VerifyTests/Verify.OfficeIMO)
+against the candidate packages. It references most OfficeIMO packages and is a
+public consumer of their API, so a break there means a break for other
+applications too. Build the unsigned packages with `./Build/Build-Release.ps1`
+and clone Verify.OfficeIMO outside this repository. In the clone's
+`src/nuget.config`, add the package output folder as a source, map
+`OfficeIMO.*` to it with package source mapping, map `*` to nuget.org so the
+other dependencies still restore, and set
+`signatureValidationMode` to `accept`, because the candidates are unsigned. Set
+every `OfficeIMO.*` version in its `src/Directory.Packages.props` to the
+candidate version. Point `NUGET_PACKAGES` at a new empty folder for the run, so
+NuGet can't reuse an earlier build of the same version, and run
+`dotnet test src/Verify.OfficeIMO.slnx` from the clone's root. The clone's `global.json` selects its own
+SDK, which can be newer than the one OfficeIMO pins, so install that SDK first. A compile error or a missing member is
+a release blocker unless the release notes and `MIGRATION.md` already describe
+that break. Changed snapshots are expected when rendering improves and are not
+a blocker. Delete the clone and the package folder afterwards.
+
 After the candidate has passed its required tests and reviews, an authorized
 release operator runs:
 

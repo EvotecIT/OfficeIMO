@@ -20,18 +20,19 @@ internal static class ConvertTool {
     /// PDF imports draw with the full pack. Conversions to PDF need the Japanese, Arabic and symbol fallbacks only
     /// when the document's text or fonts call for them; other conversions draw nothing.
     /// </summary>
-    private static bool NeedsFallbackFonts(ToolSession session, ConversionRoute route, ToolOptions options) {
+    private static bool NeedsFallbackFonts(ToolSession session, ConversionRoute route, ToolOptions options, BrowserNotebookSettings? notebookSettings) {
         if (route.Id.StartsWith("pdf-", StringComparison.Ordinal)) return true;
         if (!route.Id.EndsWith("-pdf", StringComparison.Ordinal)) return false;
         if (route.InputKind == ConversionInputKind.Text) return BrowserFallbackFonts.Needed(RequireText(options));
         SelectedDocument file = session.Input();
-        return BrowserFallbackFonts.Needed(file.Bytes, file.Extension);
+        return BrowserFallbackFonts.Needed(file.Bytes, file.Extension, notebookSettings);
     }
 
     private static ToolResultDocument Convert(ToolSession session, ConversionRoute route, ToolOptions options) {
         BrowserPdfProfile profile = BrowserPdfProfileCatalog.Find(options.Text("profile", BrowserPdfProfileCatalog.Faithful.Id));
         bool overlay = options.Flag("overlay");
-        if (NeedsFallbackFonts(session, route, options) && !BrowserFallbackFonts.IsAvailable) {
+        BrowserNotebookSettings? notebookSettings = route.Id == "notebook-pdf" ? ReadNotebookSettings(options) : null;
+        if (NeedsFallbackFonts(session, route, options, notebookSettings) && !BrowserFallbackFonts.IsAvailable) {
             throw new EngineNeedsAssemblyException(BrowserFallbackFonts.AssetName);
         }
         ConversionResult result = route.InputKind == ConversionInputKind.File
@@ -41,7 +42,8 @@ internal static class ConvertTool {
                 limitExcelRows: options.Text("rows") == "preview",
                 profile,
                 overlay,
-                options.Text("slides", "editable"))
+                options.Text("slides", "editable"),
+                notebookSettings)
             : session.Conversions.ConvertText(route, RequireText(options), profile, overlay);
         session.LastConversion = result;
 
@@ -90,6 +92,15 @@ internal static class ConvertTool {
         }
 
         return new ToolResultDocument(true, verdict, facts.ToArray(), items.ToArray(), artifacts, Preview(result), result.ConversionMilliseconds, result.PeakRetainedMemoryBytes);
+    }
+
+    private static BrowserNotebookSettings ReadNotebookSettings(ToolOptions options) {
+        string title = options.Text("title");
+        string author = options.Text("author");
+        if (title.Length > 200 || author.Length > 200) {
+            throw new ArgumentException("The title and author must each be 200 characters or fewer.");
+        }
+        return new BrowserNotebookSettings(options.Flag("hideCode"), options.Flag("hideOutputs"), title, author);
     }
 
     private static ToolResultDocument SupportBundle(ToolSession session, ToolOptions options) {

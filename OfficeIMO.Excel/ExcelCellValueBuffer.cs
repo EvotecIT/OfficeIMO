@@ -108,6 +108,12 @@ namespace OfficeIMO.Excel {
     /// reached the DOM. Storage grows in fixed chunks, so nothing is copied as rows accumulate
     /// and a cell costs twelve bytes plus its text reference.
     /// </summary>
+    /// <remarks>
+    /// The last rows can instead be a block of typed selector values (<see cref="AddBlock"/>), kept as the caller's
+    /// <see cref="ExcelTabularCellValues"/> rather than copied cell by cell. Cell indexes run on through the block, so
+    /// readers and writers see the same cells either way. The first write that changes a block cell, or adds a cell
+    /// after it, copies the block into the chunks.
+    /// </remarks>
     internal sealed class ExcelCellValueBuffer {
         private const int RectangleCellRatioLimit = 8;
         private const int MinimumRectangleCellLimit = 1 << 20;
@@ -134,6 +140,7 @@ namespace OfficeIMO.Excel {
             private const int ChunkBits = 12;
             private const int ChunkSize = 1 << ChunkBits;
             private const int ChunkMask = ChunkSize - 1;
+            private const int FirstChunkSize = 256;
             private T[][] _chunks = new T[8][];
 
             internal int Count { get; private set; }
@@ -150,7 +157,11 @@ namespace OfficeIMO.Excel {
                         Array.Resize(ref _chunks, _chunks.Length * 2);
                     }
 
-                    _chunks[chunkIndex] = new T[ChunkSize];
+                    // The first chunk starts small and doubles, so a buffer of a few cells, as on each sheet that
+                    // takes its rows as a block, stays small.
+                    _chunks[chunkIndex] = new T[chunkIndex == 0 ? FirstChunkSize : ChunkSize];
+                } else if (chunkIndex == 0 && Count == _chunks[0].Length) {
+                    Array.Resize(ref _chunks[0], Math.Min(Count * 2, ChunkSize));
                 }
 
                 _chunks[chunkIndex][Count & ChunkMask] = value;
@@ -168,6 +179,15 @@ namespace OfficeIMO.Excel {
         private int _lastColumn;
         private int _maximumColumn;
         private long _readCopiedCells;
+        // The trailing block of typed values: whole rows from column one, none blank and none holding an arbitrary object.
+        private ExcelTabularCellValues? _block;
+        private int _blockFirstValue;
+        private int _blockFirstRow;
+        private int _blockRows;
+        private int _blockColumns;
+        private uint _blockDateStyle;
+        private int _rowCountBeforeBlock;
+        private int _lastColumnBeforeBlock;
 
         /// <summary>Gets a number that changes whenever the buffer's content does.</summary>
         internal int Version { get; private set; }
@@ -178,9 +198,14 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the last written column; the tabular view of the buffer starts at column one.</summary>
         internal int ColumnCount => _maximumColumn;
 
-        internal int CellCount => _headers.Count;
+        internal int CellCount => _headers.Count + _blockRows * _blockColumns;
 
-        internal int WrittenRowCount => _rows.Count;
+        internal int WrittenRowCount => _rows.Count + _blockRows;
+
+        /// <summary>The number of cells before the block; every cell when there is none.</summary>
+        private int ChunkedCellCount => _headers.Count;
+
+        private bool IsBlockCell(int cellIndex) => _block != null && cellIndex >= _headers.Count;
 
         /// <summary>
         /// Gets whether the cells can stand as a worksheet. A buffer far sparser than its
@@ -193,7 +218,7 @@ namespace OfficeIMO.Excel {
 
         internal string Dimension {
             get {
-                string first = ExcelA1.CellReference(_rows[0].RowNumber, _firstColumn);
+                string first = ExcelA1.CellReference(GetRowNumber(0), _firstColumn);
                 string last = ExcelA1.CellReference(RowCount, _maximumColumn);
                 return first == last ? first : first + ":" + last;
             }
@@ -213,6 +238,10 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        // Adding runs once per cell, so it is compiled optimized from the first call rather than tiered up.
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal bool CanAdd(int row, int column) {
             if (row <= 0 || row > ExcelA1.MaxRows || column <= 0 || column > ExcelA1.MaxColumns) {
                 return false;
@@ -221,7 +250,11 @@ namespace OfficeIMO.Excel {
             return row > RowCount || (row == RowCount && column > _lastColumn);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void Add(int row, int column, in ExcelBufferedCell cell) {
+            ExpandBlock();
             Version++;
             if (row != RowCount) {
                 _rows.Add(new RowEntry(row, _headers.Count));
@@ -244,6 +277,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Replaces an existing cell, keeping its position.</summary>
         internal void Replace(int cellIndex, in ExcelBufferedCell cell) {
+            if (IsBlockCell(cellIndex)) ExpandBlock();
             Version++;
             int column = GetColumn(cellIndex);
             _payloads[cellIndex] = StorePayload(cell);
@@ -251,6 +285,9 @@ namespace OfficeIMO.Excel {
             NoteColumnShape(column, cell.Kind);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         private long StorePayload(in ExcelBufferedCell cell) {
             if (cell.Reference == null) {
                 return cell.Bits;
@@ -267,6 +304,10 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the workbook cell format of a cell; zero leaves it to its value.</summary>
         internal uint GetStyle(int cellIndex) {
+            if (IsBlockCell(cellIndex)) {
+                return GetBlockKind(cellIndex) == ExcelBufferedCellKind.DateTime ? _blockDateStyle : 0U;
+            }
+
             int chunkIndex = cellIndex >> StyleChunkBits;
             uint[]? chunk = chunkIndex < _styleChunks.Length ? _styleChunks[chunkIndex] : null;
             return chunk == null ? 0U : chunk[cellIndex & StyleChunkMask];
@@ -275,6 +316,7 @@ namespace OfficeIMO.Excel {
         // Styles sit beside the cells in chunks made on first use, so a large unstyled range
         // costs nothing and an index can reach every format a workbook may hold.
         internal void SetStyle(int cellIndex, uint styleIndex) {
+            if (IsBlockCell(cellIndex)) ExpandBlock();
             Version++;
             int chunkIndex = cellIndex >> StyleChunkBits;
             if (chunkIndex >= _styleChunks.Length) {
@@ -329,16 +371,33 @@ namespace OfficeIMO.Excel {
             return types;
         }
 
-        internal int GetRowNumber(int writtenRowIndex) => _rows[writtenRowIndex].RowNumber;
+        internal int GetRowNumber(int writtenRowIndex)
+            => writtenRowIndex < _rows.Count ? _rows[writtenRowIndex].RowNumber : _blockFirstRow + (writtenRowIndex - _rows.Count);
 
-        internal int GetFirstCellIndex(int writtenRowIndex) => _rows[writtenRowIndex].FirstCell;
+        internal int GetFirstCellIndex(int writtenRowIndex)
+            => writtenRowIndex < _rows.Count
+                ? _rows[writtenRowIndex].FirstCell
+                : ChunkedCellCount + (writtenRowIndex - _rows.Count) * _blockColumns;
 
         internal int GetEndCellIndex(int writtenRowIndex)
-            => writtenRowIndex + 1 < _rows.Count ? _rows[writtenRowIndex + 1].FirstCell : _headers.Count;
+            => writtenRowIndex + 1 < _rows.Count
+                ? _rows[writtenRowIndex + 1].FirstCell
+                : writtenRowIndex < _rows.Count
+                    ? ChunkedCellCount
+                    : ChunkedCellCount + (writtenRowIndex - _rows.Count + 1) * _blockColumns;
 
-        internal int GetColumn(int cellIndex) => _headers[cellIndex] & ColumnMask;
+        internal int GetColumn(int cellIndex)
+            => IsBlockCell(cellIndex) ? (cellIndex - ChunkedCellCount) % _blockColumns + 1 : _headers[cellIndex] & ColumnMask;
 
         internal ExcelBufferedCell GetCell(int cellIndex) {
+            if (IsBlockCell(cellIndex)) {
+                int offset = _block!.GetChunk(_blockFirstValue + cellIndex - ChunkedCellCount, out byte[] kinds, out long[] bits);
+                var blockKind = (ExcelBufferedCellKind)kinds[offset];
+                return blockKind == ExcelBufferedCellKind.Text
+                    ? ExcelBufferedCell.Restore(blockKind, 0L, _block.GetReferenceById(bits[offset]))
+                    : ExcelBufferedCell.Restore(blockKind, bits[offset], null);
+            }
+
             var kind = (ExcelBufferedCellKind)(_headers[cellIndex] >> KindShift);
             long payload = _payloads[cellIndex];
             return kind == ExcelBufferedCellKind.Text || kind == ExcelBufferedCellKind.Value
@@ -363,6 +422,12 @@ namespace OfficeIMO.Excel {
         internal bool Contains(int row, int column) => FindCell(row, column) >= 0;
 
         internal int FindCell(int row, int column) {
+            if (_block != null && row >= _blockFirstRow) {
+                return row < _blockFirstRow + _blockRows && column >= 1 && column <= _blockColumns
+                    ? ChunkedCellCount + (row - _blockFirstRow) * _blockColumns + column - 1
+                    : -1;
+            }
+
             int writtenRow = FindWrittenRow(row);
             if (writtenRow < 0) {
                 return -1;
@@ -388,8 +453,9 @@ namespace OfficeIMO.Excel {
         }
 
         private int FindWrittenRow(int rowNumber) {
-            if (_rows.Count == RowCount) {
-                return rowNumber <= RowCount ? rowNumber - 1 : -1;
+            int chunkedRowCount = _block != null ? _rowCountBeforeBlock : RowCount;
+            if (_rows.Count == chunkedRowCount) {
+                return rowNumber <= chunkedRowCount ? rowNumber - 1 : -1;
             }
 
             int low = 0;
@@ -412,7 +478,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal IEnumerable<(int Row, int Column, object? Value)> EnumerateWrittenCells() {
-            for (int rowIndex = 0; rowIndex < _rows.Count; rowIndex++) {
+            for (int rowIndex = 0; rowIndex < WrittenRowCount; rowIndex++) {
                 int rowNumber = GetRowNumber(rowIndex);
                 int end = GetEndCellIndex(rowIndex);
                 for (int cellIndex = GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
@@ -423,12 +489,113 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the text values in write order.</summary>
         internal IEnumerable<string> EnumerateText() {
-            for (int rowIndex = 0; rowIndex < _rows.Count; rowIndex++) {
-                int end = GetEndCellIndex(rowIndex);
-                for (int cellIndex = GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
-                    if (GetCell(cellIndex).Reference is string text) {
-                        yield return text;
-                    }
+            for (int cellIndex = 0; cellIndex < ChunkedCellCount; cellIndex++) {
+                if (GetCell(cellIndex).Reference is string text) {
+                    yield return text;
+                }
+            }
+
+            ExcelTabularCellValues? block = _block;
+            if (block == null) {
+                yield break;
+            }
+
+            // Block cells hold no arbitrary objects, so every reference is text.
+            int end = _blockFirstValue + _blockRows * _blockColumns;
+            for (int index = _blockFirstValue; index < end; index++) {
+                int offset = block.GetChunk(index, out byte[] kinds, out long[] bits);
+                if (kinds[offset] == (byte)ExcelBufferedCellKind.Text) {
+                    yield return (string)block.GetReferenceById(bits[offset]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Appends <paramref name="rowCount"/> whole rows of <paramref name="values"/>, from value
+        /// <paramref name="firstValue"/>, as rows <paramref name="firstRow"/> onwards, keeping the values where they are.
+        /// Date cells take <paramref name="dateStyle"/>. Returns false, with nothing added, when the rows do not follow
+        /// the buffer, a cell is blank or holds an arbitrary object, or text carries a line break, which takes an
+        /// automatic style of its own.
+        /// </summary>
+        internal bool AddBlock(int firstRow, ExcelTabularCellValues values, int firstValue, int rowCount, uint dateStyle) {
+            int columns = values.ColumnCount;
+            if (_block != null || rowCount <= 0 || firstRow <= RowCount || (long)firstRow + rowCount - 1 > ExcelA1.MaxRows
+                || firstValue < 0 || (long)firstValue + (long)rowCount * columns > (long)values.RowCount * columns) {
+                return false;
+            }
+
+            int end = firstValue + rowCount * columns;
+            bool hasDates = false;
+            for (int index = firstValue; index < end; index++) {
+                switch (values.GetKind(index)) {
+                    case ExcelBufferedCellKind.Text:
+                        string text = (string)values.GetReference(index);
+                        if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0) return false;
+                        break;
+                    case ExcelBufferedCellKind.DateTime:
+                        hasDates = true;
+                        break;
+                    case ExcelBufferedCellKind.Number:
+                    case ExcelBufferedCellKind.Int32:
+                    case ExcelBufferedCellKind.Int64:
+                    case ExcelBufferedCellKind.Boolean:
+                        break;
+                    default:
+                        return false;
+                }
+            }
+
+            Version++;
+            _block = values;
+            _blockFirstValue = firstValue;
+            _blockFirstRow = firstRow;
+            _blockRows = rowCount;
+            _blockColumns = columns;
+            _blockDateStyle = dateStyle;
+            _rowCountBeforeBlock = RowCount;
+            _lastColumnBeforeBlock = _lastColumn;
+            RowCount = firstRow + rowCount - 1;
+            _lastColumn = columns;
+            if (columns > _maximumColumn) _maximumColumn = columns;
+            _firstColumn = 1;
+            HasCellStyles |= hasDates && dateStyle != 0U;
+            for (int index = firstValue, column = 1; index < end; index++) {
+                NoteColumnShape(column, values.GetKind(index));
+                column = column == columns ? 1 : column + 1;
+            }
+
+            return true;
+        }
+
+        private ExcelBufferedCellKind GetBlockKind(int cellIndex)
+            => _block!.GetKind(_blockFirstValue + cellIndex - ChunkedCellCount);
+
+        /// <summary>Copies the block into the chunks, as if its cells had been added one by one.</summary>
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
+        private void ExpandBlock() {
+            ExcelTabularCellValues? values = _block;
+            if (values == null) {
+                return;
+            }
+
+            int firstValue = _blockFirstValue, firstRow = _blockFirstRow, rows = _blockRows, columns = _blockColumns;
+            uint dateStyle = _blockDateStyle;
+            _block = null;
+            _blockRows = 0;
+            _blockColumns = 0;
+            RowCount = _rowCountBeforeBlock;
+            _lastColumn = _lastColumnBeforeBlock;
+            int index = firstValue;
+            for (int row = firstRow; row < firstRow + rows; row++) {
+                for (int column = 1; column <= columns; column++, index++) {
+                    int offset = values.GetChunk(index, out byte[] kinds, out long[] bits);
+                    var kind = (ExcelBufferedCellKind)kinds[offset];
+                    Add(row, column, kind == ExcelBufferedCellKind.Text
+                        ? ExcelBufferedCell.Restore(kind, 0L, values.GetReferenceById(bits[offset]))
+                        : ExcelBufferedCell.Restore(kind, bits[offset], null));
+                    if (kind == ExcelBufferedCellKind.DateTime && dateStyle != 0U) SetStyle(CellCount - 1, dateStyle);
                 }
             }
         }

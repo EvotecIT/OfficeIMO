@@ -512,6 +512,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
+            if (DeferredEntry is { } entry && _excelDocument.TryGetDeferredTableParts(entry) is { } tables) {
+                return tables.Find(table => table.Matches(tableName))?.Reference;
+            }
+
             // A table part keeps its reference whether or not deferred rows have been written, so only a table that
             // does not exist yet waits for them; reading the range then leaves the direct-save rows in place.
             return _excelDocument.ExecuteReadWithoutMaterializing(() => GetTableRangeWithoutMaterializing(tableName))
@@ -650,7 +654,12 @@ namespace OfficeIMO.Excel {
                     if (hasHeader) headerNames ??= directCandidateHeaders;
                 }
 
-                if (!skipExistingTableScan) {
+                bool? indexedOverlap = skipExistingTableScan ? false
+                    : GetCurrentTableLayout()?.Overlaps(startRowIndex, startColumnIndex, endRowIndex, endColumnIndex);
+                if (indexedOverlap == true) {
+                    throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                }
+                if (indexedOverlap == null) {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                         var existingRange = existingPart.Table?.Reference?.Value;
                         if (string.IsNullOrEmpty(existingRange)) continue;
@@ -676,24 +685,7 @@ namespace OfficeIMO.Excel {
                 EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
                 // Create the table part with a conventional relationship id (rIdN) to avoid Excel rewriting
-                string MakeRelId() {
-                    // Find an unused rId# for this worksheet
-                    int n = 1;
-                    using var parts = _worksheetPart.Parts.GetEnumerator();
-                    if (!parts.MoveNext()) {
-                        return "rId1";
-                    }
-
-                    var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
-                    do {
-                        existing.Add(parts.Current.RelationshipId ?? string.Empty);
-                    } while (parts.MoveNext());
-
-                    string id;
-                    do { id = "rId" + n++; } while (existing.Contains(id));
-                    return id;
-                }
-                string relIdNew = MakeRelId();
+                string relIdNew = NextTableRelationshipId();
                 var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>(relIdNew);
 
                 if (string.IsNullOrWhiteSpace(name)) {
@@ -801,6 +793,8 @@ namespace OfficeIMO.Excel {
                     ShowColumnStripes = false
                 });
 
+                // The index of the tables already here takes the new one instead of being rebuilt by the next cell write.
+                TableHeaderIndex? layout = GetCurrentTableLayout();
                 _excelDocument.InvalidateTableLayouts();
                 tableDefinitionPart.Table = table;
 
@@ -809,15 +803,16 @@ namespace OfficeIMO.Excel {
                     tableParts = new TableParts();
                     WorksheetRoot.Append(tableParts);
                 }
-                var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
+                var relId = relIdNew;
                 // Avoid duplicate TablePart entries
-                bool hasPart = tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
+                bool hasPart = layout?.ContainsTablePart(relId) ?? tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
                 uint tablePartCount = tableParts.Count?.Value ?? (uint)tableParts.Elements<TablePart>().Count();
                 if (!hasPart) {
                     tableParts.Append(new TablePart { Id = relId });
                     tablePartCount++;
                 }
                 tableParts.Count = tablePartCount;
+                layout?.Append(table, relId, _excelDocument.TableLayoutEpoch, tableParts);
 
                 bool promotedDirectSaveCandidate = _excelDocument.TryPromoteDirectTabularSaveCandidateToTable(
                     this,
@@ -846,6 +841,30 @@ namespace OfficeIMO.Excel {
             });
 
             return resolvedName;
+        }
+
+        /// <summary>
+        /// Finds the lowest rId# no worksheet relationship uses. Tables added one after another take the next number,
+        /// so the scan of every relationship runs again only when that number is already taken. Ids freed by removed
+        /// parts are reused after the next scan.
+        /// </summary>
+        private string NextTableRelationshipId() {
+            WorksheetPersistenceState state = Persistence;
+            if (state.NextTableRelationshipNumber > 0) {
+                string hinted = "rId" + state.NextTableRelationshipNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!_worksheetPart.TryGetPartById(hinted, out _)) {
+                    state.NextTableRelationshipNumber++;
+                    return hinted;
+                }
+            }
+
+            var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+            foreach (IdPartPair pair in _worksheetPart.Parts) existing.Add(pair.RelationshipId ?? string.Empty);
+            int n = 1;
+            string id;
+            do { id = "rId" + n++; } while (existing.Contains(id));
+            state.NextTableRelationshipNumber = n;
+            return id;
         }
 
         private static bool TryAppendProvidedTableColumns(TableColumns tableColumns, IReadOnlyList<string>? headerNames, uint columnsCount) {
@@ -983,6 +1002,7 @@ namespace OfficeIMO.Excel {
                     rows[rowIndex] = row;
                 }
 
+                NormalizeReadRuleRow(row);
                 if (useBitMask) {
                     ulong existingMask = 0UL;
                     foreach (var cell in row.Elements<Cell>()) {
@@ -1062,6 +1082,7 @@ namespace OfficeIMO.Excel {
         private static bool RowHasExactContiguousCells(Row row, int startColumnIndex, int endColumnIndex, int expectedColumnCount) {
             int expectedColumn = startColumnIndex;
             int cellCount = 0;
+            NormalizeReadRuleRow(row);
 
             foreach (var cell in row.Elements<Cell>()) {
                 string? cellReference = cell.CellReference?.Value;

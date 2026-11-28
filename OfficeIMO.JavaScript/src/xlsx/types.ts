@@ -6,7 +6,7 @@ import type { Compression } from "../zip/index.js";
 import type { PackagePart, Relationship } from "../opc/index.js";
 import type { CoreProperties, AppProperties } from "../opc/index.js";
 import type { Cell } from "./values.js";
-import type { CellStyle } from "./styles.js";
+import type { Border, CellStyle } from "./styles.js";
 import type { Hyperlink } from "./attachments.js";
 import type { ExportValue } from "../core/presentation.js";
 import type { ConditionalFormat } from "./conditional-types.js";
@@ -58,6 +58,11 @@ export interface WorkbookOptions extends StreamOptions, CoreProperties {
   readonly cellValueWriters?: Readonly<Record<string, CellValueWriter>>;
   /** Reject by default. Preserve keeps a bounded preview and the full text in numbered overflow-sheet chunks. */
   readonly oversizedText?: "reject" | "preserve";
+  /** Excel allows 65,530 hyperlinks per worksheet. Reject by default. Drop keeps every configured, header, footer and
+   * text-preservation link, and fills the remaining room with data-cell links in row order; later data cells keep their value without the link. */
+  readonly hyperlinkOverflow?: "reject" | "drop";
+  /** Called synchronously once per worksheet that dropped data-cell links under `hyperlinkOverflow: "drop"`. */
+  readonly onHyperlinkOverflow?: (overflow: { readonly sheetName: string; readonly dropped: number }) => void;
 }
 export interface WorkbookLimits extends ExportLimits {
   readonly maxStyles?: number;
@@ -98,6 +103,10 @@ export interface SheetOptions<T = never> {
   readonly autoFilter?: boolean;
   readonly boldHeader?: boolean;
   readonly headerFill?: string;
+  /** Header-row border edges, for example a thin bottom rule under the headings. Ignored when headerStyle is set. */
+  readonly headerBorder?: Border;
+  /** Wrap every header cell; omitted, a header wraps only when its column does. Ignored when headerStyle is set. */
+  readonly headerWrap?: boolean;
   readonly headerStyle?: number;
   /** Presentation patches retain column number/date formats. The second data row gets this patch first. */
   readonly alternatingRowStyle?: CellStyle;

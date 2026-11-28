@@ -4,15 +4,7 @@
         /// <summary>
         /// Gets a value indicating whether the paragraph contains no run element.
         /// </summary>
-        public bool IsEmpty {
-            get {
-                if (_run == null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsEmpty => !HasRun;
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a page break.
         /// </summary>

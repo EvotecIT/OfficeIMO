@@ -7,6 +7,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPageOrientationReviewTests {
     [Fact]
+    public async Task OrientationPreviewKeepsSourceAfterBorrowedBufferIsReleased() {
+        using PdfDocument authored = Source();
+        byte[] input = authored.ToBytes();
+        PdfPageOrientationReview review;
+        using (PdfDocument document = PdfDocument.Load(input)) {
+            review = await document.PrepareOrientationReviewAsync(Engine(90, .9), new PdfOcrMergeOptions { Dpi = 72 });
+        }
+
+        Array.Clear(input, 0, input.Length);
+
+        PdfScanPreview preview = await review.PreviewAsync(review.Pages[0]);
+        Assert.Equal(500, preview.PixelWidth);
+        Assert.Equal(300, preview.PixelHeight);
+    }
+
+    [Fact]
     public async Task ReviewIsExplicitSnapshotBoundAndAppliesOneRelativeBatch() {
         var document = Source().Pages.Rotate(90, 1);
         byte[] original = document.ToBytes();

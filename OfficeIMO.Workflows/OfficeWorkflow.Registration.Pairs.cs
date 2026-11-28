@@ -8,7 +8,7 @@ public static partial class OfficeWorkflow {
         "asciidoc-markdown", "markdown-asciidoc", "latex-markdown", "markdown-latex", "markdown-pptx",
         "rtf-html", "html-rtf", "rtf-markdown", "markdown-rtf", "rtf-docx", "docx-rtf", "pdf-rtf",
         "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx", "xlsx-html", "html-xlsx",
-        "csv-xlsx", "xlsx-csv",
+        "csv-xlsx", "xlsx-csv", "docx-epub", "markdown-epub", "html-epub",
         "onenote-html", "html-onenote", "onenote-markdown", "onenote-pdf",
         "asciidoc-pdf", "latex-pdf", "odt-pdf", "ods-pdf", "odp-pdf", "pdf-markdown"
     };
@@ -27,6 +27,7 @@ public static partial class OfficeWorkflow {
             OfficeConversionReport report = Id switch {
                 "markdown-pptx" => await ConvertMarkdownPowerPointAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "xlsx-html" or "html-xlsx" => await ConvertExcelHtmlAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
+                "docx-epub" or "markdown-epub" or "html-epub" => await ConvertManuscriptAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "csv-xlsx" or "xlsx-csv" => await ConvertExcelCsvAsync(source, destination, options, cancellationToken).ConfigureAwait(false),
                 "pdf-markdown" => await ConvertPdfMarkdownAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "asciidoc-markdown" or "markdown-asciidoc" or "latex-markdown" or "markdown-latex" or "asciidoc-pdf" or "latex-pdf" =>
@@ -96,12 +97,14 @@ public static partial class OfficeWorkflow {
             };
         }
 
-        public PdfLoadOptions? CreateOutputPdfLoadOptions(OfficeConversionOptions options) {
-            PdfCreateOptions? creation = GetOutputCreationOptions(options);
-            if (creation?.Encryption == null) return null;
-            var load = new PdfLoadOptions { Password = creation.Encryption.OwnerPassword ?? creation.Encryption.UserPassword };
-            return creation.Encryption.AesCryptographyProvider is { } provider
-                ? PdfLoadOptions.WithAesCryptographyProvider(load, provider) : load;
-        }
+        public PdfLoadOptions? CreateOutputPdfLoadOptions(OfficeConversionOptions options) =>
+            ReadEncryptedOutput(GetOutputCreationOptions(options));
+    }
+
+    private static PdfLoadOptions? ReadEncryptedOutput(PdfCreateOptions? creation) {
+        if (creation?.Encryption == null) return null;
+        var load = new PdfLoadOptions { Password = creation.Encryption.OwnerPassword ?? creation.Encryption.UserPassword };
+        return creation.Encryption.AesCryptographyProvider is { } provider
+            ? PdfLoadOptions.WithAesCryptographyProvider(load, provider) : load;
     }
 }

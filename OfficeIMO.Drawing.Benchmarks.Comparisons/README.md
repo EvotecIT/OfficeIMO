@@ -25,4 +25,6 @@ On heterogeneous or multi-CCD processors, collect comparative evidence through t
 
 The runner records the mask in benchmark provenance. Affinity reduces scheduler noise; it does not make small differences meaningful, so conclusions should still favor effect sizes that clearly exceed run-to-run variation.
 
-Every timed decode returns the same managed RGBA output shape. BenchmarkDotNet's allocation column still reports managed allocations only. SkiaSharp and Magick.NET perform material work in native code, so their managed allocation numbers are not total-memory comparisons; use process/native-memory profiling before drawing memory-efficiency conclusions across engines.
+Every timed decode returns the same managed RGBA output shape. The suites record no allocation column: BenchmarkDotNet counts managed allocations only, and SkiaSharp and Magick.NET do their work in native memory, so a managed-allocation comparison would show them allocating almost nothing. Use process or native-memory profiling before drawing memory conclusions across engines.
+
+Lossless WebP encoding is recorded as its own comparison and not published. The engines do not produce equivalent output: for the 512x512 pattern OfficeIMO writes about 80 KB, OneImage 7.4 KB and Magick.NET 1.8 KB, so the timings compare different amounts of compression work. The decode comparison is unaffected.

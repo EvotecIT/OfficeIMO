@@ -2,11 +2,11 @@
 import { __officeimoModules } from "./officeimo.mjs";
 const _core = key => { const value = __officeimoModules[key]; if (!value) throw new Error("officeimo-datatables-adapter.mjs needs officeimo.mjs or officeimo.min.mjs from the same OfficeIMO build, loaded first."); return value; };
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
-const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
-const _c2 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c3 = _core("d6587a933b36ccfdba9a2a252389924ac8461f672b3a500082cceb5e53c8b0b6");
-const _c4 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
-const _c5 = _core("a10003e971cd5ec2cee127bc9b029a0aa06fe3d50112838929d7a04a55e177c0");
+const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244");
+const _c2 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
+const _c3 = _core("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759");
+const _c4 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
+const _c5 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2");
 const _c6 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c7 = _core("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da");
 const _c8 = _core("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3");
@@ -15,7 +15,7 @@ const _c10 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5
 const _c11 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c12 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c13 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
-const _c14 = _core("477ff98f49343b8ec4213008254b57a60dd42d07cb9843b3791d5e5f8e295865");
+const _c14 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
 const _c15 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
 const _m7 = (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */

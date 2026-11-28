@@ -24,6 +24,33 @@ namespace OfficeIMO.Excel {
                     && (AsciiEquals(start, length, SpreadsheetNamespace) || AsciiEquals(start, length, StrictSpreadsheetNamespace));
             }
 
+            /// <summary>
+            /// Whether the worksheet root binds the prefix its rows and cells use to SpreadsheetML, and <c>sheetData</c>
+            /// keeps that binding. The fast checks match element names only, so rows are returned before the full check
+            /// only under this binding.
+            /// </summary>
+            private bool WorksheetRootBindsSpreadsheetNamespace() {
+                // The batches start before the first window moves, so the buffer still begins with the worksheet.
+                int position = 0;
+                if (_buffer == null || !TryReadNextTag(ref position, _length, out Utf8Tag root) || root.IsEnd) return false;
+                int prefixLength = root.LocalNameStart - root.NameStart;
+                string declaration = prefixLength == 0
+                    ? "xmlns"
+                    : "xmlns:" + System.Text.Encoding.ASCII.GetString(_buffer, root.NameStart, prefixLength - 1);
+                if (!BindsSpreadsheetNamespace(root, declaration, required: true)) return false;
+                while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
+                    if (tag.IsEnd || !LocalNameEquals(tag, "sheetData")) continue;
+                    return BindsSpreadsheetNamespace(tag, declaration, required: false);
+                }
+                return false;
+            }
+
+            private bool BindsSpreadsheetNamespace(Utf8Tag tag, string declaration, bool required) {
+                if (!TryGetAttribute(tag, declaration, out bool found, out int start, out int length)) return false;
+                if (!found) return !required;
+                return AsciiEquals(start, length, SpreadsheetNamespace) || AsciiEquals(start, length, StrictSpreadsheetNamespace);
+            }
+
             private bool IsIndexedTag(Utf8Tag tag) =>
                 tag.LocalNameStart - tag.NameStart == _worksheetPrefixLength
                 && (_worksheetPrefixLength == 0

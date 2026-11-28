@@ -1,6 +1,6 @@
 import { BlobByteSink, ExportCell } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportProgress } from "../../core/index.js";
-import { notifyProgress } from "../../core/progress.js";
+import { notifyProgress, notifySynchronously } from "../../core/progress.js";
 import { captureFields } from "../../internal/capture.js";
 import { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOptions, mergeAdapterLimits } from "../options.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
@@ -20,6 +20,8 @@ export { ExportCell } from "../../core/presentation.js";
 export { PdfFont } from "../../pdf/font.js";
 export type { CanopyCapture, CanopyExportCell, CanopyExportColumn, CanopyExportRow, CanopyExport, CanopyFormat, CanopyDiagnostic, CanopySourceOptions, CanopyWriteOptions,
   CanopyPivotAxisPresentation, CanopyPivotAxis, CanopyPivotColumnGroup, CanopyPivotDescriptor, CanopyNumberFormat, CanopyExportGroup, CanopyExportGrouping, CanopyRuleFilter, CanopyRulePredicate, CanopyFormatRule } from "./types.js";
+
+const canopyHeaderFill = "E7EDF5", canopyHeaderBorder = Object.freeze({ bottom: Object.freeze({ style: "thin" as const, color: "A6B4C8" }) });
 
 /** Write a captured CanopyX grid to a caller-owned destination; partial bytes remain caller-owned on failure. */
 export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat, destination: OutputDestination, options: CanopyWriteOptions = {}): Promise<ExportResult> {
@@ -57,17 +59,24 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
   const stream = { ...(signal ? { signal } : {}), ...progress };
   if (format === "xlsx") {
     const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
-    const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
+    const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes, prepared.ruleOperands);
     if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
       xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
       throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
     if (pivot && xlsx.cellValueWriters !== undefined)
       throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
-    const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
+    // The header matches the PDF table heading: shaded, bold, wrapped and ruled off from the data.
+    const sheet = { headerFill: canopyHeaderFill, headerBorder: canopyHeaderBorder, headerWrap: true, ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
       freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
       freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
       conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
-    const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits };
+    // Data-cell links past Excel's per-worksheet limit keep their label; the worksheet reserves every link it cannot drop.
+    const linkFallback = canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" }), onHyperlinkOverflow = xlsx.onHyperlinkOverflow;
+    const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
+      hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop" as const,
+      onHyperlinkOverflow: (overflow: { readonly sheetName: string; readonly dropped: number }) => {
+        notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow); linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
+      } };
     if (grouped || about) return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
     return writeXlsxTo(source.rows(), destination, settings);
   }

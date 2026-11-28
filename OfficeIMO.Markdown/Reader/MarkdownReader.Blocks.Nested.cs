@@ -28,7 +28,7 @@ internal static partial class MarkdownReader {
     }
 
     private static List<string> ConsumeListContinuationLines(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int nextIndex,
         int continuationIndent,
         string initialContent,
@@ -53,23 +53,25 @@ internal static partial class MarkdownReader {
         int k = nextIndex;
 
         while (k < lines.Length) {
-            var line = lines[k] ?? string.Empty;
+            // Blank lines and lines that cannot start a list item are checked in place; the others
+            // become strings, which the item keeps or the next item reads again.
+            bool mayStartListItem = lines.MayStartListItem(k);
             bool collectingLeadFencedCode = TryGetOpenLeadFencedCode(collected, out _, out _, out _);
 
             if (collectingLeadFencedCode) {
-                if (string.IsNullOrWhiteSpace(line)) {
+                if (lines.IsBlank(k)) {
                     collected.Add(string.Empty);
                     sourceLines?.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + k + 1, 1));
                     k++;
                     continue;
                 }
 
-                int fencedIndentColumns = CountLeadingIndentColumns(line);
+                int fencedIndentColumns = lines.GetIndentColumns(k);
                 if (fencedIndentColumns < continuationIndent) {
                     break;
                 }
 
-                string fencedContent = StripLeadingIndentColumns(line, continuationIndent);
+                string fencedContent = StripLeadingIndentColumns(lines[k] ?? string.Empty, continuationIndent);
                 int fencedStartColumn = continuationIndent + 1;
                 sourceLines?.Add(new MarkdownSourceLineSlice(fencedContent, absoluteLineOffset + k + 1, fencedStartColumn));
                 collected.Add(fencedContent);
@@ -77,7 +79,7 @@ internal static partial class MarkdownReader {
                 continue;
             }
 
-            int lineIndentColumns = CountLeadingIndentColumns(line);
+            int lineIndentColumns = lines.GetIndentColumns(k);
             int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
                 ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
                 : lineIndentColumns;
@@ -85,19 +87,19 @@ internal static partial class MarkdownReader {
                 && relativeLineIndentColumns > 3
                 && lineIndentColumns < continuationIndent;
             bool breakOnOrderedListLine = breakOnAnyOrderedListLine ||
-                (initialLineIndex >= 0 && lineIndentColumns < CountLeadingIndentColumns(lines[initialLineIndex] ?? string.Empty)) ||
-                IsMarkdigDefinitionLazyOrderedListBoundary(state, k, line, options);
+                (initialLineIndex >= 0 && lineIndentColumns < lines.GetIndentColumns(initialLineIndex)) ||
+                (mayStartListItem && IsMarkdigDefinitionLazyOrderedListBoundary(state, k, lines[k], options));
 
             // Stop before the next list item (including nested items).
-            if (!underIndentedMarkerContinuation &&
-                (IsUnorderedListLine(line) ||
-                (breakOnOrderedListLine ? IsOrderedListLine(line, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line, options)))) {
+            if (!underIndentedMarkerContinuation && mayStartListItem &&
+                (IsUnorderedListLine(lines[k]) ||
+                (breakOnOrderedListLine ? IsOrderedListLine(lines[k], options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(lines[k], options)))) {
                 break;
             }
 
             // Stop before nested blocks; they are handled as child blocks of the list item.
-            if (CountLeadingIndentColumns(line) >= continuationIndent) {
-                var slice = StripLeadingIndentColumns(line, continuationIndent);
+            if (lineIndentColumns >= continuationIndent) {
+                var slice = StripLeadingIndentColumns(lines[k] ?? string.Empty, continuationIndent);
                 var sliceTrim = slice.TrimStart();
                 if (state != null
                     && TryConsumeNestedStandaloneGenericAttributeLine(
@@ -132,7 +134,7 @@ internal static partial class MarkdownReader {
                 // Table inside list item: a pipe row followed by an alignment/row.
                 if (options.Tables && LooksLikeTableRow(sliceTrim)) {
                     int peek = k + 1;
-                    if (peek < lines.Length && CountLeadingIndentColumns(lines[peek] ?? string.Empty) >= continuationIndent) {
+                    if (peek < lines.Length && lines.GetIndentColumns(peek) >= continuationIndent) {
                         var nextSlice = StripLeadingIndentColumns(lines[peek] ?? string.Empty, continuationIndent).TrimStart();
                         // Reduce false positives: require an alignment row, or explicit outer pipes on both rows.
                         bool curOuter = sliceTrim.Length > 0 && sliceTrim[0] == '|' && sliceTrim[sliceTrim.Length - 1] == '|';
@@ -142,7 +144,7 @@ internal static partial class MarkdownReader {
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(line)) {
+            if (lines.IsBlank(k)) {
                 if (collected.Count == 1 && string.IsNullOrWhiteSpace(collected[0])) {
                     break;
                 }
@@ -150,14 +152,16 @@ internal static partial class MarkdownReader {
                 // Keep blank lines only if followed by an indented continuation line; otherwise end item.
                 int peek = k + 1;
                 if (peek >= lines.Length) break;
-                var next = lines[peek] ?? string.Empty;
-                bool nextBreakOnOrderedListLine = breakOnAnyOrderedListLine ||
-                    IsMarkdigDefinitionLazyOrderedListBoundary(state, peek, next, options);
-                if (IsUnorderedListLine(next) ||
-                    (nextBreakOnOrderedListLine ? IsOrderedListLine(next, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next, options))) {
-                    break;
+                if (lines.MayStartListItem(peek)) {
+                    var next = lines[peek];
+                    bool nextBreakOnOrderedListLine = breakOnAnyOrderedListLine ||
+                        IsMarkdigDefinitionLazyOrderedListBoundary(state, peek, next, options);
+                    if (IsUnorderedListLine(next) ||
+                        (nextBreakOnOrderedListLine ? IsOrderedListLine(next, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next, options))) {
+                        break;
+                    }
                 }
-                int nextIndentColumns = CountLeadingIndentColumns(next);
+                int nextIndentColumns = lines.GetIndentColumns(peek);
                 if (nextIndentColumns < continuationIndent) break;
 
                 collected.Add(string.Empty);
@@ -189,7 +193,7 @@ internal static partial class MarkdownReader {
             }
 
             // Strip the required indent; keep the remainder as-is (including additional indentation).
-            string cont = StripLeadingIndentColumns(line, continuationIndent);
+            string cont = StripLeadingIndentColumns(lines[k] ?? string.Empty, continuationIndent);
             int startColumn = continuationIndent + 1;
             startColumn += CountLeadingIndentColumns(cont);
             cont = cont.TrimStart();
@@ -203,7 +207,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsImmediateListLeadBoundary(
-        string[] lines,
+        MarkdownSourceLines lines,
         int nextIndex,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -213,8 +217,7 @@ internal static partial class MarkdownReader {
             return true;
         }
 
-        string line = lines[nextIndex] ?? string.Empty;
-        int lineIndentColumns = CountLeadingIndentColumns(line);
+        int lineIndentColumns = lines.GetIndentColumns(nextIndex);
         int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
             ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
             : lineIndentColumns;
@@ -225,6 +228,12 @@ internal static partial class MarkdownReader {
             return false;
         }
 
+        // A line that cannot start an item is answered without creating it.
+        if (!lines.MayStartListItem(nextIndex)) {
+            return false;
+        }
+
+        var line = lines[nextIndex];
         if (IsUnorderedListLine(line)) {
             return true;
         }
@@ -308,7 +317,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryConsumeNestedStandaloneGenericAttributeLine(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -370,7 +379,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsNestedStandaloneGenericAttributeTarget(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -434,7 +443,7 @@ internal static partial class MarkdownReader {
         return tableLines.Count > 0 && StartsTable(tableLines.ToArray(), 0, options, state);
     }
 
-    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? quote) {
+    private static bool TryParseNestedQuoteBlock(MarkdownSourceLines lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? quote) {
         quote = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
 
@@ -605,7 +614,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseNestedCustomContainerBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -681,7 +690,7 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out TableBlock? table) {
+    private static bool TryParseNestedTableBlock(MarkdownSourceLines lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out TableBlock? table) {
         table = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.Tables) return false;
@@ -769,7 +778,7 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedHtmlBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
+    private static bool TryParseNestedHtmlBlock(MarkdownSourceLines lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.HtmlBlocks) return false;

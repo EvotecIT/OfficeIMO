@@ -27,6 +27,12 @@ DOCX-to-ODT conversion reports omitted nested tables as unsupported; strict loss
 
 The report calls out omitted table and image-layout details as well as tracked changes, section-specific layout, later-section or inactive alternate headers and footers, page-number restarts, header/footer tables and other nonparagraph blocks, unsupported field instructions or properties, charts, content controls, and other source features that cannot be represented directly. ODT header and footer content marked `style:display="false"` remains hidden in Word and is reported as skipped content. First-page header/footer stories require ODF 1.4 for both package and flat XML output. Unsupported fields retain cached display text where available and report `fields` loss; lost direct formatting on Word field results is reported separately. Note body formatting and named paragraph styles are flattened with an explicit approximation; multiple ODT note-body paragraphs become one Word note paragraph. Custom Word marks and ODT citation labels are replaced by automatic numbering. Direct Word anchor formatting and styled, linked, or paragraph-formatted ODT references are reported as approximated when replaced by the destination's default reference. Authored Word note numbering, placement, and customized separators are reported as approximated because this conversion does not carry them into ODT. Repeated Word references to one note, ODT note configuration, notes in headers or footers, nested image or other nontext note body content, and block content inside Word notes are reported as unsupported. Use `ToOpenDocumentResult` or `ToWordDocumentResult` for evidence-bearing conversion, and set the options' `LossPolicy` to `ThrowOnAnyLoss` for strict workflows.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Word.OpenDocument
+```
+
 ## Page images
 
 The adapter renders ODT through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.
@@ -44,14 +50,14 @@ IReadOnlyList<OfficeImageExportResult> images = source.ToImages(options);
 OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
 ```
 
-See the [shared image options, selection and diagnostics](../Docs/officeimo.image-export.md).
+See the [shared image options, selection and diagnostics](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.image-export.md).
 
 ## Dependency footprint
 
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Word` and `OfficeIMO.OpenDocument`; the adapter only owns feature mapping and fidelity reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

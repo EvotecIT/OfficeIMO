@@ -21,6 +21,12 @@ var options = new OfficeRasterDecodeOptions {
 
 `IsSupported` and `GetAvailability()` describe the supported operating system. They do not guarantee support for every HEVC profile. `TryDecode` returns `false` and a null image for malformed, unsupported or over-budget input. The content type is advisory; ImageIO identifies the bytes.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Drawing.ImageIO
+```
+
 ## HEIF composition and sample encoding
 
 Core composes the full container. It supplies the codec with a synthesized single `hvc1` item carrying its `hvcC` and stored dimensions, without `irot`, `imir`, `clap`, `colr`, EXIF or auxiliary-image properties. Core handles grids, crop, orientation, alpha auxiliaries and ICC/nclx conversion. Call the shared Core decoder for complete HEIF files; calling this tile codec directly on an arbitrary original HEIF file does not provide that composition contract.

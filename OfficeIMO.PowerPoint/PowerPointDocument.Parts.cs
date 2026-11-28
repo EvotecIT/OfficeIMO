@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             // We must create an initial blank slide with relationship ID "rId2" and then create
             // the slide layout, slide master, and theme in a specific order.
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
-            PowerPointUtils.CreatePresentationParts(_document!, _presentationPart);
+            PowerPointUtils.CreatePresentationParts(SdkDocument!, SdkPresentationPart);
         }
 
         private void LoadExistingSlides() {
@@ -26,10 +26,10 @@ namespace OfficeIMO.PowerPoint {
                 foreach (SlideId slideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
                     string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                     if (!string.IsNullOrEmpty(relId)) {
-                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        var slide = new PowerPointSlide(slidePart, this);
-                        slide.RememberSlideId(slideId);
-                        _slides.Add(slide);
+                        SlidePart slidePart = (SlidePart)SdkPresentationPart.GetPartById(relId!);
+                        PowerPointSlide slide = TakePackageSlide(slidePart) ?? new PowerPointSlide(slidePart, this);
+                        slide.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
+                        LoadedSlides.Add(slide);
                     }
                 }
             }
@@ -50,14 +50,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool IsPresentationRelationshipIdInUse(string relationshipId) {
-            if (_presentationPart.TryGetPartById(relationshipId, out _)) return true;
-            foreach (ExternalRelationship relationship in _presentationPart.ExternalRelationships) {
+            if (SdkPresentationPart.TryGetPartById(relationshipId, out _)) return true;
+            foreach (ExternalRelationship relationship in SdkPresentationPart.ExternalRelationships) {
                 if (relationship.Id == relationshipId) return true;
             }
-            foreach (HyperlinkRelationship relationship in _presentationPart.HyperlinkRelationships) {
+            foreach (HyperlinkRelationship relationship in SdkPresentationPart.HyperlinkRelationships) {
                 if (relationship.Id == relationshipId) return true;
             }
-            foreach (DataPartReferenceRelationship relationship in _presentationPart.DataPartReferenceRelationships) {
+            foreach (DataPartReferenceRelationship relationship in SdkPresentationPart.DataPartReferenceRelationships) {
                 if (relationship.Id == relationshipId) return true;
             }
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
@@ -71,11 +71,11 @@ namespace OfficeIMO.PowerPoint {
 
         private HashSet<string> GetPresentationRelationships() {
             var existingRelationships = new HashSet<string>(
-                _presentationPart.Parts
+                SdkPresentationPart.Parts
                     .Select(p => p.RelationshipId)
-                    .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
-                    .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
-                    .Union(_presentationPart.DataPartReferenceRelationships.Select(r => r.Id))
+                    .Union(SdkPresentationPart.ExternalRelationships.Select(r => r.Id))
+                    .Union(SdkPresentationPart.HyperlinkRelationships.Select(r => r.Id))
+                    .Union(SdkPresentationPart.DataPartReferenceRelationships.Select(r => r.Id))
                     .Where(id => !string.IsNullOrEmpty(id))
                     .Select(id => id!)
             );
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private SlideMasterPart GetSlideMasterPart(int masterIndex) {
-            SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
+            SlideMasterPart[] masters = SdkPresentationPart.SlideMasterParts.ToArray();
             ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
             return masters[masterIndex];
@@ -128,10 +128,10 @@ namespace OfficeIMO.PowerPoint {
 
         private string GetNextSlideMasterRelationshipId() {
             var existingRelationships = new HashSet<string>(
-                _presentationPart.Parts
+                SdkPresentationPart.Parts
                     .Select(p => p.RelationshipId)
-                    .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
-                    .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
+                    .Union(SdkPresentationPart.ExternalRelationships.Select(r => r.Id))
+                    .Union(SdkPresentationPart.HyperlinkRelationships.Select(r => r.Id))
                     .Where(id => !string.IsNullOrEmpty(id))
                     .Select(id => id!)
             );
@@ -213,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string masterRelId = GetNextSlideMasterRelationshipId();
-            SlideMasterPart targetMasterPart = _presentationPart.AddNewPart<SlideMasterPart>(masterRelId);
+            SlideMasterPart targetMasterPart = SdkPresentationPart.AddNewPart<SlideMasterPart>(masterRelId);
             targetMasterPart.SlideMaster = (SlideMaster)sourceMasterPart.SlideMaster.CloneNode(true);
             importedPartRoots?.Add(new ImportedPartRoot(sourceMasterPart,
                 targetMasterPart));
@@ -697,7 +697,7 @@ namespace OfficeIMO.PowerPoint {
                 shouldSkipPartRelationship:
                     shouldSkipPartRelationship);
 
-            NotesMasterPart targetNotesMasterPart = PowerPointUtils.EnsureNotesMasterPart(_presentationPart);
+            NotesMasterPart targetNotesMasterPart = PowerPointUtils.EnsureNotesMasterPart(SdkPresentationPart);
             if (!targetNotesPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, targetNotesMasterPart))) {
                 targetNotesPart.AddPart(targetNotesMasterPart);
             }

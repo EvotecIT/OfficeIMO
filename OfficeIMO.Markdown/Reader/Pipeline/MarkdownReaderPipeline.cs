@@ -25,21 +25,29 @@ internal sealed class MarkdownReaderPipeline {
     private static readonly IMarkdownBlockParser ParagraphParser = new MarkdownReader.ParagraphParser();
     private readonly List<IMarkdownBlockParser> _parsers = new List<IMarkdownBlockParser>(DefaultParserCapacity);
     private readonly List<MarkdownBlockStart> _blockStarts = new List<MarkdownBlockStart>(DefaultParserCapacity);
+    private readonly List<MarkdownSourceLinesBlockParser?> _sourceLinesParsers = new List<MarkdownSourceLinesBlockParser?>(DefaultParserCapacity);
     /// <summary>Gets the ordered list of block parsers.</summary>
     public IReadOnlyList<IMarkdownBlockParser> Parsers => _parsers;
     /// <summary>Gets what each parser in <see cref="Parsers"/> needs at the start of a line.</summary>
     public IReadOnlyList<MarkdownBlockStart> BlockStarts => _blockStarts;
+    /// <summary>
+    /// For each parser in <see cref="Parsers"/>, the parser itself when it reads <see cref="MarkdownSourceLines"/>,
+    /// otherwise null; resolved once so the block loop does not check the type on every attempt.
+    /// </summary>
+    public IReadOnlyList<MarkdownSourceLinesBlockParser?> SourceLinesParsers => _sourceLinesParsers;
 
     /// <summary>Add a parser to the end of the pipeline.</summary>
     public MarkdownReaderPipeline Add(IMarkdownBlockParser parser) {
         _parsers.Add(parser);
         _blockStarts.Add(MarkdownReader.ClassifyBlockStart(parser));
+        _sourceLinesParsers.Add(parser as MarkdownSourceLinesBlockParser);
         return this;
     }
     /// <summary>Insert a parser at the given index in the pipeline.</summary>
     public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) {
         _parsers.Insert(index, parser);
         _blockStarts.Insert(index, MarkdownReader.ClassifyBlockStart(parser));
+        _sourceLinesParsers.Insert(index, parser as MarkdownSourceLinesBlockParser);
         return this;
     }
 

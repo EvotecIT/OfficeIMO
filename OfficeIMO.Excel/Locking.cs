@@ -45,32 +45,36 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>Execute read operation with optional locking.</summary>
+        /// <summary>
+        /// Execute a read of the package model with optional locking. Reading a part the package has not loaded yet
+        /// reads the package stream and fills the part, which two readers can't do at once, so these reads take the
+        /// upgradeable lock: one at a time, beside plain readers, and still able to upgrade to a write.
+        /// </summary>
         public static T ExecuteRead<T>(ReaderWriterLockSlim? lck, Func<T> read) {
-            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld || lck.IsUpgradeableReadLockHeld) {
                 return read();
             }
 
-            lck.EnterReadLock();
+            lck.EnterUpgradeableReadLock();
             try {
                 return read();
             } finally {
-                lck.ExitReadLock();
+                lck.ExitUpgradeableReadLock();
             }
         }
 
-        /// <summary>Execute read operation with optional locking.</summary>
+        /// <summary>Execute a read of the package model with optional locking, one reader at a time.</summary>
         public static void ExecuteRead(ReaderWriterLockSlim? lck, Action read) {
-            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld || lck.IsUpgradeableReadLockHeld) {
                 read();
                 return;
             }
 
-            lck.EnterReadLock();
+            lck.EnterUpgradeableReadLock();
             try {
                 read();
             } finally {
-                lck.ExitReadLock();
+                lck.ExitUpgradeableReadLock();
             }
         }
 

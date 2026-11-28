@@ -38,7 +38,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(15, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(18, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(

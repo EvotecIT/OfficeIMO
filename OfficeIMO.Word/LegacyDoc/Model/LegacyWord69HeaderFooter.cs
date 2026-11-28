@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Reads the variable header/footer slots used by Word 6/95.</summary>
@@ -53,8 +52,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     var blocks = LegacyDocDocument.BuildStoryBlocks(text, characterRanges, paragraphRanges,
                         bookmarks, new Dictionary<int, LegacyDocPicture>(), orderedFormattingRanges: true, fieldMetadata: fieldMetadata);
                     if (blocks.Count == 0) continue;
-                    HeaderFooterValues type = index >= 4 ? HeaderFooterValues.First
-                        : index is 0 or 2 ? HeaderFooterValues.Even : HeaderFooterValues.Default;
+                    LegacyDocHeaderFooterType type = index >= 4 ? LegacyDocHeaderFooterType.First
+                        : index is 0 or 2 ? LegacyDocHeaderFooterType.Even : LegacyDocHeaderFooterType.Default;
                     stories.Add(new LegacyDocHeaderFooterStory(section, index is 0 or 1 or 4, type, blocks));
                 }
             }

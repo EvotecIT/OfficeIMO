@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptDocument legacy,
             IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId) {
             if (legacy.CustomShows.Count == 0) return;
-            PresentationPart presentationPart = presentation._presentationPart;
+            PresentationPart presentationPart = presentation.SdkPresentationPart;
             var list = new P.CustomShowList();
             uint customShowId = 0;
             foreach (LegacyPptCustomShow source in legacy.CustomShows) {

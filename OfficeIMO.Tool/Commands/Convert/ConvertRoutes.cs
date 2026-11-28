@@ -25,4 +25,8 @@ internal static class ConvertRoutes {
     internal static bool IsTarget(string targetExtension) =>
         OfficeWorkflowCatalog.ExecutableRoutes.Any(route => route.TargetExtension == targetExtension)
         || DataRoutes.Any(route => route.TargetExtension == targetExtension);
+
+    internal static bool UsesNotebookMarkdown(string inputPath, string outputPath) =>
+        Path.GetExtension(inputPath).Equals(".ipynb", StringComparison.OrdinalIgnoreCase)
+        && Path.GetExtension(outputPath).Equals(".md", StringComparison.OrdinalIgnoreCase);
 }

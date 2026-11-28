@@ -12,14 +12,14 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
-            private readonly Stream _stream = Stream.Null;
+            private Stream _stream = Stream.Null;
             private XmlReader _reader = null!;
             private WorksheetXmlRowSelector _worksheetRows;
-            private readonly XmlDataReaderTextBudget? _xmlTextBudget;
-            private readonly ExcelUtf8RangeRowSource? _utf8Source;
+            private XmlDataReaderTextBudget? _xmlTextBudget;
+            private ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _utf8SourceOrdinalOffset;
             private readonly int _firstRow;
-            private readonly int _lastRow;
+            private int _lastRow;
             private readonly int _firstColumn;
             private readonly int _lastColumn;
             private readonly int _fieldCount;
@@ -100,9 +100,9 @@ namespace OfficeIMO.Excel {
                     _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
                 } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
-                } else if (!owner._hasSdkWorksheetPart && !rowsAlreadyQualified) {
+                } else if (!owner._allowGeneralProjection && !rowsAlreadyQualified) {
                     throw new XlsxTabularFastPathNotSupportedException(
-                        $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
+                        $"Worksheet '{owner._sheetName}' requires the general worksheet projection.");
                 } else {
                     _stream = owner.OpenReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
@@ -344,6 +344,8 @@ namespace OfficeIMO.Excel {
                     if (_closed) {
                         return false;
                     }
+                    ThrowIfHandoverFailed();
+                    CompleteHandover(cancellationToken);
                     ThrowIfXmlTextBufferingFailed();
 
                     if (TryReadLogicalRow(out var row)) {
@@ -410,6 +412,7 @@ namespace OfficeIMO.Excel {
 
             private bool TryReadLogicalRow(out object?[] row) {
                 row = Array.Empty<object?>();
+                if (!_closed) ThrowIfOutsideDimension();
                 if (_closed || _nextLogicalRow > _lastRow) {
                     return false;
                 }

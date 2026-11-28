@@ -1,8 +1,11 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
+using System.Xml.Linq;
+using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -11,6 +14,36 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeWorkflowRunnerTests {
+    [Fact]
+    public void ImportedHtmlPrefersExplicitHtmlLanguageOverXmlLanguage() {
+        EpubPublication publication = EpubPublication.Create("A book", "en");
+        publication.AddChapter("body", "EPUB/body.xhtml", "Body",
+            "<p lang='fr' xml:lang='de'>Bonjour.</p><p xml:lang='nl'>Hallo.</p>");
+        EpubDocument book = EpubImportedPublication.Open(publication, CancellationToken.None);
+        using var output = new MemoryStream();
+
+        EpubImportedPublication.WriteHtml(book, output, new List<OfficeDiagnostic>(), CancellationToken.None);
+
+        HtmlConversionDocument html = HtmlConversionDocument.Parse(Encoding.UTF8.GetString(output.ToArray()));
+        var paragraphs = html.Document.QuerySelectorAll("p");
+        Assert.Equal(new[] { "fr", "nl" }, paragraphs.Select(node => node.GetAttribute("lang")));
+    }
+
+    [Theory]
+    [InlineData(" -2 ", true)]
+    [InlineData("   2       ", false)]
+    public void ImportedMarkdownDiagnosesListStartsByValue(string start, bool expectedLoss) {
+        EpubPublication publication = EpubPublication.Create("A book", "en");
+        publication.AddChapter("body", "EPUB/body.xhtml", "Body", $"<ol start='{start}'><li>Item</li></ol>");
+        EpubDocument book = EpubImportedPublication.Open(publication, CancellationToken.None);
+        var diagnostics = new List<OfficeDiagnostic>();
+        using var output = new MemoryStream();
+
+        EpubImportedPublication.WriteHtml(book, output, diagnostics, CancellationToken.None, markdownAnchors: true);
+
+        Assert.Equal(expectedLoss, diagnostics.Any(item => item.Code == "EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED"));
+    }
+
     [Fact]
     public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
         const long budget = 768L * 1024L * 1024L;
@@ -65,7 +98,20 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
+            [
+                "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
+                "docx-odt", "docx-pdf",
+                "ebook-cb7-epub", "ebook-cb7-html", "ebook-cb7-markdown", "ebook-cb7-pdf",
+                "ebook-cbr-epub", "ebook-cbr-html", "ebook-cbr-markdown", "ebook-cbr-pdf",
+                "ebook-cbz-epub", "ebook-cbz-html", "ebook-cbz-markdown", "ebook-cbz-pdf",
+                "ebook-fb2-epub", "ebook-fb2-html", "ebook-fb2-markdown", "ebook-fb2-pdf",
+                "ebook-mobi-epub", "ebook-mobi-html", "ebook-mobi-markdown", "ebook-mobi-pdf",
+                "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
+                "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
+                "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
+                "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx",
+                "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf",
+            ],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -79,7 +125,51 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Theory]
+    [InlineData(".ipynb", "notebook-source-ipynb")]
+    [InlineData(".pdf", "notebook-source-pdf")]
+    public async Task QuartoSourceUsesTheNotebookWorkflowAndReopensItsArtifact(string extension, string routeId) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "source.qmd");
+        string output = System.IO.Path.Combine(scope.Path, "result" + extension);
+        File.WriteAllText(input, """
+            ---
+            title: Reviewed observations
+            ---
+
+            ```{python}
+            print("Visible source marker")
+            ```
+            """);
+
+        OfficeWorkflowRoute? route = OfficeWorkflowCatalog.Find(".qmd", extension, executableOnly: true);
+        Assert.NotNull(route);
+        Assert.Equal(routeId, route.Id);
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = route.Id,
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputReopened);
+        if (extension == ".pdf") {
+            using PdfDocument pdf = PdfDocument.Load(output);
+            string text = pdf.ExtractText();
+            Assert.Contains("Reviewed observations", text, StringComparison.Ordinal);
+            Assert.Contains("Visible source marker", text, StringComparison.Ordinal);
+        } else {
+            using var notebook = Notebook.NotebookDocument.Load(output);
+            var code = Assert.Single(notebook.Cells, cell => cell.Kind == Notebook.NotebookCellKind.Code);
+            Assert.Contains("Visible source marker", code.Source, StringComparison.Ordinal);
+            Assert.Equal("python", code.Language);
+            Assert.Empty(code.Outputs);
+        }
+    }
+
+    [Theory]
     [InlineData("source.md", "# Runner route marker", "markdown-docx")]
+    [InlineData("source.office.md", "# Runner route marker", "markdown-docx")]
     [InlineData("source.rtf", @"{\rtf1\ansi Runner route marker\par}", "rtf-docx")]
     public async Task RunnerExecutesFrontDoorAndPairRoutesThroughTheSharedConverter(string name, string content, string routeId) {
         using var scope = new TestDirectory();
@@ -126,6 +216,9 @@ public sealed class OfficeWorkflowRunnerTests {
     [InlineData("pdf-xlsx")]
     [InlineData("pdf-pptx")]
     [InlineData("pdf-html")]
+    [InlineData("docx-epub")]
+    [InlineData("markdown-epub")]
+    [InlineData("html-epub")]
     public async Task EveryCatalogRoutePublishesAnArtifactThatWasReopened(string routeId) {
         using var scope = new TestDirectory();
         OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
@@ -150,6 +243,145 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
+        if (reopened.Details["format"] == ".epub") {
+            using var stream = File.OpenRead(output);
+            EpubPublication publication = EpubPublication.Load(stream);
+            Assert.Equal(routeId == "docx-epub" ? "Word book title" : "Opening chapter", publication.Title);
+            Assert.Equal(2, publication.Spine.Count);
+            var nav = publication.GetContentXml("navigation");
+            XNamespace html = "http://www.w3.org/1999/xhtml";
+            Assert.Equal(new[] { "Opening chapter", "Closing chapter" }, nav.Descendants(html + "a").Select(link => link.Value));
+            foreach (string id in new[] { "chapter-1", "chapter-2" }) {
+                var chapter = publication.GetContentXml(id);
+                Assert.Contains(chapter.Descendants(html + "link"), link => (string?)link.Attribute("href") == "../styles/defaults.css");
+            }
+        }
+    }
+
+    [Fact]
+    public void WordManuscriptRouteAdvertisesOnlyTheSupportedSourceExtension() {
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.ExecutableRoutes, item => item.Id == "docx-epub");
+        Assert.Equal(new[] { ".docx" }, route.SourceExtensions);
+        foreach (string extension in new[] { ".docm", ".dotx", ".dotm" }) {
+            Assert.Null(OfficeWorkflowCatalog.Find(extension, ".epub", executableOnly: true));
+            Assert.Equal("docx-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
+        }
+    }
+
+    [Fact]
+    public async Task FictionBookPdfValidationUsesTheRendererCredentials() {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+        using var directory = new TestDirectory();
+        string output = Path.Combine(directory.Path, "encrypted.pdf");
+        var html = new HtmlPdfExportOptions();
+        html.PdfOptions.SetEncryption("reader", "owner");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-pdf",
+            InputPath = source,
+            OutputPath = output,
+            ConversionOptions = new OfficeConversionOptions { Html = html }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Throws<PdfPasswordRequiredException>(() => {
+            using PdfDocument locked = PdfDocument.Load(output);
+            _ = locked.Inspect();
+        });
+        var readOptions = new PdfLoadOptions { Password = "reader" };
+        using PdfDocument reopened = PdfDocument.Load(output, readOptions);
+        Assert.True(reopened.Inspect(readOptions).PageCount > 0);
+    }
+
+    [Fact]
+    public async Task FictionBookMarkdownRetainsLinksIntoCodeAndReportsTheMovedTarget() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "code.fb2");
+        string output = Path.Combine(scope.Path, "code.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+              <body>
+                <p><a l:href="#example">Code target</a></p>
+                <p><code><style id="example" name="inline">inline code</style></code></p>
+              </body>
+            </FictionBook>
+            """);
+
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, output, new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown"
+        });
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Match link = Regex.Match(markdown, """<a href="#([^"]+)">Code target</a>""");
+        Assert.True(link.Success);
+        Assert.Contains($"""<a id="{link.Groups[1].Value}"></a>""", markdown);
+        Assert.Contains("`inline code`", markdown);
+        Assert.Contains(report.Diagnostics, item => item.Code == "EBOOK_MARKDOWN_ANCHOR_RELOCATED" &&
+            item.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public async Task ImportedMarkdownAppliesOutputLimitToThePublishedArtifact() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "book.fb2");
+        string output = Path.Combine(scope.Path, "book.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"><body>
+            """ + string.Concat(Enumerable.Repeat("<p>word</p>", 1_000)) + "</body></FictionBook>");
+        var options = new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown", MaximumOutputBytes = 8 * 1024,
+            FileConflictPolicy = OfficePublicationPolicy.Replace
+        };
+
+        await OfficeConverter.ConvertAsync(input, output, options);
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Assert.Equal(1_000, Regex.Matches(markdown, "word").Count);
+        options.MaximumOutputBytes = 64;
+        await Assert.ThrowsAsync<InvalidDataException>(() => OfficeConverter.ConvertAsync(input, output, options));
+        Assert.Equal(markdown, await File.ReadAllTextAsync(output));
+    }
+
+    [Fact]
+    public async Task ConvertsProviderBookUsingItsCompoundFilename() {
+        using var scope = new TestDirectory();
+        string output = Path.Combine(scope.Path, "book.epub");
+        string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-epub",
+            InputPath = "content://provider/book",
+            InputStream = new OfficeWorkflowStreamInput("book.fb2.zip",
+                _ => Task.FromResult<Stream>(File.OpenRead(fixture))),
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Contains(result.Diagnostics, finding => finding.Code == "conversion-output-reopened");
+        using var artifact = File.OpenRead(output);
+        Assert.Equal("Harbour Signal", EpubPublication.Load(artifact).Title);
+    }
+
+    [Fact]
+    public async Task ManuscriptProviderStreamUsesTheSelectedFilenameForItsTitle() {
+        using var scope = new TestDirectory();
+        byte[] source = Encoding.UTF8.GetBytes("A manuscript paragraph without a heading.");
+        string output = Path.Combine(scope.Path, "result.epub");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "markdown-epub",
+            InputPath = "content://provider/selected",
+            InputStream = new OfficeWorkflowStreamInput("My Novel.md",
+                _ => Task.FromResult<Stream>(new MemoryStream(source, writable: false))),
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        using FileStream stream = File.OpenRead(output);
+        Assert.Equal("My Novel", EpubPublication.Load(stream).Title);
     }
 
     [Theory]
@@ -274,6 +506,55 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Message.Contains("output limit", StringComparison.Ordinal));
         Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task ManuscriptZipLimitPreservesTheExistingDestination() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-epub");
+        string output = Path.Combine(scope.Path, "existing.epub");
+        byte[] original = [6, 2, 0, 7];
+        await File.WriteAllBytesAsync(output, original);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-epub",
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
+            Limits = new OfficeOperationLimits { MaximumOutputBytes = 128L }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Equal(original, await File.ReadAllBytesAsync(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task ManuscriptPublicationReopensWithTheRequestedMetadataBudget() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-epub");
+        string output = Path.Combine(scope.Path, "expanded-metadata.epub");
+        long defaultMetadataBytes = new EpubPublicationLoadOptions().MaxMetadataBytes;
+        var options = new EpubManuscriptOptions {
+            Title = new string('a', checked((int)defaultMetadataBytes)),
+            RetentionLimits = new EpubPublicationLoadOptions { MaxMetadataBytes = defaultMetadataBytes + 32_768 }
+        };
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-epub",
+            InputPath = input,
+            OutputPath = output,
+            ConversionOptions = new OfficeConversionOptions {
+                RegisteredSettings = new OfficeWorkflowRouteSettings { EpubManuscript = options }
+            }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        using ZipArchive epub = ZipFile.OpenRead(output);
+        Assert.True(epub.GetEntry("EPUB/package.opf")!.Length > defaultMetadataBytes);
     }
 
     [Fact]
@@ -1114,6 +1395,27 @@ public sealed class OfficeWorkflowRunnerTests {
                 using WordDocument document = WordDocument.Create(path);
                 document.AddParagraph("OfficeIMO workflow Word source");
                 document.Save();
+                return path;
+            }
+            case "docx-epub": {
+                string path = System.IO.Path.Combine(root, "source.docx");
+                using WordDocument document = WordDocument.Create(path);
+                document.Properties.Title = "Word book title";
+                document.AddParagraph("Opening chapter").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("Start of the story");
+                document.AddParagraph("Closing chapter").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("End of the story");
+                document.Save();
+                return path;
+            }
+            case "markdown-epub": {
+                string path = System.IO.Path.Combine(root, "source.markdown");
+                File.WriteAllText(path, "# Opening chapter\n\nStart of the story.\n\n# Closing chapter\n\nEnd of the story.", Encoding.UTF8);
+                return path;
+            }
+            case "html-epub": {
+                string path = System.IO.Path.Combine(root, "source.htm");
+                File.WriteAllText(path, "<!doctype html><html><body><h1>Opening chapter</h1><p>Start of the story.</p><h1>Closing chapter</h1><p>End of the story.</p></body></html>", Encoding.UTF8);
                 return path;
             }
             case "xlsx-pdf": {

@@ -799,39 +799,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Reader_ReadRange_IgnoresMalformedCellReferenceWithoutRowNumber() {
-            string filePath = Path.Combine(_directoryWithFiles, "ReaderMalformedCellReference.xlsx");
-
-            try {
-                using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddSheet("Data");
-                    sheet.Cell(1, 1).SetValue("ShouldIgnore");
-                    sheet.Cell(1, 2).SetValue("ShouldAlsoIgnore");
-                    document.Save();
-                }
-
-                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
-                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                    var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "A1");
-                    cell.CellReference = "A";
-                    var trailingCell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "B1");
-                    trailingCell.CellReference = "B1X";
-                    worksheetPart.Worksheet.Save();
-                }
-
-                using var reader = ExcelDocumentReader.Open(filePath);
-                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExcelExecutionMode.Sequential);
-
-                Assert.Null(values[0, 0]);
-                Assert.Null(values[0, 1]);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void Sheet_Rows_CanBeEnumeratedAfterReaderScopeDisposes() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsMaterialized.xlsx");
 

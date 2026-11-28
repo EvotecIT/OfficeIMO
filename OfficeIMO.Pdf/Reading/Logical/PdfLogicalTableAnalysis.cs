@@ -24,13 +24,29 @@ public static class PdfLogicalTableAnalysis {
         cancellationToken.ThrowIfCancellationRequested();
 
         int columnCount = GetColumnCount(table, cancellationToken);
-        string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
-        bool hasHeader = headerColumns != null && headerColumns.Length == columnCount;
-        int bodyStartRowIndex = hasHeader ? 1 : 0;
+        PdfTaggedTableSegment? tagged = table.TaggedSegment;
+        IReadOnlyList<string>? taggedNames = tagged?.ColumnNames is { } names && names.Count == columnCount ? names : null;
+        bool hasHeader;
+        int bodyStartRowIndex;
+        IReadOnlyList<string> columns;
+        if (taggedNames is not null && tagged!.HeaderRowCount > 0 && tagged.HeaderRowCount <= table.Rows.Count) {
+            // Every tagged header row the segment starts with is header, not body data.
+            hasHeader = true;
+            bodyStartRowIndex = tagged.HeaderRowCount;
+            columns = taggedNames;
+        } else {
+            // A tagged continuation names its columns from the tagged header and starts with body data,
+            // so styling never turns its first row into a header.
+            bool taggedContinuation = taggedNames is not null && tagged!.HeaderRowCount == 0;
+            string[]? headerColumns = taggedContinuation ? null : DetectHeaderColumns(table, cancellationToken);
+            hasHeader = headerColumns != null && headerColumns.Length == columnCount;
+            bodyStartRowIndex = hasHeader ? 1 : 0;
+            // A tagged table continued from an earlier page names its columns from the tagged header rows.
+            columns = hasHeader
+                ? headerColumns!
+                : (tagged?.HeaderRowCount == 0 ? taggedNames : null) ?? BuildUnnamedColumns(columnCount);
+        }
         int totalBodyRowCount = Math.Max(0, table.Rows.Count - bodyStartRowIndex);
-        IReadOnlyList<string> columns = hasHeader
-            ? headerColumns!
-            : BuildUnnamedColumns(columnCount);
         PdfLogicalTableSchemaKind schemaKind = hasHeader
             ? PdfLogicalTableSchemaKind.HeaderRow
             : PdfLogicalTableSchemaKind.Unknown;

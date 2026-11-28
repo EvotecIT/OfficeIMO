@@ -81,7 +81,7 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 ## Boundaries
 
 - Reader adapter configuration belongs here.
-- Object serialization, editing and merging belong to [`OfficeIMO.Yaml`](../OfficeIMO.Yaml/README.md).
+- Object serialization, editing and merging belong to [`OfficeIMO.Yaml`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml/README.md).
 - Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
@@ -94,4 +94,4 @@ var chunks = reader.Enumerate(stream, "values.yaml", new ReaderOptions {
 - **External:** none.
 - **OfficeIMO:** `OfficeIMO.Yaml` parses and loads YAML and enforces its limits; `OfficeIMO.Reader.Core` owns chunk contracts, locations, and warnings.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

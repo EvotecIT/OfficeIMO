@@ -1,9 +1,5 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
@@ -143,18 +139,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisCrossBetween(OfficeChartAxisCrossBetween between,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            ReplaceChild(axis, new C.CrossBetween { Val = between.ToOpenXml() });
+            ReplaceChild(axis, axis.NewVal(C, "crossBetween", between.ToOpenXmlToken()));
             Save();
             return this;
         }
@@ -168,14 +163,13 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.CategoryAxis? axis = ResolveCategoryAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveCategoryAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -193,14 +187,13 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -218,14 +211,13 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterXAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -243,14 +235,13 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterYAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -265,23 +256,23 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, bool showLabel = true,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
-            displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-            displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
+            OfficeXmlNode existingDisplayUnits = axis.Child(C, "dispUnits");
+            OfficeXmlNode displayUnits = existingDisplayUnits.Exists ? existingDisplayUnits : axis.New(C, "dispUnits");
+            displayUnits.RemoveChildren(C, "custUnit");
+            displayUnits.RemoveChildren(C, "builtInUnit");
+            displayUnits.Append(displayUnits.NewVal(C, "builtInUnit", unit.ToOpenXmlToken()));
             ApplyDisplayUnitsLabel(displayUnits, showLabel);
-            if (displayUnits.Parent == null) {
+            if (existingDisplayUnits.IsNone) {
                 axis.Append(displayUnits);
             }
 
@@ -296,23 +287,23 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
-            displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-            displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
+            OfficeXmlNode existingDisplayUnits = axis.Child(C, "dispUnits");
+            OfficeXmlNode displayUnits = existingDisplayUnits.Exists ? existingDisplayUnits : axis.New(C, "dispUnits");
+            displayUnits.RemoveChildren(C, "custUnit");
+            displayUnits.RemoveChildren(C, "builtInUnit");
+            displayUnits.Append(displayUnits.NewVal(C, "builtInUnit", unit.ToOpenXmlToken()));
             ApplyDisplayUnitsLabel(displayUnits, showLabel, labelText);
-            if (displayUnits.Parent == null) {
+            if (existingDisplayUnits.IsNone) {
                 axis.Append(displayUnits);
             }
 
@@ -329,23 +320,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
-            displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-            displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            OfficeXmlNode existingDisplayUnits = axis.Child(C, "dispUnits");
+            OfficeXmlNode displayUnits = existingDisplayUnits.Exists ? existingDisplayUnits : axis.New(C, "dispUnits");
+            displayUnits.RemoveChildren(C, "builtInUnit");
+            displayUnits.RemoveChildren(C, "custUnit");
+            displayUnits.Append(displayUnits.NewVal(C, "custUnit", customUnit));
             ApplyDisplayUnitsLabel(displayUnits, showLabel);
-            if (displayUnits.Parent == null) {
+            if (existingDisplayUnits.IsNone) {
                 axis.Append(displayUnits);
             }
 
@@ -363,23 +354,23 @@ namespace OfficeIMO.Excel {
             }
             ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
-            displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-            displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            OfficeXmlNode existingDisplayUnits = axis.Child(C, "dispUnits");
+            OfficeXmlNode displayUnits = existingDisplayUnits.Exists ? existingDisplayUnits : axis.New(C, "dispUnits");
+            displayUnits.RemoveChildren(C, "builtInUnit");
+            displayUnits.RemoveChildren(C, "custUnit");
+            displayUnits.Append(displayUnits.NewVal(C, "custUnit", customUnit));
             ApplyDisplayUnitsLabel(displayUnits, showLabel, labelText);
-            if (displayUnits.Parent == null) {
+            if (existingDisplayUnits.IsNone) {
                 axis.Append(displayUnits);
             }
 
@@ -391,18 +382,17 @@ namespace OfficeIMO.Excel {
         /// Clears display units from the value axis.
         /// </summary>
         public ExcelChart ClearValueAxisDisplayUnits(OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            axis.GetFirstChild<C.DisplayUnits>()?.Remove();
+            axis.RemoveChild(C, "dispUnits");
             Save();
             return this;
         }
@@ -412,21 +402,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetCategoryAxisReverseOrder(bool reverseOrder = true,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.CategoryAxis? axis = ResolveCategoryAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveCategoryAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.Scaling scaling = EnsureScaling(axis);
-            ReplaceChild(scaling, new C.Orientation {
-                Val = reverseOrder ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
-            });
+            OfficeXmlNode scaling = EnsureScaling(axis);
+            ReplaceChild(scaling, scaling.NewVal(C, "orientation", reverseOrder ? "maxMin" : "minMax"));
             Save();
             return this;
         }
@@ -445,16 +432,15 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale: null, logBase: null);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = ResolveDateAxis(plotArea, axisGroup);
-            if (axis == null) {
-                C.CategoryAxis? categoryAxis = ResolveCategoryAxis(plotArea, axisGroup);
-                if (categoryAxis == null) {
+            OfficeXmlNode axis = ResolveDateAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
+                OfficeXmlNode categoryAxis = ResolveCategoryAxis(plotArea, axisGroup);
+                if (categoryAxis.IsNone) {
                     return this;
                 }
 
@@ -476,14 +462,13 @@ namespace OfficeIMO.Excel {
             bool? logScale = null, double? logBase = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterXAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -500,14 +485,13 @@ namespace OfficeIMO.Excel {
             bool? logScale = null, double? logBase = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterYAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -552,14 +536,13 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, bool? logScale = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveValueAxis(plotArea, axisGroup);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, axisGroup);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -573,106 +556,98 @@ namespace OfficeIMO.Excel {
             Value
         }
 
-        private ExcelChart SetAxisTitle(string title, OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
-            ArgumentNullException.ThrowIfNull(title);
-
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
+        /// <summary>
+        /// The category or value axis of a group; the primary category axis of a scatter chart is its bottom value axis.
+        /// </summary>
+        private static OfficeXmlNode ResolveAxis(OfficeXmlNode plotArea, OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
+            OfficeXmlNode axis = axisKind == AxisKind.Category
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
+            if (axis.IsNone && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
-            if (axis == null) {
+            return axis;
+        }
+
+        private ExcelChart SetAxisTitle(string title, OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
+            ArgumentNullException.ThrowIfNull(title);
+
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            axis.RemoveAllChildren<C.Title>();
-            InsertAxisTitle(axis, CreateAxisTitle(title));
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
+                return this;
+            }
+
+            axis.RemoveChildren(C, "title");
+            InsertAxisTitle(axis, CreateAxisTitle(axis, title));
             Save();
             return this;
         }
 
-        private static void InsertAxisTitle(OpenXmlCompositeElement axis, C.Title title) {
-            ArgumentNullException.ThrowIfNull(axis);
-            ArgumentNullException.ThrowIfNull(title);
+        private static void InsertAxisTitle(OfficeXmlNode axis, OfficeXmlNode title) {
+            if (axis.IsNone) throw new ArgumentNullException(nameof(axis));
+            if (title.IsNone) throw new ArgumentNullException(nameof(title));
 
-            OpenXmlElement? insertBefore = axis.GetFirstChild<C.NumberingFormat>();
-            insertBefore ??= axis.GetFirstChild<C.MajorTickMark>();
-            insertBefore ??= axis.GetFirstChild<C.MinorTickMark>();
-            insertBefore ??= axis.GetFirstChild<C.TickLabelPosition>();
-            insertBefore ??= axis.GetFirstChild<C.ShapeProperties>();
-            insertBefore ??= axis.GetFirstChild<C.TextProperties>();
-            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
-            insertBefore ??= axis.GetFirstChild<C.Crosses>();
-            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
-            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
-            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
-            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+            OfficeXmlNode insertBefore = axis.Child(C, "numFmt");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "majorTickMark");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "minorTickMark");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "tickLblPos");
+            if (insertBefore.IsNone) insertBefore = AxisShapePropertiesQuirk.AuthoredShapeProperties(axis);
+            if (insertBefore.IsNone) insertBefore = FindAxisChildFromTextProperties(axis);
 
-            if (insertBefore != null) {
+            if (insertBefore.Exists) {
                 axis.InsertBefore(title, insertBefore);
             } else {
                 axis.Append(title);
             }
         }
 
-        private static void InsertAxisShapeProperties(OpenXmlCompositeElement axis, C.ShapeProperties properties) {
-            OpenXmlElement? insertBefore = axis.GetFirstChild<C.TextProperties>();
-            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
-            insertBefore ??= axis.GetFirstChild<C.Crosses>();
-            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
-            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
-            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
-            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+        private static void InsertAxisShapeProperties(OfficeXmlNode axis, OfficeXmlNode properties) {
+            OfficeXmlNode insertBefore = FindAxisChildFromTextProperties(axis);
+            AxisShapePropertiesQuirk.InsertAuthoredShapeProperties(axis, properties, insertBefore);
+        }
 
-            if (insertBefore != null) {
-                axis.InsertBefore(properties, insertBefore);
-            } else {
-                axis.Append(properties);
-            }
+        /// <summary>The first of the axis children from <c>c:txPr</c> on that an axis title or shape properties go before.</summary>
+        private static OfficeXmlNode FindAxisChildFromTextProperties(OfficeXmlNode axis) {
+            OfficeXmlNode insertBefore = axis.Child(C, "txPr");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "crossAx");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "crosses");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "crossesAt");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "crossBetween");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "majorUnit");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "minorUnit");
+            if (insertBefore.IsNone) insertBefore = axis.Child(C, "dispUnits");
+            if (insertBefore.IsNone) insertBefore = AxisShapePropertiesQuirk.GenericExtensionList(axis);
+            return insertBefore;
         }
 
         private ExcelChart SetAxisTitleTextStyle(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontFamily) {
             ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.Title? title = axis.GetFirstChild<C.Title>();
-            if (title == null) {
+            OfficeXmlNode title = axis.Child(C, "title");
+            if (title.IsNone) {
                 return this;
             }
 
-            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
+            OfficeXmlNode chartText = title.Child(C, "tx");
+            if (chartText.IsNone) {
                 return this;
             }
 
@@ -685,21 +660,13 @@ namespace OfficeIMO.Excel {
             OfficeLength? fontSize, bool? bold, bool? italic, OfficeColor? color, string? fontFamily) {
             ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -712,21 +679,13 @@ namespace OfficeIMO.Excel {
             bool? showMajor, bool? showMinor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             ValidateAxisGridlinesStyle(lineColor, lineWidth);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
@@ -739,25 +698,18 @@ namespace OfficeIMO.Excel {
             OfficeColor? lineColor, OfficeLength? lineWidth, bool noLine) {
             ValidateAxisLineStyle(lineColor, lineWidth, noLine);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.ShapeProperties props = axis.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            OfficeXmlNode existing = AxisShapePropertiesQuirk.AuthoredShapeProperties(axis);
+            OfficeXmlNode props = existing.Exists ? existing : AxisShapePropertiesQuirk.NewAuthoredShapeProperties();
             if (noLine) {
                 ApplyNoLine(props);
             } else if (lineColor != null || lineWidth != null) {
@@ -767,7 +719,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            if (props.Parent == null) {
+            if (existing.IsNone) {
                 InsertAxisShapeProperties(axis, props);
             }
 
@@ -793,33 +745,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(rotationDegrees), "Rotation must be between -90 and 90 degrees.");
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
             // Ensure a complete <c:txPr> structure before mutating rotation.
             EnsureTextPropertiesRunProperties(axis);
-            C.TextProperties? textProps = axis.GetFirstChild<C.TextProperties>();
-            if (textProps != null) {
-                A.BodyProperties body = textProps.GetFirstChild<A.BodyProperties>() ?? new A.BodyProperties();
-                body.Rotation = (int)Math.Round(rotationDegrees * 60000d);
-                if (body.Parent == null) {
-                    textProps.Append(body);
-                }
+            OfficeXmlNode textProps = axis.Child(C, "txPr");
+            if (textProps.Exists) {
+                OfficeXmlNode body = textProps.Child(A, "bodyPr");
+                if (body.IsNone) body = textProps.Append(textProps.New(A, "bodyPr"));
+                body.SetInt32Attribute("rot", (int)Math.Round(rotationDegrees * 60000d));
             }
 
             Save();
@@ -828,25 +770,17 @@ namespace OfficeIMO.Excel {
 
         private ExcelChart SetAxisTickLabelPosition(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             OfficeChartAxisTickLabelPosition position) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
-            ReplaceChild(axis, new C.TickLabelPosition { Val = position.ToOpenXml() });
+            ReplaceChild(axis, axis.NewVal(C, "tickLblPos", position.ToOpenXmlToken()));
             Save();
             return this;
         }
@@ -855,156 +789,115 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
-                ? ResolveCategoryAxis(plotArea, axisGroup)
-                : ResolveValueAxis(plotArea, axisGroup);
-
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
-                axis = ResolveScatterXAxis(plotArea);
-            }
-
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveAxis(plotArea, axisGroup, axisKind);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.NumberingFormat format = axis.GetFirstChild<C.NumberingFormat>() ?? new C.NumberingFormat();
-            format.FormatCode = formatCode;
-            format.SourceLinked = sourceLinked;
-            if (format.Parent == null) {
-                axis.InsertAt(format, 0);
+            OfficeXmlNode existing = axis.Child(C, "numFmt");
+            OfficeXmlNode format = existing.Exists ? existing : axis.New(C, "numFmt");
+            format.SetAttribute("formatCode", formatCode);
+            format.SetBooleanAttribute("sourceLinked", sourceLinked);
+            if (existing.IsNone) {
+                axis.InsertBefore(format, axis.FirstChild);
             }
 
             Save();
             return this;
         }
 
-        private static C.CategoryAxis? ResolveCategoryAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
-            var axes = plotArea.Elements<C.CategoryAxis>().ToList();
+        private static OfficeXmlNode ResolveCategoryAxis(OfficeXmlNode plotArea, OfficeChartAxisGroup axisGroup) =>
+            ResolveAxisByPosition(plotArea, "catAx", axisGroup, valueAxis: false);
+
+        private static OfficeXmlNode ResolveDateAxis(OfficeXmlNode plotArea, OfficeChartAxisGroup axisGroup) =>
+            ResolveAxisByPosition(plotArea, "dateAx", axisGroup, valueAxis: false);
+
+        private static OfficeXmlNode ResolveValueAxis(OfficeXmlNode plotArea, OfficeChartAxisGroup axisGroup) =>
+            ResolveAxisByPosition(plotArea, "valAx", axisGroup, valueAxis: true);
+
+        /// <summary>
+        /// The axis of this kind at the group's position (bottom or left for the primary group, swapped for horizontal
+        /// bars), else the first axis for the primary group or the second (or last) for the secondary group.
+        /// </summary>
+        private static OfficeXmlNode ResolveAxisByPosition(OfficeXmlNode plotArea, string axisName, OfficeChartAxisGroup axisGroup, bool valueAxis) {
+            List<OfficeXmlNode> axes = plotArea.Children(C, axisName).ToList();
             if (axes.Count == 0) {
-                return null;
+                return default;
             }
 
             bool isBar = HasHorizontalBarChart(plotArea);
-            C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
-            C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Right : C.AxisPositionValues.Top;
-            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
+            string primaryPosition = valueAxis ? (isBar ? "b" : "l") : (isBar ? "l" : "b");
+            string secondaryPosition = valueAxis ? (isBar ? "t" : "r") : (isBar ? "r" : "t");
+            string desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
 
-            C.CategoryAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
-            if (axis != null) {
-                return axis;
+            foreach (OfficeXmlNode axis in axes) {
+                if (axis.ChildVal(C, "axPos") == desired) {
+                    return axis;
+                }
             }
 
             return axisGroup == OfficeChartAxisGroup.Primary
-                ? axes.FirstOrDefault()
-                : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
+                ? axes[0]
+                : axes.Count > 1 ? axes[1] : axes[axes.Count - 1];
         }
 
-        private static C.DateAxis? ResolveDateAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
-            var axes = plotArea.Elements<C.DateAxis>().ToList();
-            if (axes.Count == 0) {
-                return null;
-            }
+        private static OfficeXmlNode PromoteCategoryAxisToDateAxis(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis) {
+            OfficeXmlNode dateAxis = plotArea.New(C, "dateAx");
+            AppendClone(dateAxis, categoryAxis.Child(C, "axId"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "scaling"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "delete"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "axPos"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "majorGridlines"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "minorGridlines"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "title"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "numFmt"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "majorTickMark"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "minorTickMark"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "tickLblPos"));
+            AppendClone(dateAxis, AxisShapePropertiesQuirk.ChartShapeProperties(categoryAxis));
+            AppendClone(dateAxis, categoryAxis.Child(C, "txPr"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "crossAx"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "crosses"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "crossesAt"));
+            AppendClone(dateAxis, categoryAxis.Child(C, "lblOffset"));
 
-            bool isBar = HasHorizontalBarChart(plotArea);
-            C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
-            C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Right : C.AxisPositionValues.Top;
-            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
-
-            C.DateAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
-            if (axis != null) {
-                return axis;
-            }
-
-            return axisGroup == OfficeChartAxisGroup.Primary
-                ? axes.FirstOrDefault()
-                : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
+            return categoryAxis.Parent.Exists
+                ? categoryAxis.ReplaceWith(dateAxis)
+                : plotArea.Append(dateAxis);
         }
 
-        private static C.DateAxis PromoteCategoryAxisToDateAxis(C.PlotArea plotArea, C.CategoryAxis categoryAxis) {
-            var dateAxis = new C.DateAxis();
-            AppendClone<C.AxisId>(dateAxis, categoryAxis);
-            AppendClone<C.Scaling>(dateAxis, categoryAxis);
-            AppendClone<C.Delete>(dateAxis, categoryAxis);
-            AppendClone<C.AxisPosition>(dateAxis, categoryAxis);
-            AppendClone<C.MajorGridlines>(dateAxis, categoryAxis);
-            AppendClone<C.MinorGridlines>(dateAxis, categoryAxis);
-            AppendClone<C.Title>(dateAxis, categoryAxis);
-            AppendClone<C.NumberingFormat>(dateAxis, categoryAxis);
-            AppendClone<C.MajorTickMark>(dateAxis, categoryAxis);
-            AppendClone<C.MinorTickMark>(dateAxis, categoryAxis);
-            AppendClone<C.TickLabelPosition>(dateAxis, categoryAxis);
-            AppendClone<C.ChartShapeProperties>(dateAxis, categoryAxis);
-            AppendClone<C.TextProperties>(dateAxis, categoryAxis);
-            AppendClone<C.CrossingAxis>(dateAxis, categoryAxis);
-            AppendClone<C.Crosses>(dateAxis, categoryAxis);
-            AppendClone<C.CrossesAt>(dateAxis, categoryAxis);
-            AppendClone<C.LabelOffset>(dateAxis, categoryAxis);
-
-            if (categoryAxis.Parent != null) {
-                plotArea.ReplaceChild(dateAxis, categoryAxis);
-            } else {
-                plotArea.Append(dateAxis);
-            }
-
-            return dateAxis;
-        }
-
-        private static void AppendClone<T>(OpenXmlCompositeElement destination, OpenXmlCompositeElement source) where T : OpenXmlElement {
-            T? child = source.GetFirstChild<T>();
-            if (child != null) {
-                destination.Append(child.CloneNode(true));
+        private static void AppendClone(OfficeXmlNode destination, OfficeXmlNode child) {
+            if (child.Exists) {
+                destination.Append(child.Clone());
             }
         }
 
-        private static C.ValueAxis? ResolveValueAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
-            var axes = plotArea.Elements<C.ValueAxis>().ToList();
-            if (axes.Count == 0) {
-                return null;
+        private static bool HasHorizontalBarChart(OfficeXmlNode plotArea) {
+            foreach (OfficeXmlNode chart in plotArea.Children(C, "barChart")) {
+                if ((chart.ChildVal(C, "barDir") ?? "col") == "bar") return true;
             }
-
-            bool isBar = HasHorizontalBarChart(plotArea);
-            C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
-            C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
-            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
-
-            C.ValueAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
-            if (axis != null) {
-                return axis;
-            }
-
-            return axisGroup == OfficeChartAxisGroup.Primary
-                ? axes.FirstOrDefault()
-                : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
+            return false;
         }
 
-        private static bool HasHorizontalBarChart(C.PlotArea plotArea) {
-            return plotArea.Elements<C.BarChart>()
-                .Select(chart => chart.GetFirstChild<C.BarDirection>()?.Val?.Value ?? C.BarDirectionValues.Column)
-                .Any(direction => direction == C.BarDirectionValues.Bar);
-        }
+        private static OfficeXmlNode ResolveScatterXAxis(OfficeXmlNode plotArea) => ResolveScatterAxis(plotArea, "b");
 
-        private static C.ValueAxis? ResolveScatterXAxis(C.PlotArea plotArea) {
-            if (plotArea.Elements<C.CategoryAxis>().Any()) {
-                return null;
+        private static OfficeXmlNode ResolveScatterYAxis(OfficeXmlNode plotArea) => ResolveScatterAxis(plotArea, "l");
+
+        /// <summary>The first value axis at this position when the plot area has no category axis, or none.</summary>
+        private static OfficeXmlNode ResolveScatterAxis(OfficeXmlNode plotArea, string position) {
+            if (plotArea.Child(C, "catAx").Exists) {
+                return default;
             }
 
-            return plotArea.Elements<C.ValueAxis>()
-                .FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
-        }
-
-        private static C.ValueAxis? ResolveScatterYAxis(C.PlotArea plotArea) {
-            if (plotArea.Elements<C.CategoryAxis>().Any()) {
-                return null;
+            foreach (OfficeXmlNode axis in plotArea.Children(C, "valAx")) {
+                if (axis.ChildVal(C, "axPos") == position) return axis;
             }
-
-            return plotArea.Elements<C.ValueAxis>()
-                .FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+            return default;
         }
 
     }

@@ -28,6 +28,12 @@ The bridge maps typed inline content, metadata, lists and compound children, def
 
 The adapter never participates in native AsciiDoc parsing or round-trip writing.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.AsciiDoc.Markdown
+```
+
 ## References and compound content
 
 Forward conversion uses the attributes in effect at each source block, including set/unset changes inside compound blocks. Example, sidebar, open, quote, and admonition containers project all their child blocks. AsciiDoc-style table cells expose their parsed block bodies; ordinary cells expose editable inline content.
@@ -52,7 +58,7 @@ Create a new catalog after editing titles, anchors, attributes, footnotes, or do
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.AsciiDoc` and `OfficeIMO.Markdown`; the bridge owns typed mapping, canonical generation, and source-located diagnostics.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

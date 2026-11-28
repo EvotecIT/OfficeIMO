@@ -65,7 +65,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         if (outputPath != null && !OfficeFormatSelection.Parse(To)!.Matches(System.IO.Path.GetExtension(outputPath)))
             throw new PSArgumentException("To and the OutputPath extension must name the same target format.");
         string sourceName = "source" + sourceExtension;
-        var options = CaptureOptions(new[] { sourceName }, targetExtension);
+        var options = CaptureOptions(new[] { sourceName }, targetExtension, sourceNamesOnly: true);
         options.SourceName = sourceName;
         options.TargetName = outputPath == null ? "output" + targetExtension : System.IO.Path.GetFileName(outputPath);
         if (TextEncoding.GetByteCount(text) > options.MaximumInputBytes)

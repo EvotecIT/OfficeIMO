@@ -68,8 +68,11 @@ internal static class CorpusRunner {
                     string relative = Path.GetRelativePath(root, file);
                     for (int offset = 0; offset < engines.Length; offset++) {
                         string engine = engines[(offset + rotation) % engines.Length];
-                        string? textPath = writeText ? Path.Combine(textRoot, engine, suite, relative + ".txt") : null;
-                        DeleteText(textPath);
+                        // Text from an earlier run is removed even when this run doesn't store text, so it can never
+                        // be scored against this run's results.
+                        string storedText = Path.Combine(textRoot, engine, suite, relative + ".txt");
+                        DeleteText(storedText);
+                        string? textPath = writeText ? storedText : null;
                         Outcome outcome;
                         if (mode == "cold") {
                             using var process = new EngineProcess(engine);

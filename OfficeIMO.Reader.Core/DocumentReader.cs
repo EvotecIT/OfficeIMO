@@ -29,8 +29,7 @@ internal static partial class DocumentReaderEngine {
         ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
-        string extension = NormalizeExtension(ReaderLogicalPath.GetExtension(path));
-        if (extension.Length == 0) extension = GetRoutingExtension(path);
+        string extension = GetRoutingExtension(path);
         if (string.Equals(ReaderLogicalPath.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
             return ReaderInputKind.Email;
         }

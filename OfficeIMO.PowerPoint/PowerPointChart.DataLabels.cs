@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
@@ -12,40 +9,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetDataLabels(bool showValue = true, bool showCategoryName = false,
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabels(barChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
+            foreach (OfficeXmlNode chartGroup in DataLabelGroups(plotArea)) {
+                ApplyDataLabels(chartGroup, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
             }
 
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabels(lineChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabels(areaChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabels(doughnutChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabels(scatterChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabels(bubbleChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -53,40 +26,16 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes shared data label settings from all supported chart types in the current plot area.
         /// </summary>
         public PowerPointChart ClearDataLabels() {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                RemoveDataLabels(barChart);
+            foreach (OfficeXmlNode chartGroup in DataLabelGroups(plotArea)) {
+                RemoveDataLabels(chartGroup);
             }
 
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                RemoveDataLabels(lineChart);
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                RemoveDataLabels(areaChart);
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                RemoveDataLabels(pieChart);
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                RemoveDataLabels(doughnutChart);
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                RemoveDataLabels(scatterChart);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                RemoveDataLabels(bubbleChart);
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -94,40 +43,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the shared data label position for all supported chart types.
         /// </summary>
         public PowerPointChart SetDataLabelPosition(OfficeChartDataLabelPosition position) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(barChart), position);
+            foreach (OfficeXmlNode chartGroup in DataLabelGroups(plotArea)) {
+                OfficeChartDataLabelPosition? groupPosition = chartGroup.LocalName is "pieChart" or "doughnutChart"
+                    ? GetPowerPointCompatibleDataLabelPosition(chartGroup, position)
+                    : position;
+                SetDataLabelPosition(EnsureDataLabels(chartGroup), groupPosition);
             }
 
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(lineChart), position);
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(areaChart), position);
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(pieChart), GetPowerPointCompatibleDataLabelPosition(pieChart, position));
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(doughnutChart), GetPowerPointCompatibleDataLabelPosition(doughnutChart, position));
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(scatterChart), position);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(bubbleChart), position);
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -137,40 +65,16 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetDataLabelNumberFormat(string formatCode, bool sourceLinked = false) {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatCode);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(barChart), formatCode, sourceLinked);
+            foreach (OfficeXmlNode chartGroup in DataLabelGroups(plotArea)) {
+                SetDataLabelNumberFormat(EnsureDataLabels(chartGroup), formatCode, sourceLinked);
             }
 
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(lineChart), formatCode, sourceLinked);
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(areaChart), formatCode, sourceLinked);
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(pieChart), formatCode, sourceLinked);
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(doughnutChart), formatCode, sourceLinked);
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(scatterChart), formatCode, sourceLinked);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                SetDataLabelNumberFormat(EnsureDataLabels(bubbleChart), formatCode, sourceLinked);
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -230,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(template);
 
             return ApplyToAllDataLabels(labels => {
-                ApplyDataLabelTemplate(labels, template);
+                ApplyDataLabelsTemplate(labels, template);
             });
         }
 

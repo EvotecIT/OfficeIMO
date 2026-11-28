@@ -23,6 +23,7 @@ namespace OfficeIMO;
 public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
+        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx", "notebook-source-ipynb", "notebook-source-pdf",
         "word-xml-docx", "spreadsheet-xml-xlsx", "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
     }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id))
         .Concat(DataRouteIds), StringComparer.OrdinalIgnoreCase);
@@ -165,6 +166,14 @@ public static partial class OfficeConverter {
                 }
                 break;
             }
+            case "notebook-pdf":
+            case "notebook-markdown":
+            case "notebook-html":
+            case "notebook-docx":
+            case "notebook-source-ipynb":
+            case "notebook-source-pdf":
+                result = await ConvertNotebookAsync(id, input, output, settings, token).ConfigureAwait(false);
+                break;
             case "markdown-pdf":
             case "markdown-docx":
             case "markdown-html": {
@@ -255,12 +264,12 @@ public static partial class OfficeConverter {
     private static OfficeConversionCapability SelectRoute(OfficeConversionOptions settings) {
         if (settings.RouteId is { } requested) {
             OfficeConversionCapability? exact = Routes.SingleOrDefault(route => string.Equals(route.Id, requested, StringComparison.OrdinalIgnoreCase));
-            if (exact == null || !HasSourceExtension(exact, Path.GetExtension(settings.SourceName) ?? string.Empty)
+            if (exact == null || !HasSourceExtension(exact, OfficeConversionCapabilityCatalog.GetSourceExtension(settings.SourceName))
                 || !string.Equals(exact.TargetExtension, Path.GetExtension(settings.TargetName), StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("The explicit conversion route must match the source and target filenames.");
             return exact;
         }
-        string source = Path.GetExtension(settings.SourceName ?? string.Empty), target = Path.GetExtension(settings.TargetName ?? string.Empty);
+        string source = OfficeConversionCapabilityCatalog.GetSourceExtension(settings.SourceName), target = Path.GetExtension(settings.TargetName ?? string.Empty);
         IReadOnlyList<OfficeConversionCapability> routes = Routes;
         string? preferred = OfficeConversionCapabilityCatalog.PreferredRouteId(source, target);
         OfficeConversionCapability? single = null;

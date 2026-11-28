@@ -1,49 +1,58 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        // The document being written. Style definitions read from the style catalog are detached from the package,
-        // so fonts inside them find the theme through it.
-        [ThreadStatic] private static MainDocumentPart? t_writingMainPart;
+        // The document being written. Style definitions the writer materializes are detached copies, so fonts inside
+        // them find the theme through it.
+        [ThreadStatic] private static LegacyDocSourcePackage? t_writingSource;
 
-        private static RunFonts ResolveNativeThemeRunFonts(RunFonts fonts, A.FontScheme? scheme = null) {
-            if (fonts.AsciiTheme == null && fonts.HighAnsiTheme == null &&
-                fonts.EastAsiaTheme == null && fonts.ComplexScriptTheme == null) return fonts;
+        /// <summary>The <c>a:fontScheme</c> of the package's theme, or none.</summary>
+        private static LegacyDocElement GetThemeFontScheme(LegacyDocSourcePackage? source) {
+            if (source == null) return LegacyDocElement.None;
+            return source.Theme
+                .Child(OfficeXmlNamespaces.DrawingML, "themeElements")
+                .Child(OfficeXmlNamespaces.DrawingML, "fontScheme");
+        }
 
-            if (scheme == null) {
-                OpenXmlPartRootElement? root = fonts.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
-                MainDocumentPart? main = root == null ? t_writingMainPart : (root.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
-                scheme = main?.ThemePart?.Theme?.ThemeElements?.FontScheme;
+        /// <summary>
+        /// The concrete font names of a <c>w:rFonts</c> element. Theme selectors resolve through <paramref name="scheme"/>
+        /// (the writing package's theme when none), keeping literal names for empty theme slots. Without theme selectors
+        /// the element's own names come back unresolved.
+        /// </summary>
+        private static LegacyDocRunFonts ResolveNativeThemeRunFonts(LegacyDocElement fonts, LegacyDocElement scheme = default) {
+            string? asciiTheme = fonts.Attr("asciiTheme");
+            string? highAnsiTheme = fonts.Attr("hAnsiTheme");
+            string? eastAsiaTheme = fonts.Attr("eastAsiaTheme");
+            string? complexScriptTheme = fonts.Attr("cstheme");
+            if (asciiTheme == null && highAnsiTheme == null &&
+                eastAsiaTheme == null && complexScriptTheme == null) return LegacyDocRunFonts.FromElement(fonts);
+
+            if (scheme.IsNone) {
+                scheme = GetThemeFontScheme(t_writingSource);
             }
 
             // DOC stores concrete font names. Resolve before detaching a style
             // from its package, retaining literal fallbacks for empty theme slots.
-            RunFonts resolved = (RunFonts)fonts.CloneNode(true);
-            resolved.Ascii = ResolveDefaultFontSlot(scheme, fonts.Ascii?.Value, fonts.AsciiTheme?.Value, null, null);
-            resolved.HighAnsi = ResolveDefaultFontSlot(scheme, fonts.HighAnsi?.Value, fonts.HighAnsiTheme?.Value, null, null);
-            resolved.EastAsia = ResolveDefaultFontSlot(scheme, fonts.EastAsia?.Value, fonts.EastAsiaTheme?.Value, null, null);
-            resolved.ComplexScript = ResolveDefaultFontSlot(scheme, fonts.ComplexScript?.Value, fonts.ComplexScriptTheme?.Value, null, null);
-            resolved.AsciiTheme = null;
-            resolved.HighAnsiTheme = null;
-            resolved.EastAsiaTheme = null;
-            resolved.ComplexScriptTheme = null;
-            return resolved;
+            return new LegacyDocRunFonts(
+                ResolveDefaultFontSlot(scheme, fonts.Attr("ascii"), asciiTheme, null, null),
+                ResolveDefaultFontSlot(scheme, fonts.Attr("hAnsi"), highAnsiTheme, null, null),
+                ResolveDefaultFontSlot(scheme, fonts.Attr("eastAsia"), eastAsiaTheme, null, null),
+                ResolveDefaultFontSlot(scheme, fonts.Attr("cs"), complexScriptTheme, null, null),
+                resolvedTheme: true);
         }
 
-        private static void MaterializeParagraphStyleThemeFonts(Dictionary<string, Style> paragraphStyles, MainDocumentPart main) {
-            A.FontScheme? scheme = main.ThemePart?.Theme?.ThemeElements?.FontScheme;
+        private static void MaterializeParagraphStyleThemeFonts(Dictionary<string, LegacyDocElement> paragraphStyles, LegacyDocSourcePackage source) {
+            LegacyDocElement scheme = GetThemeFontScheme(source);
             foreach (string styleId in paragraphStyles.Keys.ToArray()) {
-                Style original = paragraphStyles[styleId];
-                RunFonts? fonts = original.StyleRunProperties?.RunFonts;
-                if (fonts == null) continue;
-                RunFonts resolved = ResolveNativeThemeRunFonts(fonts, scheme);
-                if (ReferenceEquals(fonts, resolved)) continue;
-                Style copy = (Style)original.CloneNode(true);
-                copy.StyleRunProperties!.RunFonts = resolved;
-                paragraphStyles[styleId] = copy;
+                LegacyDocElement original = paragraphStyles[styleId];
+                LegacyDocElement fonts = original.Child("rPr").Child("rFonts");
+                if (fonts.IsNone) continue;
+                LegacyDocRunFonts resolved = ResolveNativeThemeRunFonts(fonts, scheme);
+                if (!resolved.ResolvedTheme) continue;
+                OfficeXmlTree copy = CopyStyleDefinition(original);
+                int runFonts = copy.FindChild(copy.FindChild(copy.Root, LegacyDocElement.W, "rPr"), LegacyDocElement.W, "rFonts");
+                resolved.ApplyTo(copy, runFonts);
+                paragraphStyles[styleId] = new LegacyDocElement(copy, copy.Root);
             }
         }
     }

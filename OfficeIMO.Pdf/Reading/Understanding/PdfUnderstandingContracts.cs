@@ -71,6 +71,9 @@ public sealed class PdfUnderstandingPageContext {
     /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
     public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
     internal void CompleteOperation() => _workBudget.CompleteOperation();
+    /// <summary>Set on pages whose tables a tagged structure tree is expected to supply: the painted-border pass is skipped there.</summary>
+    internal bool SkipPaintedBorders { get; set; }
+    internal void RewindWork(long consumed) => _workBudget.Rewind(consumed);
     internal PdfUnderstandingReadingFrame? ReadingFrame { get; private set; }
     internal void SetReadingFrame(PdfUnderstandingReadingFrame frame) {
         ReadingFrame = frame;
@@ -165,12 +168,22 @@ public sealed class PdfUnderstandingLine {
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
         Words = words;
         Text = text;
-        XStart = words.Min(static word => word.XStart);
-        XEnd = words.Max(static word => word.XEnd);
-        BaselineY = words.Average(static word => word.BaselineY);
-        FontSize = words.Max(static word => word.FontSize);
-        RotationDegrees = words.Average(static word => word.RotationDegrees);
-        Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
+        PdfDoubleAggregate xStart = default, xEnd = default, baseline = default, fontSize = default, rotation = default, wordConfidence = default;
+        for (int index = 0; index < words.Count; index++) {
+            PdfUnderstandingWord word = words[index];
+            xStart.Add(word.XStart);
+            xEnd.Add(word.XEnd);
+            baseline.Add(word.BaselineY);
+            fontSize.Add(word.FontSize);
+            rotation.Add(word.RotationDegrees);
+            if (confidence is null) wordConfidence.Add(word.Confidence);
+        }
+        XStart = xStart.Minimum;
+        XEnd = xEnd.Maximum;
+        BaselineY = baseline.Average;
+        FontSize = fontSize.Maximum;
+        RotationDegrees = rotation.Average;
+        Confidence = PdfInference.Clamp(confidence ?? wordConfidence.Average);
         Evidence = PdfInference.Snapshot(evidence);
         SourceKind = sourceKind;
         SourceSequence = sourceSequence;
@@ -224,12 +237,20 @@ public sealed class PdfUnderstandingRegion {
         Guard.NotNull(lines, nameof(lines));
         if (lines.Count == 0) throw new ArgumentException("A region requires at least one line.", nameof(lines));
         Lines = lines;
-        Text = string.Join(" ", lines.Select(static line => line.Text));
-        XStart = lines.Min(static line => line.XStart);
-        XEnd = lines.Max(static line => line.XEnd);
-        YTop = lines.Max(static line => line.BaselineY);
-        YBottom = lines.Min(static line => line.BaselineY);
-        Confidence = PdfInference.Clamp(confidence ?? lines.Average(static line => line.Confidence));
+        PdfDoubleAggregate xStart = default, xEnd = default, baseline = default, lineConfidence = default;
+        for (int index = 0; index < lines.Count; index++) {
+            PdfUnderstandingLine line = lines[index];
+            xStart.Add(line.XStart);
+            xEnd.Add(line.XEnd);
+            baseline.Add(line.BaselineY);
+            if (confidence is null) lineConfidence.Add(line.Confidence);
+        }
+        Text = lines.Count == 1 ? lines[0].Text : string.Join(" ", lines.Select(static line => line.Text));
+        XStart = xStart.Minimum;
+        XEnd = xEnd.Maximum;
+        YTop = baseline.Maximum;
+        YBottom = baseline.Minimum;
+        Confidence = PdfInference.Clamp(confidence ?? lineConfidence.Average);
         Evidence = PdfInference.Snapshot(evidence);
     }
     /// <summary>Lines in local region order.</summary>
@@ -400,6 +421,8 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingImageRegion> ImageRegions { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
+    /// <summary>Tagged tables on this page whose structure was not used; geometric detection reads the page instead.</summary>
+    public IReadOnlyList<PdfTaggedTableDiagnostic> TaggedTableDiagnostics { get; internal set; } = Array.Empty<PdfTaggedTableDiagnostic>();
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
     internal IReadOnlyList<PdfFontInspectionDiagnostic> TextDecodingDiagnostics { get; }
@@ -413,6 +436,18 @@ public sealed class PdfUnderstandingPageResult {
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
     internal bool RestrictLogicalProjectionToReadingOrder { get; }
     internal void CompleteOperation() => _completeOperation?.Invoke();
+
+    /// <summary>
+    /// On a page analysed without the painted-border pass: analyses its tables again with it, from the same text runs
+    /// and lines, as if the first analysis had included it.
+    /// </summary>
+    internal Func<PdfUnderstandingPageResult>? RedoWithPaintedBorders { get; set; }
+
+    /// <summary>
+    /// On a page analysed without table detection: segments it again, from the same text runs and lines, with the given
+    /// tables (its tagged ones) as its table candidates. Null when detection finds a table in the text outside them.
+    /// </summary>
+    internal Func<IReadOnlyList<PdfUnderstandingTableCandidate>, PdfUnderstandingPageResult?>? WithTablesFromTags { get; set; }
 
     internal PdfUnderstandingPageResult WithAdditionalTableCandidates(
         IReadOnlyList<PdfUnderstandingTableCandidate> candidates) {
@@ -436,7 +471,7 @@ public sealed class PdfUnderstandingPageResult {
             ImagePlacements,
             ImageRegions,
             MaxWorkUnitsPerPage,
-            TaggedListItems, TextDecodingDiagnostics, ContentsEntries);
+            TaggedListItems, TextDecodingDiagnostics, ContentsEntries) { TaggedTableDiagnostics = TaggedTableDiagnostics };
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(

@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class ParagraphParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class ParagraphParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Paragraphs) return false;
             // Paragraph begins when none of the other block starters match.
-            if (MayStartParagraphInterrupter(GetFirstNonWhiteSpaceCharacter(lines[i]), options)
+            if (MayStartParagraphInterrupter(lines.GetFirstNonWhiteSpaceCharacter(i), options)
                 ? IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
                 StartsTable(lines, i, options, state) ||
@@ -23,8 +23,8 @@ internal static partial class MarkdownReader {
                 : StartsTable(lines, i, options, state)) return false;
 
             int j = i;
-            while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
-                   (MayStartParagraphInterrupter(GetFirstNonWhiteSpaceCharacter(lines[j]), options)
+            while (j < lines.Length && !lines.IsBlank(j) &&
+                   (MayStartParagraphInterrupter(lines.GetFirstNonWhiteSpaceCharacter(j), options)
                    ? !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j, options, state) &&
@@ -48,14 +48,24 @@ internal static partial class MarkdownReader {
             // generic-attribute work. Avoid materializing a temporary line list only to join
             // the same line again before parsing its inlines.
             if (!state.CaptureSyntaxTree && !options.GenericAttributes && j == i + 1) {
-                var singleLineText = GetParagraphLineJoinInfo(
-                    lines[i] ?? string.Empty,
-                    absoluteLine: 1,
-                    startColumn: 1,
-                    options,
-                    sourceTextMap: null,
-                    hasFollowingLine: false).Text;
+                // The joined text of a single line is the line without trailing white space, taken
+                // straight from the source rather than through a string of the whole line.
+                lines.GetSlice(i, out var lineText, out int lineStart, out int lineEnd);
+                int trimmedEnd = lineEnd;
+                while (trimmedEnd > lineStart && char.IsWhiteSpace(lineText[trimmedEnd - 1])) trimmedEnd--;
+                var singleLineText = lineStart == 0 && trimmedEnd == lineText.Length
+                    ? lineText
+                    : lineText.Substring(lineStart, trimmedEnd - lineStart);
                 doc.Add(new ParagraphBlock(ParseInlines(singleLineText, options, state)));
+                i = j;
+                return true;
+            }
+
+            if (!state.CaptureSyntaxTree && !options.GenericAttributes && state.SourceTextMap == null
+                && TryJoinPlainParagraphLines(lines, i, j, options, state, out var joinedText, out var joinedSoftBreaks)) {
+                // Generic attributes are off on this path, so the new paragraph has no attribute layout to record.
+                var plainParagraph = new ParagraphBlock(ParseInlines(joinedText, options, state, CreateSemanticLineBreakMap(joinedText, joinedSoftBreaks)));
+                doc.Add(plainParagraph);
                 i = j;
                 return true;
             }
@@ -192,6 +202,75 @@ internal static partial class MarkdownReader {
             }
             doc.Add(paragraph);
             i = j; return true;
+        }
+
+        private static readonly char[] CodeSpanOrHtmlDelimiters = { '`', '<' };
+
+        /// <summary>
+        /// Joins paragraph lines <paramref name="start"/> to <paramref name="end"/> - 1 straight from the source
+        /// text, as <c>JoinParagraphLines</c> does for a semantic parse. Declines, leaving the lines untouched,
+        /// when a line holds something that needs the full join: a code span or HTML delimiter, a backslash
+        /// hard break, or a possible setext underline.
+        /// </summary>
+        private static bool TryJoinPlainParagraphLines(
+            MarkdownSourceLines lines,
+            int start,
+            int end,
+            MarkdownLoadOptions options,
+            MarkdownReaderState state,
+            out string text,
+            out List<int>? softBreaks) {
+            text = string.Empty;
+            softBreaks = null;
+            if (lines.GetFirstNonWhiteSpaceCharacter(end - 1) is '=' or '-') {
+                return false;
+            }
+
+            int capacity = end - start - 1;
+            for (int index = start; index < end; index++) {
+                lines.GetSlice(index, out var line, out int lineStart, out int lineEnd);
+                capacity += lineEnd - lineStart;
+                if (line.IndexOfAny(CodeSpanOrHtmlDelimiters, lineStart, lineEnd - lineStart) >= 0) {
+                    return false;
+                }
+
+                int trimmedEnd = lineEnd;
+                while (trimmedEnd > lineStart && char.IsWhiteSpace(line[trimmedEnd - 1])) trimmedEnd--;
+                if (trimmedEnd > lineStart && line[trimmedEnd - 1] == '\\') {
+                    return false;
+                }
+            }
+
+            int absoluteLineOffset = state.SourceLineOffset + start;
+            var builder = MarkdownStringBuilderCache.Acquire(capacity);
+            bool previousHardBreak = false;
+            for (int index = start; index < end; index++) {
+                lines.GetSlice(index, out var line, out int lineStart, out int lineEnd);
+                if (previousHardBreak) {
+                    while (lineStart < lineEnd && line[lineStart] is ' ' or '\t') lineStart++;
+                }
+
+                int trailingSpaces = 0;
+                while (trailingSpaces < 2 && lineEnd - trailingSpaces > lineStart && line[lineEnd - trailingSpaces - 1] == ' ') trailingSpaces++;
+                int trimmedEnd = lineEnd;
+                while (trimmedEnd > lineStart && char.IsWhiteSpace(line[trimmedEnd - 1])) trimmedEnd--;
+                bool hasFollowingLine = index + 1 < end;
+                bool hardBreak = trailingSpaces >= 2 || (hasFollowingLine && options.SoftLineBreaksAsHardLineBreaks);
+
+                int paragraphLine = index - start;
+                if (paragraphLine > 0) {
+                    bool lazyQuoteBreak = !previousHardBreak &&
+                        (IsLazyQuoteContinuationLine(state, absoluteLineOffset + paragraphLine - 1) ||
+                         IsLazyQuoteContinuationLine(state, absoluteLineOffset + paragraphLine));
+                    if (lazyQuoteBreak) (softBreaks ??= new List<int>()).Add(builder.Length);
+                    builder.Append(previousHardBreak || lazyQuoteBreak ? "\n" : " ");
+                }
+                builder.Append(line, lineStart, trimmedEnd - lineStart);
+                previousHardBreak = hardBreak;
+            }
+
+            text = MarkdownStringBuilderCache.GetStringAndRelease(builder);
+            return true;
         }
 
         // Every block that can interrupt a paragraph, except a table, starts with one of these
@@ -336,7 +415,7 @@ internal static partial class MarkdownReader {
 
         private static bool IsStandaloneGenericAttributeBeforeBlockquote(
             IReadOnlyList<string> paragraphLines,
-            string[] lines,
+            MarkdownSourceLines lines,
             int nextLineIndex) {
             if (paragraphLines == null
                 || paragraphLines.Count != 1
@@ -348,7 +427,7 @@ internal static partial class MarkdownReader {
             }
 
             for (var index = nextLineIndex; index < lines.Length; index++) {
-                if (string.IsNullOrWhiteSpace(lines[index])) {
+                if (lines.IsBlank(index)) {
                     continue;
                 }
 
@@ -695,12 +774,12 @@ internal static partial class MarkdownReader {
             return column;
         }
 
-        private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownLoadOptions options) {
+        private static bool IsReferenceLinkDefinitionStarter(MarkdownSourceLines lines, int index, MarkdownLoadOptions options) {
             return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
 
         private static bool ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(
-            string[] lines,
+            MarkdownSourceLines lines,
             int index,
             MarkdownLoadOptions options,
             MarkdownReaderState state) =>
@@ -711,7 +790,7 @@ internal static partial class MarkdownReader {
             options?.Abbreviations == true && TryParseAbbreviationDefinition(line, 0, null, out _, out _, out _, out _, out _, out _);
 
         private static bool IsParagraphTerminatingReferenceLinkDefinition(
-            string[] lines,
+            MarkdownSourceLines lines,
             int paragraphStartIndex,
             int index,
             MarkdownLoadOptions options,

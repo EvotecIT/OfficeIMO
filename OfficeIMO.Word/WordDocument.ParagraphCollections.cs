@@ -11,6 +11,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
+                if (_ownedModel is { } model && OfficeIMO.Word.OpenXml.WordOwnedParagraphs.TryCollect(this, model, out List<WordParagraph> owned)) {
+                    return owned;
+                }
                 return WordSection.GetParagraphsOfAllSections(this);
             }
         }

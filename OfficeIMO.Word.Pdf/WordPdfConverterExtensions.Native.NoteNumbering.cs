@@ -1,5 +1,4 @@
 using OfficeIMO.Core;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
@@ -14,14 +13,14 @@ public static partial class WordPdfConverterExtensions {
         private readonly Dictionary<int, string> labelsByToken = new();
         private int generatedLabelCharacters;
         private readonly WordDocument document;
-        private readonly W.Settings? settings;
+        private readonly OfficeXmlNode settings;
         private readonly WordPdfExportOptions? options;
         private int? nextFootnote;
         private int? nextEndnote;
         private bool hasFootnotes;
         private bool hasEndnotes;
-        private W.NumberFormatValues footnoteFormat;
-        private W.NumberFormatValues endnoteFormat;
+        private string footnoteFormat = "decimal";
+        private string endnoteFormat = "lowerRoman";
         private bool footnotePageRestart;
         private bool endnotePageRestart;
         private bool pageRestartReported;
@@ -42,7 +41,7 @@ public static partial class WordPdfConverterExtensions {
 
         internal NativeNoteNumbering(WordDocument document, WordPdfExportOptions? options) {
             this.document = document;
-            settings = document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
+            settings = document.SettingsNode();
             this.options = options;
             EndnotesAtDocumentEnd = document.EndnoteSettings.Position == WordEndnotePosition.DocumentEnd;
         }
@@ -58,20 +57,20 @@ public static partial class WordPdfConverterExtensions {
 
         internal void BeginSection(WordSection section) {
             currentSection = section;
-            W.FootnoteProperties? foot = section._sectionProperties.GetFirstChild<W.FootnoteProperties>();
-            W.EndnoteProperties? end = section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
-            W.FootnoteDocumentWideProperties? documentFoot = settings?.GetFirstChild<W.FootnoteDocumentWideProperties>();
-            W.EndnoteDocumentWideProperties? documentEnd = settings?.GetFirstChild<W.EndnoteDocumentWideProperties>();
-            footnoteFormat = foot?.NumberingFormat?.Val?.Value ?? documentFoot?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.Decimal;
-            endnoteFormat = end?.NumberingFormat?.Val?.Value ?? documentEnd?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.LowerRoman;
-            W.RestartNumberValues? footRestart = foot?.NumberingRestart?.Val?.Value ?? documentFoot?.NumberingRestart?.Val?.Value;
-            W.RestartNumberValues? endRestart = end?.NumberingRestart?.Val?.Value ?? documentEnd?.NumberingRestart?.Val?.Value;
-            if (!hasFootnotes || footRestart == W.RestartNumberValues.EachSection)
-                nextFootnote = foot?.NumberingStart?.Val?.Value ?? documentFoot?.NumberingStart?.Val?.Value ?? 1;
-            if (!hasEndnotes || endRestart == W.RestartNumberValues.EachSection)
-                nextEndnote = end?.NumberingStart?.Val?.Value ?? documentEnd?.NumberingStart?.Val?.Value ?? 1;
-            footnotePageRestart = footRestart == W.RestartNumberValues.EachPage;
-            endnotePageRestart = endRestart == W.RestartNumberValues.EachPage;
+            OfficeXmlNode foot = section.Node().WChild("footnotePr");
+            OfficeXmlNode end = section.Node().WChild("endnotePr");
+            OfficeXmlNode documentFoot = settings.WChild("footnotePr");
+            OfficeXmlNode documentEnd = settings.WChild("endnotePr");
+            footnoteFormat = foot.ChildVal("numFmt") ?? documentFoot.ChildVal("numFmt") ?? "decimal";
+            endnoteFormat = end.ChildVal("numFmt") ?? documentEnd.ChildVal("numFmt") ?? "lowerRoman";
+            string? footRestart = foot.ChildVal("numRestart") ?? documentFoot.ChildVal("numRestart");
+            string? endRestart = end.ChildVal("numRestart") ?? documentEnd.ChildVal("numRestart");
+            if (!hasFootnotes || footRestart == "eachSect")
+                nextFootnote = WordXml.ParseInt32(foot.ChildVal("numStart")) ?? WordXml.ParseInt32(documentFoot.ChildVal("numStart")) ?? 1;
+            if (!hasEndnotes || endRestart == "eachSect")
+                nextEndnote = WordXml.ParseInt32(end.ChildVal("numStart")) ?? WordXml.ParseInt32(documentEnd.ChildVal("numStart")) ?? 1;
+            footnotePageRestart = footRestart == "eachPage";
+            endnotePageRestart = endRestart == "eachPage";
         }
 
         internal void ReportSeparatorMarkOmission() {
@@ -104,15 +103,15 @@ public static partial class WordPdfConverterExtensions {
             int number = (endnote ? nextEndnote : nextFootnote) ?? 1;
             if (endnote) { nextEndnote = checked(number + 1); hasEndnotes = true; }
             else { nextFootnote = checked(number + 1); hasFootnotes = true; }
-            W.NumberFormatValues format = endnote ? endnoteFormat : footnoteFormat;
+            string format = endnote ? endnoteFormat : footnoteFormat;
             OfficeNumberStyle style;
-            if (format == W.NumberFormatValues.LowerRoman) style = OfficeNumberStyle.LowerRoman;
-            else if (format == W.NumberFormatValues.UpperRoman) style = OfficeNumberStyle.UpperRoman;
-            else if (format == W.NumberFormatValues.LowerLetter) style = OfficeNumberStyle.RepeatedLowerLetter;
-            else if (format == W.NumberFormatValues.UpperLetter) style = OfficeNumberStyle.RepeatedUpperLetter;
+            if (format == "lowerRoman") style = OfficeNumberStyle.LowerRoman;
+            else if (format == "upperRoman") style = OfficeNumberStyle.UpperRoman;
+            else if (format == "lowerLetter") style = OfficeNumberStyle.RepeatedLowerLetter;
+            else if (format == "upperLetter") style = OfficeNumberStyle.RepeatedUpperLetter;
             else {
                 style = OfficeNumberStyle.Decimal;
-                if (format != W.NumberFormatValues.Decimal && options != null)
+                if (format != "decimal" && options != null)
                     AddNativeExportWarning(options, "native-note-number-format-unsupported", endnote ? "endnote" : "footnote",
                         "The note numbering format is outside the supported decimal, Roman and letter formats; a decimal label was used.");
             }

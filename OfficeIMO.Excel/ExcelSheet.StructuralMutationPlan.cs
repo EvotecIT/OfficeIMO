@@ -141,21 +141,21 @@ namespace OfficeIMO.Excel {
                         _spreadSheetDocument,
                         sheetElement,
                         registerSheetWrapper: false);
-                IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
+                IReadOnlyDictionary<ExcelFormulaCell, (int Row, int Column)> effectiveCoordinates =
                     inspectedSheet.BuildEffectiveCellCoordinates(
                         worksheetElements.OfType<Row>(),
                         worksheetElements.OfType<Cell>());
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                     inspectedSheet.BuildSharedFormulaDefinitions(
                         effectiveCoordinates,
-                        worksheetElements.OfType<Cell>());
+                        worksheetElements.OfType<Cell>().Select(inspectedSheet.WrapFormulaCell));
                 bool isPendingOwner = pendingCellsByOwner.TryGetValue(worksheetPart, out Dictionary<long, object?>? pendingOwnerCells);
                 if (rewriteUnqualified) {
                     rows += CountAffectedRowRecords(worksheetElements, firstRow);
                 }
                 foreach (OpenXmlElement element in worksheetElements) {
                     if (element is Cell cell) {
-                        if (!effectiveCoordinates.TryGetValue(cell, out var effectiveCoordinate)) {
+                        if (!effectiveCoordinates.TryGetValue(inspectedSheet.WrapFormulaCell(cell), out var effectiveCoordinate)) {
                             continue;
                         }
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
                                 && effectiveCoordinate.Row <= lastRow;
                             formulaImpactRecorded |= FormulaChangesForPlan(
                                 inspectedSheet.ResolveCellFormulaText(
-                                    cell,
+                                    inspectedSheet.WrapFormulaCell(cell),
                                     sharedFormulaDefinitions,
                                     effectiveCoordinates),
                                 kind,

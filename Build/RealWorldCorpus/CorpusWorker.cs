@@ -61,6 +61,35 @@ internal static class CorpusWorker {
         };
     }
 
+    public static CorpusWorkerResult ProbeOpenXml(string path, long maxFileBytes, string expectedSha256, bool includeDifferenceText) {
+        byte[] snapshot = ReadBoundedSnapshot(path, maxFileBytes);
+        string actualSha256 = Convert.ToHexString(SHA256.HashData(snapshot)).ToLowerInvariant();
+        if (!string.Equals(actualSha256, expectedSha256, StringComparison.Ordinal)) {
+            throw new CorpusInputChangedException();
+        }
+        string sourceName = Path.GetFileName(path);
+        // The resource limits still apply: a package over a size, count or expansion limit is rejected by policy and
+        // neither reader opens it. Malformed packages go on to both readers, since comparing how they fail is the point.
+        OfficePackageSecurityReport? inspection = null;
+        try {
+            inspection = OfficePackageSecurityInspector.Inspect(snapshot, CorpusPackagePolicy.Create(maxFileBytes));
+        } catch (Exception exception) when (exception is not (OutOfMemoryException or OfficePackageSecurityException)) {
+        }
+        if (inspection != null && inspection.Findings.Any(finding => finding.Severity == OfficePackageSecuritySeverity.Error && IsResourceRule(finding.Rule))) {
+            OfficePackageSecurityInspector.Validate(snapshot, CorpusPackagePolicy.Create(maxFileBytes));
+        }
+        ReaderInputKind family = CorpusOpenXmlFamilies.FromExtension(Path.GetExtension(path));
+        if (family == ReaderInputKind.Unknown) {
+            family = Reader.Detect(snapshot, sourceName, CorpusReaderPolicy.CreateDetectionOptions()).ContentKind;
+        }
+        return new CorpusWorkerResult {
+            Stage = CorpusOutcomes.Probe,
+            Succeeded = true,
+            DetectedKind = family,
+            OpenXmlEvidence = OpenXmlDifferentialProbe.Probe(snapshot, sourceName, family, maxFileBytes, includeDifferenceText)
+        };
+    }
+
     private static void ValidatePackage(byte[] snapshot, string sourceName, long maxFileBytes) {
         ReaderDetectionResult detection = Reader.Detect(snapshot, sourceName,
             CorpusReaderPolicy.CreateDetectionOptions());
@@ -71,6 +100,11 @@ internal static class CorpusWorker {
 
         OfficePackageSecurityInspector.Validate(snapshot, CorpusPackagePolicy.Create(maxFileBytes));
     }
+
+    private static bool IsResourceRule(OfficePackageSecurityRule rule) => rule is OfficePackageSecurityRule.PackageSize
+        or OfficePackageSecurityRule.PartCount or OfficePackageSecurityRule.PartSize
+        or OfficePackageSecurityRule.TotalUncompressedSize or OfficePackageSecurityRule.CompressionRatio
+        or OfficePackageSecurityRule.RelationshipCount;
 
     private static bool IsPackageKind(ReaderInputKind kind) =>
         kind is ReaderInputKind.Word or ReaderInputKind.Excel or ReaderInputKind.PowerPoint;

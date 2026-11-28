@@ -23,6 +23,28 @@ public sealed class OfficeConverterBatchPersistenceTests {
     }
 
     [Fact]
+    public async Task SavedNotebookPdfJobKeepsItsCodeVisibilityAndSavedOutput() {
+        using var files = new SavedFiles();
+        string source = Path.Combine(files.Root, "change-report.ipynb");
+        File.WriteAllText(source, """
+            {"nbformat":4,"nbformat_minor":5,"metadata":{},"cells":[{"id":"result","cell_type":"code",
+            "metadata":{},"source":"sensitive_input_code", "execution_count":1,
+            "outputs":[{"output_type":"stream","name":"stdout","text":"Public saved output"}]}]}
+            """);
+        OfficeBatchOptions batch = files.Settings() with {
+            InputPaths = [source],
+            ConversionOptions = new OfficeConversionOptions { NotebookPdf = new() { IncludeCode = false } }
+        };
+        string jobPath = Path.Combine(files.Root, "notebook-job.json");
+        batch.Save(jobPath);
+        OfficeBatchReport report = await OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(jobPath));
+        Assert.True(report.Succeeded, string.Join("; ", report.Items.Select(item => item.Summary)));
+        using var pdf = PdfDocument.Load(Assert.Single(report.Items).OutputPath!);
+        Assert.Contains("Public saved output", pdf.ExtractText());
+        Assert.DoesNotContain("sensitive_input_code", pdf.ExtractText());
+    }
+
+    [Fact]
     public async Task SavedDefinitionResolvesAgainstItsOwnDirectoryAndRecordsExactBytes() {
         using var files = new SavedFiles();
         string jobPath = Path.Combine(files.Root, "definition.json"), reportPath = Path.Combine(files.Root, "run.json");

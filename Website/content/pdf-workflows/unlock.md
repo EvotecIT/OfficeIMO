@@ -29,6 +29,8 @@ meta.howto.steps:
 
 Unlocking decrypts an authorized PDF and writes a new document without Standard password security. The browser never overwrites the protected source.
 
+**Also in Studio:** remove a password from a copy in [OfficeIMO Studio](/studio/#feature-protect) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Unlock from .NET
 
 ```csharp

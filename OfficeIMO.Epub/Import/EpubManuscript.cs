@@ -17,8 +17,15 @@ public static partial class EpubManuscript {
     }
 
     /// <summary>Imports HTML and collects its resource dependencies through an explicitly supplied application resolver.</summary>
-    public static async Task<EpubManuscriptResult> ImportHtmlAsync(HtmlConversionDocument manuscript, EpubManuscriptOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    public static Task<EpubManuscriptResult> ImportHtmlAsync(HtmlConversionDocument manuscript, EpubManuscriptOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        ImportHtmlCoreAsync(manuscript, options, validatePackage: true, cancellationToken);
+
+    internal static Task<EpubManuscriptResult> ImportHtmlForWriteAsync(HtmlConversionDocument manuscript, EpubManuscriptOptions options,
+        CancellationToken cancellationToken) => ImportHtmlCoreAsync(manuscript, options, validatePackage: false, cancellationToken);
+
+    private static async Task<EpubManuscriptResult> ImportHtmlCoreAsync(HtmlConversionDocument manuscript, EpubManuscriptOptions? options,
+        bool validatePackage, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(manuscript);
         options ??= new EpubManuscriptOptions();
         options = options.Clone();
@@ -50,33 +57,38 @@ public static partial class EpubManuscript {
             }
         }
         foreach (var active in source.QuerySelectorAll("script,iframe,object,embed,form,input,button,select,textarea")) active.Remove();
-        List<ImportedStylesheet> sourceStyles = await CollectResourcesAsync(source, chapters, publication, manuscript, options, diagnostics, cancellationToken).ConfigureAwait(false);
-        var styles = new List<string>();
+        var entries = new EpubPublication.ManuscriptEntries(publication);
+        List<ImportedStylesheet> styles = await CollectResourcesAsync(source, chapters, entries, manuscript, options, diagnostics, cancellationToken).ConfigureAwait(false);
         if (options.IncludeDefaultStyles) {
-            publication.AddStylesheet("manuscript-defaults", "EPUB/styles/defaults.css", defaultCss);
-            styles.Add("manuscript-defaults");
+            const string defaultPath = "EPUB/styles/defaults.css";
+            entries.Add(ManuscriptStylesheet("manuscript-defaults", defaultPath, defaultCss));
+            styles.Insert(0, new ImportedStylesheet(defaultPath));
         }
-        styles.AddRange(sourceStyles.Select(stylesheet => stylesheet.Id));
+        string? rootClass = source.DocumentElement?.GetAttribute("class");
+        string? direction = source.DocumentElement?.GetAttribute("dir");
         for (int index = 0; index < chapters.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var chapter = chapters[index];
+            Chapter chapter = chapters[index];
             string id = "chapter-" + (index + 1);
-            publication.AddChapter(id, chapter.Path, chapter.Title,
-                string.Concat(chapter.Body.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting))), styles);
-            XDocument content = publication.GetContentXml(id);
-            content.Root!.Element(Xhtml + "body")!.ReplaceAttributes(chapter.Body.Attributes());
-            foreach (string attribute in new[] { "class", "dir" })
-                content.Root.SetAttributeValue(attribute, source.DocumentElement?.GetAttribute(attribute));
-            XElement[] stylesheetLinks = content.Root.Element(Xhtml + "head")!.Elements(Xhtml + "link").ToArray();
-            int offset = options.IncludeDefaultStyles ? 1 : 0;
-            for (int styleIndex = 0; styleIndex < sourceStyles.Count; styleIndex++)
-                foreach (var attribute in sourceStyles[styleIndex].Attributes) stylesheetLinks[styleIndex + offset].SetAttributeValue(attribute.Key, attribute.Value);
-            publication.SetContentXml(id, content);
+            var head = new XElement(Xhtml + "head", new XElement(Xhtml + "title", chapter.Title));
+            foreach (ImportedStylesheet style in styles) {
+                var link = new XElement(Xhtml + "link", new XAttribute("rel", "stylesheet"), new XAttribute("type", "text/css"),
+                    new XAttribute("href", ManuscriptRelativeHref(chapter.Path, style.Path)));
+                foreach (var attribute in style.Attributes) link.SetAttributeValue(attribute.Key, attribute.Value);
+                head.Add(link);
+            }
+            var html = new XElement(Xhtml + "html", new XAttribute(XNamespace.Xml + "lang", publication.Language), head, chapter.Body);
+            html.SetAttributeValue("class", rootClass);
+            html.SetAttributeValue("dir", direction);
+            entries.AddChapter(id, chapter.Path, new XDocument(html));
         }
-        publication.SetNavigation(BuildNavigation(chapters));
-        try { publication.Write(cancellationToken: cancellationToken); }
-        catch (Exception error) when (error is InvalidDataException || error is NotSupportedException || error is XmlException) {
-            AddDiagnostic(diagnostics, "EPUB_IMPORT_PACKAGE_INVALID", error.Message, null, OfficeConversionLossKind.Failure);
+        publication.AddManuscriptEntries(entries.Entries, cancellationToken);
+        publication.SetManuscriptNavigation(BuildNavigation(chapters), entries.Entries, cancellationToken);
+        if (validatePackage) {
+            try { publication.Write(cancellationToken: cancellationToken); }
+            catch (Exception error) when (error is InvalidDataException || error is NotSupportedException || error is XmlException) {
+                AddDiagnostic(diagnostics, "EPUB_IMPORT_PACKAGE_INVALID", error.Message, null, OfficeConversionLossKind.Failure);
+            }
         }
         return new EpubManuscriptResult(publication, diagnostics);
     }

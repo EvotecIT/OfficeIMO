@@ -191,7 +191,7 @@ officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
   --margin-left 24 --margin-right 24 --color grayscale
 ```
 
-Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
+Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.workflows-guide.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
 `print` accepts PDF and every format the conversion catalog turns into PDF; other formats are converted in memory and conversion warnings are written to standard error. `--printer` takes an installed queue name or an `ipp://` or `ipps://` printer URI. IPP printers and CUPS queues receive vector PDF where they accept it and PWG raster otherwise; CUPS queues are reached over IPP at the local scheduler, with `lp` as the fallback. Windows drivers receive one rasterized sheet at a time. Grayscale jobs (`--color grayscale`) go as vector PDF with `print-color-mode=monochrome` to IPP printers and IPP-reached CUPS queues that list it, and as gray raster otherwise; `--raster-grayscale` always sends gray raster, so the printout matches the preview exactly. Raster delivery uses up to `--dpi` (300 by default). Without `--paper`, sheets use the printer's default media. Attributes the printer ignored are written to standard error. `printers --capabilities <printer>` lists media, trays, duplex, color, collation, copies and resolutions; `printers --paper-sources <printer>` lists only the trays. Windows file printers require `--output-file` naming a new local file.
 
@@ -321,7 +321,15 @@ officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 officeimo convert people.csv people.xlsx
 officeimo convert budget.xlsx budget.csv
 
-# Supported documents to Markdown or JSON through OfficeIMO.Reader
+# Export saved Jupyter notebook results as a PDF or standalone Markdown
+officeimo convert analysis.ipynb analysis.pdf
+officeimo convert analysis.ipynb analysis.md
+
+# Import Quarto, R Markdown, Deepnote, or Zeppelin as Jupyter or PDF
+officeimo convert analysis.qmd analysis.ipynb
+officeimo convert analysis.zpln analysis.pdf
+
+# Extract other documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
 officeimo read settings.yaml --format json --output settings.reader.json

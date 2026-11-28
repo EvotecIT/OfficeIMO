@@ -10,6 +10,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId.StartsWith("native-", StringComparison.Ordinal)) return Targeted(
             "Native format conversion fixtures exercise package types, source carriers, compatibility modes, encryption, loss rejection and reopened artifacts through the owning format codecs.",
             "The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.");
+        if (routeId.StartsWith("ebook-fb2-", StringComparison.Ordinal)) return Targeted(
+            "Calibre FB2 and Info-ZIP fixtures exercise metadata, cover, images and links, with separate note and entity controls.",
+            "Single FictionBook 2 XML document or a ZIP with one FB2 member. Uses static semantic markup and embedded raster images. Unsupported styling is reported. See OfficeIMO.Fb2/SUPPORT.md.");
         if (routeId == "word-xml-docx") return Targeted(
             "Word XML fixture controls cover standalone package admission, editable content and reopened DOCX.",
             "DOCX output accepts ordinary Word documents. Macro-enabled and template Flat OPC packages require a matching native package destination through the Word API. Word 2003 XML import reports unsupported features.");
@@ -22,9 +25,21 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId == "email-pdf") return Targeted(
             "Converter and host fixtures reopen the PDF and find the subject, sender, To and Cc recipients, date, HTML body and attachment list; the TextOnly profile keeps the Reader projection and its email policy finding.",
             "Renders through the HTML-to-PDF engine with the shared email body sanitization, blocked remote resources and bounded inline MIME images. RTF-only bodies are approximated through HTML. Attachment payloads are listed, not embedded or rendered; signed and encrypted payloads are not verified or decrypted. Mail-client visual equivalence is not promised.");
+        if (routeId.StartsWith("ebook-mobi-", StringComparison.Ordinal)) return Targeted(
+            "Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
+            "Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Dual-format books use the shared legacy raster resources. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md.");
         if (routeId == "epub-pdf") return Targeted(
             "Converter fixtures reopen the PDF and verify spine order, linked stylesheets, images, navigation, tags and mixed page sizes. TextOnly exercises the original Reader projection.",
             "Each chapter begins on a new page and uses the supported HTML print or fixed-viewport subset. Unsupported CSS, missing link targets, publication page totals and requested PDF parity padding have diagnostics. Linked resources resolve inside the EPUB package.");
+        if (routeId.StartsWith("ebook-cbr-", StringComparison.Ordinal)) return Targeted(
+            "A RARLAB-produced comic verifies numeric page order, ComicInfo bookmarks, cover selection and fixed EPUB and PDF page sizes.",
+            "Reads single-volume, unencrypted RAR 5 comic archives with stored pages. Compressed entries, encrypted archives and RAR 4 are rejected. See OfficeIMO.Comic/SUPPORT.md.");
+        if (routeId.StartsWith("ebook-cb7-", StringComparison.Ordinal)) return Targeted(
+            "A 7-Zip-produced solid archive verifies numeric page order, ComicInfo metadata, bookmarks, cover selection and fixed EPUB and PDF page sizes.",
+            "Reads unencrypted 7z comic archives with Copy, LZMA or LZMA2 and supported raster pages. See OfficeIMO.Comic/SUPPORT.md.");
+        if (routeId.StartsWith("ebook-cbz-", StringComparison.Ordinal)) return Targeted(
+            "An Info-ZIP fixture exercises numbered image order, ComicInfo metadata and bookmarks, cover selection and EPUB page canvases.",
+            "Reads ZIP comic archives with supported raster pages. RAR and 7z comic archives are outside this profile. See OfficeIMO.Comic/SUPPORT.md.");
         if (routeId == "reader-visio-pdf") return Targeted(
             "Reader projection fixtures cover Visio semantic fallback and policy findings in reopened PDF output.",
             "Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.");
@@ -61,14 +76,26 @@ internal static class OfficeConversionSupportAssessments {
             "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
             "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
         "html-epub" or "markdown-epub" or "docx-epub" => Targeted(
-            "Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
-            "Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."),
+            "Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
+            "Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."),
         "doc-pdf" => Targeted(
             "Legacy DOC import and first-party PDF rendering retain separate fidelity reports; known import loss blocks conversion by default.",
             "Only the supported Word 97-2003 import subset is projected. Preserved-only graphics and richer structures cannot be rendered; Word pagination may differ."),
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "notebook-pdf" => Targeted(
+            "The managed notebook projection preserves cell order and reports MIME substitutions and omissions alongside PDF layout diagnostics.",
+            "Renders saved static output. Kernel execution, widgets and script-driven displays are outside the export profile. Supported math and symbols depend on the rendering fonts."),
+        "notebook-html" => Targeted(
+            "Notebook HTML fixtures cover ordered cells, saved text, supported tables and images, native MathML, and supported saved chart and widget state.",
+            "Opt in to offline chart zoom, pan and value inspection, and to browser controls for supported saved widgets. Kernel callbacks and notebook-supplied scripts remain inactive. Unsupported outputs are reported and can use a static fallback."),
+        "notebook-markdown" or "notebook-docx" => Targeted(
+            "Preserves notebook cell order, saved text, supported images, and supported semantic tables. The conversion reports output representations that cannot be projected.",
+            "Only saved static content is exported. Interactive displays and unsupported output types can require a static fallback."),
+        "notebook-source-ipynb" or "notebook-source-pdf" => Targeted(
+            "Notebook import contracts check ordered sources and saved outputs with upstream fixtures. Shared host validation reopens the resulting notebook or PDF.",
+            "The host recognizes Quarto, R Markdown, single-notebook Deepnote files and snapshots, and Zeppelin ZPLN. Use NotebookImporter explicitly for other profiles or selecting a notebook from a multi-notebook Deepnote project. Code is never executed."),
         "djvu-pdf" => Targeted(
             "Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
             "JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."),

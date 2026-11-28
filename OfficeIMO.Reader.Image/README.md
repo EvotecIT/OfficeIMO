@@ -2,6 +2,12 @@
 
 `OfficeIMO.Reader.Image` adds standalone image files to an isolated `OfficeDocumentReader`. It uses the existing header-only `OfficeIMO.Drawing` identification API to expose format, dimensions, DPI, a materializable source asset, and optional OCR readiness without decoding pixels or running OCR.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Image
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Image;
@@ -33,3 +39,4 @@ foreach (OfficeDocumentMetadataEntry property in inspected.Metadata) {
 The `image.exif`, `image.exif.timestamp`, `image.exif.gps`, `image.xmp`, `image.icc` and `image.resolution` categories preserve source counts/offsets, raw timestamp components, timezone uncertainty, RDF collection/language qualifiers and separate ICC validity/transform-support facts. Coverage and diagnostics use the existing Reader document contract. `ReaderInspectionOptions` applies operation-wide record and character limits; `ReaderImageOptions.MetadataInspection` controls Core's finite image/profile limits. Its default detailed-metadata input limit is 16 MiB, independently of the handler's general input ceiling. Detailed metadata does not execute OCR or decode image pixels, and explicitly reports unsupported BigTIFF, private MakerNote and additional-IFD evidence.
 
 `ReaderOptions.Projection = ReaderProjection.TextAndMetadata` returns image identification as plain text chunks and metadata without constructing an asset, visual, Markdown or OCR candidate. Enable `Inspection` for the detailed metadata above. The default `Full` projection retains the asset and optional OCR-readiness behavior.
+

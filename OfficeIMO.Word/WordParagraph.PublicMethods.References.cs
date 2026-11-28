@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -128,15 +129,14 @@ namespace OfficeIMO.Word {
         /// <param name="separator">Text inserted between the current page and total pages fields.</param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddPageNumber(bool includeTotalPages = false, WordFieldFormat? format = null, string separator = " of ") {
-            VerifyRun();
-            OpenXmlElement? previous = _paragraph.LastChild;
+            OfficeXmlNode source = EditPageNumberSourceRun();
+            OfficeXmlNode previous = ParagraphNode.LastChild;
             this.AddField(WordFieldType.Page, format);
             if (includeTotalPages) {
                 this.AddText(separator);
                 this.AddField(WordFieldType.NumPages, format);
             }
-            InheritPageNumberFormatting(_paragraph.ChildElements.SkipWhile(child => !ReferenceEquals(child, previous))
-                .Skip(1).SelectMany(child => child is Run run ? new[] { run } : child.Descendants<Run>()));
+            InheritPageNumberFormatting(source, previous);
             return this;
         }
 

@@ -77,7 +77,20 @@ public sealed partial class PowerPointDocument {
     private byte[] CaptureReadOnlyPackage(PowerPointSaveOptions? options) {
         ThrowIfDisposed();
         using var package = new MemoryStream();
-        using (_document!.Clone(package)) { }
+        if (_sdkDocument == null && _sdkDeferred && _pendingEdits && _pendingPackage != null) {
+            // Edits made in the package without the SDK are part of the copy, as they would be through the SDK.
+            _pendingPackage.Save(package);
+        } else if (_sdkDocument == null && _sdkDeferred && _packageStream is { CanRead: true, CanSeek: true } loaded) {
+            // Nothing has opened the package since it was loaded, so its bytes are the copy.
+            loaded.Position = 0;
+            loaded.CopyTo(package);
+        } else {
+            // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
+            // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
+            using (var clone = (DocumentFormat.OpenXml.Packaging.OpenXmlPackage)SdkDocument.Clone(package, true)) {
+                if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart>());
+            }
+        }
         package.Position = 0;
         using var snapshot = Load(package, new PowerPointLoadOptions {
             MaxInputBytes = package.Length,
@@ -87,6 +100,19 @@ public sealed partial class PowerPointDocument {
         var effective = options?.Clone() ?? new PowerPointSaveOptions();
         if (!effective.HasPasswordOverride) effective.Password = ResolveSavePassword(options);
         return snapshot.ToBytes(effective);
+    }
+
+    // Writes the content of each edited part into the same part of the copy.
+    private static void CopyEditedParts(DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer source, DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer target,
+        HashSet<string> edited, HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart> seen) {
+        foreach (DocumentFormat.OpenXml.Packaging.IdPartPair pair in source.Parts) {
+            if (!seen.Add(pair.OpenXmlPart) || !target.TryGetPartById(pair.RelationshipId, out DocumentFormat.OpenXml.Packaging.OpenXmlPart? copy)) continue;
+            if (edited.Contains(pair.OpenXmlPart.Uri.OriginalString) && pair.OpenXmlPart.IsRootElementLoaded && pair.OpenXmlPart.RootElement is { } root) {
+                using var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(root.OuterXml), writable: false);
+                copy.FeedData(content);
+            }
+            CopyEditedParts(pair.OpenXmlPart, copy, edited, seen);
+        }
     }
 
     /// <summary>Saves the native presentation to a caller-owned stream.</summary>

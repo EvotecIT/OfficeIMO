@@ -1,6 +1,6 @@
 ---
 title: "Frequently Asked Questions"
-description: "Answers about OfficeIMO licensing, DOC/XLS/PPT and modern format support, conversion fidelity, .NET platforms, PowerShell, containers, and dependencies."
+description: "Answers about OfficeIMO licensing, DOC/XLS/PPT and modern format support, conversion fidelity, .NET platforms, PowerShell, containers, dependencies, and Studio."
 layout: faq
 meta.faq.questions:
   - "Does OfficeIMO require Microsoft Office to be installed?|No. OfficeIMO uses managed document engines and focused package dependencies; it does not require Microsoft Office, COM automation, or Office interop assemblies at runtime."
@@ -15,6 +15,10 @@ meta.faq.questions:
   - "What are the dependencies?|The core Office packages use DocumentFormat.OpenXml and the first-party OfficeIMO.Core foundation. Drawing primitives remain in the OfficeIMO.Drawing namespace. Optional converter and compatibility packages add focused dependencies documented on the Third-Party Dependencies page."
   - "Can I convert Word documents to PDF?|Yes. OfficeIMO.Word.Pdf provides Word-to-PDF export without Microsoft Office, and OfficeIMO.Excel.Pdf provides the corresponding Excel route."
   - "Is thread safety supported?|Separate document instances can run on separate threads. Concurrent access to the same document instance is not supported; OfficeIMO.Excel also provides parallel bulk operations such as AutoFit and bulk writes."
+  - "Where can I get OfficeIMO Studio?|Studio for Windows 10 and 11 is in the Microsoft Store. Signed MSI installers and portable ZIPs for Windows, and Debian packages and portable ZIPs for Linux, are on the downloads page for x64 and Arm64. The native app for Mac, iPad and iPhone is coming soon to the Mac App Store and App Store."
+  - "When will Studio be on the Mac App Store and App Store?|The native app for Mac, iPad and iPhone is coming soon; there is no release date yet. It requires macOS, iPadOS or iOS 26. The Apple app guide on GitHub describes what it does today."
+  - "What happened to the Avalonia build of Studio for macOS?|The Avalonia desktop app is now built for Windows and Linux only. On the Mac, the native SwiftUI app replaces it and uses the same OfficeIMO engine, so the desktop source build guide no longer covers macOS. Some desktop tools, such as comparison and editing existing text, are not in the native app yet."
+  - "What can Studio show from Word, Excel and other files on Mac, iPad and iPhone?|The native app opens Word, Excel, PowerPoint, RTF, Markdown, OpenDocument, HTML, XPS, Visio, Publisher, OpenDocument Draw and EPUB files read-only by converting them to PDF and showing the pages. Save as PDF keeps the conversion, and Edit as PDF opens it as a PDF you can change; the original file is not edited. Markdown is shown as converted PDF pages, not rendered Markdown. Files larger than 100 MB are not opened."
 ---
 
 {{< faq >}}

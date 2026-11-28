@@ -28,21 +28,21 @@ internal sealed partial class OfficeXmlPullReader {
     private readonly bool _processMarkupCompatibility;
     private int _position;
 
-    private Frame[] _frames = new Frame[16];
+    private Frame[] _frames;
     private int _frameCount;
     private int _depth;
     private bool _pendingEnd;
     private bool _decrementDepth;
     private bool _rootSeen;
 
-    private Binding[] _bindings = new Binding[8];
+    private Binding[] _bindings;
     private int _bindingCount;
     private int[] _ignorable = Array.Empty<int>();
     private int _ignorableCount;
     private ProcessContentEntry[] _processContent = Array.Empty<ProcessContentEntry>();
     private int _processContentCount;
 
-    private Attribute[] _attributes = new Attribute[8];
+    private Attribute[] _attributes;
     private int _attributeCount;
 
     private int _nameStart;
@@ -57,14 +57,37 @@ internal sealed partial class OfficeXmlPullReader {
     /// <param name="namespaces">Namespace ids shared with other parts of the same package.</param>
     /// <param name="processMarkupCompatibility">False reports <c>mc:</c> elements and elements in ignorable
     /// namespaces as ordinary elements, for callers that decline such markup themselves.</param>
-    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null, bool processMarkupCompatibility = true) {
+    /// <param name="recycle">A finished reader whose scratch arrays this reader takes over; it must not be used
+    /// afterwards. Callers reading several small parts in turn avoid allocating them again.</param>
+    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null, bool processMarkupCompatibility = true,
+        OfficeXmlPullReader? recycle = null) {
         ArgumentNullException.ThrowIfNull(data);
         if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException(nameof(length));
+        _frames = recycle?._frames ?? new Frame[16];
+        _bindings = recycle?._bindings ?? new Binding[8];
+        _attributes = recycle?._attributes ?? new Attribute[8];
+        _decodeBuffer = recycle?._decodeBuffer;
         _namespaces = namespaces ?? new OfficeXmlNamespaces.Table();
         _processMarkupCompatibility = processMarkupCompatibility;
 
         int start = 0;
-        if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF
+        if (length >= 4 && (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00
+            || data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF
+            || data[0] == 0x3C && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00
+            || data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x3C)) {
+            // XML readers also accept UTF-32 parts; they are transcoded like UTF-16 ones.
+            bool bigEndian = data[0] == 0x00;
+            string text;
+            try {
+                text = new UTF32Encoding(bigEndian, byteOrderMark: false, throwOnInvalidCharacters: true).GetString(data, 0, length);
+            } catch (DecoderFallbackException) {
+                throw Malformed("The part is not valid UTF-32.");
+            }
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
+            data = Encoding.UTF8.GetBytes(text);
+            length = data.Length;
+            Transcoded = true;
+        } else if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF
             || data[0] == 0x3C && data[1] == 0x00 || data[0] == 0x00 && data[1] == 0x3C)) {
             // ECMA-376 Part 2 allows UTF-16 parts. They are rare, so they are transcoded rather than read natively.
             bool bigEndian = data[0] == 0xFE || data[0] == 0x00;
@@ -78,6 +101,7 @@ internal sealed partial class OfficeXmlPullReader {
             if (text.Length > 0 && text[0] == '﻿') text = text.Substring(1);
             data = Encoding.UTF8.GetBytes(text);
             length = data.Length;
+            Transcoded = true;
         } else if (length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
             start = 3;
         }
@@ -122,15 +146,8 @@ internal sealed partial class OfficeXmlPullReader {
 
     /// <summary>The local name of the current element. Names repeat across the parts of a package, so the
     /// package's namespace table caches them rather than decoding them again.</summary>
-    internal string LocalName {
-        get {
-            int hash = _nameLength;
-            for (int index = 0; index < _nameLength; index++) hash = hash * 31 + _data[_nameStart + index];
-            ref string? cached = ref _namespaces.NameSlot(hash);
-            if (cached != null && AsciiEquals(_nameStart, _nameLength, cached)) return cached;
-            return cached = Encoding.UTF8.GetString(_data, _nameStart, _nameLength);
-        }
-    }
+    internal string LocalName => CachedName(_nameStart, _nameLength);
+
 
     /// <summary>Advances to the next element boundary or text node the caller should see.</summary>
     /// <returns><see langword="false"/> at the end of the part.</returns>
@@ -144,6 +161,8 @@ internal sealed partial class OfficeXmlPullReader {
         while (true) {
             if (_pendingEnd) {
                 _pendingEnd = false;
+                // An empty element's end has no markup of its own: it sits where the start tag ends.
+                _markupStart = _markupEnd;
                 if (PopFrame()) return true;
                 continue;
             }
@@ -160,7 +179,9 @@ internal sealed partial class OfficeXmlPullReader {
             if (_position + 1 >= _end) throw Malformed("The part ends inside markup.");
             byte next = _data[_position + 1];
             if (next == (byte)'/') {
+                _markupStart = _position;
                 ReadEndTag();
+                _markupEnd = _position;
                 if (PopFrame()) return true;
             } else if (next == (byte)'?') {
                 SkipPast("?>", 2);
@@ -214,12 +235,45 @@ internal sealed partial class OfficeXmlPullReader {
         }
     }
 
+#if NET8_0_OR_GREATER
+    // Bytes the character-data scan stops at: markup, references, carriage returns, control characters and the lead
+    // byte of U+FFFE and U+FFFF. Tabs and line feeds are ordinary text.
+    private static readonly System.Buffers.SearchValues<byte> TextStops = System.Buffers.SearchValues.Create(CreateTextStops());
+
+    private static readonly System.Buffers.SearchValues<byte> TextWhitespace = System.Buffers.SearchValues.Create(new byte[] { (byte)' ', (byte)'\n', (byte)'\t', (byte)'\r' });
+
+    private static byte[] CreateTextStops() {
+        var stops = new List<byte> { (byte)'<', (byte)'&', 0xEF };
+        for (int value = 0; value < 0x20; value++) {
+            if (value != '\t' && value != '\n') stops.Add((byte)value);
+        }
+        return stops.ToArray();
+    }
+#endif
+
     private bool ReadCharacterData() {
         int start = _position;
         bool needsDecoding = false;
         bool whitespace = true;
         int position = start;
         byte[] data = _data;
+#if NET8_0_OR_GREATER
+        while (position < _end) {
+            int next = new ReadOnlySpan<byte>(data, position, _end - position).IndexOfAny(TextStops);
+            if (next < 0) {
+                position = _end;
+                break;
+            }
+            position += next;
+            byte value = data[position];
+            if (value == (byte)'<') break;
+            if (value == (byte)'&' || value == (byte)'\r') needsDecoding = true;
+            else RejectNonCharacter(position);
+            position++;
+        }
+        ReadOnlySpan<byte> text = new ReadOnlySpan<byte>(data, start, position - start);
+        whitespace = text.IndexOfAnyExcept(TextWhitespace) < 0;
+#else
         while (position < _end) {
             byte value = data[position];
             if (value == (byte)'<') break;
@@ -232,6 +286,7 @@ internal sealed partial class OfficeXmlPullReader {
             }
             position++;
         }
+#endif
         _position = position;
         if (_frameCount == 0) {
             if (!whitespace) throw Malformed("The part has text outside its root element.");
@@ -240,12 +295,14 @@ internal sealed partial class OfficeXmlPullReader {
         // Only compatibility elements may appear directly inside mc:AlternateContent.
         if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;
         SetText(start, position - start, needsDecoding, cdata: false, whitespace);
+        _markupStart = start;
+        _markupEnd = position;
         return true;
     }
 
     private bool ReadDeclaration() {
         if (StartsWith(_position, "<!--")) {
-            SkipPast("-->", 4);
+            SkipComment();
             MarkCommentOrInstruction();
             return false;
         }
@@ -253,14 +310,13 @@ internal sealed partial class OfficeXmlPullReader {
             int start = _position + 9;
             int end = IndexOf(start, "]]>");
             if (end < 0) throw Malformed("A CDATA section is not closed.");
-            for (int index = start; index < end; index++) {
-                byte value = _data[index];
-                if (value < 0x20 && value != (byte)'\t' && value != (byte)'\n' && value != (byte)'\r' || value == 0xEF) RejectNonCharacter(index);
-            }
+            ValidateLiteralCharacters(start, end);
             _position = end + 3;
             if (_frameCount == 0) throw Malformed("The part has a CDATA section outside its root element.");
             if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;
             SetText(start, end - start, needsDecoding: HasCarriageReturn(start, end - start), cdata: true, whitespace: false);
+            _markupStart = start - 9;
+            _markupEnd = end + 3;
             return true;
         }
         // ECMA-376 Part 2 forbids document type declarations in package parts; they also enable entity expansion.

@@ -74,6 +74,30 @@ public sealed class DrawingJpegColorConversionTests {
         Assert.Equal(DecodeWithoutRowTables(jpeg, options), rows);
     }
 
+    // Large progressive images render their bands while the last scan is still decoding, which
+    // happens only when EOI follows that scan. The fixture's libjpeg script ends with a long luma
+    // refinement scan, so bands that started before their rows were final would differ from the
+    // same file with a comment before EOI, which renders only after the scan. Each decode races
+    // the workers against the scan again.
+    [Fact]
+    public void ProgressiveBandsRenderedDuringTheLastScanMatchRenderAfterTheScan() {
+        byte[] jpeg = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Kulek.jpg"));
+        int end = jpeg.Length - 2;
+        Assert.True(jpeg[end] == 0xFF && jpeg[end + 1] == 0xD9);
+        byte[] commented = new byte[jpeg.Length + 4];
+        Buffer.BlockCopy(jpeg, 0, commented, 0, end);
+        commented[end] = 0xFF;
+        commented[end + 1] = 0xFE;
+        commented[end + 3] = 2;
+        commented[end + 4] = 0xFF;
+        commented[end + 5] = 0xD9;
+        var options = new OfficeJpegDecodeOptions(highQualityChroma: true);
+        byte[] reference = OfficeJpegCodec.Decode(commented, options).GetPixels();
+        for (int attempt = 0; attempt < 4; attempt++) {
+            Assert.Equal(reference, OfficeJpegCodec.Decode(jpeg, options).GetPixels());
+        }
+    }
+
     // Green fixed-point sums for these (luma, Cb, Cr) sixteenths fall within a unit of a
     // rounding tie, so the row path must fall back to the double expression. A 4:2:0
     // image of flat blocks (quantization 1, DC only) places each triple exactly: at the

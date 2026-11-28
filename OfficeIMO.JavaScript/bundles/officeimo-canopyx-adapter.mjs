@@ -2,15 +2,15 @@
 import { __officeimoModules } from "./officeimo.mjs";
 const _core = key => { const value = __officeimoModules[key]; if (!value) throw new Error("officeimo-canopyx-adapter.mjs needs officeimo.mjs or officeimo.min.mjs from the same OfficeIMO build, loaded first."); return value; };
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
-const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
+const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244");
 const _c2 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669");
 const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671");
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
-const _c6 = _core("477ff98f49343b8ec4213008254b57a60dd42d07cb9843b3791d5e5f8e295865");
-const _c7 = _core("d6587a933b36ccfdba9a2a252389924ac8461f672b3a500082cceb5e53c8b0b6");
-const _c8 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c9 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
+const _c6 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
+const _c7 = _core("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759");
+const _c8 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
+const _c9 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c11 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c12 = _core("e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8");
@@ -18,7 +18,7 @@ const _c13 = _core("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a
 const _c14 = _core("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3");
 const _c15 = _core("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b");
 const _c16 = _core("227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585");
-const _c17 = _core("a10003e971cd5ec2cee127bc9b029a0aa06fe3d50112838929d7a04a55e177c0");
+const _c17 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2");
 const _c18 = _core("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b");
 const _c19 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
 const _c20 = _core("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070");
@@ -248,6 +248,23 @@ const _exports = Object.freeze({ canopyXlsxWidth: canopyXlsxWidth, canopyNumberF
 return _exports;
 })();
 
+const _m19 = (() => {
+/** Stable document palette for CanopyX's standard tones. Browser CSS variables and resolved cell.format are never interpreted.
+ * Each foreground keeps at least a 4.5:1 contrast ratio on its background. */
+const canopyTonePalette = Object.freeze({
+    info: Object.freeze({ color: "4472C4", background: "DDEBF7", foreground: "1F4E78" }),
+    success: Object.freeze({ color: "70AD47", background: "E2F0D9", foreground: "375623" }),
+    warning: Object.freeze({ color: "FFC000", background: "FFF2CC", foreground: "7F5000" }),
+    danger: Object.freeze({ color: "C00000", background: "FFC7CE", foreground: "9C0006" }),
+    // Muted tones dim the text rather than painting the cell.
+    muted: Object.freeze({ color: "A6A6A6", foreground: "595959" })
+});
+/** Default cell presentation for a standard tone; `neutral` and unknown tones have none. */
+const canopyDefaultTones = new Map(Object.entries(canopyTonePalette).map(([name, tone]) => [name, Object.freeze({ ...(tone.background === undefined ? {} : { background: tone.background }), color: tone.foreground })]));
+const _exports = Object.freeze({ canopyTonePalette: canopyTonePalette, canopyDefaultTones: canopyDefaultTones });
+return _exports;
+})();
+
 const _m13 = (() => {
 const { ExportCell, checkAbort, inputRows } = _c0;
 
@@ -265,14 +282,51 @@ const { canopyDiagnostics } = _m12;
 
 const { canopyNumberFormat, canopyXlsxWidth } = _m18;
 
+const { canopyDefaultTones } = _m19;
+
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
+// Captured presentations whose cell text already carries the readable content (badge labels are appended below).
+// Their visual loss is reported, never treated as an unsupported export.
+const textFallbacks = new Set(["relative-link", "history-series", "badges", "custom-class", "custom-renderer"]);
+const badgeSeparator = " \u00b7 ";
 const rawIdentities = new WeakMap();
+// Appended badge labels, kept apart so later passes that re-render a cell's text (PDF numbers) can carry them over.
+const badgeSuffixes = new WeakMap();
+/** @internal The text a later pass may re-render, and the badge suffix it must append back unchanged. */
+function canopyBadgeSplit(cell) {
+    const suffix = badgeSuffixes.get(cell), text = cell.text ?? "";
+    return suffix !== undefined && text.endsWith(suffix) ? { text: text.slice(0, text.length - suffix.length), suffix } : { text, suffix: "" };
+}
 /** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
 function canopyIdentityValue(value) {
     if (!(value instanceof ExportCell))
         return value;
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
+}
+// Grids accept any number of badges. Exports keep the first labels that stay readable and fit an Excel text cell,
+// and report how many were left out instead of failing the whole document.
+const maximumBadges = 64, maximumCellText = 32767;
+function badgeText(input, text) {
+    if (!Array.isArray(input))
+        throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+    let labels = "", kept = 0, dropped = 0;
+    for (const badge of input) {
+        const value = typeof badge === "string" ? badge : badge && typeof badge === "object" ? badge.text : undefined;
+        if (typeof value !== "string")
+            throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+        const label = value.trim();
+        if (!label)
+            continue;
+        const next = labels ? labels + badgeSeparator + label : label;
+        if (kept >= maximumBadges || (text ? text.length + badgeSeparator.length : 0) + next.length > maximumCellText) {
+            dropped++;
+            continue;
+        }
+        labels = next;
+        kept++;
+    }
+    return { labels: labels || undefined, dropped };
 }
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
@@ -307,7 +361,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             throw new TypeError("Canopy presentation diagnostics must be strings.");
         for (const code of items) {
             const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
-            (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+            (textFallbacks.has(code) ? fallback : report)(diagnostic);
         }
     };
     if (request.presentation !== "text" && request.presentation !== "semantic")
@@ -322,11 +376,13 @@ function prepareCanopyExport(capture, format, options = {}) {
             return undefined;
         if (typeof name !== "string")
             throw new TypeError("Canopy tones must be strings.");
-        const style = tones.get(name);
+        const style = tones.get(name) ?? canopyDefaultTones.get(name);
         if (!style && name !== "neutral")
             fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
+    // The full writer fills this with columns read by the native rules it emits, before any row is enumerated.
+    const ruleOperands = new Set();
     const ids = new Set();
     const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -385,8 +441,17 @@ function prepareCanopyExport(capture, format, options = {}) {
                     diagnostics(cell.diagnostics, row.id, spec.id);
                     // A relative destination is navigation metadata, not the visible label.
                     // History captures already carry their frozen latest scalar (or null).
-                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
-                    let value = values === "display" || relativeLabel ? cell.text : cell.value;
+                    // Columns read by an emitted native rule keep the raw scalar the rule compares, so the label goes to the text only.
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
+                    const badged = cell.badges === undefined ? undefined : badgeText(cell.badges, cell.text), badges = badged?.labels;
+                    if (badged?.dropped)
+                        fallback({ code: "BADGES_TRUNCATED:" + badged.dropped, rowId: row.id, columnId: spec.id });
+                    const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
+                    // Badges belong to the visible label, so a badged text cell exports that composed label rather than a raw/label hybrid.
+                    // Typed columns keep their scalar, and native rule operands keep the raw value the rule compares; both carry badges in the text only.
+                    // A cell whose badges were all left out still exports its captured label, as it would with the badges.
+                    const badgedValue = (!!badges || !!badged?.dropped) && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
+                    let value = values === "display" || relativeLabel || badgedValue ? text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
@@ -401,9 +466,12 @@ function prepareCanopyExport(capture, format, options = {}) {
                     if (format === "csv")
                         result.push(value);
                     else {
-                        const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
-                        if (relativeLabel)
+                        const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+                        if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
+                        // A badge-only label is all suffix: later passes then see the captured label as empty.
+                        if (badges)
+                            badgeSuffixes.set(exported, cell.text ? badgeSeparator + badges : badges);
                         result.push(exported);
                     }
                 }
@@ -415,13 +483,13 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (rowCount !== null && count !== rowCount)
                 throw new TypeError("Canopy capture did not produce its declared recordCount.");
         } });
-    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
+    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot, ruleOperands });
 }
-const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m21 = (() => {
 const { columnName, excelDate } = _c12;
 
 const { captureFields } = _c2;
@@ -429,7 +497,7 @@ const { captureFields } = _c2;
 const { datetime } = _m15;
 
 /** Compile only comparisons whose raw types and native encodings have a faithful bounded mapping. */
-function canopyPredicate(request, grouped, options, root, unsupported, cellTypes) {
+function canopyPredicate(request, grouped, options, root, unsupported, cellTypes, operands) {
     let nodes = 0;
     const operations = { eq: "=", ne: "<>", gt: ">", ge: ">=", lt: "<", le: "<=" };
     const numeric = (value) => {
@@ -476,6 +544,7 @@ function canopyPredicate(request, grouped, options, root, unsupported, cellTypes
         const index = request.columns.findIndex(column => column.id === filter.column);
         if (index < 0)
             return unsupported("RULE_COLUMN_NOT_EXPORTED:" + filter.column);
+        operands?.add(filter.column);
         const column = request.columns[index], letter = columnName(index + 1 + (grouped ? 1 : 0));
         const reference = "INDEX($" + letter + ":$" + letter + ",ROW())", present = "NOT(ISBLANK(" + reference + "))";
         if (column.kind === "number")
@@ -539,24 +608,19 @@ const _exports = Object.freeze({ canopyPredicate: canopyPredicate });
 return _exports;
 })();
 
-const _m19 = (() => {
+const _m20 = (() => {
 const { captureFields } = _c2;
 
-const { canopyPredicate } = _m20;
+const { canopyPredicate } = _m21;
 
-// Stable document palette. Browser CSS variables and resolved cell.format are never interpreted.
-const palette = {
-    info: { color: "4472C4", background: "DDEBF7", foreground: "1F4E78" },
-    success: { color: "70AD47", background: "E2F0D9", foreground: "375623" },
-    warning: { color: "FFC000", background: "FFF2CC", foreground: "9C6500" },
-    danger: { color: "C00000", background: "FFC7CE", foreground: "9C0006" }
-};
+const { canopyDefaultTones, canopyTonePalette: palette } = _m19;
+
 class UnsupportedRule extends Error {
 }
 const unsupported = (message) => { throw new UnsupportedRule(message); };
 /** Compile declarations in source order, then emit native target/aspect priorities.
  * Data-column selectors let grouped writers exclude generated headings, subtotals and grand totals. */
-function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes) {
+function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes, operands) {
     if (request.formatRules === undefined || format === "csv")
         return [];
     if (!Array.isArray(request.formatRules) || request.formatRules.length > 1000)
@@ -595,7 +659,7 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     const priorStops = [];
     const priorRows = [], priorCells = new Map();
-    const requiredCells = new Map();
+    const requiredCells = new Map(), emittedOperands = new Set();
     const column = (id) => {
         const index = columns.findIndex(column => column.id === id);
         if (index < 0)
@@ -613,8 +677,7 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
         return value;
     };
     const style = (name) => {
-        const defaults = palette[name];
-        const mapping = tones.get(name) ?? (defaults ? { background: defaults.background, color: defaults.foreground } : undefined);
+        const mapping = tones.get(name) ?? canopyDefaultTones.get(name);
         if (!mapping)
             return unsupported("UNMAPPED_RULE_TONE:" + name);
         if ("alignment" in mapping || "wrapText" in mapping)
@@ -687,8 +750,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                 const range = rule.target === "row" ? { column: columns[0].id, through: columns.at(-1).id } : { column: rule.column };
                 if (rule.column !== undefined)
                     column(rule.column);
-                const ruleCells = new Map();
-                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells);
+                const ruleCells = new Map(), ruleOperands = new Set();
+                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells, ruleOperands);
                 const reachable = priorStops.length ? "AND(" + ownPredicate + ",NOT(OR(" + priorStops.join(",") + ")))" : ownPredicate;
                 const previous = rule.target === "row" ? priorRows : priorCells.get(rule.column) ?? [];
                 const formula = previous.length ? "AND(" + reachable + ",NOT(OR(" + previous.join(",") + ")))" : reachable;
@@ -700,6 +763,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                     priorCells.set(rule.column, previous);
                 for (const [column, type] of ruleCells)
                     requiredCells.set(column, type);
+                for (const id of ruleOperands)
+                    emittedOperands.add(id);
                 // A matched declaration still stops the row when an earlier tone on that target already won.
                 if (rule.stopIfTrue)
                     priorStops.push(ownPredicate);
@@ -715,6 +780,9 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     for (const [column, type] of requiredCells)
         cellTypes?.set(column, type);
+    // Only emitted rules read raw cells; a rejected comparison leaves its column free to carry badge labels.
+    for (const id of emittedOperands)
+        operands?.add(id);
     // Canopy paints cell visuals/tones over the row tint. Build masks before changing native priority order.
     return Object.freeze([...visuals, ...cells, ...rows]);
 }
@@ -722,7 +790,7 @@ const _exports = Object.freeze({ canopyRules: canopyRules });
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m23 = (() => {
 const { createGroupedReport } = _c13;
 
 const { checkAbort } = _c14;
@@ -931,7 +999,7 @@ const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m27 = (() => {
 const { cellText } = _c12;
 
 const { cleanXml } = _c16;
@@ -989,7 +1057,7 @@ const _exports = Object.freeze({ canopyAbout: canopyAbout });
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m29 = (() => {
 const { Workbook, addGroupedXlsx } = _c7;
 
 const { portableWorkbook } = _c17;
@@ -1049,8 +1117,10 @@ const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
 return _exports;
 })();
 
-const _m34 = (() => {
+const _m35 = (() => {
 const { ExportCell } = _c0;
+
+const { canopyBadgeSplit } = _m13;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
 function numericProfile(format) {
@@ -1099,11 +1169,11 @@ function documentDecimal(sample, columns) {
                 const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
                 if (!profile)
                     continue;
-                const captured = capturedNumber(cell.text ?? "", profile);
+                const label = canopyBadgeSplit(cell).text, captured = capturedNumber(label, profile);
                 if (!captured)
                     continue;
                 // A literal percent label is a culture signal without requesting numeric scaling.
-                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || label.includes("%");
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
@@ -1130,10 +1200,12 @@ function canopyPdfNumbers(sample, columns) {
             return value;
         const format = value.presentation?.numberFormat ?? columns[index].format;
         let profile = numericProfile(format);
-        if (!profile || value.text === "")
+        // Badge labels are not part of the number: format the captured label alone, then append them unchanged.
+        const { text: label, suffix: badges } = canopyBadgeSplit(value);
+        if (!profile || label === "")
             return value;
-        const captured = capturedNumber(value.text ?? "", profile);
-        if (value.text && !captured)
+        const captured = capturedNumber(label, profile);
+        if (label && !captured)
             return value;
         // Undeclared formats normalize only plain numeric labels; a decoration
         // alone does not declare how the raw value was transformed for display.
@@ -1165,7 +1237,7 @@ function canopyPdfNumbers(sample, columns) {
         let suffix = captured?.suffix || profile.suffix;
         if (profile.percent && !profile.suffix)
             suffix = suffix.replace(/%/g, "");
-        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix + badges,
             ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     });
 }
@@ -1173,7 +1245,7 @@ const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m32 = (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _c0;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _c14;
@@ -1184,7 +1256,7 @@ const { resolveScalar, selectFont, validateFonts } = _c20;
 
 const { settings } = _c5;
 
-const { canopyPdfNumbers } = _m34;
+const { canopyPdfNumbers } = _m35;
 
 /** A bounded lookahead is replayed once; no second capture, full-dataset copy or smaller font is needed. */
 async function withCanopyPdfLayout(source, captured, options, write) {
@@ -1284,7 +1356,7 @@ return _exports;
 const _m0 = (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
-const { notifyProgress } = _c1;
+const { notifyProgress, notifySynchronously } = _c1;
 
 const { captureFields } = _c2;
 
@@ -1302,22 +1374,23 @@ const { prepareCanopyExport } = _m13;
 
 const { canopyPins } = _m18;
 
-const { canopyRules } = _m19;
+const { canopyRules } = _m20;
 
-const { canopyGrouped } = _m22;
+const { canopyGrouped } = _m23;
 
-const { canopyAbout } = _m26;
+const { canopyAbout } = _m27;
 
-const { writeCanopyWorkbook } = _m28;
+const { writeCanopyWorkbook } = _m29;
 
-const { withCanopyPdfLayout } = _m31;
-
-
+const { withCanopyPdfLayout } = _m32;
 
 
 
 
 
+
+
+const canopyHeaderFill = "E7EDF5", canopyHeaderBorder = Object.freeze({ bottom: Object.freeze({ style: "thin", color: "A6B4C8" }) });
 /** Write a captured CanopyX grid to a caller-owned destination; partial bytes remain caller-owned on failure. */
 async function writeCanopyTo(capture, format, destination, options = {}) {
     const selected = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "csv", "pdf", "signal", "onDiagnostic", "limits", "onProgress", "grouped", "about"]);
@@ -1357,17 +1430,25 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     const stream = { ...(signal ? { signal } : {}), ...progress };
     if (format === "xlsx") {
         const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
-        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
+        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes, prepared.ruleOperands);
         if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
             xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
             throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
         if (pivot && xlsx.cellValueWriters !== undefined)
             throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
-        const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
+        // The header matches the PDF table heading: shaded, bold, wrapped and ruled off from the data.
+        const sheet = { headerFill: canopyHeaderFill, headerBorder: canopyHeaderBorder, headerWrap: true, ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
             freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
             freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
             conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
-        const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits };
+        // Data-cell links past Excel's per-worksheet limit keep their label; the worksheet reserves every link it cannot drop.
+        const linkFallback = canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" }), onHyperlinkOverflow = xlsx.onHyperlinkOverflow;
+        const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
+            hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop",
+            onHyperlinkOverflow: (overflow) => {
+                notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow);
+                linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
+            } };
         if (grouped || about)
             return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
         return writeXlsxTo(source.rows(), destination, settings);

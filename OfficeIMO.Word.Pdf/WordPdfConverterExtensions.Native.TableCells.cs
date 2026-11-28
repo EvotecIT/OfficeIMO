@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTableColumnAlignments(
             List<global::OfficeIMO.OfficeAlignment>? Horizontal,
@@ -145,46 +141,46 @@ namespace OfficeIMO.Word.Pdf {
         private static int GetNativeCellRowSpan(WordTableCell cell) =>
             Math.Max(1, cell.RowSpan);
 
-        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderValues? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) {
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(string? borderStyle, string? color, uint? size) {
             if (!HasNativeBorder(borderStyle)) {
                 return null;
             }
 
             return new PdfCore.PdfCellBorderSide {
                 Color = ParseNativeColor(NormalizeNativeBorderColor(color)) ?? global::OfficeIMO.OfficeColor.Black,
-                Width = global::OfficeIMO.OfficeLength.Points((size?.Value ?? 4U) / 8D),
+                Width = global::OfficeIMO.OfficeLength.Points((size ?? 4U) / 8D),
                 DashStyle = ToNativeBorderDashStyle(borderStyle),
                 LineStyle = ToNativeBorderLineStyle(borderStyle)
             };
         }
 
-        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(WordBorderStyle? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) =>
-            CreateNativeCellBorderSide(borderStyle.ToOpenXml(), color, size);
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(WordBorderStyle? borderStyle, string? color, uint? size) =>
+            CreateNativeCellBorderSide(borderStyle?.ToOpenXmlToken(), color, size);
 
-        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderType? border) =>
-            border == null
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(OfficeXmlNode border) =>
+            border.IsNone
                 ? null
-                : CreateNativeCellBorderSide(border.Val?.Value, border.Color?.Value, border.Size);
+                : CreateNativeCellBorderSide(border.WVal(), border.WAttr("color"), border.WUInt32("sz"));
 
-        private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(W.BorderValues? borderStyle) {
-            if (borderStyle == W.BorderValues.DotDash || borderStyle == W.BorderValues.DotDotDash ||
-                borderStyle == W.BorderValues.DashDotStroked) {
+        private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(string? borderStyle) {
+            if (borderStyle == "dotDash" || borderStyle == "dotDotDash" ||
+                borderStyle == "dashDotStroked") {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot;
             }
 
-            if (borderStyle == W.BorderValues.Dashed || borderStyle == W.BorderValues.DashSmallGap) {
+            if (borderStyle == "dashed" || borderStyle == "dashSmallGap") {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash;
             }
 
-            if (borderStyle == W.BorderValues.Dotted) {
+            if (borderStyle == "dotted") {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot;
             }
 
             return OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
         }
 
-        private static PdfCore.PdfCellBorderLineStyle ToNativeBorderLineStyle(W.BorderValues? borderStyle) =>
-            borderStyle == W.BorderValues.Double
+        private static PdfCore.PdfCellBorderLineStyle ToNativeBorderLineStyle(string? borderStyle) =>
+            borderStyle == "double"
                 ? PdfCore.PdfCellBorderLineStyle.TwoLine
                 : PdfCore.PdfCellBorderLineStyle.Standard;
 
@@ -201,7 +197,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordPdfExportOptions? options = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, bool preserveNestedBlocks = false) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordPdfExportOptions? options = null, IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages = null, bool preserveNestedBlocks = false) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             List<PdfCore.IPdfBlock>? blocks = preserveNestedBlocks ? new() : null;
@@ -308,7 +304,7 @@ namespace OfficeIMO.Word.Pdf {
                         lineHeight = null;
                         lineSpacing = null;
                     }
-                    string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+                    string? markSize = paragraph.Node().WChild("pPr").WChild("rPr").WChild("sz").WVal();
                     paragraphFontSize = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                         ? halfPoints / 2D : paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
                 }
@@ -321,7 +317,7 @@ namespace OfficeIMO.Word.Pdf {
                     };
                 }
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeParagraphTabStops(paragraph, indentation.Left, indentation.FirstLine);
-                W.JustificationValues? alignment = ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults);
+                string? alignment = ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults);
                 var justification = new PdfCore.PdfParagraphStyle();
                 ApplyNativeParagraphJustification(justification, paragraph, alignment);
                 var cellParagraph = new PdfCore.PdfTableCellParagraph(
@@ -354,7 +350,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeNoteNumbering? footnoteNumbersById,
             NativeTableStyleDefaults tableStyleDefaults,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap? nativeFontMap, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages) {
+            NativeFontMap? nativeFontMap, IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages) {
             if (elements.Count < 2) {
                 return null;
             }
@@ -391,9 +387,27 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
-            ResolveNativeVisualJustification(paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ??
+        private static string? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
+            ResolveNativeVisualJustification(ToNativeJustificationToken(paragraph.ParagraphAlignment) ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ??
                 tableStyleDefaults.ParagraphAlignment, IsNativeBiDiParagraph(paragraph));
+
+        /// <summary>The <c>w:jc</c> token of a paragraph alignment.</summary>
+        private static string? ToNativeJustificationToken(WordParagraphAlignment? alignment) => alignment switch {
+            null => null,
+            WordParagraphAlignment.Left => "left",
+            WordParagraphAlignment.Start => "start",
+            WordParagraphAlignment.Center => "center",
+            WordParagraphAlignment.Right => "right",
+            WordParagraphAlignment.End => "end",
+            WordParagraphAlignment.Both => "both",
+            WordParagraphAlignment.MediumKashida => "mediumKashida",
+            WordParagraphAlignment.Distribute => "distribute",
+            WordParagraphAlignment.NumTab => "numTab",
+            WordParagraphAlignment.HighKashida => "highKashida",
+            WordParagraphAlignment.LowKashida => "lowKashida",
+            WordParagraphAlignment.ThaiDistribute => "thaiDistribute",
+            _ => throw new NotSupportedException("Unsupported paragraph alignment: " + alignment)
+        };
 
         private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, bool listItem) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -455,7 +469,7 @@ namespace OfficeIMO.Word.Pdf {
                 nativeFontMap);
             if (ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).BeforeAuto == true)
                 return IsNativeCellBoundaryParagraph(paragraph, first: true) ? 0D : NativeAutomaticParagraphSpacing;
-            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            OfficeXmlNode directSpacing = paragraph.Node().WChild("pPr").WChild("spacing");
             double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBefore?.ToPoints() ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingBefore ??
@@ -469,16 +483,17 @@ namespace OfficeIMO.Word.Pdf {
         /// paragraph of a table cell, and uses 14 pt between the paragraphs inside it.
         /// </summary>
         private static bool IsNativeCellBoundaryParagraph(WordParagraph paragraph, bool first) {
-            if (paragraph._paragraph == null) return false;
-            W.TableCell? cell = paragraph._paragraph.Ancestors<W.TableCell>().FirstOrDefault();
-            if (cell == null) return false;
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) return false;
+            OfficeXmlNode cell = source.Ancestor(WordXml.W, "tc");
+            if (cell.IsNone) return false;
             // Content controls are transparent: compare with the cell's own first or last
             // paragraph or nested table, wherever it sits.
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> blocks = cell.Descendants()
-                .Where(element => element is W.Paragraph or W.Table &&
-                    ReferenceEquals(element.Ancestors<W.TableCell>().FirstOrDefault(), cell));
-            DocumentFormat.OpenXml.OpenXmlElement? boundary = first ? blocks.FirstOrDefault() : blocks.LastOrDefault();
-            return ReferenceEquals(boundary, paragraph._paragraph);
+            IEnumerable<OfficeXmlNode> blocks = cell.DescendantElements()
+                .Where(element => (element.IsW("p") || element.IsW("tbl")) && element.IsModelElement() &&
+                    element.Ancestor(WordXml.W, "tc") == cell);
+            OfficeXmlNode boundary = first ? blocks.FirstOrDefault() : blocks.LastOrDefault();
+            return boundary == source;
         }
 
         private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
@@ -500,7 +515,7 @@ namespace OfficeIMO.Word.Pdf {
                 nativeFontMap);
             if (ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).AfterAuto == true)
                 return IsNativeCellBoundaryParagraph(paragraph, first: false) ? 0D : NativeAutomaticParagraphSpacing;
-            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            OfficeXmlNode directSpacing = paragraph.Node().WChild("pPr").WChild("spacing");
             double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfter?.ToPoints() ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingAfter ??
@@ -516,13 +531,13 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, GetNativeDocumentDefaults(paragraph._document));
         }
 
-        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
+        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages = null) {
             var result = new List<PdfCore.PdfTextRun>();
             var emittedNoteTokens = new HashSet<int>();
             List<WordParagraph> runs = nativeDefaults.RunningContentContext == null
                 ? GetNativeRuns(paragraph, includeInlineContentControls: true)
                 : GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
-            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            bool hasEquationContent = paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
@@ -531,12 +546,12 @@ namespace OfficeIMO.Word.Pdf {
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool hasInlineImages = inlineImages != null && runs.Any(run =>
                 !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>
-                    inlineImages.ContainsKey(image.OccurrenceElement)));
+                    inlineImages.ContainsKey(image.OccurrenceNode())));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
                 .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
             int tabIndex = 0;
-            IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
+            IReadOnlyList<OfficeXmlNode> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph).ToArray();
             var inlineControls = new NativeInlineContentControlProjection(tableCell: true);
 
             if ((hasRenderableRuns || hasInlineImages || runs.Any(run => HasNativeNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
@@ -552,7 +567,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (run.IsImage && run.Image != null) {
                         if (inlineImages != null) {
                             foreach (WordImage image in run.EnumerateImages())
-                                if (inlineImages.TryGetValue(image.OccurrenceElement, out PdfCore.PdfTextRun? inline))
+                                if (inlineImages.TryGetValue(image.OccurrenceNode(), out PdfCore.PdfTextRun? inline))
                                     result.Add(inline);
                         }
                         continue;
@@ -581,7 +596,7 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeCellText(result, content, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             }
 
-            foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
+            foreach (OfficeXmlNode repeatingSection in repeatingSectionControls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
                     if (string.IsNullOrWhiteSpace(itemText)) {
                         continue;
@@ -617,9 +632,9 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeCellRun(List<PdfCore.PdfTextRun> target, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
             if (HasNativePositionalTabs(run)) {
                 if (IsNativeHiddenTextRun(run)) return;
-                foreach (var child in run.EnumerateEffectiveRunContent()) {
-                    if (child is W.PositionalTab positionalTab) {
-                        target.Add(CreateNativePositionalTab(positionalTab, run, nativeDefaults, tableStyleDefaults));
+                foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
+                    if (child.IsW("ptab")) {
+                        target.Add(CreateNativePositionalTab(child, run, nativeDefaults, tableStyleDefaults));
                     } else {
                         WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                         AddNativeCellRun(target, view.GetTextWithNonTextBreakReplacement('\n'), view, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
@@ -647,8 +662,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
             IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, NativeNoteNumbering? notes, ISet<int> emittedNoteTokens) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
-                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-                if (segment.ArtifactElement != null && TryCreateNativeNoteMarker(segment.ArtifactElement,
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph);
+                if (segment.ArtifactNode().Exists && TryCreateNativeNoteMarker(segment.ArtifactNode(),
                     sourceRun, paragraph, notes, nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle,
                     tableStyleDefaults.UseConfiguredTypography, out PdfCore.PdfTextRun? marker, out int? token)) {
                     target.Add(marker!);
@@ -782,6 +797,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? contents = retainLinkAppearance || string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
+            if (string.IsNullOrWhiteSpace(text)) {
+                // PDF link annotations need visible text; a space run keeps the link's look without a target.
+                linkUri = null;
+                destinationName = null;
+                contents = null;
+                retainLinkAppearance = true;
+            }
+
             NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
@@ -853,7 +876,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string GetNativeCellParagraphText(WordParagraph paragraph, bool applyTextTransform = true) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+            if (paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0) {
                 return Transform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
             }
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {

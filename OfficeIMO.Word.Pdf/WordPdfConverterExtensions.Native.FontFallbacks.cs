@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         // A declaration overrides one logical slot; the other slot still inherits.
         // Availability is decided by the existing PDF font/resource policy.
@@ -16,10 +16,10 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static NativeLatinFontFamilies GetNativeRunFontFamilies(WordDocument? document, W.RunFonts? fonts) =>
-            fonts == null ? default : new(
-                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(fonts.AsciiTheme)), fonts.Ascii?.Value),
-                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(fonts.HighAnsiTheme)), fonts.HighAnsi?.Value));
+        private static NativeLatinFontFamilies GetNativeRunFontFamilies(WordDocument? document, OfficeXmlNode fonts) =>
+            fonts.IsNone ? default : new(
+                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, fonts.WAttr("asciiTheme")), fonts.WAttr("ascii")),
+                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, fonts.WAttr("hAnsiTheme")), fonts.WAttr("hAnsi")));
 
         private static IEnumerable<string> EnumerateNativeFontFamilies(string? primary, NativeLatinFontFamilies families) =>
             families.Primary != null ? families.Enumerate() :

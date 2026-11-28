@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptComment[] comments = legacy.Slides.SelectMany(slide => slide.Comments).ToArray();
             if (comments.Length == 0) return;
 
-            PresentationPart presentationPart = presentation._presentationPart;
+            PresentationPart presentationPart = presentation.SdkPresentationPart;
             CommentAuthorsPart authorsPart = presentationPart.AddNewPart<CommentAuthorsPart>();
             var authors = new Dictionary<string, ProjectedLegacyCommentAuthor>(StringComparer.Ordinal);
             var authorOrder = new List<ProjectedLegacyCommentAuthor>();

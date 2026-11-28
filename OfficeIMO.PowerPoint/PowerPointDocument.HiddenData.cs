@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private OfficeHiddenDataReport CollectHiddenData(OfficeHiddenDataOptions? removal) {
-            PresentationDocument package = _document ?? throw new ObjectDisposedException(nameof(PowerPointDocument));
+            PresentationDocument package = SdkDocument ?? throw new ObjectDisposedException(nameof(PowerPointDocument));
             PresentationPart presentationPart = package.PresentationPart ?? throw new InvalidOperationException("PresentationPart is missing.");
             var collector = new OfficeHiddenDataCollector("PowerPoint", removal);
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void CollectPowerPointComments(OfficeHiddenDataCollector collector) {
-            foreach (PowerPointSlide slide in _slides.ToList()) {
+            foreach (PowerPointSlide slide in LoadedSlides.ToList()) {
                 string location = SlideLocation(slide);
                 foreach (PowerPointClassicComment comment in GetClassicComments(slide)) {
                     collector.Add(OfficeHiddenDataKind.Comments, location, "Comment by " + comment.Author.Name, comment.Text, comment.Remove);
@@ -53,10 +53,10 @@ namespace OfficeIMO.PowerPoint {
         private void CollectPowerPointHiddenContent(OfficeHiddenDataCollector collector) {
             double slideWidth = SlideSize.Width.ToPoints();
             double slideHeight = SlideSize.Height.ToPoints();
-            foreach (PowerPointSlide slide in _slides.ToList()) {
+            foreach (PowerPointSlide slide in LoadedSlides.ToList()) {
                 string location = SlideLocation(slide);
                 if (slide.Hidden) {
-                    collector.Add(OfficeHiddenDataKind.HiddenContent, location, "Hidden slide", null, () => RemoveSlide(_slides.IndexOf(slide)));
+                    collector.Add(OfficeHiddenDataKind.HiddenContent, location, "Hidden slide", null, () => RemoveSlide(LoadedSlides.IndexOf(slide)));
                     if (collector.Removes(OfficeHiddenDataKind.HiddenContent)) continue;
                 }
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void CollectPowerPointSpeakerNotes(OfficeHiddenDataCollector collector) {
-            foreach (PowerPointSlide slide in _slides) {
+            foreach (PowerPointSlide slide in LoadedSlides) {
                 SlidePart slidePart = slide.SlidePart;
                 NotesSlidePart? notes = slidePart.NotesSlidePart;
                 if (notes == null) continue;
@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void CollectPowerPointIdentities(OfficeHiddenDataCollector collector) {
             var authored = new List<(string Name, string Location, Action<PowerPointCommentAuthor> SetAuthor)>();
-            foreach (PowerPointSlide slide in _slides) {
+            foreach (PowerPointSlide slide in LoadedSlides) {
                 string location = SlideLocation(slide);
                 foreach (PowerPointClassicComment comment in GetClassicComments(slide)) authored.Add((comment.Author.Name, location, comment.SetAuthor));
                 foreach (PowerPointModernComment comment in GetModernComments(slide)) {
@@ -114,8 +114,8 @@ namespace OfficeIMO.PowerPoint {
 
         // Author lists can name people no comment refers to, for example after comments were deleted by another tool.
         private void CollectUnreferencedCommentAuthors(OfficeHiddenDataCollector collector) {
-            PresentationPart presentationPart = _document!.PresentationPart!;
-            var classicIds = new HashSet<uint>(_slides.SelectMany(slide =>
+            PresentationPart presentationPart = SdkDocument!.PresentationPart!;
+            var classicIds = new HashSet<uint>(LoadedSlides.SelectMany(slide =>
                     slide.SlidePart.SlideCommentsPart?.CommentList?.Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
                 .Where(comment => comment.AuthorId?.Value != null)
                 .Select(comment => comment.AuthorId!.Value));
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
                     () => { if (id.HasValue) RemoveClassicCommentAuthorIfUnused(id); else author.Remove(); });
             }
 
-            var modernIds = new HashSet<string>(_slides.SelectMany(slide => slide.SlidePart.Parts
+            var modernIds = new HashSet<string>(LoadedSlides.SelectMany(slide => slide.SlidePart.Parts
                     .Select(pair => pair.OpenXmlPart).OfType<PowerPointCommentPart>())
                 .SelectMany(part => part.CommentList?.Descendants().Where(element => element is P188.Comment or P188.CommentReply) ?? Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>())
                 .Select(element => element is P188.Comment comment ? comment.AuthorId?.Value : ((P188.CommentReply)element).AuthorId?.Value)
@@ -143,6 +143,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string SlideLocation(PowerPointSlide slide) =>
-            "Slide " + (_slides.IndexOf(slide) + 1).ToString(CultureInfo.InvariantCulture);
+            "Slide " + (LoadedSlides.IndexOf(slide) + 1).ToString(CultureInfo.InvariantCulture);
     }
 }

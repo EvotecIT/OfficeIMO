@@ -1,10 +1,13 @@
+using OfficeIMO.Archives.Rar5;
+using OfficeIMO.Archives.SevenZip;
 using OfficeIMO.Core.Internal.Cabinet;
 
 namespace OfficeIMO.Archives;
 
 /// <summary>Extracts one managed archive container into a fresh directory without executing its contents.</summary>
 public static partial class ArchiveExtractor {
-    /// <summary>Verifies and extracts selected files from a ZIP, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
+    private const int StagingCopyBufferSize = 81920;
+    /// <summary>Verifies and extracts selected files from a ZIP, 7z, RAR5, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
     /// TAR symbolic links, hard links and device records are never created; selecting one fails the extraction.
     /// A gzip file is extracted under its stored name, or the package name without ".gz".
     /// The destination must be absent or empty. A completed staging directory is published by a same-volume move.</summary>
@@ -19,14 +22,41 @@ public static partial class ArchiveExtractor {
         var limits = new ArchiveLimits(options ?? new ArchiveExtractionOptions());
         cancellationToken.ThrowIfCancellationRequested();
         string package = Path.GetFullPath(packagePath);
-        string destination = Path.GetFullPath(destinationDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string parent = Path.GetDirectoryName(destination) ?? throw new ArgumentException("The destination must have a parent directory.", nameof(destinationDirectory));
-        ArchivePaths.RejectLinks(destination);
-        CheckDestination(destination);
+        var output = ResolveDestination(destinationDirectory);
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
         ArchiveLimits.Check(source.Length, limits.Input, nameof(ArchiveExtractionOptions.MaxInputBytes));
         limits.Operation.AdmitInput(source.Length);
         ArchiveFormat format = Detect(source, cancellationToken);
+        return Publish(output, limits, format, cancellationToken, ExtractInto);
+
+        long ExtractInto(string staging, List<ExtractedArchiveFile> files) {
+            long total = 0;
+            switch (format) {
+                case ArchiveFormat.Cab: ExtractCab(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Msi: ExtractMsi(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.SevenZip: ExtractSevenZip(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Rar5: total = StageRar5(Rar5Archive.Open(source, limits, cancellationToken), staging, limits, files, cancellationToken); break;
+                case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Tar:
+                case ArchiveFormat.TarGZip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.GZip: ExtractGZip(source, package, staging, limits, files, ref total, cancellationToken); break;
+                default: throw new NotSupportedException("Unsupported archive format.");
+            }
+            return total;
+        }
+    }
+
+    private static (string Destination, string Parent) ResolveDestination(string destinationDirectory) {
+        string destination = Path.GetFullPath(destinationDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string parent = Path.GetDirectoryName(destination) ?? throw new ArgumentException("The destination must have a parent directory.", nameof(destinationDirectory));
+        ArchivePaths.RejectLinks(destination);
+        CheckDestination(destination);
+        return (destination, parent);
+    }
+
+    private static ArchiveExtractionResult Publish((string Destination, string Parent) output, ArchiveLimits limits, ArchiveFormat format,
+        CancellationToken cancellationToken, Func<string, List<ExtractedArchiveFile>, long> extract) {
+        (string destination, string parent) = output;
         if (limits.AllowedFormats != null && !limits.AllowedFormats.Contains(format))
             throw new NotSupportedException("The detected archive format is not allowed by this extraction operation: " + format);
         Directory.CreateDirectory(parent);
@@ -35,16 +65,7 @@ public static partial class ArchiveExtractor {
         try {
             ArchivePaths.RejectLinks(staging);
             var files = new List<ExtractedArchiveFile>();
-            long total = 0;
-            switch (format) {
-                case ArchiveFormat.Cab: ExtractCab(source, staging, limits, files, ref total, cancellationToken); break;
-                case ArchiveFormat.Msi: ExtractMsi(source, staging, limits, files, ref total, cancellationToken); break;
-                case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
-                case ArchiveFormat.Tar:
-                case ArchiveFormat.TarGZip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
-                case ArchiveFormat.GZip: ExtractGZip(source, package, staging, limits, files, ref total, cancellationToken); break;
-                default: throw new NotSupportedException("Unsupported archive format.");
-            }
+            long total = extract(staging, files);
             cancellationToken.ThrowIfCancellationRequested();
             ArchivePaths.RejectLinks(destination);
             CheckDestination(destination);
@@ -78,12 +99,26 @@ public static partial class ArchiveExtractor {
             }
             if (TryDetectMagic(header, headerLength, out ArchiveFormat format)) return format;
             if (headerLength == 8) headerLength = Fill(source, header, header.Length, token, start: 8);
-            if (LooksLikeTar(header, headerLength)) return ArchiveFormat.Tar;
-            throw new NotSupportedException("The package is not a supported ZIP, Cabinet, Windows Installer, TAR or gzip container.");
+            if (TarArchiveContent.IsHeader(header, headerLength)) return ArchiveFormat.Tar;
+            if (headerLength >= 8 && Rar5Signature.TryFind(source, token)) return ArchiveFormat.Rar5;
+            if (LooksLikeEmptyTar(header, headerLength)) return ArchiveFormat.Tar;
+            throw new NotSupportedException("The package is not a supported ZIP, 7z, RAR5, Cabinet, Windows Installer, TAR or gzip container.");
         } finally {
             source.Position = originalPosition;
         }
     }
+    /// <summary>Reads the leading magic at the current position and restores that position.</summary>
+    internal static ArchiveFormat? DetectLeadingMagic(Stream source, CancellationToken token) {
+        long position = source.Position;
+        try {
+            var header = new byte[8];
+            int length = Fill(source, header, header.Length, token);
+            return TryDetectMagic(header, length, out ArchiveFormat format) ? format : null;
+        } finally {
+            source.Position = position;
+        }
+    }
+
     private static int Fill(Stream source, byte[] buffer, int count, CancellationToken token, int start = 0) {
         int length = start;
         while (length < count) {
@@ -95,6 +130,9 @@ public static partial class ArchiveExtractor {
         return length;
     }
     private static bool TryDetectMagic(byte[] bytes, int length, out ArchiveFormat format) {
+        if (SevenZipArchive.HasSignature(bytes, length)) { format = ArchiveFormat.SevenZip; return true; }
+        if (Rar5Signature.IsRar5(bytes, length)) { format = ArchiveFormat.Rar5; return true; }
+        if (Rar5Signature.IsRar4(bytes, length)) throw Rar5Signature.Legacy(0);
         format = ArchiveFormat.Zip;
         if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') { format = ArchiveFormat.Cab; return true; }
         byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
@@ -104,8 +142,10 @@ public static partial class ArchiveExtractor {
             || bytes[2] == 5 && (bytes[3] == 5 || bytes[3] == 6) || bytes[2] == 6 && bytes[3] == 6);
     }
     /// <summary>A checksum-valid TAR header, or the two zero blocks of an empty TAR archive.</summary>
-    internal static bool LooksLikeTar(byte[] bytes, int length) => TarArchiveContent.IsHeader(bytes, length)
-        || length >= 1024 && TarArchiveContent.IsZeroBlock(bytes) && TarArchiveContent.IsZeroBlock(bytes, 512);
+    internal static bool LooksLikeTar(byte[] bytes, int length) =>
+        TarArchiveContent.IsHeader(bytes, length) || LooksLikeEmptyTar(bytes, length);
+    private static bool LooksLikeEmptyTar(byte[] bytes, int length) =>
+        length >= 1024 && TarArchiveContent.IsZeroBlock(bytes) && TarArchiveContent.IsZeroBlock(bytes, 512);
     private static void ExtractCab(Stream source, string staging, ArchiveLimits limits, List<ExtractedArchiveFile> files,
         ref long total, CancellationToken token) {
         var paths = new ArchivePaths(limits);
@@ -128,7 +168,7 @@ public static partial class ArchiveExtractor {
         WriteStream(staging, path, memory, bytes.LongLength, limits, files, ref total, token);
     }
     private static void WriteStream(string staging, string path, Stream payload, long length, ArchiveLimits limits,
-        List<ExtractedArchiveFile> files, ref long total, CancellationToken token) {
+        List<ExtractedArchiveFile> files, ref long total, CancellationToken token, byte[]? stagingCopyBuffer = null) {
         limits.CheckEntry(length);
         ArchiveLimits.Add(ref total, length, limits.Expanded, "MaxExpandedBytes");
         string target = Path.GetFullPath(Path.Combine(staging, path.Replace('/', Path.DirectorySeparatorChar)));
@@ -140,7 +180,7 @@ public static partial class ArchiveExtractor {
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         ArchivePaths.RejectLinks(target, staging);
         using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        byte[] buffer = new byte[81920];
+        byte[] buffer = stagingCopyBuffer ?? new byte[StagingCopyBufferSize];
         long written = 0;
         while (written < length) {
             token.ThrowIfCancellationRequested();

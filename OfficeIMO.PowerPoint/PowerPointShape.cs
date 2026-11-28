@@ -1,8 +1,6 @@
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -11,37 +9,19 @@ namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         private const int EmusPerPoint = 12700;
 
-        internal PowerPointShape(OpenXmlElement element, OpenXmlPartContainer? ownerPart = null) {
-            Element = element;
-            RelationshipOwnerPart = ownerPart as OpenXmlPart;
-        }
-
-        internal OpenXmlElement Element { get; }
-        internal PowerPointSlide? OwnerSlide { get; private set; }
-        internal OpenXmlPart? RelationshipOwnerPart { get; private set; }
-
-        internal PowerPointShape AttachTo(PowerPointSlide slide, OpenXmlPartContainer? ownerPart = null) {
-            OwnerSlide = slide;
-            RelationshipOwnerPart = ownerPart as OpenXmlPart ?? RelationshipOwnerPart ?? slide.SlidePart;
-            return this;
-        }
-
         /// <summary>
         ///     Numeric shape identifier stored in the PowerPoint non-visual drawing properties.
         /// </summary>
-        public uint? Id {
-            get => GetNonVisualDrawingProperties(create: false)?.Id?.Value;
-        }
+        public uint? Id => NonVisualDrawingElement(create: false).UInt32Attribute("id");
 
         /// <summary>
         ///     Name assigned to the shape.
         /// </summary>
         public string? Name {
-            get => GetNonVisualDrawingProperties(create: false)?.Name?.Value;
+            get => NonVisualDrawingElement(create: false).Attribute("name");
             set {
-                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
-                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
-                drawing.Name = value ?? string.Empty;
+                RequireNonVisualDrawing().SetAttribute("name", value ?? string.Empty);
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -49,13 +29,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Alternative text description assigned to the shape.
         /// </summary>
         public string? AltText {
-            get => GetNonVisualDrawingProperties(create: false)?.Description?.Value;
+            get => NonVisualDrawingElement(create: false).Attribute("descr");
             set {
-                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
-                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
-                drawing.Description = string.IsNullOrWhiteSpace(value)
-                    ? null
-                    : new DocumentFormat.OpenXml.StringValue(value);
+                RequireNonVisualDrawing().SetAttribute("descr", string.IsNullOrWhiteSpace(value) ? null : value);
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -63,12 +40,16 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets whether the shape is hidden.
         /// </summary>
         public bool Hidden {
-            get => GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
+            get => NonVisualDrawingElement(create: false).BooleanAttribute("hidden") == true;
             set {
-                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
-                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
-                drawing.Hidden = value ? true : null;
+                RequireNonVisualDrawing().SetAttribute("hidden", value ? "1" : null);
+                OwnerPartRef.MarkEdited();
             }
+        }
+
+        private OfficeXmlNode RequireNonVisualDrawing() {
+            OfficeXmlNode drawing = NonVisualDrawingElement(create: true);
+            return drawing.IsNone ? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.") : drawing;
         }
 
         /// <summary>
@@ -78,10 +59,9 @@ namespace OfficeIMO.PowerPoint {
         public Uri? Hyperlink {
             get {
                 if (OwnerSlide == null) return null;
-                return PowerPointHyperlinkResolver.Resolve(
-                    RelationshipOwnerPart ?? OwnerSlide.SlidePart, OwnerSlide.SlidePart,
-                    GetNonVisualDrawingProperties(create: false)?
-                        .GetFirstChild<A.HyperlinkOnClick>());
+                PowerPointPartRef owner = OwnerPartRef;
+                return PowerPointHyperlinkResolver.Resolve(owner.IsNone ? OwnerSlide.PartRef : owner, OwnerSlide.PartRef,
+                    NonVisualDrawingElement(create: false).Child(OfficeXmlNamespaces.DrawingML, "hlinkClick"));
             }
             set {
                 if (value == null) ClearHyperlink();
@@ -92,64 +72,70 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Placeholder type associated with the shape, if any.
         /// </summary>
-        public PowerPointPlaceholderType? ShapePlaceholderType => GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
+        public PowerPointPlaceholderType? ShapePlaceholderType =>
+            ShapePlaceholderElement.Attribute("type") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderType type) ? type : null;
 
         /// <summary>
         ///     Placeholder index associated with the shape, if any.
         /// </summary>
-        public uint? ShapePlaceholderIndex => GetPlaceholderShape()?.Index?.Value;
+        public uint? ShapePlaceholderIndex => ShapePlaceholderElement.UInt32Attribute("idx");
 
         /// <summary>
         ///     Preferred placeholder size associated with the shape, if any.
         /// </summary>
-        public PowerPointPlaceholderSize? ShapePlaceholderSize => GetPlaceholderShape()?.Size?.Value.ToOfficeEnum();
+        public PowerPointPlaceholderSize? ShapePlaceholderSize =>
+            ShapePlaceholderElement.Attribute("sz") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderSize size) ? size : null;
 
         /// <summary>
         ///     Placeholder orientation associated with the shape, if any.
         /// </summary>
         public PowerPointPlaceholderDirection? ShapePlaceholderOrientation =>
-            GetPlaceholderShape()?.Orientation?.Value.ToOfficeEnum();
+            ShapePlaceholderElement.Attribute("orient") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderDirection direction) ? direction : null;
 
         /// <summary>
         ///     Primary content type represented by this shape wrapper.
         /// </summary>
-        public PowerPointShapeContentType ShapeContentType => Element switch {
-            GroupShape => PowerPointShapeContentType.Group,
-            Picture p when IsMediaPicture(p) => PowerPointShapeContentType.Media,
-            Picture => PowerPointShapeContentType.Picture,
-            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null => PowerPointShapeContentType.Table,
-            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null => PowerPointShapeContentType.Chart,
-            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null => PowerPointShapeContentType.SmartArt,
-            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<OleObject>() != null => PowerPointShapeContentType.OleObject,
-            ConnectionShape => PowerPointShapeContentType.Connector,
-            Shape s when s.TextBody != null => PowerPointShapeContentType.TextBox,
-            Shape => PowerPointShapeContentType.AutoShape,
-            _ => PowerPointShapeContentType.Unknown
-        };
+        public PowerPointShapeContentType ShapeContentType {
+            get {
+                OfficeXmlNode element = XmlElement;
+                if (element.NamespaceId != OfficeXmlNamespaces.PresentationML) return PowerPointShapeContentType.Unknown;
+                switch (element.LocalName) {
+                    case "grpSp":
+                        return PowerPointShapeContentType.Group;
+                    case "pic":
+                        return IsMediaPicture(element) ? PowerPointShapeContentType.Media : PowerPointShapeContentType.Picture;
+                    case "graphicFrame": {
+                        OfficeXmlNode data = element.Child(OfficeXmlNamespaces.DrawingML, "graphic").Child(OfficeXmlNamespaces.DrawingML, "graphicData");
+                        if (!data.Child(OfficeXmlNamespaces.DrawingML, "tbl").IsNone) return PowerPointShapeContentType.Table;
+                        if (!data.Child(OfficeXmlNamespaces.Chart, "chart").IsNone) return PowerPointShapeContentType.Chart;
+                        if (!data.Child(OfficeXmlNamespaces.Diagram, "relIds").IsNone) return PowerPointShapeContentType.SmartArt;
+                        if (!data.Child(OfficeXmlNamespaces.PresentationML, "oleObj").IsNone) return PowerPointShapeContentType.OleObject;
+                        return PowerPointShapeContentType.Unknown;
+                    }
+                    case "cxnSp":
+                        return PowerPointShapeContentType.Connector;
+                    case "sp":
+                        return element.Child(OfficeXmlNamespaces.PresentationML, "txBody").IsNone ? PowerPointShapeContentType.AutoShape : PowerPointShapeContentType.TextBox;
+                    default:
+                        return PowerPointShapeContentType.Unknown;
+                }
+            }
+        }
 
         /// <summary>
         ///     Zero-based drawing order within the parent shape tree, where larger values render above earlier shapes.
         /// </summary>
         public int DrawingOrder {
             get {
-                OpenXmlElement? parent = Element.Parent;
-                if (parent == null) {
-                    return -1;
-                }
-
+                OfficeXmlNode element = XmlElement;
+                OfficeXmlNode parent = element.Parent;
+                if (parent.IsNone) return -1;
                 int order = 0;
-                foreach (OpenXmlElement child in parent.ChildElements) {
-                    if (!IsDrawingElement(child)) {
-                        continue;
-                    }
-
-                    if (ReferenceEquals(child, Element)) {
-                        return order;
-                    }
-
+                foreach (OfficeXmlNode child in parent.Children()) {
+                    if (!IsDrawingElement(child)) continue;
+                    if (child.Equals(element)) return order;
                     order++;
                 }
-
                 return -1;
             }
         }
@@ -163,7 +149,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            Element.Remove();
+            XmlElement.Remove();
         }
 
         /// <summary>
@@ -180,7 +166,7 @@ namespace OfficeIMO.PowerPoint {
 
 
 
-        private static bool IsDrawingElement(OpenXmlElement element) =>
-            element is Shape or ConnectionShape or Picture or GraphicFrame or GroupShape;
+        private static bool IsDrawingElement(OfficeXmlNode element) =>
+            element.NamespaceId == OfficeXmlNamespaces.PresentationML && element.LocalName is "sp" or "cxnSp" or "pic" or "graphicFrame" or "grpSp";
     }
 }

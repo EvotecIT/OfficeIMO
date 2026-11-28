@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             formulaCell.DataType = CellValues.String;
             formulaCell.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
 
             Assert.True(sheet.TryGetColumnIndexByHeader("Header", out int headerColumn));
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
 
             formulaCell.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
             Assert.True(sheet.RemoveInCellImage(1, 1));
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(started.Wait(TimeSpan.FromSeconds(10)));
                 Assert.True(
                     SpinWait.SpinUntil(
-                        () => workbookLock.WaitingReadCount > 0 || read.IsCompleted,
+                        () => workbookLock.WaitingReadCount + workbookLock.WaitingUpgradeCount > 0 || read.IsCompleted,
                         TimeSpan.FromSeconds(10)),
                     $"The {description} read did not reach the workbook lock (status: {read.Status}).");
                 Assert.False(read.IsCompleted);

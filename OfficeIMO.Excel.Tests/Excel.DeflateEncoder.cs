@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using OfficeIMO.Excel;
+using OfficeIMO.SharedSource.Packaging;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -34,7 +35,7 @@ namespace OfficeIMO.Tests {
         public void DeflateEncoder_SurfacesADestinationFailureAndStillReleasesRunningRegions() {
             byte[] input = CreateDeflateInput(2_000_000);
             var destination = new FailingDeflateDestination();
-            var encoder = new ExcelDeflateEncoder(destination, background: true);
+            var encoder = new OfficeDeflateEncoder(destination, background: true);
             IOException error = Assert.Throws<IOException>(() => {
                 encoder.Write(input);
                 encoder.Finish();
@@ -51,7 +52,7 @@ namespace OfficeIMO.Tests {
         public void DeflateEncoder_DisposeWithoutFinishWaitsForQueuedRegions() {
             byte[] input = CreateDeflateInput(1_500_000);
             var destination = new MemoryStream();
-            using (var encoder = new ExcelDeflateEncoder(destination, background: true)) encoder.Write(input);
+            using (var encoder = new OfficeDeflateEncoder(destination, background: true)) encoder.Write(input);
 
             (byte[] compressed, _) = Deflate(input, background: true);
             Assert.Equal(input, Inflate(compressed));
@@ -59,7 +60,7 @@ namespace OfficeIMO.Tests {
 
         private static (byte[] Compressed, uint Crc) Deflate(byte[] input, bool background) {
             var output = new MemoryStream();
-            using var encoder = new ExcelDeflateEncoder(output, background);
+            using var encoder = new OfficeDeflateEncoder(output, background);
             // Uneven writes cross region edges in the middle of a call.
             for (int offset = 0; offset < input.Length; offset += 70_001)
                 encoder.Write(new ReadOnlySpan<byte>(input, offset, Math.Min(70_001, input.Length - offset)));

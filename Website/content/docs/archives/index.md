@@ -1,12 +1,12 @@
 ---
 title: "ZIP, TAR, CAB and MSI Archives"
-description: "Read, verify and safely extract ZIP, TAR, gzip, CAB and MSI files, and create reproducible ZIP and TAR archives, in managed .NET."
+description: "Read, verify and safely extract ZIP, 7z, stored RAR5, TAR, gzip, CAB and MSI files, and create reproducible ZIP and TAR archives, in managed .NET."
 order: 58
 meta.seo_title: "Create and extract ZIP, TAR, CAB and MSI files in C#"
 verified: 2026-11-14
 ---
 
-`OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It also reads and extracts TAR, .tar.gz and gzip files, and creates ZIP, TAR and gzip archives whose bytes depend only on their input. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.
+`OfficeIMO.Archives` inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer (MSI) databases, reads complete verified members into memory and extracts payloads to disk. It also reads and extracts 7z, stored RAR5, TAR, .tar.gz and gzip files, and creates ZIP, TAR and gzip archives whose bytes depend only on their input. It is fully managed, needs no native archive tools and never runs installer actions, scripts or custom actions.
 
 ```shell
 dotnet add package OfficeIMO.Archives
@@ -108,6 +108,8 @@ ustar, pax, GNU long names and base-256 numbers and v7 headers are read with eve
 | Container | Supported profile |
 |---|---|
 | ZIP | Single-disk archives with stored or Deflate members, ZIP64, UTF-8 names; legacy code pages only through an explicit `ZipLegacyCodePage` |
+| 7z | Copy, LZMA and LZMA2, including solid folders. Use `ArchiveReader.ListSevenZip` for file-table metadata and `ReadSevenZip` for complete verified files. |
+| RAR 5 | Stored files with CRC-32 or BLAKE2sp. Use `InspectRar5` for entries and comments and `ReadRar5` for verified data. Pass paths in volume order to `ExtractRar5Volumes` for extraction. |
 | CAB | Single cabinets with Store, MSZIP and LZX compression |
 | TAR | ustar, pax, GNU and v7 headers, plain or gzip-compressed; regular files and directories are extracted, links and devices are listed only |
 | gzip | Single and concatenated RFC 1952 members |
@@ -120,7 +122,7 @@ Every operation is bounded: input size, entry count, per-member and aggregate ex
 - Encrypted ZIP members, other compression methods, multi-disk archives and prepended self-extracting stubs are rejected. Ambiguous ZIP layouts fail rather than being guessed.
 - Cabinet sets, continued records and Quantum compression are not supported.
 - Sparse and multi-volume TAR members are rejected. `ArchiveInspector` does not inventory TAR or gzip; use `ArchiveReader.ListTar` and `ReadTar`.
-- 7z, RAR, XZ, Zstandard, Brotli, encryption and split archives are not supported.
+- Encrypted 7z archives and 7z filter chains are unsupported. RAR 4, compressed or encrypted RAR5, XZ, Zstandard and Brotli remain outside the supported profiles.
 - External MSI cabinets and loose source files are listed with diagnostics but never opened. Transforms, patches, features, conditions and properties are not evaluated, so extraction shows the authored layout rather than a simulated installation.
 - CAB checksums and ZIP CRC-32 detect corruption; they do not prove authenticity.
 - Limits bound logical data, not process peak memory.

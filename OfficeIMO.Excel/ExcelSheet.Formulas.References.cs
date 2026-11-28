@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -299,36 +297,14 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            WorkbookPart? workbookPart = _spreadSheetDocument.WorkbookPart;
-            if (workbookPart == null) {
+            if (!TryFindFormulaTable(tableName, out ExcelFormulaSheetEntry sheetElement, out ExcelFormulaTable table)) {
                 return false;
             }
 
-            foreach (var sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
-                if (sheetElement.Id?.Value == null) {
-                    continue;
-                }
-
-                if (workbookPart.GetPartById(sheetElement.Id.Value) is not WorksheetPart worksheetPart) {
-                    continue;
-                }
-
-                foreach (var tablePart in worksheetPart.TableDefinitionParts) {
-                    Table? table = tablePart.Table;
-                    if (table == null
-                        || (!string.Equals(table.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase)
-                            && !string.Equals(table.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase))) {
-                        continue;
-                    }
-
-                    sheet = string.Equals(Name, sheetElement.Name?.Value, StringComparison.OrdinalIgnoreCase)
-                        ? this
-                        : CreateFormulaReferenceSheet(sheetElement);
-                    return TryResolveTableReferenceRange(table, sections, currentRow, out r1, out c1, out r2, out c2);
-                }
-            }
-
-            return false;
+            sheet = string.Equals(Name, sheetElement.Name, StringComparison.OrdinalIgnoreCase)
+                ? this
+                : CreateFormulaReferenceSheet(sheetElement);
+            return TryResolveTableReferenceRange(table, sections, currentRow, out r1, out c1, out r2, out c2);
         }
 
         private readonly struct FormulaStructuredTableReference {
@@ -570,7 +546,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryResolveTableReferenceRange(
-            Table table,
+            ExcelFormulaTable table,
             FormulaStructuredTableReference reference,
             int? currentRow,
             out int r1,
@@ -582,14 +558,14 @@ namespace OfficeIMO.Excel {
             r2 = 0;
             c2 = 0;
 
-            if (table.Reference?.Value == null
-                || !ExcelA1.TryParseRange(table.Reference.Value.Replace("$", string.Empty), out int tableR1, out int tableC1, out int tableR2, out int tableC2)) {
+            if (table.Reference == null
+                || !ExcelA1.TryParseRange(table.Reference.Replace("$", string.Empty), out int tableR1, out int tableC1, out int tableR2, out int tableC2)) {
                 return false;
             }
 
-            uint headerRows = table.HeaderRowCount?.Value ?? 1U;
-            uint totalsRows = table.TotalsRowShown?.Value == true
-                ? Math.Max(1U, table.TotalsRowCount?.Value ?? 1U)
+            uint headerRows = table.HeaderRowCount;
+            uint totalsRows = table.TotalsRowShown
+                ? Math.Max(1U, table.TotalsRowCount)
                 : 0U;
 
             if (!TryResolveTableAreaRows(reference.Area, tableR1, tableR2, headerRows, totalsRows, currentRow, out r1, out r2)) {
@@ -690,11 +666,11 @@ namespace OfficeIMO.Excel {
                 || string.Equals(section, "#This Row", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static int ResolveTableColumnOffset(Table table, string columnName) {
+        private static int ResolveTableColumnOffset(ExcelFormulaTable table, string columnName) {
             string decodedColumnName = ExcelFormulaSyntaxTree.DecodeStructuredColumnName(columnName);
             int index = 0;
-            foreach (var tableColumn in table.TableColumns?.Elements<TableColumn>() ?? Enumerable.Empty<TableColumn>()) {
-                if (string.Equals(tableColumn.Name?.Value, decodedColumnName, StringComparison.OrdinalIgnoreCase)) {
+            foreach (string? tableColumnName in table.ColumnNames) {
+                if (string.Equals(tableColumnName, decodedColumnName, StringComparison.OrdinalIgnoreCase)) {
                     return index;
                 }
 
@@ -721,10 +697,8 @@ namespace OfficeIMO.Excel {
         // Kept apart so the lookup's closure is allocated only when a sheet is not cached yet.
         private bool TryCreateFormulaReferenceSheet(string sheetName, out ExcelSheet sheet) {
             sheet = this;
-            var sheetElement = WorkbookRoot.Sheets?
-                .Elements<Sheet>()
-                .FirstOrDefault(candidate => string.Equals(candidate.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
-            if (sheetElement?.Id == null) {
+            ExcelFormulaSheetEntry? sheetElement = FindFormulaSheetEntry(sheetName);
+            if (sheetElement == null) {
                 return false;
             }
 
@@ -744,20 +718,19 @@ namespace OfficeIMO.Excel {
         /// Returns the sheet that resolves references for this calculation. A pass reuses one per sheet, which keeps
         /// its cell lookup position from one formula to the next; a fresh one would scan from the first row each time.
         /// </summary>
-        private ExcelSheet CreateFormulaReferenceSheet(Sheet sheetElement) {
+        private ExcelSheet CreateFormulaReferenceSheet(ExcelFormulaSheetEntry sheetElement) {
             FormulaCalculationContext? context = _formulaCalculationContext;
             bool shared = UsesSharedFormulaReferenceSheets();
-            string? name = sheetElement.Name?.Value;
+            string? name = sheetElement.Name;
             if (shared && name != null && context!.ReferenceSheets.TryGetValue(name, out ExcelSheet? cached)) return cached;
 
-            var sheet = new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
-                _formulaEvaluationCache = _formulaEvaluationCache,
-                _formulaCalculationContext = _formulaCalculationContext,
-                _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
-                _formulaEvaluationStack = _formulaEvaluationStack,
-                _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,
-                _formulaEvaluationGuardState = _formulaEvaluationGuardState
-            };
+            ExcelSheet sheet = CreateFormulaSheetWrapper(sheetElement);
+            sheet._formulaEvaluationCache = _formulaEvaluationCache;
+            sheet._formulaCalculationContext = _formulaCalculationContext;
+            sheet._formulaEvaluationDepthCache = _formulaEvaluationDepthCache;
+            sheet._formulaEvaluationStack = _formulaEvaluationStack;
+            sheet._formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames;
+            sheet._formulaEvaluationGuardState = _formulaEvaluationGuardState;
             if (shared && name != null) context!.ReferenceSheets[name] = sheet;
             return sheet;
         }
@@ -802,10 +775,11 @@ namespace OfficeIMO.Excel {
 
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
             // Only a formula cell needs its element here, and a stored cell is never one.
-            var cell = TryGetDomCell(row, column);
+            ExcelFormulaCell cell = GetFormulaCell(row, column);
+            bool hasFormula = cell.HasFormula;
             bool unresolvedFormula = false;
-            if ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache != null) {
-                if (TryEvaluateFormulaCellValue(cell!, out FormulaArgumentValue formulaResult)) {
+            if (hasFormula && _formulaEvaluationCache != null) {
+                if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
                     return formulaResult.AsReferencedValue();
                 }
 
@@ -819,9 +793,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool unevaluatedFormulaCache = unresolvedFormula
-                || ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache == null);
+                || (hasFormula && _formulaEvaluationCache == null);
             return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula,
-                (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null, unevaluatedFormulaCache);
+                !hasFormula, unevaluatedFormulaCache);
         }
 
         // Keep snapshot decoding and array-child lookup out of the recursive
@@ -831,7 +805,7 @@ namespace OfficeIMO.Excel {
             if (withoutFormula && _formulaEvaluationCache != null
                 && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue.AsReferencedValue();
             if (withoutFormula && TryResolvePlainNumberCell(row, column, out FormulaArgumentValue plainNumber)) return plainNumber;
-            var value = GetCellValueSnapshot(row, column);
+            var value = GetFormulaValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
             }
@@ -842,9 +816,9 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
             }
 
-            var cachedType = value.HasFormula ? TryGetDomCell(row, column)?.DataType?.Value : null;
+            ExcelCellValueType? cachedType = value.HasFormula ? GetFormulaCell(row, column).ValueType : null;
             if (value.Kind == ExcelCellDataKind.Error
-                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
+                || cachedType == ExcelCellValueType.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
             }
 
@@ -854,9 +828,9 @@ namespace OfficeIMO.Excel {
                     : value.Value != null ? ExcelCellDataKind.Text : ExcelCellDataKind.Blank
                 : value.Kind;
             if (value.Kind == ExcelCellDataKind.Text
-                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
-                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
-                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                || cachedType == ExcelCellValueType.String
+                || cachedType == ExcelCellValueType.SharedString
+                || cachedType == ExcelCellValueType.InlineString) {
                 return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty,
                     sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
@@ -880,25 +854,6 @@ namespace OfficeIMO.Excel {
 
             return new FormulaArgumentValue(null, value.Value?.ToString(),
                 sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
-        }
-
-        // The dominant operands: numeric and shared-text cells need no typed snapshot, boxed value or error-literal check.
-        private bool TryResolvePlainNumberCell(int row, int column, out FormulaArgumentValue value) {
-            value = default;
-            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
-            if (storedRow != null) return TryResolveStoredPlainNumberCell(storedRow.CellAt(storedIndex), out value);
-            if (cell == null) return false;
-            string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
-            if (cell.DataType == null || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
-                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
-                value = new FormulaArgumentValue(number, text, sourceCellKind: ExcelCellDataKind.Number);
-                return true;
-            }
-            if (cell.DataType.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
-                || string.IsNullOrEmpty(text) || !TryParseCellTextSharedStringIndex(text!, out int index)) return false;
-            value = new FormulaArgumentValue(null, BuildCellTextSharedStringSnapshot().Get(index) ?? string.Empty,
-                sourceCellKind: ExcelCellDataKind.Text);
-            return true;
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {

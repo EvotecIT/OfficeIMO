@@ -1,55 +1,25 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using static OfficeIMO.Word.OpenXml.WordXmlEdits;
 
 namespace OfficeIMO.Word {
-    // Manages run property settings.
+    // Manages run property settings. Each member reads and edits the run properties through their element handle, so it
+    // works the same whether OfficeIMO's own package model or the Open XML SDK holds the document.
     public partial class WordParagraph {
-        internal RunProperties? ScopedRunProperties => _stdRun != null
-            ? _stdRun.SdtContentRun?.Descendants<Run>().FirstOrDefault()?.GetFirstChild<RunProperties>()
-            : IsHyperLink ? Hyperlink?._runProperties : _runProperties;
-        private static bool IsOnOffPropertyEnabled(OnOffType? property) {
-            return property != null && (property.Val == null || property.Val.Value);
-        }
-
         /// <summary>
         /// Gets or sets a value indicating whether the run is bold. Setting false explicitly overrides inherited bold.
         /// </summary>
         public bool Bold {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Bold);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                runProperties.Bold = new Bold { Val = value };
-                runProperties.BoldComplexScript = new BoldComplexScript { Val = value };
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "b"));
+            set => SetRunOnOffPair("b", "bCs", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is italic. Setting false explicitly overrides inherited italic.
         /// </summary>
         public bool Italic {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Italic);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                runProperties.Italic = new Italic { Val = value };
-                runProperties.ItalicComplexScript = new ItalicComplexScript { Val = value };
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "i"));
+            set => SetRunOnOffPair("i", "iCs", value);
         }
 
         /// <summary>
@@ -57,29 +27,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordUnderlineStyle? Underline {
             get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Underline != null) {
-                    return runProperties.Underline.Val?.Value.ToOfficeEnum();
-                }
-                return null;
+                string? token = ChildValue(RunPropertiesNode, "u");
+                return token == null ? null : Token(WordUnderlineStyleTokens.TryParse(token, out WordUnderlineStyle style), style, token);
             }
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
+                OfficeXmlNode properties = EditRunProperties();
+                if (value == null) {
+                    RemoveChild(properties, "u");
+                    return;
                 }
-                if (value != null) {
-                    if (runProperties.Underline == null) {
-                        runProperties.Underline = new Underline();
-                    }
-
-                    runProperties.Underline.Val = value.Value.ToOpenXml();
-                } else {
-                    if (runProperties.Underline != null) runProperties.Underline.Remove();
-                }
+                // An existing underline keeps its other attributes, such as its colour.
+                properties.GetOrAddChild(W, "u", WRPrView.Order).SetAttribute(W, "val", WordUnderlineStyleTokens.ToToken(value.Value));
             }
         }
 
@@ -87,54 +45,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether spelling and grammar checks are disabled.
         /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.NoProof);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.NoProof != null) runProperties.NoProof.Remove();
-                } else {
-                    runProperties.NoProof = new NoProof();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "noProof"));
+            set => SetRunToggle("noProof", value);
         }
 
         /// <summary>
         /// Gets or sets the signed physical character spacing. Null removes the local value.
         /// </summary>
         public OfficeLength? Spacing {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Spacing != null) {
-                    return runProperties.Spacing.Val?.Value is int nativeSpacing
-                        ? OfficeLength.Emus((long)nativeSpacing * 635) : (OfficeLength?)null;
-                }
-                return null;
-            }
+            get => int.TryParse(ChildValue(RunPropertiesNode, "spacing"), System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int twips) ? OfficeLength.Emus((long)twips * 635) : null;
             set {
                 int? nativeSpacing = value.HasValue ? checked((int)value.Value.ToTwips()) : (int?)null;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    Spacing spacing = new Spacing();
-                    spacing.Val = nativeSpacing;
-                    runProperties.Spacing = spacing;
-                } else {
-                    if (runProperties.Spacing != null) runProperties.Spacing.Remove();
-                }
+                SetRunValue("spacing", nativeSpacing?.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
         }
 
@@ -142,120 +65,40 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run is struck through.
         /// </summary>
         public bool Strikethrough {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Strike);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Strike != null) runProperties.Strike.Remove();
-                } else {
-                    runProperties.Strike = new Strike();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "strike"));
+            set => SetRunToggle("strike", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run has a double strikethrough.
         /// </summary>
         public bool DoubleStrikethrough {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.DoubleStrike != null) runProperties.DoubleStrike.Remove();
-                } else {
-                    runProperties.DoubleStrike = new DoubleStrike();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "dstrike"));
+            set => SetRunToggle("dstrike", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run text is outlined.
         /// </summary>
         public bool Outline {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Outline);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Outline != null) runProperties.Outline.Remove();
-                } else {
-                    runProperties.Outline = new Outline();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "outline"));
+            set => SetRunToggle("outline", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run has a shadow effect.
         /// </summary>
         public bool Shadow {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Shadow);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Shadow != null) runProperties.Shadow.Remove();
-                } else {
-                    runProperties.Shadow = new Shadow();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "shadow"));
+            set => SetRunToggle("shadow", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is embossed.
         /// </summary>
         public bool Emboss {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Emboss);
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Emboss != null) runProperties.Emboss.Remove();
-                } else {
-                    runProperties.Emboss = new Emboss();
-                }
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "emboss"));
+            set => SetRunToggle("emboss", value);
         }
 
         /// <summary>
@@ -269,35 +112,17 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
         internal double? NativeFontSizePoints {
-            get {
-                var runProperties = ScopedRunProperties;
-                string? value = runProperties?.FontSize?.Val?.Value;
-                return int.TryParse(value, System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
-                    ? halfPoints / 2D
-                    : (double?)null;
-            }
+            get => int.TryParse(ChildValue(RunPropertiesNode, "sz"), System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int halfPoints) ? halfPoints / 2D : null;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
+                string? halfPoints = null;
                 if (value != null) {
-                    if (double.IsNaN(value.Value) || double.IsInfinity(value.Value) ||
-                        value.Value < 0D || value.Value > int.MaxValue / 2D) {
+                    if (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value < 0D || value.Value > int.MaxValue / 2D) {
                         throw new ArgumentOutOfRangeException(nameof(value));
                     }
-                    int halfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero));
-                    runProperties.FontSize = new FontSize {
-                        Val = halfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    };
-                } else {
-                    if (runProperties.FontSize != null) runProperties.FontSize.Remove();
+                    halfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
-                UpdatePageNumberFormatting(runProperties.FontSize);
+                SyncPageNumberFormatting(SetRunValue("sz", halfPoints), "sz");
             }
         }
 
@@ -305,12 +130,16 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
-            get => WordRunColor.Read(ScopedRunProperties?.Color);
+            get {
+                OfficeXmlNode color = RunPropertiesNode.Child(W, "color");
+                return color.IsNone ? null : WordRunColor.Read(color.Attribute(W, "themeColor"), color.HasAttribute(W, "themeTint"),
+                    color.HasAttribute(W, "themeShade"), color.Attribute(W, "val"));
+            }
             set {
-                if (value != null) {
+                if (value != null && value.Value.IsThemeRole) {
                     SetRunColor(value.Value);
                 } else {
-                    RunColorValue = string.Empty;
+                    RunColorValue = value?.ToRgbHex() ?? string.Empty;
                 }
             }
         }
@@ -319,29 +148,17 @@ namespace OfficeIMO.Word {
         /// Gets or sets the native run colour value (hexadecimal or <c>auto</c>); empty removes it.
         /// </summary>
         internal string RunColorValue {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Color != null) {
-                    return runProperties.Color.Val?.Value ?? "";
-                }
-                return "";
-            }
+            get => ChildValue(RunPropertiesNode, "color") ?? string.Empty;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
+                OfficeXmlNode properties = EditRunProperties();
+                if (value != string.Empty) {
+                    OfficeXmlNode color = ReplaceChild(properties, "color", WRPrView.Order);
+                    string? normalized = Helpers.NormalizeOpenXmlColor(value);
+                    if (normalized != null) color.SetAttribute(W, "val", normalized);
                 } else {
-                    runProperties = VerifyRunProperties();
+                    RemoveChild(properties, "color");
                 }
-                if (value != "") {
-                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                    color.Val = Helpers.NormalizeOpenXmlColor(value);
-                    runProperties.Color = color;
-                } else {
-                    if (runProperties.Color != null) runProperties.Color.Remove();
-                }
-                UpdatePageNumberFormatting(runProperties.Color);
+                SyncPageNumberFormatting(properties, "color");
             }
         }
 
@@ -350,33 +167,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordThemeColor? ThemeColor {
             get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
-                    return runProperties.Color.ThemeColor?.Value.ToOfficeEnum();
-                }
-                return null;
+                OfficeXmlNode color = RunPropertiesNode.Child(W, "color");
+                string? token = color.IsNone ? null : color.Attribute(W, "themeColor");
+                return token == null ? null : Token(WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordThemeColor parsed), parsed, token);
             }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        ThemeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value.ToOpenXml()
-                        }
-                    };
-                    // w:val is required; it caches the theme colour for applications that ignore the theme.
-                    color.Val = WordRunFormatting.ResolveColorHex(color, _document) ?? "auto";
-                    runProperties.Color = color;
-                } else {
-                    if (runProperties.Color != null) runProperties.Color.Remove();
-                }
-            }
+            // The colour value caches the theme's colour, which the SDK path reads from the theme.
+            set => SdkThemeColor = value;
         }
 
         /// <summary>
@@ -384,30 +180,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordHighlightColor? Highlight {
             get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Highlight != null) {
-                    return runProperties.Highlight.Val?.Value.ToOfficeEnum();
-                }
-                return null;
+                string? token = ChildValue(RunPropertiesNode, "highlight");
+                return token == null ? null : Token(WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordHighlightColor color), color, token);
             }
             set {
-                RunProperties? existingRunProperties = ScopedRunProperties;
-                if (!value.HasValue) {
-                    existingRunProperties?.Highlight?.Remove();
+                // Clearing the highlight leaves a run without properties as it is.
+                if (value == null) {
+                    if (!RunPropertiesNode.Child(W, "highlight").IsNone) RemoveChild(EditRunProperties(), "highlight");
                     return;
                 }
-
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                var highlight = new Highlight {
-                    Val = value.Value.ToOpenXml()
-                };
-                runProperties.Highlight = highlight;
+                ReplaceChild(EditRunProperties(), "highlight", WRPrView.Order, value.Value.ToOpenXmlToken());
             }
         }
 
@@ -416,33 +198,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCapsStyle CapsStyle {
             get {
-                var runProperties = ScopedRunProperties;
-                if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
-                    return WordCapsStyle.Caps;
-                } else if (IsOnOffPropertyEnabled(runProperties?.SmallCaps)) {
-                    return WordCapsStyle.SmallCaps;
-                } else {
-                    return WordCapsStyle.None;
-                }
+                OfficeXmlNode properties = RunPropertiesNode;
+                return ReadOnOff(properties.Child(W, "caps")) ? WordCapsStyle.Caps
+                    : ReadOnOff(properties.Child(W, "smallCaps")) ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
             }
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value == WordCapsStyle.None) {
-                    runProperties.Caps = null;
-                    runProperties.SmallCaps = null;
-                } else if (value == WordCapsStyle.Caps) {
-                    runProperties.Caps = new Caps();
-                    runProperties.SmallCaps = null;
-                } else if (value == WordCapsStyle.SmallCaps) {
-                    runProperties.SmallCaps = new SmallCaps();
-                    runProperties.Caps = null;
-                }
+                OfficeXmlNode properties = EditRunProperties();
+                if (value == WordCapsStyle.Caps) ReplaceChild(properties, "caps", WRPrView.Order);
+                else RemoveChild(properties, "caps");
+                if (value == WordCapsStyle.SmallCaps) ReplaceChild(properties, "smallCaps", WRPrView.Order);
+                else RemoveChild(properties, "smallCaps");
             }
         }
 
@@ -455,37 +220,20 @@ namespace OfficeIMO.Word {
         /// in proper order (to overwrite given FontFamily)
         /// </summary>
         public string? FontFamily {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.Ascii;
-                }
-                return null;
-            }
+            get => RunFont("ascii");
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
+                OfficeXmlNode properties = EditRunProperties();
+                OfficeXmlNode fonts = properties.GetOrAddChild(W, "rFonts", WRPrView.Order);
                 if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.Ascii = null;
+                    fonts.RemoveAttribute(W, "ascii");
                 } else {
-                    runProperties.RunFonts.Ascii = value;
-                    // we set the same font for HighAnsi as well, because in 90% cases it's required for special characters
-                    // and it should be the same
-                    runProperties.RunFonts.HighAnsi = value;
-                    runProperties.RunFonts.ComplexScript = value;
-                    runProperties.RunFonts.EastAsia = value;
+                    // The other scripts get the same font, which special characters usually need.
+                    fonts.SetAttribute(W, "ascii", value!);
+                    fonts.SetAttribute(W, "hAnsi", value!);
+                    fonts.SetAttribute(W, "eastAsia", value!);
+                    fonts.SetAttribute(W, "cs", value!);
                 }
-                UpdatePageNumberFormatting(runProperties.RunFonts);
+                SyncPageNumberFormatting(properties, "rFonts");
             }
         }
 
@@ -493,122 +241,43 @@ namespace OfficeIMO.Word {
         /// Gets or sets the HighAnsi font family.
         /// </summary>
         public string? FontFamilyHighAnsi {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.HighAnsi;
-                }
-                return null;
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.HighAnsi = null;
-                } else {
-                    runProperties.RunFonts.HighAnsi = value;
-                }
-            }
+            get => RunFont("hAnsi");
+            set => SetRunFont("hAnsi", value);
         }
 
         /// <summary>
         /// Gets or sets the East Asia font family.
         /// </summary>
         public string? FontFamilyEastAsia {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.EastAsia;
-                }
-                return null;
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.EastAsia = null;
-                } else {
-                    runProperties.RunFonts.EastAsia = value;
-                }
-            }
+            get => RunFont("eastAsia");
+            set => SetRunFont("eastAsia", value);
         }
 
         /// <summary>
         /// Gets or sets the complex script font family.
         /// </summary>
         public string? FontFamilyComplexScript {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.ComplexScript;
-                }
-                return null;
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.ComplexScript = null;
-                } else {
-                    runProperties.RunFonts.ComplexScript = value;
-                }
-            }
+            get => RunFont("cs");
+            set => SetRunFont("cs", value);
         }
 
         /// <summary>
         /// Gets or sets the language applied to the run.
         /// </summary>
         public string? Language {
-            get {
-                var runProperties = ScopedRunProperties;
-                return runProperties?.Languages?.Val;
-            }
+            get => ChildValue(RunPropertiesNode, "lang");
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
+                OfficeXmlNode properties = EditRunProperties();
                 if (string.IsNullOrWhiteSpace(value)) {
-                    runProperties.Languages?.Remove();
-                } else {
-                    var language = value!.Trim();
-                    var languages = runProperties.Languages ?? new Languages();
-                    runProperties.Languages = languages;
-                    languages.Val = language;
-                    languages.EastAsia = language;
-                    languages.Bidi = language;
+                    RemoveChild(properties, "lang");
+                    return;
                 }
+                // A language sets the main, East Asian and right-to-left languages of an existing or new element.
+                string language = value!.Trim();
+                OfficeXmlNode element = properties.GetOrAddChild(W, "lang", WRPrView.Order);
+                element.SetAttribute(W, "val", language);
+                element.SetAttribute(W, "eastAsia", language);
+                element.SetAttribute(W, "bidi", language);
             }
         }
 
@@ -617,60 +286,74 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCharacterStyles? CharacterStyle {
             get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunStyle != null) {
-                    var styleId = runProperties.RunStyle.Val;
-                    if (!string.IsNullOrEmpty(styleId)) {
-                        return WordCharacterStyle.GetStyle(styleId!);
-                    }
-                }
-                return null;
+                string? styleId = ChildValue(RunPropertiesNode, "rStyle");
+                return string.IsNullOrEmpty(styleId) ? null : WordCharacterStyle.GetStyle(styleId!);
             }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (value == null) {
-                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
-                } else {
-                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
-                    string styleId = WordCharacterStyle.ToStringStyle(value.Value);
-                    _document?.EnsureStyleDefinition(styleId);
-                    runProperties.RunStyle.Val = styleId;
-                }
-            }
+            set => ApplyCharacterStyleId(value == null ? null : WordCharacterStyle.ToStringStyle(value.Value));
         }
 
         /// <summary>
         /// Gets or sets the style identifier applied to the run.
         /// </summary>
         public string? CharacterStyleId {
-            get {
-                var runProperties = ScopedRunProperties;
-                return runProperties?.RunStyle?.Val;
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
+            get => ChildValue(RunPropertiesNode, "rStyle");
+            set => ApplyCharacterStyleId(value);
+        }
 
-                if (string.IsNullOrEmpty(value)) {
-                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
-                } else {
-                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
-                    _document?.EnsureStyleDefinition(value!);
-                    runProperties.RunStyle.Val = value;
-                }
+        // ---- Shared edits ------------------------------------------------------------------------------------------
+
+        private void SetRunOnOffPair(string name, string complexScriptName, bool value) {
+            OfficeXmlNode properties = EditRunProperties();
+            string token = value ? "true" : "false";
+            ReplaceChild(properties, name, WRPrView.Order, token);
+            ReplaceChild(properties, complexScriptName, WRPrView.Order, token);
+        }
+
+        // On adds a fresh element without a value; off removes it.
+        private void SetRunToggle(string name, bool value) {
+            OfficeXmlNode properties = EditRunProperties();
+            if (value) ReplaceChild(properties, name, WRPrView.Order);
+            else RemoveChild(properties, name);
+        }
+
+        // A value replaces the element; null removes it. Returns the run properties.
+        private OfficeXmlNode SetRunValue(string name, string? value) {
+            OfficeXmlNode properties = EditRunProperties();
+            if (value == null) RemoveChild(properties, name);
+            else ReplaceChild(properties, name, WRPrView.Order, value);
+            return properties;
+        }
+
+        private string? RunFont(string attribute) {
+            OfficeXmlNode properties = RunPropertiesNode;
+            if (properties.IsNone) return null;
+            OfficeXmlNode fonts = properties.Child(W, "rFonts");
+            return fonts.IsNone ? null : fonts.Attribute(W, attribute);
+        }
+
+        private void SetRunFont(string attribute, string? value) {
+            OfficeXmlNode fonts = EditRunProperties().GetOrAddChild(W, "rFonts", WRPrView.Order);
+            if (string.IsNullOrEmpty(value)) fonts.RemoveAttribute(W, attribute);
+            else fonts.SetAttribute(W, attribute, value!);
+        }
+
+        /// <summary>
+        /// Applies a character style, adding its definition first when the document lacks it or what it depends on.
+        /// Clearing removes the run's style.
+        /// </summary>
+        private void ApplyCharacterStyleId(string? styleId) {
+            if (string.IsNullOrEmpty(styleId)) {
+                RemoveChild(EditRunProperties(), "rStyle");
+                return;
             }
+            // Adding a definition can open the SDK package, so it runs before the run properties are taken to edit.
+            WordPackageModel? model = OwnedModel;
+            if (model == null) {
+                _document?.EnsureStyleDefinition(styleId!);
+            } else if (_document.FileOpenAccess != FileAccess.Read && !model.Styles.DefinesWithDependencies(styleId!)) {
+                _document.EnsureStyleDefinition(styleId!);
+            }
+            EditRunProperties().GetOrAddChild(W, "rStyle", WRPrView.Order).SetAttribute(W, "val", styleId);
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -30,9 +29,10 @@ namespace OfficeIMO.PowerPoint {
 
         private List<PowerPointAccessibilitySlideInfo> InspectAccessibilitySlides(PowerPointAccessibilityOptions resolved,
             List<OfficeAccessibilityFinding>? findings) {
-            var slideInfos = new List<PowerPointAccessibilitySlideInfo>(_slides.Count);
-            for (int slideIndex = 0; slideIndex < _slides.Count; slideIndex++) {
-                PowerPointSlide slide = _slides[slideIndex];
+            IReadOnlyList<PowerPointSlide> slides = Slides;
+            var slideInfos = new List<PowerPointAccessibilitySlideInfo>(slides.Count);
+            for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+                PowerPointSlide slide = slides[slideIndex];
                 if (slide.Hidden && !resolved.IncludeHiddenSlides) continue;
                 List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide, resolved).ToList();
                 string? slideTitle = FindSlideTitle(

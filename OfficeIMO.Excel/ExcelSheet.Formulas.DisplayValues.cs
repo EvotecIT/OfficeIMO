@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
@@ -40,13 +37,13 @@ namespace OfficeIMO.Excel {
             int lastRow,
             int lastColumn,
             bool writeCache,
-            Action<int, int, string, Cell, FormulaArgumentValue?> visit) {
+            Action<int, int, string, ExcelFormulaCell, FormulaArgumentValue?> visit) {
             MaterializePendingDirectCellValues();
             Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
-                var candidates = new List<(Cell Cell, int Row, int Column, string Reference)>();
-                foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
-                    if (ExcelWorksheetScan.FindFormula(cell) == null || ExcelWorksheetScan.FindValue(cell) != null || cell.InlineString != null) continue;
-                    string? reference = cell.CellReference?.Value;
+                var candidates = new List<(ExcelFormulaCell Cell, int Row, int Column, string Reference)>();
+                foreach (ExcelFormulaCell cell in EnumerateFormulaCells()) {
+                    if (cell.HasValue || cell.HasInlineString) continue;
+                    string? reference = cell.Reference;
                     if (reference == null || !TryParseCellReference(reference, out int row, out int column) ||
                         row < firstRow || row > lastRow || column < firstColumn || column > lastColumn) {
                         continue;
@@ -77,7 +74,7 @@ namespace OfficeIMO.Excel {
                 };
                 bool changed = false;
                 try {
-                    foreach ((Cell cell, int row, int column, string reference) in candidates) {
+                    foreach ((ExcelFormulaCell cell, int row, int column, string reference) in candidates) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result) ||
                             result.IsUnresolvedFormula || !result.HasValue) {
@@ -87,7 +84,7 @@ namespace OfficeIMO.Excel {
 
                         if (writeCache) {
                             SetFormulaCachedValue(cell, result);
-                            ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = null;
+                            cell.ClearCalculateCell();
                             changed = true;
                         }
 

@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 using System.Collections;
 using System.Data;
 using System.Data.Common;
@@ -21,11 +21,11 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
-            if (!_hasSdkWorksheetPart && !CanUseRangeStreamXmlReader()) {
-                RequireSdkWorksheetPart();
+            if (!_allowGeneralProjection && !CanUseRangeStreamXmlReader()) {
+                RequireGeneralProjection();
             }
 
-            if (_hasSdkWorksheetPart && TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
+            if (_allowGeneralProjection && TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
                     firstRow: 1,
@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel {
             }
 
             bool rowsStrictlyIncreasing = ValidateDataReaderProjection(ct);
-            if (!_hasSdkWorksheetPart && (!rowsStrictlyIncreasing || _usedRangeA1 == null)) {
-                RequireSdkWorksheetPart();
+            if (!_allowGeneralProjection && (!rowsStrictlyIncreasing || _usedRangeA1 == null)) {
+                RequireGeneralProjection();
             }
             string usedRange = GetUsedRangeA1(ct);
             return ReadRangeAsDataReaderCore(
@@ -148,7 +148,7 @@ namespace OfficeIMO.Excel {
             int rows = r2 - r1 + 1;
             ValidateDataReaderRangeShape(_opt, rows, cols, headersInFirstRow, schemaSampleRows);
             if (schemaSampleRows == 0
-                && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
+                && (!_allowGeneralProjection || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
                 ValidateDataReaderBufferedRows(_opt, 1, cols);
 
@@ -190,8 +190,8 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData is null) {
+            var sheetData = WorksheetRoot.Child(SpreadsheetXml, "sheetData");
+            if (sheetData.IsNone) {
                 yield break;
             }
 
@@ -249,7 +249,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<RangeChunk> ReadSortedDomRangeStream(
-            SheetData sheetData,
+            OfficeXmlNode sheetData,
             int r1,
             int c1,
             int r2,
@@ -258,14 +258,14 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             bool trackCellPresence) {
             int currentWindow = -1;
-            var rows = new List<Row>();
+            var rows = new List<ReaderRow>();
 
-            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData, ct)) {
                 if (ct.CanBeCanceled) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) {
                     continue;
                 }
@@ -290,7 +290,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<RangeChunk> ReadUnsortedDomRangeStreamForDataReader(
-            SheetData sheetData,
+            OfficeXmlNode sheetData,
             int r1,
             int c1,
             int r2,
@@ -298,24 +298,24 @@ namespace OfficeIMO.Excel {
             int chunkRows,
             CancellationToken ct,
             bool trackCellPresence) {
-            var windows = new SortedDictionary<int, List<Row>>();
-            foreach (Row row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
+            var windows = new SortedDictionary<int, List<ReaderRow>>();
+            foreach (ReaderRow row in EnumerateRowsWithCoordinates(sheetData, ct)) {
                 ct.ThrowIfCancellationRequested();
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1 || rowIndex > r2) {
                     continue;
                 }
 
                 int windowIndex = (rowIndex - r1) / chunkRows;
-                if (!windows.TryGetValue(windowIndex, out List<Row>? rows)) {
-                    rows = new List<Row>();
+                if (!windows.TryGetValue(windowIndex, out List<ReaderRow>? rows)) {
+                    rows = new List<ReaderRow>();
                     windows.Add(windowIndex, rows);
                 }
 
                 rows.Add(row);
             }
 
-            foreach (KeyValuePair<int, List<Row>> window in windows) {
+            foreach (KeyValuePair<int, List<ReaderRow>> window in windows) {
                 ct.ThrowIfCancellationRequested();
                 yield return ConvertSortedDomChunk(
                     window.Value,
@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
         }
 
         private RangeChunk ConvertSortedDomChunk(
-            IReadOnlyList<Row> rows,
+            IReadOnlyList<ReaderRow> rows,
             int windowIndex,
             int r1,
             int c1,
@@ -360,15 +360,15 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 int rowOffset = rowIndex - startRow;
                 if ((uint)rowOffset >= (uint)height) {
                     continue;
                 }
 
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
-                    int column = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                foreach (var cell in row.Cells()) {
+                    int column = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (column < c1 || column > c2) {
                         continue;
                     }
@@ -382,20 +382,20 @@ namespace OfficeIMO.Excel {
             return new RangeChunk(startRow, height, c1, width, values) { CellPresence = presence };
         }
 
-        private bool TryConvertCellForDataReader(Cell cell, out object? value) {
-            CellValues? typeHint = cell.DataType?.Value;
-            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out _);
-            string? rawText = cellValue?.InnerText;
-            uint? styleIndex = cell.StyleIndex?.Value;
+        private bool TryConvertCellForDataReader(ReaderCell cell, out object? value) {
+            ExcelCellValueType? typeHint = cell.Type;
+            cell.GetChildren(out string? formula, out string? cellValue, out _);
+            string? rawText = cellValue;
+            uint? styleIndex = cell.Style;
             bool canPreserveDateSerial =
                 _opt.TreatDatesUsingNumberFormat
                 && styleIndex is not null
                 && rawText != null
-                && typeHint != CellValues.SharedString
-                && typeHint != CellValues.Boolean
-                && typeHint != CellValues.String
-                && typeHint != CellValues.InlineString
-                && typeHint != CellValues.Date
+                && typeHint != ExcelCellValueType.SharedString
+                && typeHint != ExcelCellValueType.Boolean
+                && typeHint != ExcelCellValueType.String
+                && typeHint != ExcelCellValueType.InlineString
+                && typeHint != ExcelCellValueType.Date
                 && (formula == null || _opt.UseCachedFormulaResult);
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
@@ -414,7 +414,7 @@ namespace OfficeIMO.Excel {
 
         private object? ConvertRawForDataReader(CellRaw raw) {
             if (_opt.CellValueConverter == null && _opt.TreatDatesUsingNumberFormat
-                && (raw.TypeHint == null || raw.TypeHint == CellValues.Number)
+                && (raw.TypeHint == null || raw.TypeHint == ExcelCellValueType.Number)
                 && (!raw.HasFormula || _opt.UseCachedFormulaResult)
                 && string.IsNullOrEmpty(raw.InlineText)
                 && raw.StyleIndex is uint dateStyle && Styles.IsDateLike(dateStyle)
@@ -427,7 +427,7 @@ namespace OfficeIMO.Excel {
             }
             raw = ConvertRaw(raw);
             if (!raw.CustomValueHandled && raw.TypedValue is DateTime
-                && raw.TypeHint != CellValues.Date && raw.StyleIndex is uint style
+                && raw.TypeHint != ExcelCellValueType.Date && raw.StyleIndex is uint style
                 && raw.RawText != null && Styles.IsDateLike(style)
                 && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double serial)) {
                 return new ExcelDataReaderDateSerial(serial, _dateSystem, Styles.IsDateSystemShiftStyle(style));

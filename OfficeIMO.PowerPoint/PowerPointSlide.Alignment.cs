@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>
@@ -217,16 +215,10 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(left),OfficeIMO.OfficeLength.Emus(top),OfficeIMO.OfficeLength.Emus(right - left),OfficeIMO.OfficeLength.Emus(bottom - top));
         }
 
-        private PowerPointLayoutBox GetSlideBounds() {
-            PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
-            PresentationPart? presentationPart = document?.PresentationPart;
-            if (presentationPart == null) {
-                return GetSelectionBounds(ShapeList);
-            }
-
-            var slideSize = new PowerPointSlideSize(presentationPart);
-            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(slideSize.Width.ToEmus()),OfficeIMO.OfficeLength.Emus(slideSize.Height.ToEmus()));
-        }
+        private PowerPointLayoutBox GetSlideBounds() =>
+            OwnerDocument is { } document
+                ? new PowerPointLayoutBox(OfficeLength.Zero, OfficeLength.Zero, document.SlideSize.Width, document.SlideSize.Height)
+                : GetSelectionBounds(ShapeList);
 
         private static void DistributeHorizontal(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds) {
             List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left.ToEmus()).ToList();

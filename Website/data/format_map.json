@@ -131,6 +131,26 @@
       "family": "books"
     },
     {
+      "name": "Comic book ZIP",
+      "family": "books"
+    },
+    {
+      "name": "Comic book 7z",
+      "family": "books"
+    },
+    {
+      "name": "Comic book RAR 5 (stored)",
+      "family": "books"
+    },
+    {
+      "name": "FictionBook 2",
+      "family": "books"
+    },
+    {
+      "name": "Mobipocket and Kindle",
+      "family": "books"
+    },
+    {
       "name": "Book project",
       "family": "books"
     },
@@ -252,6 +272,14 @@
     },
     {
       "name": "JSON Lines",
+      "family": "other"
+    },
+    {
+      "name": "Jupyter Notebook",
+      "family": "other"
+    },
+    {
+      "name": "Notebook source",
       "family": "other"
     },
     {
@@ -1061,9 +1089,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportWordAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -1235,6 +1265,286 @@
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp"
+    },
+    {
+      "id": "ebook-cb7-epub",
+      "source": "Comic book 7z",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-html",
+      "source": "Comic book 7z",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-markdown",
+      "source": "Comic book 7z",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-pdf",
+      "source": "Comic book 7z",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-epub",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-html",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-markdown",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbr-pdf",
+      "source": "Comic book RAR 5 (stored)",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbz-epub",
+      "source": "Comic book ZIP",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbz-html",
+      "source": "Comic book ZIP",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbz-markdown",
+      "source": "Comic book ZIP",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cbz-pdf",
+      "source": "Comic book ZIP",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-epub",
+      "source": "FictionBook 2",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-html",
+      "source": "FictionBook 2",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-markdown",
+      "source": "FictionBook 2",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-pdf",
+      "source": "FictionBook 2",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-epub",
+      "source": "Mobipocket and Kindle",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-html",
+      "source": "Mobipocket and Kindle",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-markdown",
+      "source": "Mobipocket and Kindle",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-pdf",
+      "source": "Mobipocket and Kindle",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
     },
     {
       "id": "email-eml-msg",
@@ -1660,12 +1970,14 @@
       "id": "html-epub",
       "source": "HTML",
       "target": "EPUB",
-      "package": "OfficeIMO.Epub",
+      "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2106,9 +2418,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportMarkdownAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2521,6 +2835,109 @@
       "surfaces": [
         "dotnet"
       ]
+    },
+    {
+      "id": "notebook-docx",
+      "source": "Jupyter Notebook",
+      "target": "DOCX",
+      "package": "OfficeIMO.Notebook.Word",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookDocument.Load(stream).SaveAsWord(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.docx"
+    },
+    {
+      "id": "notebook-html",
+      "source": "Jupyter Notebook",
+      "target": "HTML",
+      "package": "OfficeIMO.Notebook.Html",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).SaveAsHtml(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.html"
+    },
+    {
+      "id": "notebook-markdown",
+      "source": "Jupyter Notebook",
+      "target": "Markdown",
+      "package": "OfficeIMO.Notebook.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).ToMarkdown(options, out report)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.md"
+    },
+    {
+      "id": "notebook-pdf",
+      "source": "Jupyter Notebook",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "NotebookDocument.Load(stream).SaveAsPdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }"
+    },
+    {
+      "id": "notebook-source-ipynb",
+      "source": "Notebook source",
+      "target": "Jupyter Notebook",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookImporter.Load(stream, format).Value.Save(output)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.ipynb"
+    },
+    {
+      "id": "notebook-source-pdf",
+      "source": "Notebook source",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.pdf"
     },
     {
       "id": "numbers-pdf",

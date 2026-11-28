@@ -10,6 +10,13 @@ using OfficeIMO.Excel.Utilities;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private ExcelSheet? TryGetExistingSheet(string sheetName) {
+            if (_deferredWorkbook is { } deferred) {
+                // The deferred sheet list names the same worksheets, so a read selects one without opening the SDK.
+                foreach (ExcelDeferredSheet entry in deferred.Sheets) {
+                    if (string.Equals(entry.Name, sheetName, StringComparison.Ordinal)) return entry.IsWorksheet ? new ExcelSheet(this, entry) : null;
+                }
+                return null;
+            }
             Sheet? sheetElement = null;
             var sheets = WorkbookRoot.Sheets;
             if (sheets != null) {
@@ -782,6 +789,40 @@ namespace OfficeIMO.Excel {
             } finally {
                 DeleteFileIfExists(temporaryPath);
             }
+        }
+
+        /// <summary>
+        /// Writes the package of a new workbook whose only worksheet holds plain values recorded on the empty sheet, with
+        /// the tabular writer a new workbook's cell buffer saves through. Returns false, having written nothing, for any
+        /// other workbook: more sheets, styles, fewer cells than the buffer's direct save takes, or a sheet already saved.
+        /// </summary>
+        private bool TryCreateTabularPackageBytes((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, long? limit, out byte[] bytes) {
+            bytes = Array.Empty<byte>();
+            ExcelDeferredWorkbook workbook = _deferredWorkbook!;
+            if (!_deferredCreated || edits.Length != 1 || workbook.Sheets.Count != 1 || !workbook.Sheets[0].IsWorksheet) return false;
+            // The tabular writer declares an XLSX workbook; templates, macro-enabled workbooks and add-ins keep their own
+            // type through the owned save.
+            if (!string.Equals(ReadDeferredMainContentType(), CreatedMainContentType(ExcelDocumentType.Workbook), StringComparison.OrdinalIgnoreCase)) return false;
+            (ExcelSheet sheet, ExcelDeferredCellStore store) = edits[0];
+            ExcelDeferredSheet entry = workbook.Sheets[0];
+            if (!ReferenceEquals(sheet.DeferredEntry, entry) || store.Count < ExcelSheet.PendingDirectCellValueMinimumCellCount) return false;
+            if (!entry.IsNewSheet) return false;
+
+            // A new sheet's values stay in the buffer while they arrive row by row; anything else opened the model.
+            if (store.Tabular is not { } cellsToWrite) return false;
+
+            var model = DirectDataSetWorkbookModel.CreateSingle(entry.Name, "Cells", tableName: null, cellsToWrite.TabularRange,
+                DirectDataSetTableModel.FromCellValueBuffer(cellsToWrite), createTable: false, ExcelTableStyle.TableStyleMedium2,
+                includeHeaders: false, includeAutoFilter: false, autoFit: false, EffectiveDateTimeOffsetWriteStrategy, CancellationToken.None,
+                useCellValueNumberFormats: true, DateSystem, omitBlankCells: true);
+            bool disableSharedStrings = !model.Sheets[0].IncludeCellReferences;
+            using var output = new LimitedMemoryStream(64 * 1024, limit);
+            // The theme the workbook holds now, which ApplyTheme or SetWorkbookThemeXml may have replaced since it was created.
+            if (ReadDeferredThemeXml() is not { } themeXml) return false;
+            DirectDataSetWorkbookWriter.Write(output, model, CancellationToken.None, themeXml,
+                disableSharedStrings, theme: _defaultFontTheme, allowBackgroundCompression: Execution.AllowsBackgroundProcessing);
+            bytes = output.ToArray();
+            return true;
         }
     }
 }

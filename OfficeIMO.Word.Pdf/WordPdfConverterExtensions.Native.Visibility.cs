@@ -1,25 +1,23 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     private static bool GetNativeParagraphHiddenDefault(WordParagraph paragraph) =>
         GetNativeParagraphStyleDefaults(paragraph).Hidden ??
-        ReadNativeOnOff(WordStyleCatalog.For(paragraph._document).DocumentDefaults?.RunPropertiesDefault?
-            .RunPropertiesBaseStyle?.GetFirstChild<W.Vanish>()) ?? false;
+        WordStyleCatalog.For(paragraph._document).DocumentDefaultsNode().WChild("rPrDefault").WChild("rPr")
+            .WChild("vanish").OnOff() ?? false;
 
     private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph) {
         // A paragraph mark inherits run defaults independently of the visible text.
-        bool hiddenMark = ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?
-            .ParagraphMarkRunProperties?.GetFirstChild<W.Vanish>()) ??
+        bool hiddenMark = paragraph.Node().WChild("pPr").WChild("rPr").WChild("vanish").OnOff() ??
             GetNativeParagraphHiddenDefault(paragraph);
         return !hiddenMark;
     }
 
     private static bool IsNativeHiddenTextRun(WordParagraph paragraph, WordParagraph? fallback = null) {
-        W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
+        OfficeXmlNode runProperties = GetNativeRunProperties(paragraph);
         NativeCharacterStyleDefaults characterStyle = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
-        return ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ??
+        return runProperties.WChild("vanish").OnOff() ??
             characterStyle.Hidden ?? GetNativeParagraphHiddenDefault(fallback ?? paragraph);
     }
 }

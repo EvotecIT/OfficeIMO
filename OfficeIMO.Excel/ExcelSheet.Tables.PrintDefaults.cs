@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private double MeasureTableColumnsWidthPoints() {
+        private int MeasureTableLastColumn() {
             int lastColumn = 0;
             foreach (var part in _worksheetPart.TableDefinitionParts) {
                 if (part.Table?.Reference?.Value is string reference &&
@@ -66,6 +66,11 @@ namespace OfficeIMO.Excel {
                     lastColumn = Math.Max(lastColumn, tableLastColumn);
                 }
             }
+            return lastColumn;
+        }
+
+        private double MeasureTableColumnsWidthPoints() {
+            int lastColumn = GetCurrentTableLayout()?.LastColumn ?? MeasureTableLastColumn();
 
             if (lastColumn == 0) return 0D;
             IReadOnlyList<ExcelColumnInfo> columns = _excelDocument.HasPendingDirectCellValues

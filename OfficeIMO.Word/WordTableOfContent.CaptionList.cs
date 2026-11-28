@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -241,9 +242,9 @@ namespace OfficeIMO.Word {
 
             content.RemoveAllChildren();
             content.Append(titleParagraph);
-            AppendGeneratedFieldResult(content, instruction, entries.Select(entry => CreateEntryParagraph(
+            AppendGeneratedFieldResult(OfficeXmlNode.FromSdk(content), instruction, entries.Select(entry => CreateEntryParagraph(
                 new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false),
-                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)), noContentText);
+                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)).Select(OfficeXmlNode.FromSdk), noContentText);
         }
 
         private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier) {
@@ -335,7 +336,9 @@ namespace OfficeIMO.Word {
                 bookmarkName = "_OfficeIMO_Caption_" + safeSequence + "_" + captionIndex.ToString(CultureInfo.InvariantCulture) + "_" + existingBookmarkNames.Count.ToString(CultureInfo.InvariantCulture);
             } while (!existingBookmarkNames.Add(bookmarkName));
 
-            string bookmarkId = GetNextCaptionBookmarkId().ToString(CultureInfo.InvariantCulture);
+            int nextId = GetNextCaptionBookmarkId();
+            _document.ObserveBookmarkId(nextId);
+            string bookmarkId = nextId.ToString(CultureInfo.InvariantCulture);
             var bookmarkStart = new BookmarkStart {
                 Name = bookmarkName,
                 Id = bookmarkId

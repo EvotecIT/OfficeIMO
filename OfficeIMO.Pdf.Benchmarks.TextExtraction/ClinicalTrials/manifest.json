@@ -1,0 +1,1617 @@
+{
+  "version": 1,
+  "source": "ClinicalTrials.gov API v2, trials whose registry record includes a protocol document",
+  "seed": "officeimo-ctgov-1",
+  "maxFileBytes": 26214400,
+  "perClass": {
+    "INDUSTRY": 50,
+    "OTHER": 50,
+    "NIH": 25,
+    "FED": 25,
+    "OTHER_GOV": 20,
+    "NETWORK": 20,
+    "INDIV": 10
+  },
+  "trials": [
+    {
+      "nctId": "NCT01647581",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2019-10-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 257306,
+      "sha256": "0e11157a77ba2454c28a3a890f496314f20a9ac7ffe7d69597c2ad59a9f0186f"
+    },
+    {
+      "nctId": "NCT01900561",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2019-05-07",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 485095,
+      "sha256": "5dfac3fd8d57bf20941ef49aea6362b2dd8d16622e914002c5c2a30aa3cb0c3d"
+    },
+    {
+      "nctId": "NCT02046941",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2019-08-28",
+      "file": "Prot_000.pdf",
+      "bytes": 167377,
+      "sha256": "743457171cd987b502cfbc009d40ea687f549aac73fed243392571563b9402ba"
+    },
+    {
+      "nctId": "NCT02278562",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2025-02-06",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2678943,
+      "sha256": "f75dd8407cf54ec870eb8702e89de15317b92ab3d78e5efe735153fc8f1ff0f6"
+    },
+    {
+      "nctId": "NCT02280304",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2020-03-09",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 458189,
+      "sha256": "b579c2489aa32e83758013c161675892ebd6eaed5564e06e205ab40dc608877b"
+    },
+    {
+      "nctId": "NCT02621424",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2025-09-30",
+      "file": "Prot_000.pdf",
+      "bytes": 227143,
+      "sha256": "7a154dd2084d60330b53404c4879d6733d10164a23efcebb8b0f0f3cda2ab888"
+    },
+    {
+      "nctId": "NCT02633891",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-06-28",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 654647,
+      "sha256": "c6f11b6f27790f9d89c5278f6f3441cdbff734cd137e40e467c093faac180246"
+    },
+    {
+      "nctId": "NCT02652442",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2021-11-04",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 3740579,
+      "sha256": "c425d3491cae0ba3bc8926b512b8e5e1fb2646fad0e4c72a3583c8f28cbe30c4"
+    },
+    {
+      "nctId": "NCT02719327",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-11-26",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 646594,
+      "sha256": "42449fef75b4edcb6232deeba985d3ce86be68cae151da01a251950dbc5e0bf2"
+    },
+    {
+      "nctId": "NCT02771990",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2023-03-29",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 651967,
+      "sha256": "b93db323ab3cd268a7e46158ee07595270667087f198e4f273165a875c3dd240"
+    },
+    {
+      "nctId": "NCT02943408",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2023-12-26",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 6193357,
+      "sha256": "378b89cbaebea9619f00e8ed4c88cb66ee687939aa30ec98cb339fc7dbbc6605"
+    },
+    {
+      "nctId": "NCT03364192",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2020-12-21",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 558636,
+      "sha256": "5f701d5ff036eb64f54f4fb09f559a9c94c2eeb811b4e63fe25612def7187cab"
+    },
+    {
+      "nctId": "NCT03460236",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2025-05-23",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 256869,
+      "sha256": "907d0efc955c811abc36f81e48fa7420584ee6afac7ce78d63c4811a117c765c"
+    },
+    {
+      "nctId": "NCT03474380",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-06-10",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 781232,
+      "sha256": "bcbdf333802d8cb2b9689d33145fe7f3261a32b4665806f7d3b1a734fbcd14ec"
+    },
+    {
+      "nctId": "NCT03518801",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2026-11-17",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 414424,
+      "sha256": "e63e40d88d994b5312f15a635d07d264bed31e7caabe7cf8a0e8d8e43698602a"
+    },
+    {
+      "nctId": "NCT03520387",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2021-09-05",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1384383,
+      "sha256": "653f23d5a824c08e02ac8daa2086f981a5807d83b60995713f116c7ffa2d9429"
+    },
+    {
+      "nctId": "NCT03581981",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-07-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 458842,
+      "sha256": "d679c34080ef7948e3a3a21a5d83af88e024d4ebeea0019b000fa7784ac5f1db"
+    },
+    {
+      "nctId": "NCT03750903",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2025-04-03",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 232731,
+      "sha256": "2671e312cd7f03311435bc8ab8d890f4d3a3964e3fac8ff215b9fad426260bf2"
+    },
+    {
+      "nctId": "NCT03802513",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2022-05-17",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 238123,
+      "sha256": "99c04b112e96c4d37b3cd7fc9acb26e50ed7a9760fdd61394b8b836ba82cf7ce"
+    },
+    {
+      "nctId": "NCT03812146",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2022-11-16",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 163229,
+      "sha256": "1841961c720e111a42f6562360a7ada3c0ee7dbdc175cf0e639ef2fad5f030a4"
+    },
+    {
+      "nctId": "NCT03964246",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-07-05",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 3797705,
+      "sha256": "8cbc1be1cb39ee823e2f8f02a92a01270cb40054137d27554a910118e987a6bd"
+    },
+    {
+      "nctId": "NCT04241094",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2024-07-01",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 592056,
+      "sha256": "6cddc0f11403e9a424ce4b88263725390c6d6da72c18b371e302d9f5e51ba4cc"
+    },
+    {
+      "nctId": "NCT04446468",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2026-01-28",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 1471990,
+      "sha256": "65b16ba6611204c58866b839d9e9eb639adc5b74e4b93d1c5fb1adf2db776a87"
+    },
+    {
+      "nctId": "NCT04518943",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2025-04-30",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 561176,
+      "sha256": "dd0be194b837d55cb4a09543e8f1f42eaeea755e5bbac43653c18f4ad7ceb2d8"
+    },
+    {
+      "nctId": "NCT04567680",
+      "sponsorClass": "FED",
+      "lastUpdatePosted": "2026-02-13",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 357012,
+      "sha256": "0ba4ee109fe18b873daf2d4d6bdb989dd2fdbefa35e2e0b2eb89b2a210a42470"
+    },
+    {
+      "nctId": "NCT01715883",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2018-08-01",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 520412,
+      "sha256": "38b3324106c5dfc77e929888a57fe91c62240408bd0dad69c028ae4ca98d6179"
+    },
+    {
+      "nctId": "NCT02029937",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2021-01-14",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 164924,
+      "sha256": "bfc6d449ba686c56d1f495172b26e10b28c88bde07f633726365acdb1b945b06"
+    },
+    {
+      "nctId": "NCT02176018",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2018-04-03",
+      "file": "Prot_001.pdf",
+      "bytes": 420069,
+      "sha256": "c87232d1cc9040cc6442b6e581a4b5f3ca9fbe0f48f01bc09175bf68888d9095"
+    },
+    {
+      "nctId": "NCT02457260",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2018-09-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 500906,
+      "sha256": "ad9e45d114291c8a3e8d84920c3f392b14fd1cfbe0730ce9f6ace33add4fa490"
+    },
+    {
+      "nctId": "NCT02545114",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2018-09-24",
+      "file": "Prot_000.pdf",
+      "bytes": 110545,
+      "sha256": "ee253174e8cdf96798c4bc9ead05eaeb3e9a1730391401a116c57964b38acff4"
+    },
+    {
+      "nctId": "NCT02729714",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2024-08-20",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 618562,
+      "sha256": "87c7cd6999ab19585eb79927ffb0af67960bd0e7af07ddd3428332bb74ca7309"
+    },
+    {
+      "nctId": "NCT04029311",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2021-04-02",
+      "file": "Prot_SAP_ICF_001.pdf",
+      "bytes": 326128,
+      "sha256": "10b52b8476b5b554b0869103278e83c003c68d6bea8a9bf8757a5379ef926041"
+    },
+    {
+      "nctId": "NCT04405180",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2024-10-10",
+      "file": "Prot_SAP_002.pdf",
+      "bytes": 1010684,
+      "sha256": "43a6dedf47ef3a33678217d7e6ebb4beb001a743a3da4626f96c18893e78bb81"
+    },
+    {
+      "nctId": "NCT05396781",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2022-06-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 528503,
+      "sha256": "4b5c73e00a81fe790f883857cc8e96057606305306f7a9a29f02903811a33b71"
+    },
+    {
+      "nctId": "NCT06357104",
+      "sponsorClass": "INDIV",
+      "lastUpdatePosted": "2024-04-10",
+      "file": "Prot_ICF_000.pdf",
+      "bytes": 479591,
+      "sha256": "19aca75ab7d42cd50a86a2028aee21978189d0ed2649ddf6f0e525349fb63ea4"
+    },
+    {
+      "nctId": "NCT01279850",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-10-10",
+      "file": "Prot_000.pdf",
+      "bytes": 351844,
+      "sha256": "f2566c6b50e55d0514c6fdb4b8c9151cbc96670e7a6c37510f8f41472dc35451"
+    },
+    {
+      "nctId": "NCT01773993",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-10-10",
+      "file": "Prot_000.pdf",
+      "bytes": 338303,
+      "sha256": "921bebbd5011e454c2f0f5fc7bd62407afad26bbfb69fd4d5ccb41c94cf04eb9"
+    },
+    {
+      "nctId": "NCT01927861",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-08-10",
+      "file": "Prot_000.pdf",
+      "bytes": 1877670,
+      "sha256": "26d7abf24fae587bdd8706d534c03323d52eac9901da3a6af160cba151db16fd"
+    },
+    {
+      "nctId": "NCT02060721",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-03-30",
+      "file": "Prot_000.pdf",
+      "bytes": 2765260,
+      "sha256": "7d3662c770af1aa872ac82793ed8ab96f6baa83a9eaeed7a499ed41d9a35ec19"
+    },
+    {
+      "nctId": "NCT02065791",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2019-12-05",
+      "file": "Prot_000.pdf",
+      "bytes": 2083895,
+      "sha256": "44e972d5baa07d3672e5153c6410de855b827c5fc06df58464e9a1879d570959"
+    },
+    {
+      "nctId": "NCT02301611",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-11-29",
+      "file": "Prot_000.pdf",
+      "bytes": 1496317,
+      "sha256": "cee19e4f3d7c46b57e6269994c727239b62c22d9c7d17b3e9e97874dd6bd49aa"
+    },
+    {
+      "nctId": "NCT02308046",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-07-27",
+      "file": "Prot_000.pdf",
+      "bytes": 2839255,
+      "sha256": "c29521cfee87358e2670408315c7559977ed0f7a965405acd8907cbcb73020b3"
+    },
+    {
+      "nctId": "NCT02333383",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2019-01-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 463856,
+      "sha256": "a79050329028e98f4159deb437d2b4f8d348a69687827ab6323a643622139cfa"
+    },
+    {
+      "nctId": "NCT02343120",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2022-04-28",
+      "file": "Prot_000.pdf",
+      "bytes": 1349537,
+      "sha256": "6bdf18ef83218c4a3e22359798ba630e281305e6ee290beea0d3f9d8b8eced65"
+    },
+    {
+      "nctId": "NCT02571777",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-07-22",
+      "file": "Prot_001.pdf",
+      "bytes": 2603175,
+      "sha256": "623938c2c368ec0e20b4da5c68b18f35bf8521b871fcfbfa27c0d3fdabfa28d5"
+    },
+    {
+      "nctId": "NCT02677116",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-05-20",
+      "file": "Prot_000.pdf",
+      "bytes": 1503584,
+      "sha256": "9e75c7950b8afffbeb4e65d0f195183c5d994d91e0bb3a0e20a3749107273f2b"
+    },
+    {
+      "nctId": "NCT02755597",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-08-22",
+      "file": "Prot_000.pdf",
+      "bytes": 2930714,
+      "sha256": "ca112f8b9164ae1d04c56a4842a7ab232fe608073a16b41f512b00d10ee54de7"
+    },
+    {
+      "nctId": "NCT02817906",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-11-20",
+      "file": "Prot_000.pdf",
+      "bytes": 4915086,
+      "sha256": "2a3def6dc2be23a24f935812ddbecf55283cb3f81c94ee3b0bb2b83f4c7bbbb1"
+    },
+    {
+      "nctId": "NCT02963493",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2022-11-22",
+      "file": "Prot_000.pdf",
+      "bytes": 1625000,
+      "sha256": "10f0062f660e57ad6f2de2857ff3e3dd883c6051868bc25ea7af978f7affe1bd"
+    },
+    {
+      "nctId": "NCT02987205",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2018-02-22",
+      "file": "Prot_000.pdf",
+      "bytes": 2591621,
+      "sha256": "046b5ccab4fec75c346c0f810cd8c7c78f257ddef465d307c9dcf94d98cb5814"
+    },
+    {
+      "nctId": "NCT03001219",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-01-29",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2739377,
+      "sha256": "4f0c85555424d34c4a8b7c2d2f519ee33099b71997088e1ba94134d151e13b1d"
+    },
+    {
+      "nctId": "NCT03103087",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2022-04-20",
+      "file": "Prot_000.pdf",
+      "bytes": 9164285,
+      "sha256": "1823021cd9d5fc24ef01e4f7d505dd3f4c197e4eacd7d3105a4a8eaac5ea4050"
+    },
+    {
+      "nctId": "NCT03170193",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2019-07-05",
+      "file": "Prot_000.pdf",
+      "bytes": 1986527,
+      "sha256": "ec1874d76cbf549d085a5a645ef1f3ead295badb0827a42d21f549ed78de0880"
+    },
+    {
+      "nctId": "NCT03201003",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2021-08-03",
+      "file": "Prot_000.pdf",
+      "bytes": 1246259,
+      "sha256": "a0809513b909253886f712d449dc34d7b118105c1a589e3876ede295bc49a41f"
+    },
+    {
+      "nctId": "NCT03282591",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2021-05-20",
+      "file": "Prot_000.pdf",
+      "bytes": 1002328,
+      "sha256": "645cb6379d3d2b10e45b270a68c1b0d369654939d90b1908a30ab1ff465820eb"
+    },
+    {
+      "nctId": "NCT03345472",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-11-03",
+      "file": "Prot_000.pdf",
+      "bytes": 658168,
+      "sha256": "0f66caedb37a773178f5341e072f11ea0d5b79b186e828a2bb3b3e37ea7221fa"
+    },
+    {
+      "nctId": "NCT03372434",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-06-24",
+      "file": "Prot_000.pdf",
+      "bytes": 12855870,
+      "sha256": "7a1cb4a1b38fd701bc53530d40c1c5b4cdcc84f0dff88ee79961a3e1b0d0eca2"
+    },
+    {
+      "nctId": "NCT03373383",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-12-19",
+      "file": "Prot_000.pdf",
+      "bytes": 2335549,
+      "sha256": "6e0b934ee1d2acf16af179397ba932344032dec3bc98049e082aa65a5ecd4e7f"
+    },
+    {
+      "nctId": "NCT03443869",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-07-28",
+      "file": "Prot_000.pdf",
+      "bytes": 1496098,
+      "sha256": "c1d2bf34eef1a8db995c34466aebb9fdf6e80b0eb212953cf6bafac4bc6723f5"
+    },
+    {
+      "nctId": "NCT03487250",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-05-07",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 515113,
+      "sha256": "5941df702bec5f72c6ec283dc2c61dc8e1bd29935cc75083121e8aafce6bc028"
+    },
+    {
+      "nctId": "NCT03489343",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2021-10-12",
+      "file": "Prot_000.pdf",
+      "bytes": 1863277,
+      "sha256": "0ea0177e1a626ab59b573092a008534b9a5a80a730b25cf997a4fa8a08f865ce"
+    },
+    {
+      "nctId": "NCT03530917",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-07-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1493106,
+      "sha256": "897e5edfe8f2ceb1c0d2baa5eeb8770b0d09d2506972f5d3d1caa039c337eb41"
+    },
+    {
+      "nctId": "NCT03606460",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2020-06-29",
+      "file": "Prot_000.pdf",
+      "bytes": 1213262,
+      "sha256": "0084d00d26bcbc1dbe3c297328688efab37532b075f640ec89d64869eb5de775"
+    },
+    {
+      "nctId": "NCT03667053",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2021-06-30",
+      "file": "Prot_000.pdf",
+      "bytes": 3781458,
+      "sha256": "a1f0ce2414af1a530cee0861742ff82e49966814d801f2c3e242a861b9181e39"
+    },
+    {
+      "nctId": "NCT03675737",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-02-27",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2915408,
+      "sha256": "9426565c818e907be77cdf18a36d7dd37bfabb2f8771b8495d0d415b0d95efe4"
+    },
+    {
+      "nctId": "NCT03703908",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-03-17",
+      "file": "Prot_000.pdf",
+      "bytes": 1417375,
+      "sha256": "89697515c3d5601b62a8e44002f7cfe712cf28679e9c9b97ee3146d8e66a8dcc"
+    },
+    {
+      "nctId": "NCT03761914",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-11-19",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 3858310,
+      "sha256": "48575af72217a2a647a520cd6cb51c7a121fbe70ff236053ba9b3db87fee1a30"
+    },
+    {
+      "nctId": "NCT03770078",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-04-01",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 7454129,
+      "sha256": "c23ac3245905fcc83e37f8ed18a56468f43a4205b56b952757b2efa4fe7885a1"
+    },
+    {
+      "nctId": "NCT03818672",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2023-11-30",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 558796,
+      "sha256": "58baf3170af4f2ee97fe628fc7dd60b8181f43dafebdbe06ff9f443c883a9ad8"
+    },
+    {
+      "nctId": "NCT03908125",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-06-12",
+      "file": "Prot_000.pdf",
+      "bytes": 18256478,
+      "sha256": "596ede64b0e064b0a4e2df2edd4c225d8ed4f43396ce3fa98dae77b1e1699539"
+    },
+    {
+      "nctId": "NCT03926195",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-04-30",
+      "file": "Prot_000.pdf",
+      "bytes": 12170147,
+      "sha256": "15f9ad60517d27d93d43cd32412875cf3f9cc6be4bdcbf39d1b03de76e66335f"
+    },
+    {
+      "nctId": "NCT04028492",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-09-24",
+      "file": "Prot_SAP_002.pdf",
+      "bytes": 697650,
+      "sha256": "a9d2bfd1598e1f6a5dfcde49f298a0a536d1e1ce1ae3615cf13ecd4b1259f7e4"
+    },
+    {
+      "nctId": "NCT04099277",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2021-08-31",
+      "file": "Prot_000.pdf",
+      "bytes": 1533084,
+      "sha256": "03b3895e069fd4d220dd14d679eccd36f8bb992c5f343921cd2146900bf6d4e0"
+    },
+    {
+      "nctId": "NCT04308395",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-09-24",
+      "file": "Prot_002.pdf",
+      "bytes": 972471,
+      "sha256": "fb074d7047a6f3a9730445ccded168bd008f6a8e0b25d3a16a729fba612b096c"
+    },
+    {
+      "nctId": "NCT04425902",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-01-05",
+      "file": "Prot_000.pdf",
+      "bytes": 888021,
+      "sha256": "1da06a14ff5e31b71a4f7b300402023c48e420cc0d38f7e12f171f297f079e00"
+    },
+    {
+      "nctId": "NCT04816526",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-10-08",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 2817776,
+      "sha256": "eed611ebb4140959e0145efe360e9ac04058e34a09c490b737a341e911258b7f"
+    },
+    {
+      "nctId": "NCT04949841",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-04-08",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1289915,
+      "sha256": "7b758834ecac9ef24828296bcb3ca476b2d9ac9c1156ad0ee0af0536075c47cd"
+    },
+    {
+      "nctId": "NCT05071053",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-08-22",
+      "file": "Prot_000.pdf",
+      "bytes": 1625192,
+      "sha256": "ca9b7f24c61b2ddc28fb87564a6950bdd99fa267342cb0a676b0d1b420144fb0"
+    },
+    {
+      "nctId": "NCT05346640",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-03-12",
+      "file": "Prot_000.pdf",
+      "bytes": 7624368,
+      "sha256": "0b2a56868532686b59be46871503fc2c457b00fa15ed51425e548dc9750693c9"
+    },
+    {
+      "nctId": "NCT05600322",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-10-03",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 751689,
+      "sha256": "1dcc959f7a67b0abd7e36deef321afcbb6b09edea9bb53edb811387158641bb2"
+    },
+    {
+      "nctId": "NCT05694533",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2024-05-28",
+      "file": "Prot_000.pdf",
+      "bytes": 1060199,
+      "sha256": "b8928d74230a02e27caceb98c7344e60e5c792629545b17c28e2c78a47536ac1"
+    },
+    {
+      "nctId": "NCT05744401",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-02-25",
+      "file": "Prot_000.pdf",
+      "bytes": 4408915,
+      "sha256": "5530b920fc953ecfa8e9b13fe93761fd35f385cdf475d98e24b5467abe55f3e6"
+    },
+    {
+      "nctId": "NCT06126497",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2026-09-01",
+      "file": "Prot_000.pdf",
+      "bytes": 2028531,
+      "sha256": "e93e76b069cda6e07580547a4ba36a300b9128efeb6f48ec20af0ad480153ea4"
+    },
+    {
+      "nctId": "NCT06463613",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-11-13",
+      "file": "Prot_000.pdf",
+      "bytes": 790321,
+      "sha256": "cbb04ca2f1d3dc9466cb1aeffa26840673194cabdcff4b96c99593fc3f406726"
+    },
+    {
+      "nctId": "NCT06493604",
+      "sponsorClass": "INDUSTRY",
+      "lastUpdatePosted": "2025-12-22",
+      "file": "Prot_000.pdf",
+      "bytes": 4753616,
+      "sha256": "5c3e723e6ef75276e6fab3694b52858dac167b7aeb16a88db13bff3da27f3e2c"
+    },
+    {
+      "nctId": "NCT00567580",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2025-05-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1764253,
+      "sha256": "276055f789c82719b61cb3b26de51e4cbf2b6f911feb3b4512eef48e92c7f29a"
+    },
+    {
+      "nctId": "NCT01233531",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2025-03-25",
+      "file": "Prot_ICF_000.pdf",
+      "bytes": 2007565,
+      "sha256": "c68ab0e2682d0e8d04352a12b58553f514d554cdb8216df30d001a14f73665cf"
+    },
+    {
+      "nctId": "NCT01353313",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2025-02-27",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 251997,
+      "sha256": "8820006fceb152157aad841eba8fb5f91e1f26540851f6b8a204146d7192a328"
+    },
+    {
+      "nctId": "NCT01435018",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2021-10-20",
+      "file": "Prot_ICF_000.pdf",
+      "bytes": 2605825,
+      "sha256": "2e41abb97f2cd2bb87f9496e74a36399882369bf345443c15f7fce9ea6b25425"
+    },
+    {
+      "nctId": "NCT01775475",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2022-10-10",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 669457,
+      "sha256": "a81a05d89c5f5210204850297f8d535c698fdc309abc6bf84c183e6a54cad897"
+    },
+    {
+      "nctId": "NCT01817075",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2021-06-22",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1237440,
+      "sha256": "44b0924ea1318b4e0693a571b6b5e0e003e47cbc3f188cd0330d5cd771a184c8"
+    },
+    {
+      "nctId": "NCT01898494",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-04-01",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1947637,
+      "sha256": "c8f46cc5f9f29ab2d04a30a64198353bf834edcd385dda2f221ff4752a736831"
+    },
+    {
+      "nctId": "NCT02017964",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2023-01-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2919757,
+      "sha256": "96902cb620b6f8241281fa7768d95c1aca77019f899457d404358ca12de0ca13"
+    },
+    {
+      "nctId": "NCT02323880",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2025-01-14",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1997637,
+      "sha256": "aed0482d89d548ca10f61b728f0f71c617cb1cf487664f87655eb680cb1c2248"
+    },
+    {
+      "nctId": "NCT02393833",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-08-12",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 261127,
+      "sha256": "a665f6ed49011118fe037bb1a58d9eb23fc296285c45708352f3da0485f3599a"
+    },
+    {
+      "nctId": "NCT02891096",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2025-02-24",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 4960248,
+      "sha256": "65ed2cd65061d74f38cbc5ac2b62387aa2eeb2581688e409132f43174c1a9410"
+    },
+    {
+      "nctId": "NCT03259035",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-04-09",
+      "file": "Prot_000.pdf",
+      "bytes": 900756,
+      "sha256": "488baff1b38783b450d7e9d6da6d780b8df00bd82028a10c62de511138d2d1c2"
+    },
+    {
+      "nctId": "NCT03323034",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2024-10-22",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1649337,
+      "sha256": "1a3c0509dae60a07102e81148e6b815719d6c24359adcddc8f859bedfc6e6917"
+    },
+    {
+      "nctId": "NCT03445000",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-07-21",
+      "file": "Prot_002.pdf",
+      "bytes": 1077392,
+      "sha256": "1825d7b39469808653af53fdbb6c7f4565ed61ecf76f754683efcfb4d6317db2"
+    },
+    {
+      "nctId": "NCT03603808",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-07-08",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 3195601,
+      "sha256": "685fdbec2561638a39e67b272d0a9686f042f4a0e9d72d5241657be41fb2ebde"
+    },
+    {
+      "nctId": "NCT05784584",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2024-12-30",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 546592,
+      "sha256": "2c07ea09fa399067cfc30551e4952080d61cc115cdf31a41dc541cd9b025bccb"
+    },
+    {
+      "nctId": "NCT05980260",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-10-29",
+      "file": "Prot_000.pdf",
+      "bytes": 777547,
+      "sha256": "02fcbdb216aa13541295e5ed10f2d89535a5b25d775afef280afbe847978932c"
+    },
+    {
+      "nctId": "NCT06230263",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2024-01-30",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 409341,
+      "sha256": "4d800a80a269b9fb5a93b24783c6c7a27db0c9697ff0da60a840ff4e778d1b15"
+    },
+    {
+      "nctId": "NCT07790705",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-09-14",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 555037,
+      "sha256": "395fc73bb5f23d3722b12a3d073d843bcdb1b18d4c83782d619b47c2112ac8f1"
+    },
+    {
+      "nctId": "NCT07945002",
+      "sponsorClass": "NETWORK",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 1700313,
+      "sha256": "96ac849cb33985d18503710c3a81f0b288d6d6a52aefa81ef55372c32b4bf167"
+    },
+    {
+      "nctId": "NCT00076102",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2018-04-23",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 2023516,
+      "sha256": "bdb2e89ca2b7bcf31ff7529ab163f3154cf2007d1e3a506be773af90d2c8e569"
+    },
+    {
+      "nctId": "NCT00794040",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2019-05-07",
+      "file": "Prot_000.pdf",
+      "bytes": 789477,
+      "sha256": "ae86a05a1ff0c4f8abfc0413883a48d89e6157c00d072de89fbbec762190ebd3"
+    },
+    {
+      "nctId": "NCT01076543",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2019-10-16",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2129289,
+      "sha256": "1594e52a8c481a23695331ad2208a3d65545bff0b400a63c4c79021a2a95de10"
+    },
+    {
+      "nctId": "NCT01514201",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2019-08-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2529782,
+      "sha256": "7d68ee85b80d8316881dce57b3b9a8dcaab73828b86dd87b326e412e780e8b9c"
+    },
+    {
+      "nctId": "NCT01730118",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2022-09-10",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1768367,
+      "sha256": "7761204d7e6fc1bd231d7ee081ecc33d2f6ea23fa31fb97a836794868a8f053b"
+    },
+    {
+      "nctId": "NCT01935934",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2025-10-01",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1044752,
+      "sha256": "d837671fe410b8ac630526b75352cb3edbaeb796b62a2a0041e1d870c40a11f0"
+    },
+    {
+      "nctId": "NCT02116777",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2021-03-26",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 2946479,
+      "sha256": "ba01ec6750c0b71fac5829691e48fab37d4f28b563c79c99bf5765e5ddd7cbf6"
+    },
+    {
+      "nctId": "NCT02224781",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 8299079,
+      "sha256": "9377f3608d757132718f47efdad52eb3c604ca6d8bb714e5701d5cf5626e55c0"
+    },
+    {
+      "nctId": "NCT02322320",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2020-05-11",
+      "file": "Prot_000.pdf",
+      "bytes": 926339,
+      "sha256": "210cd6f1391cbe814e1095315848619703546827ce0ce130568e10c5d11bed7d"
+    },
+    {
+      "nctId": "NCT02568566",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_ICF_001.pdf",
+      "bytes": 526757,
+      "sha256": "b06e6ba1f12ef5c9b4ac40aabcb31ee4c0d6457472335af8ac1c868ec2443344"
+    },
+    {
+      "nctId": "NCT02598557",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2023-08-22",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 830530,
+      "sha256": "59425375dbc54b9fc2109f8b55f171d20a664ae35093a9dcb424b894b00283df"
+    },
+    {
+      "nctId": "NCT02971501",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 15341027,
+      "sha256": "beacbb46c87dbae97c59da2a56eac72e7d15a7aee65358b9f2866385be865d8e"
+    },
+    {
+      "nctId": "NCT02993146",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 935593,
+      "sha256": "26f612928541c8b574bbe24b75c25911c8635184c8cb1f2101f35734a8492ee8"
+    },
+    {
+      "nctId": "NCT03036930",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_SAP_ICF_001.pdf",
+      "bytes": 17890324,
+      "sha256": "dd0c997ee4389948c76045cbda1dcdc8e0c92e1870722bc73340cf493e235d95"
+    },
+    {
+      "nctId": "NCT03047213",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-07-31",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2046430,
+      "sha256": "f6a714f2d706bb10088947dd208e1bc77abcf2af8c1e40b9ac0f92a0109c1304"
+    },
+    {
+      "nctId": "NCT03063632",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2023-10-25",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 3880248,
+      "sha256": "da4ce37893b21812139313ac3e7ca5c40632221bb7a07ad0cdf7bc14c2f75876"
+    },
+    {
+      "nctId": "NCT03510468",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2024-08-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 479314,
+      "sha256": "bc54f1e30f0b3597f27585be7891d167eb6f3bdd02ff88974d0237edd7393557"
+    },
+    {
+      "nctId": "NCT03727841",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2022-07-27",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 5566617,
+      "sha256": "db1216dc96091c92f6af6311c2f163b0fef03e7a9d7cc614038f96691bbd6075"
+    },
+    {
+      "nctId": "NCT03937791",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2021-04-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 759941,
+      "sha256": "4525ec6271c7709e651c18b70739d2c739d14b586c1d38038ce6cfdbce78ad81"
+    },
+    {
+      "nctId": "NCT04209621",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2022-03-09",
+      "file": "Prot_SAP_002.pdf",
+      "bytes": 1068449,
+      "sha256": "d8d99f4235ea0b31c30baa121affd6703276131eaca4b0fe302aeb74745fa227"
+    },
+    {
+      "nctId": "NCT04396860",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-10",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 3770756,
+      "sha256": "af58633a5052e6389bf75fd0627fc7a61f0a0c8e7f97c595d8eef87781a04e3e"
+    },
+    {
+      "nctId": "NCT04434846",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2024-04-26",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 785893,
+      "sha256": "09ff749aa866c3a8e6799692ead977977e4ab6d607f05fab7517cc281e151386"
+    },
+    {
+      "nctId": "NCT04439201",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-18",
+      "file": "Prot_001.pdf",
+      "bytes": 4185267,
+      "sha256": "059017c6c7e963fa1cd895e71c1f8be9f63d72c9c9029627fc8c78ad936727d6"
+    },
+    {
+      "nctId": "NCT04538378",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-09-22",
+      "file": "Prot_SAP_002.pdf",
+      "bytes": 1586890,
+      "sha256": "c66d578e16bcbc3d672551fbc68a6f10dd51658670dd864be81ca1d60a6f276f"
+    },
+    {
+      "nctId": "NCT05551273",
+      "sponsorClass": "NIH",
+      "lastUpdatePosted": "2026-11-17",
+      "file": "Prot_ICF_000.pdf",
+      "bytes": 1413046,
+      "sha256": "7bb991005a417695a22f400de3e8d3e568bf36216771d276a8715172aba976ed"
+    },
+    {
+      "nctId": "NCT01757717",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2018-03-20",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 839287,
+      "sha256": "e46625a2d9051d16e7b1751e3cf03310a170fe06d1cef7a7d78162c1613f7d94"
+    },
+    {
+      "nctId": "NCT02024204",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2021-02-02",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 419637,
+      "sha256": "82683654a32863d9a49c639440238eb4fba41b5ffd072cf7f13d315b06ddad98"
+    },
+    {
+      "nctId": "NCT02072668",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2020-04-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1662194,
+      "sha256": "cbd5715c041240316414d10d8c1a6c98d6730a4238581a78921308ce8860ed33"
+    },
+    {
+      "nctId": "NCT02124707",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2020-08-12",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 857162,
+      "sha256": "4d90245efeefd7582bf8a81fca0dfef5856482294a763e50b757196665a4cf61"
+    },
+    {
+      "nctId": "NCT02348385",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2023-03-02",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 413904,
+      "sha256": "2a1b6ab597c078558b5c0edb7cbe325ae3a487258404757b82a4a2175a671be8"
+    },
+    {
+      "nctId": "NCT02363686",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2021-07-12",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 637196,
+      "sha256": "63bf1e3f64aa19727292a8e4b3a4457cc396063421a4b5e985fe4d8e9d752ce7"
+    },
+    {
+      "nctId": "NCT02386722",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-03-04",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 171362,
+      "sha256": "fa030cc01f15abd2f2313ece1f8e82f36d98853ef496fb674b97247113e1aeca"
+    },
+    {
+      "nctId": "NCT02437227",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-05-12",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1186924,
+      "sha256": "6addd0d82c5c36a3e5de3576db27e24c21e5279340e765c11cd7aa5510fa991b"
+    },
+    {
+      "nctId": "NCT02550743",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2021-03-12",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 2141397,
+      "sha256": "855895a517abefdf0523ebb9ca711561cd127b35652d4f549a15bc4022688627"
+    },
+    {
+      "nctId": "NCT02660385",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2023-02-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2027975,
+      "sha256": "eb7152b2eae97e71cf53911760e49cc1531bcb28f5aca211bae4bce40d09d823"
+    },
+    {
+      "nctId": "NCT02683525",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2021-01-22",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1359776,
+      "sha256": "541c07fa5e3bac140440cb55906e6ef456ba58194eff67bac02b6262dbb0f0b0"
+    },
+    {
+      "nctId": "NCT02703259",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2020-05-20",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 412697,
+      "sha256": "d9d4f18e65f9a1569dd31bee5769dca5d70e69efa1b19e3a91bebde9d5ff09d6"
+    },
+    {
+      "nctId": "NCT02728258",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2022-02-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 1294801,
+      "sha256": "8364d708f38acd99ba8331b1e00a19e7a094ceba85ceb473703678f7f07b2921"
+    },
+    {
+      "nctId": "NCT02759120",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2021-04-08",
+      "file": "Prot_001.pdf",
+      "bytes": 2154223,
+      "sha256": "b3692dc1ef22a20031706f9bd0ca0e4e9cfac3cea7e2b9aff07975efad081e64"
+    },
+    {
+      "nctId": "NCT02866669",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2023-10-05",
+      "file": "Prot_000.pdf",
+      "bytes": 2085504,
+      "sha256": "fc6eb996bf5975f745dc9da1a7cf0551158d346245eadd6f8b468ba5dd5c84f2"
+    },
+    {
+      "nctId": "NCT03245853",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2020-01-28",
+      "file": "Prot_000.pdf",
+      "bytes": 4364105,
+      "sha256": "70d5e63f9729d13ebffc4d151e6dbfaafdd4dfb43cfbf49b121a72c07a39e9b5"
+    },
+    {
+      "nctId": "NCT03252288",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-03-07",
+      "file": "Prot_000.pdf",
+      "bytes": 208294,
+      "sha256": "bc9cff0219940d531ecab9f94d794c671adfe296e0b4f6005f37867d38d0e881"
+    },
+    {
+      "nctId": "NCT03407625",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2020-11-04",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 182656,
+      "sha256": "5ce1375f1ea9e598c9d20ab78d9c9f1a98582f7cfff431baa6dfc238d2cd8cb2"
+    },
+    {
+      "nctId": "NCT03422848",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-12-02",
+      "file": "Prot_000.pdf",
+      "bytes": 409955,
+      "sha256": "79291bf77df6ded6ce51cc9465933e83e955f840b1d9cb7ffd5ddf144acd55cd"
+    },
+    {
+      "nctId": "NCT03480048",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2019-09-11",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 6420375,
+      "sha256": "88dabf196ba489fb66be5a73e23cd6357e530ae490aea4e81ef06d651c029d82"
+    },
+    {
+      "nctId": "NCT03616535",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-07-16",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 544440,
+      "sha256": "846de0e3452607ccad49191f72b3c1da79f5221f4410a5657920dfd386eb3a5a"
+    },
+    {
+      "nctId": "NCT03801174",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2024-06-06",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 1229354,
+      "sha256": "cfb61b47912cb6307c22216430ef9b3206871c4abfbd030e19f646be4740ffde"
+    },
+    {
+      "nctId": "NCT03815019",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-09-10",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 760992,
+      "sha256": "0e3d4cfbdc5b3a64e8f58ca38e21ddfc1ad5469feb300877fa8d8bf21386c91b"
+    },
+    {
+      "nctId": "NCT03922529",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-06-29",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 817276,
+      "sha256": "db3364e4bc40348dedfca346ac447a63c109678e4e0ab5c818a3010fa1b2fef0"
+    },
+    {
+      "nctId": "NCT03962348",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2023-06-22",
+      "file": "Prot_001.pdf",
+      "bytes": 563849,
+      "sha256": "d1a691d6666f3fdcf38f84d3d7027ae7e854559d5f9104e7ce495581d16bac23"
+    },
+    {
+      "nctId": "NCT04046497",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-10-13",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 359640,
+      "sha256": "87d6762710ceaaa24eb5f50b623fb93983e454b0a783487d3cb1e9b9dfa3bba0"
+    },
+    {
+      "nctId": "NCT04071951",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-04-02",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 467543,
+      "sha256": "3b859b087c682377343b8c05dcdf7bb428b374179ee66825b8f60acef28d216b"
+    },
+    {
+      "nctId": "NCT04100564",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-04-14",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 980490,
+      "sha256": "31e8a6dbe1f8b2ebcbcf701d429e7328fc1b93c5986b7df3285d0d8ce6ed4d56"
+    },
+    {
+      "nctId": "NCT04210154",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-10-22",
+      "file": "Prot_000.pdf",
+      "bytes": 673101,
+      "sha256": "fbb4acfe6986041ef62041d66ef016a868c5dfdbfb45bdff78aefb9143b1c2c5"
+    },
+    {
+      "nctId": "NCT04388787",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2022-01-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 299135,
+      "sha256": "884b6057aa391cd82a26cd50782f88dc0a2299c71f0a5352a45df33555ff1aad"
+    },
+    {
+      "nctId": "NCT04505956",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2024-10-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 145887,
+      "sha256": "46db35ee1647261e4f75291d41abf5a93a7038ae6f05979cbfaa4e8e435e1943"
+    },
+    {
+      "nctId": "NCT04515797",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2024-12-03",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 361798,
+      "sha256": "d96b2cc644c14ae8c1d0df431cd8706bd920d58594b495fc40159b1279a5283f"
+    },
+    {
+      "nctId": "NCT04520256",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-01-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 239718,
+      "sha256": "f05a5095b07482aa3a1f423ee61c45b012d438bf71afc268518bcaf3919f0bc2"
+    },
+    {
+      "nctId": "NCT04621760",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-07-31",
+      "file": "Prot_000.pdf",
+      "bytes": 619564,
+      "sha256": "be4087431445c7068e8b260c278a808529f120727434124d6f7e1be66c75c711"
+    },
+    {
+      "nctId": "NCT04638920",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-04-02",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 893603,
+      "sha256": "74ed1dbbab1ce8510ad1c3e6be94ed5f5865b30a37edf7f9177cdf751aa44563"
+    },
+    {
+      "nctId": "NCT04738643",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-05-08",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 432144,
+      "sha256": "7a4cafef6041612ccfbda4b3089560f67a1ea0236b31e3e283b72c5514673a33"
+    },
+    {
+      "nctId": "NCT05369988",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2022-05-11",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 1238368,
+      "sha256": "4151d84e304fe0ea043beb6ff12ad3ecf810f2284b81afa91a32feff0fdee77b"
+    },
+    {
+      "nctId": "NCT05383755",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-02-12",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 477455,
+      "sha256": "1e908f6566d364cdbb95cf811751e09a3882b97731954a30dbad48ceaf15a595"
+    },
+    {
+      "nctId": "NCT05403762",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-03-18",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 2299596,
+      "sha256": "b546744c840c930c34395ce10ac367ca9950164390eb5f3a4b08a1ff023f3a78"
+    },
+    {
+      "nctId": "NCT05592145",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2024-03-21",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 311048,
+      "sha256": "66bea559ef7dd50910fc73331f77d2be4388077a313cbfb1d80519b2fbe35bea"
+    },
+    {
+      "nctId": "NCT05680844",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-04-08",
+      "file": "Prot_000.pdf",
+      "bytes": 172673,
+      "sha256": "7001ba992db8658561571eeab63b06ebb386aa7e7259b83ddcd61cb2f8b011a7"
+    },
+    {
+      "nctId": "NCT06112249",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-01-28",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 308701,
+      "sha256": "39c1346a28e8aaa79950e06572b764e48c53b0db98199fa961081d4b463f031f"
+    },
+    {
+      "nctId": "NCT06912022",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2025-04-04",
+      "file": "Prot_000.pdf",
+      "bytes": 1816017,
+      "sha256": "01963deacba28b2dcc5d8954ea88b5492f1840fe0990e4e11dbbc50820c31185"
+    },
+    {
+      "nctId": "NCT07062237",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-11-25",
+      "file": "Prot_000.pdf",
+      "bytes": 471191,
+      "sha256": "4513d8dc0bd6ffe16ddcbbab760270190c17e1c987121ba7f2f65d4217d8259b"
+    },
+    {
+      "nctId": "NCT07137572",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-03-18",
+      "file": "Prot_001.pdf",
+      "bytes": 162116,
+      "sha256": "2935981a1d4d677b21eeafa450ff09db1d82b9dec8f2c0cbeeddbc22e77c3f65"
+    },
+    {
+      "nctId": "NCT07384806",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-02-03",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 117426,
+      "sha256": "02bf466f2acdd8369f2d484cf64c25fe48b1c80c44827bed0b012dfa6ceae13f"
+    },
+    {
+      "nctId": "NCT07459387",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-03-09",
+      "file": "Prot_000.pdf",
+      "bytes": 77943,
+      "sha256": "e520dbbdfd0e2f4ab9b76c37fbff5f9c636606ef799bc0deebfd375293c8f757"
+    },
+    {
+      "nctId": "NCT07691411",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-07-08",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 184502,
+      "sha256": "5d7df6a5a90046c60b37ec5dd920a2d1caf2d0a1be689fb8cc51f5d2ba5ae0d0"
+    },
+    {
+      "nctId": "NCT07786883",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-08-26",
+      "file": "Prot_000.pdf",
+      "bytes": 194645,
+      "sha256": "5767f4338c420c7c1a41a75c7d65848e3bed57268fbf584a6ee606e64861b8e1"
+    },
+    {
+      "nctId": "NCT07924969",
+      "sponsorClass": "OTHER",
+      "lastUpdatePosted": "2026-11-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 159345,
+      "sha256": "ed1960b0f5406426cf5d17a4167d4767aec1abd15f2852334fbf1ddafef5b7bf"
+    },
+    {
+      "nctId": "NCT01760733",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2020-04-24",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 195103,
+      "sha256": "d0fdac22241615ff314d77db819482af693f4876fc900585640745a9f26e5c29"
+    },
+    {
+      "nctId": "NCT02355821",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2021-09-01",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 883185,
+      "sha256": "e12570598b3ff9ef4a9e097935222309b3b3c42ff923ab915cd346f942d298ca"
+    },
+    {
+      "nctId": "NCT03117569",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2019-12-11",
+      "file": "Prot_000.pdf",
+      "bytes": 642614,
+      "sha256": "b249cc09ac68e5e4da2a2a4d835cfd6f917951b34d1e3540f0e83b2ad12dfa5e"
+    },
+    {
+      "nctId": "NCT03453359",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2023-11-07",
+      "file": "Prot_000.pdf",
+      "bytes": 382124,
+      "sha256": "6213c60663c0481818e1ba4d115aeccc0d58c84dee6eb44fff9af7e63dcd2795"
+    },
+    {
+      "nctId": "NCT03715764",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2021-12-17",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 169113,
+      "sha256": "f8b9993ba0e7cbeaddb834f2d03f4a56ac0c61425739aadc06175689b428e419"
+    },
+    {
+      "nctId": "NCT03941665",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2020-12-03",
+      "file": "Prot_000.pdf",
+      "bytes": 377098,
+      "sha256": "819642f78622bdf62aab9cdf5f434c94856bf79bbd3c177d75f06736eded9661"
+    },
+    {
+      "nctId": "NCT04042285",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2025-03-28",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 536155,
+      "sha256": "7bc2245a20f6e99377c993136afe21ed00006009927544c03ac190cf68d826e0"
+    },
+    {
+      "nctId": "NCT04499872",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2021-10-08",
+      "file": "Prot_000.pdf",
+      "bytes": 596688,
+      "sha256": "ab0b974d0679a86e5874772c2265cad0cfb6b3ed437916268c210a8ce3058059"
+    },
+    {
+      "nctId": "NCT04834362",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2021-12-06",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 853447,
+      "sha256": "413b40f6577c5a2afb95443bbf6c7eb181be266a33e06f61ed5deb40c4f4dbf7"
+    },
+    {
+      "nctId": "NCT04849923",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2026-08-12",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 375708,
+      "sha256": "6c501c1e838ba468526aaec14643f8b290e608f100d9b66bf55508663f744d30"
+    },
+    {
+      "nctId": "NCT05724589",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2025-07-31",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 161158,
+      "sha256": "306cbf44f02c8c2c95f9eb602bee23d989d270e40dd1ceaf42d8649e44ae17ff"
+    },
+    {
+      "nctId": "NCT05875116",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2024-08-23",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 1487329,
+      "sha256": "59e930667bc784c1fcd49e01a3684c8f27d93f0311c7378035e102cc962a31b4"
+    },
+    {
+      "nctId": "NCT06011213",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2025-01-24",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 1084636,
+      "sha256": "649e486f02aa841f39c270a23786302b5ad9867c00f69c36af63f5fab568e520"
+    },
+    {
+      "nctId": "NCT06703502",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2024-11-25",
+      "file": "Prot_000.pdf",
+      "bytes": 302672,
+      "sha256": "642c975c688a0a3b794f54966d75b748c89e597e7a560621e6ff5c502f746c2d"
+    },
+    {
+      "nctId": "NCT06722144",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2024-12-09",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 218215,
+      "sha256": "9d0729a57fa219aa30e5a4af09ebc3b7d45687c93c047a1154ecad1fa13b1900"
+    },
+    {
+      "nctId": "NCT06781801",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2026-08-11",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 975391,
+      "sha256": "bc467a333bedea45950fb3b93b6841f3ed79d88b784b8338f6e8e31ea212568c"
+    },
+    {
+      "nctId": "NCT07185789",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2025-09-22",
+      "file": "Prot_SAP_ICF_000.pdf",
+      "bytes": 1280142,
+      "sha256": "5361662a4e6ebcb64be5de9a18da897b6cb1da907552c7fd2393df67c82ffb6f"
+    },
+    {
+      "nctId": "NCT07344207",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2026-01-15",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 108829,
+      "sha256": "998e71dfade5d81cfb7261fb338f2c22f7d69147f24aac615d21eee07716d34b"
+    },
+    {
+      "nctId": "NCT07834034",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2026-11-23",
+      "file": "Prot_SAP_001.pdf",
+      "bytes": 2165305,
+      "sha256": "b4e39572961d48d49f7e372ddbfef993b006d79cf00d08c55203ba9a536e1d84"
+    },
+    {
+      "nctId": "NCT07906418",
+      "sponsorClass": "OTHER_GOV",
+      "lastUpdatePosted": "2026-11-02",
+      "file": "Prot_SAP_000.pdf",
+      "bytes": 60140,
+      "sha256": "06219d5b2a18e3d6dbaab033da69dee1cfaefb465f3beb83f2ccf49b8a66f5b3"
+    }
+  ]
+}

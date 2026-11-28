@@ -1,8 +1,6 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
@@ -11,135 +9,138 @@ namespace OfficeIMO.Excel {
         private static readonly Lazy<byte[]> ChartColorStyle10Bytes =
             new(() => LoadEmbeddedResource("OfficeIMO.Excel.Resources.chart-colors-10.xml"));
 
-        private static StringReference CreateStringReference(string formula, IReadOnlyList<string>? values) {
-            var reference = new StringReference(new Formula { Text = formula });
+        // The builders below make detached elements with the element they will go under as the creation context, so
+        // each one gets the class that parent expects.
+
+        private static OfficeXmlNode CreateStringReference(OfficeXmlNode parent, string formula, IReadOnlyList<string>? values) {
+            OfficeXmlNode reference = parent.New(C, "strRef");
+            reference.Append(reference.NewText(C, "f", formula));
             if (values == null) return reference;
-            reference.Append(CreateStringCache(values));
+            reference.Append(CreateStringCache(reference, values));
             return reference;
         }
 
-        private static StringCache CreateStringCache(IReadOnlyList<string> values) {
-            StringCache cache = new();
-            cache.Append(new PointCount { Val = (uint)values.Count });
+        private static OfficeXmlNode CreateStringCache(OfficeXmlNode parent, IReadOnlyList<string> values) {
+            OfficeXmlNode cache = parent.New(C, "strCache");
+            cache.Append(cache.NewVal(C, "ptCount", (uint)values.Count));
             for (int i = 0; i < values.Count; i++) {
-                cache.Append(new StringPoint {
-                    Index = (uint)i,
-                    NumericValue = new NumericValue { Text = values[i] ?? string.Empty }
-                });
+                cache.Append(CreateStringPoint(cache, (uint)i, values[i] ?? string.Empty));
             }
             return cache;
         }
 
-        private static StringReference CreateSingleStringReference(string formula, string? value) {
-            var reference = new StringReference(new Formula { Text = formula });
-            reference.Append(CreateSingleStringCache(value));
+        private static OfficeXmlNode CreateStringPoint(OfficeXmlNode parent, uint index, string text) {
+            OfficeXmlNode point = parent.New(C, "pt").Attr("idx", index);
+            point.Append(point.NewText(C, "v", text));
+            return point;
+        }
+
+        private static OfficeXmlNode CreateSingleStringReference(OfficeXmlNode parent, string formula, string? value) {
+            OfficeXmlNode reference = parent.New(C, "strRef");
+            reference.Append(reference.NewText(C, "f", formula));
+            reference.Append(CreateSingleStringCache(reference, value));
             return reference;
         }
 
-        private static StringLiteral CreateStringLiteral(IReadOnlyList<string> values) {
-            StringLiteral literal = new();
-            literal.Append(new PointCount { Val = (uint)values.Count });
+        private static OfficeXmlNode CreateStringLiteral(OfficeXmlNode parent, IReadOnlyList<string> values) {
+            OfficeXmlNode literal = parent.New(C, "strLit");
+            literal.Append(literal.NewVal(C, "ptCount", (uint)values.Count));
             for (int i = 0; i < values.Count; i++) {
-                literal.Append(new StringPoint {
-                    Index = (uint)i,
-                    NumericValue = new NumericValue { Text = values[i] ?? string.Empty }
-                });
+                literal.Append(CreateStringPoint(literal, (uint)i, values[i] ?? string.Empty));
             }
             return literal;
         }
 
-        private static StringCache CreateSingleStringCache(string? value) {
-            var cache = new StringCache();
-            cache.Append(new PointCount { Val = 1U });
-            cache.Append(new StringPoint {
-                Index = 0U,
-                NumericValue = new NumericValue { Text = value ?? string.Empty }
-            });
+        private static OfficeXmlNode CreateSingleStringCache(OfficeXmlNode parent, string? value) {
+            OfficeXmlNode cache = parent.New(C, "strCache");
+            cache.Append(cache.NewVal(C, "ptCount", 1U));
+            cache.Append(CreateStringPoint(cache, 0U, value ?? string.Empty));
             return cache;
         }
 
-        private static NumberReference CreateNumberReference(string formula, IReadOnlyList<double>? values) {
-            var reference = new NumberReference(new Formula { Text = formula });
+        private static OfficeXmlNode CreateNumberReference(OfficeXmlNode parent, string formula, IReadOnlyList<double>? values) {
+            OfficeXmlNode reference = parent.New(C, "numRef");
+            reference.Append(reference.NewText(C, "f", formula));
             if (values == null) return reference;
 
-            NumberingCache cache = new();
-            cache.Append(new FormatCode { Text = "General" });
-            cache.Append(new PointCount { Val = (uint)values.Count });
-            for (int i = 0; i < values.Count; i++) {
-                cache.Append(new NumericPoint {
-                    Index = (uint)i,
-                    NumericValue = new NumericValue { Text = InvariantNumberText.Get(values[i]) }
-                });
-            }
+            OfficeXmlNode cache = reference.New(C, "numCache");
+            AppendNumberPoints(cache, values);
             reference.Append(cache);
             return reference;
         }
 
-        private static NumberLiteral CreateNumberLiteral(IReadOnlyList<double> values) {
-            NumberLiteral literal = new();
-            literal.Append(new FormatCode { Text = "General" });
-            literal.Append(new PointCount { Val = (uint)values.Count });
-            for (int i = 0; i < values.Count; i++) {
-                literal.Append(new NumericPoint {
-                    Index = (uint)i,
-                    NumericValue = new NumericValue { Text = InvariantNumberText.Get(values[i]) }
-                });
-            }
-
+        private static OfficeXmlNode CreateNumberLiteral(OfficeXmlNode parent, IReadOnlyList<double> values) {
+            OfficeXmlNode literal = parent.New(C, "numLit");
+            AppendNumberPoints(literal, values);
             return literal;
         }
 
-        private static Title CreateChartTitle(string text) {
-            return new Title(
-                new ChartText(CreateChartText(text)),
-                new Overlay { Val = false }
-            );
+        private static void AppendNumberPoints(OfficeXmlNode container, IReadOnlyList<double> values) {
+            container.Append(container.NewText(C, "formatCode", "General"));
+            container.Append(container.NewVal(C, "ptCount", (uint)values.Count));
+            for (int i = 0; i < values.Count; i++) {
+                OfficeXmlNode point = container.New(C, "pt").Attr("idx", (uint)i);
+                point.Append(point.NewText(C, "v", InvariantNumberText.Get(values[i])));
+                container.Append(point);
+            }
         }
 
-        private static RichText CreateChartText(string text) {
-            return new RichText(
-                new A.BodyProperties(),
-                new A.ListStyle(),
-                new A.Paragraph(
-                    new A.ParagraphProperties(new A.DefaultRunProperties()),
-                    new A.Run(new A.Text { Text = text })
-                ));
+        private static OfficeXmlNode CreateChartTitle(OfficeXmlNode parent, string text) {
+            OfficeXmlNode title = parent.New(C, "title");
+            OfficeXmlNode chartText = title.New(C, "tx");
+            chartText.Append(CreateChartText(chartText, text));
+            title.Append(chartText);
+            title.Append(title.NewVal(C, "overlay", false));
+            return title;
         }
 
-        internal static void ApplyChartStyle(ChartPart chartPart, int styleId, int colorStyleId) {
-            ArgumentNullException.ThrowIfNull(chartPart);
+        private static OfficeXmlNode CreateChartText(OfficeXmlNode parent, string text) {
+            OfficeXmlNode rich = parent.New(C, "rich");
+            rich.Append(rich.New(A, "bodyPr"));
+            rich.Append(rich.New(A, "lstStyle"));
+            OfficeXmlNode paragraph = rich.New(A, "p");
+            OfficeXmlNode paragraphProperties = paragraph.New(A, "pPr");
+            paragraphProperties.Append(paragraphProperties.New(A, "defRPr"));
+            paragraph.Append(paragraphProperties);
+            OfficeXmlNode run = paragraph.New(A, "r");
+            run.Append(run.NewText(A, "t", text));
+            paragraph.Append(run);
+            rich.Append(paragraph);
+            return rich;
+        }
+
+        internal static void ApplyChartStyle(ExcelPartRef chartPart, int styleId, int colorStyleId) {
+            if (chartPart.IsNone) throw new ArgumentNullException(nameof(chartPart));
             ApplyChartStyle(chartPart, new ExcelChartStylePreset(styleId, colorStyleId));
         }
 
-        internal static void ApplyChartStyle(ChartPart chartPart, ExcelChartStylePreset preset) {
-            ArgumentNullException.ThrowIfNull(chartPart);
+        internal static void ApplyChartStyle(ExcelPartRef chartPart, ExcelChartStylePreset preset) {
+            if (chartPart.IsNone) throw new ArgumentNullException(nameof(chartPart));
             ArgumentNullException.ThrowIfNull(preset);
 
             byte[] styleBytes = preset.StyleXmlBytes ?? GetChartStyleBytes(preset.StyleId);
             byte[] colorBytes = preset.ColorXmlBytes ?? GetChartColorStyleBytes(preset.ColorStyleId);
 
-            ChartStylePart stylePart = chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault()
-                ?? chartPart.AddNewPart<ChartStylePart>();
+            ExcelPartRef stylePart = chartPart.FirstPartOfKind(ExcelPartKind.ChartStyle);
+            if (stylePart.IsNone) stylePart = chartPart.AddNewPart(ExcelPartKind.ChartStyle);
             PopulateChartStyle(stylePart, styleBytes);
-            ChartColorStylePart colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault()
-                ?? chartPart.AddNewPart<ChartColorStylePart>();
+            ExcelPartRef colorStylePart = chartPart.FirstPartOfKind(ExcelPartKind.ChartColorStyle);
+            if (colorStylePart.IsNone) colorStylePart = chartPart.AddNewPart(ExcelPartKind.ChartColorStyle);
             PopulateChartColorStyle(colorStylePart, colorBytes);
         }
 
-        internal static void PopulateChartStyle(ChartStylePart stylePart, byte[]? xmlBytes = null) {
-            ArgumentNullException.ThrowIfNull(stylePart);
+        internal static void PopulateChartStyle(ExcelPartRef stylePart, byte[]? xmlBytes = null) {
+            if (stylePart.IsNone) throw new ArgumentNullException(nameof(stylePart));
 
             xmlBytes ??= ChartStyle251Bytes.Value;
-            using var stream = new MemoryStream(xmlBytes);
-            stylePart.FeedData(stream);
+            stylePart.Feed(xmlBytes);
         }
 
-        internal static void PopulateChartColorStyle(ChartColorStylePart colorStylePart, byte[]? xmlBytes = null) {
-            ArgumentNullException.ThrowIfNull(colorStylePart);
+        internal static void PopulateChartColorStyle(ExcelPartRef colorStylePart, byte[]? xmlBytes = null) {
+            if (colorStylePart.IsNone) throw new ArgumentNullException(nameof(colorStylePart));
 
             xmlBytes ??= ChartColorStyle10Bytes.Value;
-            using var stream = new MemoryStream(xmlBytes);
-            colorStylePart.FeedData(stream);
+            colorStylePart.Feed(xmlBytes);
         }
 
         private static byte[] GetChartStyleBytes(int styleId) {

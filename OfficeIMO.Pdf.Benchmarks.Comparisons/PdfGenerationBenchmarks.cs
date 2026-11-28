@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 /// Compares complete in-memory generation of the same structured report contract.
 /// Input model creation and correctness validation stay outside measured operations.
 /// </summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: QuestPDF allocate in native memory, which BenchmarkDotNet does not measure.
 [RankColumn]
 public class PdfGenerationBenchmarks {
     private PdfBenchmarkScenario _scenario = null!;

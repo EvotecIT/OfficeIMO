@@ -43,13 +43,13 @@ namespace OfficeIMO.PowerPoint {
 
             uint shapeId = AllocateShapeIds(2);
             uint previewShapeId = shapeId + 1U;
-            EmbeddedObjectPart part = _slidePart
+            EmbeddedObjectPart part = SlidePart
                 .AddEmbeddedObjectPart(contentType);
             using (var source = new MemoryStream(storageBytes,
                        writable: false)) {
                 part.FeedData(source);
             }
-            string relationshipId = _slidePart.GetIdOfPart(part);
+            string relationshipId = SlidePart.GetIdOfPart(part);
             string name = GenerateUniqueName("Object");
 
             var picture = new P.Picture(
@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
                 new P.CommonSlideData(new P.ShapeTree());
             P.ShapeTree tree = data.ShapeTree ??= new P.ShapeTree();
             tree.Append(frame);
-            return TrackShape(new PowerPointOleObject(frame, _slidePart));
+            return TrackShape(new PowerPointOleObject(frame, SlidePart));
         }
 
         /// <summary>Adds a linked OLE object while retaining the external payload URI.</summary>
@@ -120,8 +120,8 @@ namespace OfficeIMO.PowerPoint {
 
             uint shapeId = AllocateShapeIds(2);
             uint previewShapeId = shapeId + 1U;
-            string relationshipId = GetNextRelationshipId(_slidePart);
-            _slidePart.AddExternalRelationship(
+            string relationshipId = GetNextRelationshipId(SlidePart);
+            SlidePart.AddExternalRelationship(
                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
                 source, relationshipId);
             string name = GenerateUniqueName("Linked Object");
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.Graphic(new A.GraphicData(ole) { Uri = OleGraphicDataUri }));
             P.CommonSlideData data = SlideRoot.CommonSlideData ??= new P.CommonSlideData(new P.ShapeTree());
             (data.ShapeTree ??= new P.ShapeTree()).Append(frame);
-            return TrackShape(new PowerPointOleObject(frame, _slidePart));
+            return TrackShape(new PowerPointOleObject(frame, SlidePart));
         }
 
         private static byte[] ReadOleStorage(Stream storage) {

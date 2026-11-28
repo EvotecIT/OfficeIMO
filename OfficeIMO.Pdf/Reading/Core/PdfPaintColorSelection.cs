@@ -46,6 +46,51 @@ internal sealed class PdfPaintColorSelection {
         return selection.TryConvert(renderingIntent, out color);
     }
 
+    /// <summary>
+    /// Reads the trailing numeric components from typed operands without boxing them. A plain device color equal to
+    /// <paramref name="current"/> keeps that selection instead of allocating an identical one.
+    /// </summary>
+    internal static bool TryCreate(
+        PdfContentOperands operands,
+        PdfPageColorSpace colorSpace,
+        OfficeIccRenderingIntent renderingIntent,
+        PdfPaintColorSelection? current,
+        out PdfPaintColorSelection? selection,
+        out OfficeColor color,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
+        selection = null;
+        color = OfficeColor.Black;
+        int componentCount = colorSpace.ComponentCount;
+        int endIndex = operands.Count;
+        while (endIndex > 0 && !operands.TryGetNumber(endIndex - 1, out _)) endIndex--;
+        if (componentCount < 1 || endIndex < componentCount) return false;
+
+        int startIndex = endIndex - componentCount;
+        if (current != null && colorSpace.IsPlainDeviceColorSpace && current.ColorSpace.IsPlainDeviceColorSpace &&
+            current.ColorSpace.Kind == colorSpace.Kind &&
+            ReferenceEquals(current._outputIntentColorTransform, outputIntentColorTransform) &&
+            current.HasComponents(operands, startIndex)) {
+            selection = current;
+            return current.TryConvert(renderingIntent, out color);
+        }
+
+        var components = new double[componentCount];
+        for (int index = 0; index < componentCount; index++) {
+            components[index] = operands.NumberOrZero(startIndex + index);
+        }
+
+        selection = new PdfPaintColorSelection(colorSpace, components, outputIntentColorTransform);
+        return selection.TryConvert(renderingIntent, out color);
+    }
+
+    private bool HasComponents(PdfContentOperands operands, int startIndex) {
+        for (int index = 0; index < _components.Length; index++) {
+            if (BitConverter.DoubleToInt64Bits(_components[index]) !=
+                BitConverter.DoubleToInt64Bits(operands.NumberOrZero(startIndex + index))) return false;
+        }
+        return true;
+    }
+
     internal static bool TryCreateDefaultBlack(
         OfficeIccRenderingIntent renderingIntent,
         PdfOutputIntentColorTransform outputIntentColorTransform,

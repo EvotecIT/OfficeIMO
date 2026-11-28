@@ -88,4 +88,7 @@ public sealed class OneNoteRevisionStore {
 
     /// <summary>Embedded file-data store payloads.</summary>
     public IReadOnlyList<OneNoteFileDataStoreObject> FileDataObjects { get; }
+
+    // Set when the objects decode their property sets on first use.
+    internal OneNotePropertySetDecodeScope? PropertySetScope { get; set; }
 }

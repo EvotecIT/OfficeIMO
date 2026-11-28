@@ -196,6 +196,23 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PassThroughKeepsAnAnchorAtTheStartOfAListItem() {
+        const string html = """
+            <p><a href="#note">Go to note</a></p>
+            <ul><li><a id="note"></a>Note</li><li>&lt;a id="literal"&gt;&lt;/a&gt;Literal</li></ul>
+            """;
+        var options = new HtmlMarkdownExportOptions();
+        options.PassThroughTags.Add("a");
+
+        string markdown = Normalize(HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
+
+        Assert.Contains("""<a href="#note">Go to note</a>""", markdown, StringComparison.Ordinal);
+        Assert.Contains("""- <a id="note"></a>Note""", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("""- <a id="literal"></a>Literal""", markdown, StringComparison.Ordinal);
+        Assert.Contains("Literal", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_UnknownBlockHandling_CanBypassDropPreserveOrRaise() {
         const string html = "<x-card><p>Inner <strong>text</strong></p></x-card>";
 

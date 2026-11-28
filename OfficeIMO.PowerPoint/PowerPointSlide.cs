@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointSlide {
         private readonly List<PowerPointShape> _shapes = new();
-        private readonly SlidePart _slidePart;
+        private SlidePart? _slidePart;
         private PowerPointNotes? _notes;
         private bool _shapesLoaded;
         private uint _nextShapeId = 2;
@@ -26,9 +26,35 @@ namespace OfficeIMO.PowerPoint {
             _slidePart = slidePart;
         }
 
+        // A slide of a presentation whose SDK package is not open: it reads and edits its part in the document's package,
+        // and anything it does not do there opens the SDK, which binds the slide to its SDK part.
+        internal PowerPointSlide(PowerPointDocument presentation, string partName) {
+            OwnerDocument = presentation;
+            PackagePartName = partName;
+        }
+
         internal PowerPointDocument? OwnerDocument { get; }
 
-        internal SlidePart SlidePart => _slidePart;
+        /// <summary>The slide's part name in the package, for a slide created before the SDK opened.</summary>
+        internal string? PackagePartName { get; }
+
+        /// <summary>Whether the slide was removed while it worked on the package; it no longer reads or edits a part there.</summary>
+        internal bool RemovedFromPackage { get; set; }
+
+        /// <summary>Whether the slide works on the document's package rather than an SDK part.</summary>
+        internal bool IsPackageBacked => _slidePart == null;
+
+        internal SlidePart SlidePart => _slidePart ?? OwnerDocument!.BindSdkSlide(this);
+
+        /// <summary>Binds a package-backed slide to its part once the SDK opened the package.</summary>
+        internal void BindSdk(SlidePart slidePart) {
+            if (_slidePart != null) return;
+            _slidePart = slidePart;
+            // Shapes find their elements by position, so they bind before anything changes the slide the SDK opened.
+            if (_shapesLoaded) {
+                foreach (PowerPointShape shape in _shapes) shape.BindSdk();
+            }
+        }
 
         /// <summary>
         ///     Collection of shapes on the slide.
@@ -108,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
-        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
+        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(this);
 
         private List<PowerPointShape> ShapeList {
             get {
@@ -135,7 +161,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private T TrackShape<T>(T shape) where T : PowerPointShape {
-            shape.AttachTo(this);
+            // A shape added to the package tree already belongs to the slide; attaching it would open the SDK.
+            if (!shape.IsPackageBacked) shape.AttachTo(this);
             ShapeList.Add(shape);
             return shape;
         }
@@ -197,8 +224,8 @@ namespace OfficeIMO.PowerPoint {
         ///     so serializing the slide here as well would only repeat that work.
         /// </summary>
         internal void PrepareForPackageSave() {
-            if (!_slidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(GetSlideId()) == null) {
+            if (!SlidePart.IsRootElementLoaded
+                && GetSlideId().Attribute("show") == null) {
                 return;
             }
 
@@ -206,9 +233,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
-            SlideId slideId = GetSlideId();
-            if (!_slidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(slideId) == null) {
+            var slideId = GetSlideId();
+            if (!SlidePart.IsRootElementLoaded
+                && slideId.Attribute("show") == null) {
                 _notes?.Save();
                 return;
             }
@@ -227,7 +254,8 @@ namespace OfficeIMO.PowerPoint {
             if (_shapeIdsResolved) return;
 
             uint maxId = 1;
-            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
+            ShapeTree? tree = TryGetPackageMaxShapeId(out uint packageMax) ? null : SlideRoot.CommonSlideData?.ShapeTree;
+            if (tree == null) maxId = Math.Max(maxId, packageMax);
             if (tree != null) {
                 foreach (NonVisualDrawingProperties properties in tree.Descendants<NonVisualDrawingProperties>()) {
                     uint id = properties.Id?.Value ?? 0U;
@@ -245,6 +273,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void LoadExistingShapes() {
+            if (TryLoadPackageShapes()) return;
             ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
             if (tree == null) {
                 return;
@@ -257,8 +286,8 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (_slidePart.NotesSlidePart != null) {
-                _notes = new PowerPointNotes(_slidePart);
+            if (SlidePart.NotesSlidePart != null) {
+                _notes = new PowerPointNotes(this);
             }
         }
     }

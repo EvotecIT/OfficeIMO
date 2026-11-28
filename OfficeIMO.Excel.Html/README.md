@@ -2,6 +2,12 @@
 
 First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tables or visual review HTML using the shared OfficeIMO.Html profile contracts and the existing Excel SVG image exporter.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Excel.Html
+```
+
 ## Semantic round trips
 
 ```csharp
@@ -76,9 +82,9 @@ report.SaveAsExcel("service-review.xlsx", new HtmlExcelExportOptions {
 });
 ```
 
-See the [text formatting support matrix](../Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.
+See the [text formatting support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.
 
-The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) exports one HTML source to HTML, PDF, Word, and Excel.
+The [multi-format report example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) exports one HTML source to HTML, PDF, Word, and Excel.
 
 ## Visual review
 
@@ -93,7 +99,7 @@ Use `ExcelHtmlExportOptions.CreateVisualReviewProfile()` or set `ExportProfile =
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Excel`, `OfficeIMO.Html`, and `OfficeIMO.Core` own the workbook, HTML source, mapping, visual review, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 ## Generic table presentation
 

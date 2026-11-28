@@ -170,6 +170,10 @@ namespace OfficeIMO.Word {
             // The implicit native defaults are deterministic, so reuse a package that already carries them instead of
             // parsing, cloning and reserializing the style catalog and theme part for every new document.
             bool themeApplied = theme == null;
+            if (themeApplied && documentType == WordprocessingDocumentType.Document
+                && TryCreateWithoutSdk(filePath, stream, persistenceMode, GetDefaultThemedPackageBytes(documentType)) is { } owned) {
+                return owned;
+            }
             return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
                 themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
                 themeApplied);
@@ -353,11 +357,10 @@ namespace OfficeIMO.Word {
             new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
             new WordBuiltinDocumentProperties(word);
-            new WordSection(word, null!);
+            if (word._ownedSections != null) word.LoadSections();
+            else new WordSection(word, null!);
             new WordBackground(word);
             new WordDocumentStatistics(word);
-
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
         }
 
         /// <summary>
@@ -500,6 +503,10 @@ namespace OfficeIMO.Word {
                     return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
                 }
 
+                if (TryLoadWithoutSdk(sourceBytes, resolved, filePath, originalStream: null) is { } ownedDocument) {
+                    return WithSourcePackageInspection(ownedDocument, sourceBytes, resolved);
+                }
+
                 Stream memoryStream = CreateLegacyValidationPackageStream(
                     sourceBytes,
                     readOnly,
@@ -533,8 +540,6 @@ namespace OfficeIMO.Word {
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
 
-                // initialize abstract number id for lists to make sure those are unique
-                WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
                 return WithSourcePackageInspection(word, sourceBytes, resolved);
             }
         }
@@ -640,6 +645,10 @@ namespace OfficeIMO.Word {
                 return document;
             }
 
+            if (TryLoadWithoutSdk(sourceBytes, resolved, filePath, originalStream: null) is { } ownedDocument) {
+                return WithSourcePackageInspection(ownedDocument, sourceBytes, resolved);
+            }
+
             Stream memoryStream = CreateLegacyValidationPackageStream(
                 sourceBytes,
                 readOnly,
@@ -674,7 +683,6 @@ namespace OfficeIMO.Word {
                 InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
             return WithSourcePackageInspection(word, sourceBytes, resolved);
         }
 
@@ -779,7 +787,6 @@ namespace OfficeIMO.Word {
                 document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 document.LoadDocument();
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 cancellationToken.ThrowIfCancellationRequested();
                 return WithSourcePackageInspection(document, sourceBytes: null, resolved, report: packageReport);
             } catch {
@@ -827,6 +834,11 @@ namespace OfficeIMO.Word {
                 return document;
             }
 
+            if (packageSettings == null && TryLoadWithoutSdk(sourceBytes, resolved, filePath: null,
+                    OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)) is { } ownedDocument) {
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(ownedDocument, sourceBytes, resolved) : ownedDocument;
+            }
+
             Stream packageStream = CreateLegacyValidationPackageStream(
                 sourceBytes,
                 readOnly,
@@ -860,7 +872,6 @@ namespace OfficeIMO.Word {
                 }
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             } catch {
                 packageStream.Dispose();

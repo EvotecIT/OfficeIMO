@@ -20,11 +20,13 @@ internal static class BrowserPdfConversionManifest {
         BrowserPdfProfile profile,
         long conversionMilliseconds,
         PdfSerializationReport serialization,
-        ManifestLimits? limits) {
+        ManifestLimits? limits,
+        string? optionsFingerprint,
+        ManifestFontAsset[]? supplementalFonts) {
         string sourceHash = Sha256(source.Bytes);
         string outputHash = Sha256(outputBytes);
         string engineVersion = GetEngineVersion();
-        string conversionId = Sha256(Encoding.UTF8.GetBytes(string.Join("|", [
+        string[] identity = [
             SchemaVersion,
             converter,
             sourceHash,
@@ -36,7 +38,13 @@ internal static class BrowserPdfConversionManifest {
             optionProfile,
             "portable-deterministic",
             PdfTaggedStructureMode.CatalogMarkers.ToString()
-        ])));
+        ];
+        string identityText = string.Join("|", identity);
+        if (optionsFingerprint != null || supplementalFonts != null) {
+            identityText += "|" + optionsFingerprint + "|" +
+                string.Join("|", (supplementalFonts ?? []).Select(static font => font.Sha256));
+        }
+        string conversionId = Sha256(Encoding.UTF8.GetBytes(identityText));
 
         var manifest = new ConversionManifestDocument(
             SchemaVersion,
@@ -50,7 +58,8 @@ internal static class BrowserPdfConversionManifest {
                 engineVersion,
                 GetSourceCommit(engineVersion),
                 optionProfile,
-                new ManifestProfile(profile.Id, profile.Label, profile.Description)),
+                new ManifestProfile(profile.Id, profile.Label, profile.Description),
+                optionsFingerprint),
             new ManifestFontPack(
                 BrowserPortablePdfProfile.FontPackId,
                 BrowserPortablePdfProfile.FontPackFingerprint,
@@ -60,7 +69,8 @@ internal static class BrowserPdfConversionManifest {
                     static substitution => new ManifestSubstitution(
                         substitution.SourceFontFamily,
                         substitution.TargetFontFamily,
-                        substitution.Impact.ToString())).ToArray()),
+                        substitution.Impact.ToString())).ToArray(),
+                supplementalFonts),
             new ManifestPolicy(
                 "portable-deterministic",
                 PdfTaggedStructureMode.CatalogMarkers.ToString(),

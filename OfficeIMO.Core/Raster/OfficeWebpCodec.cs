@@ -4,8 +4,9 @@ namespace OfficeIMO.Drawing;
 /// Managed WebP encoding and decoding for RGBA images.
 /// </summary>
 /// <remarks>
-/// Lossless encoding deterministically selects between a literal VP8L stream and a bounded prediction,
-/// subtract-green, and LZ77 stream. Explicit lossy encoding uses VP8 YUV 4:2:0 and exact alpha.
+/// Lossless encoding deterministically chooses predictor, subtract-green and cross-color transforms, a cost-based
+/// LZ77 parse, a color cache and clustered Huffman groups, and falls back to a literal VP8L stream when that is
+/// smaller or the working memory does not fit. Explicit lossy encoding uses VP8 YUV 4:2:0 and exact alpha.
 /// Decoding supports bounded VP8 keyframes with optional raw or lossless-compressed alpha and lossless VP8L;
 /// animation remains a caller-codec responsibility.
 /// </remarks>

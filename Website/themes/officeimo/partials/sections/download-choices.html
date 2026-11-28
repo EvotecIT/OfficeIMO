@@ -1,7 +1,6 @@
 <section class="imo-platform-hero"><p class="imo-application-eyebrow">Downloads</p><h1>Choose how you work.</h1><p>A desktop workspace, a terminal tool, or a library for your application.</p></section>
 {{ studio_windows_release = null }}
 {{ studio_linux_release = null }}
-{{ studio_macos_release = null }}
 {{ studio_msi_x64 = null }}
 {{ studio_msi_arm64 = null }}
 {{ studio_zip_x64 = null }}
@@ -10,8 +9,6 @@
 {{ studio_deb_arm64 = null }}
 {{ studio_linux_zip_x64 = null }}
 {{ studio_linux_zip_arm64 = null }}
-{{ studio_macos_app_x64 = null }}
-{{ studio_macos_app_arm64 = null }}
 {{ if data.release_hub && data.release_hub.releases }}
   {{ for release in data.release_hub.releases }}
     {{ if !release.isDraft && !release.isPrerelease && string.starts_with release.tag "Studio-v" }}
@@ -24,8 +21,6 @@
       {{ candidate_deb_arm64_name = "officeimo-studio_" + candidate_version + "_arm64.deb" }}
       {{ candidate_linux_zip_x64_name = "OfficeIMO-Studio-linux-x64-PortableCompat.zip" }}
       {{ candidate_linux_zip_arm64_name = "OfficeIMO-Studio-linux-arm64-PortableCompat.zip" }}
-      {{ candidate_macos_app_x64_name = "OfficeIMO-Studio-" + candidate_version + "-osx-x64.zip" }}
-      {{ candidate_macos_app_arm64_name = "OfficeIMO-Studio-" + candidate_version + "-osx-arm64.zip" }}
       {{ candidate_msi_x64 = null }}
       {{ candidate_msi_arm64 = null }}
       {{ candidate_zip_x64 = null }}
@@ -34,8 +29,6 @@
       {{ candidate_deb_arm64 = null }}
       {{ candidate_linux_zip_x64 = null }}
       {{ candidate_linux_zip_arm64 = null }}
-      {{ candidate_macos_app_x64 = null }}
-      {{ candidate_macos_app_arm64 = null }}
       {{ for asset in release.assets }}
         {{ if asset.name == candidate_msi_x64_name && asset.downloadUrl }}{{ candidate_msi_x64 = asset }}{{ end }}
         {{ if asset.name == candidate_msi_arm64_name && asset.downloadUrl }}{{ candidate_msi_arm64 = asset }}{{ end }}
@@ -45,8 +38,6 @@
         {{ if asset.name == candidate_deb_arm64_name && asset.downloadUrl }}{{ candidate_deb_arm64 = asset }}{{ end }}
         {{ if asset.name == candidate_linux_zip_x64_name && asset.downloadUrl }}{{ candidate_linux_zip_x64 = asset }}{{ end }}
         {{ if asset.name == candidate_linux_zip_arm64_name && asset.downloadUrl }}{{ candidate_linux_zip_arm64 = asset }}{{ end }}
-        {{ if asset.name == candidate_macos_app_x64_name && asset.downloadUrl }}{{ candidate_macos_app_x64 = asset }}{{ end }}
-        {{ if asset.name == candidate_macos_app_arm64_name && asset.downloadUrl }}{{ candidate_macos_app_arm64 = asset }}{{ end }}
       {{ end }}
       {{ if studio_windows_release == null && candidate_msi_x64 && candidate_msi_arm64 && candidate_zip_x64 && candidate_zip_arm64 }}
         {{ studio_windows_release = release }}
@@ -61,11 +52,6 @@
         {{ studio_deb_arm64 = candidate_deb_arm64 }}
         {{ studio_linux_zip_x64 = candidate_linux_zip_x64 }}
         {{ studio_linux_zip_arm64 = candidate_linux_zip_arm64 }}
-      {{ end }}
-      {{ if studio_macos_release == null && candidate_macos_app_x64 && candidate_macos_app_arm64 }}
-        {{ studio_macos_release = release }}
-        {{ studio_macos_app_x64 = candidate_macos_app_x64 }}
-        {{ studio_macos_app_arm64 = candidate_macos_app_arm64 }}
       {{ end }}
     {{ end }}
   {{ end }}
@@ -126,20 +112,11 @@
     {{ end }}
   </div>
 </section>
-<section class="imo-download-choice" id="studio-macos-downloads" aria-labelledby="studio-macos-download-title">
-  <div><p class="imo-application-eyebrow">Desktop</p><h2 id="studio-macos-download-title">Studio for macOS</h2><p>Download the application bundle for your Mac.</p></div>
+<section class="imo-download-choice" id="studio-apple-downloads" aria-labelledby="studio-apple-download-title">
+  <div><p class="imo-application-eyebrow">Native app</p><h2 id="studio-apple-download-title">Studio for Mac, iPad and iPhone</h2><p>A native app for macOS, iPadOS and iOS 26.</p></div>
   <div>
-    <h3>macOS downloads</h3>
-    {{ if studio_macos_app_x64 && studio_macos_app_arm64 }}
-      <p>OfficeIMO Studio {{ string.replace studio_macos_release.tag "Studio-v" "v" }}. Choose the application ZIP for your processor.</p>
-      <dl class="imo-channel-list">
-        <div><dt>Intel Mac</dt><dd><a class="imo-download-link" href="{{ studio_macos_app_x64.downloadUrl }}" aria-label="Intel Mac application ZIP">{{ download_icon }}Application ZIP</a></dd></div>
-        <div><dt>Apple silicon</dt><dd><a class="imo-download-link" href="{{ studio_macos_app_arm64.downloadUrl }}" aria-label="Apple silicon application ZIP">{{ download_icon }}Application ZIP</a></dd></div>
-      </dl>
-      <p class="imo-download-meta"><a href="{{ studio_macos_release.url }}">Release notes and checksums</a></p>
-    {{ else }}
-      <p>Studio is coming to the Mac App Store. Until then, use the <a href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme">source build guide</a> to run it on macOS.</p>
-    {{ end }}
+    <h3>Coming soon</h3>
+    <p>Studio for Mac, iPad and iPhone is coming soon to the Mac App Store and App Store. <a href="/studio/#studio-for-mac-ipad-and-iphone">See what it does</a>, or read the <a href="https://github.com/EvotecIT/OfficeIMO/tree/master/Apple/OfficeIMOStudio#readme">Apple app guide</a>.</p>
   </div>
 </section>
 <section class="imo-download-choice" id="cli-downloads" aria-labelledby="cli-download-title">

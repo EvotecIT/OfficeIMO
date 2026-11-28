@@ -187,3 +187,59 @@ function Assert-BenchmarkOutputIgnored {
         }
     }
 }
+
+# Copies a catalog and its results to Destination with the lanes the declarations no longer allow taken out of
+# publication: lanes of an unpublishable comparison stay as unpublished runs, lanes of an undeclared comparison are
+# dropped. Returns one object (LaneKey, Reason) per withdrawn lane. The results themselves are copied unchanged.
+function Save-BenchmarkCatalogWithoutIneligibleLanes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path,
+        [Parameter(Mandatory)]
+        [string] $DeclarationPath,
+        [Parameter(Mandatory)]
+        [string] $Destination
+    )
+
+    $declarations = [PowerForge.BenchmarkJson]::Read[PowerForge.BenchmarkDeclarationDocument]($DeclarationPath)
+    $declared = @{}
+    foreach ($comparison in @($declarations.Comparisons)) {
+        $declared[$comparison.ComparisonId] = $comparison
+    }
+    $declarationService = [PowerForge.BenchmarkDeclarationService]::new()
+    $sourceDirectory = Split-Path -Parent $Path
+    $catalog = [PowerForge.BenchmarkJson]::Read[PowerForge.BenchmarkEvidenceCatalog]($Path)
+    $kept = [System.Collections.Generic.List[PowerForge.BenchmarkEvidenceEntry]]::new()
+    $withdrawn = foreach ($entry in @($catalog.Entries)) {
+        $comparison = $declared[$entry.ComparisonId]
+        if ($null -eq $comparison) {
+            [pscustomobject]@{ LaneKey = $entry.LaneKey; Reason = "comparison '$($entry.ComparisonId)' is no longer declared; the lane is dropped." }
+            continue
+        }
+        $kept.Add($entry)
+        if (-not $entry.Publish) {
+            continue
+        }
+        if ($null -ne $comparison.Eligibility -and -not $comparison.Eligibility.Publishable) {
+            $entry.Publish = $false
+            [pscustomobject]@{ LaneKey = $entry.LaneKey; Reason = "kept unpublished: $($comparison.Eligibility.Reason)" }
+            continue
+        }
+        $result = [PowerForge.BenchmarkJson]::Read[PowerForge.BenchmarkRunResult]((Join-Path $sourceDirectory $entry.ArtifactRelativePath))
+        $drift = @($declarationService.CheckDrift($comparison, $declarations.Libraries, $result))
+        if ($drift.Count -gt 0) {
+            $entry.Publish = $false
+            [pscustomobject]@{ LaneKey = $entry.LaneKey; Reason = "kept unpublished: the declaration changed since it ran ($(@($drift.Message) -join ' '))" }
+        }
+    }
+    $catalog.Entries = $kept.ToArray()
+
+    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    foreach ($entry in $catalog.Entries) {
+        Copy-Item -LiteralPath (Join-Path $sourceDirectory $entry.ArtifactRelativePath) -Destination $Destination
+    }
+    Write-BenchmarkEvidenceResult -Path (Join-Path $Destination 'index.json') -InputObject $catalog
+    $withdrawn
+}
+

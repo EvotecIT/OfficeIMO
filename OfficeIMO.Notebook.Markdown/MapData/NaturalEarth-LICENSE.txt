@@ -1,0 +1,7 @@
+Natural Earth public-domain map data
+
+“All versions of Natural Earth raster + vector map data found on this website
+are in the public domain.”
+
+Source: https://www.naturalearthdata.com/about/terms-of-use/
+Made with Natural Earth.

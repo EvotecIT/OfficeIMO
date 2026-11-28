@@ -8,8 +8,8 @@ param(
     [Parameter(Mandatory)] [string] $GeneratorName,
     [System.Collections.IDictionary] $MemberNames = @{},
     [switch] $SkipMappings,
-    # Also emit TryParseOpenXmlValue methods that map an XML token straight to the OfficeIMO enum, for readers that
-    # parse markup without loading the Open XML SDK.
+    # Also emit TryParseOpenXmlValue and ToOpenXmlToken methods that map between XML tokens and the OfficeIMO enum,
+    # for code that reads or writes markup without loading the Open XML SDK.
     [switch] $EmitTokenParsers
 )
 
@@ -107,6 +107,8 @@ if (-not $SkipMappings) {
         [void] $builder.AppendLine("        value = index < 0 ? default : ($($model.OfficeType))index;")
         [void] $builder.AppendLine('        return index >= 0;')
         [void] $builder.AppendLine('    }')
+        [void] $builder.AppendLine()
+        [void] $builder.AppendLine("    internal static string ToOpenXmlToken(this $($model.OfficeType) value) => GetToken(value, $tokenField);")
         [void] $builder.AppendLine()
     }
     }

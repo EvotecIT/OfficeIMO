@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -13,12 +14,12 @@ public partial class PowerPointTextRun {
     /// </remarks>
     /// <exception cref="InvalidOperationException">There is no click hyperlink to format.</exception>
     public bool HyperlinkUsesTextColor {
-        get => RunProperties?.GetFirstChild<A.HyperlinkOnClick>() is A.HyperlinkOnClick hyperlink
-            && PowerPointTextHyperlinkColor.ReadChoice(hyperlink) == true;
+        get => ClickHyperlinkElement is { IsNone: false } hyperlink && PowerPointTextHyperlinkColor.ReadChoice(hyperlink) == true;
         set {
-            A.HyperlinkOnClick? hyperlink = RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
-            if (hyperlink == null) throw new InvalidOperationException("Set a click hyperlink before its color policy.");
+            OfficeXmlNode hyperlink = ClickHyperlinkElement;
+            if (hyperlink.IsNone) throw new InvalidOperationException("Set a click hyperlink before its color policy.");
             PowerPointTextHyperlinkColor.SetChoice(hyperlink, value);
+            MarkEdited();
             SyncLineContinuation();
         }
     }

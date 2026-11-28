@@ -186,15 +186,15 @@ internal static partial class PdfDocumentSemanticEnricher {
                 continue;
             }
 
-            TaggedStructureBinding? binding = ResolveTaggedBinding(
-                graph.Tagged,
-                graph.StructuresByObject,
-                current,
-                workBudget);
-            int? inheritedPageObjectNumber = binding?.PageObjectNumber;
+            int? inheritedPageObjectNumber = null;
+            bool inheritedResolved = false;
             for (int referenceIndex = 0; referenceIndex < current.MarkedContentReferences.Count; referenceIndex++) {
                 workBudget.Consume();
                 PdfMarkedContentReference reference = current.MarkedContentReferences[referenceIndex];
+                if (!reference.PageObjectNumber.HasValue && !inheritedResolved) {
+                    inheritedPageObjectNumber = ResolveInheritedPageObjectNumber(graph.StructuresByObject, current, workBudget);
+                    inheritedResolved = true;
+                }
                 int? pageObjectNumber = reference.PageObjectNumber ?? inheritedPageObjectNumber;
                 int? pageNumber = pageObjectNumber.HasValue
                     ? document.GetPageNumberForObject(pageObjectNumber.Value, workBudget.CancellationToken)
@@ -220,6 +220,32 @@ internal static partial class PdfDocumentSemanticEnricher {
         }
         content = result.Count == 0 ? Array.Empty<PageMarkedContent>() : result.ToArray();
         return true;
+    }
+
+    /// <summary>
+    /// The page an element's marked content inherits: the nearest /Pg from the element up through its ancestors, as
+    /// <see cref="ResolveTaggedBinding"/> reports it, which is none when no element on that path names a structure type.
+    /// </summary>
+    private static int? ResolveInheritedPageObjectNumber(
+        Dictionary<int, PdfStructureElementInfo> structuresByObject,
+        PdfStructureElementInfo structureElement,
+        PdfUnderstandingWorkBudget workBudget) {
+        int? pageObjectNumber = null;
+        bool hasRole = false;
+        PdfStructureElementInfo? current = structureElement;
+        // A parent chain without a cycle visits each element once, so more steps than elements means a cycle; going
+        // round it again adds nothing new.
+        for (int step = 0; current is not null && step <= structuresByObject.Count; step++) {
+            workBudget.Consume();
+            pageObjectNumber ??= current.PageObjectNumber;
+            hasRole |= !string.IsNullOrWhiteSpace(current.StructureType);
+            if (pageObjectNumber.HasValue && hasRole) return pageObjectNumber;
+            current = current.ParentObjectNumber.HasValue &&
+                structuresByObject.TryGetValue(current.ParentObjectNumber.Value, out PdfStructureElementInfo? parent)
+                ? parent
+                : null;
+        }
+        return hasRole ? pageObjectNumber : null;
     }
 
     private static Dictionary<int, HashSet<MarkedContentKey>> GroupMarkedContentByPage(
@@ -363,7 +389,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             region.AlternativeText);
     }
 
-    private sealed class TaggedStructureGraph {
+    internal sealed class TaggedStructureGraph {
         internal TaggedStructureGraph(
             PdfTaggedContentInfo tagged,
             Dictionary<int, PdfStructureElementInfo> structuresByObject,

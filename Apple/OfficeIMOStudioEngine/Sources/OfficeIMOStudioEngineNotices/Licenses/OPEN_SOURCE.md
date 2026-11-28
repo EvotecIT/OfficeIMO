@@ -24,7 +24,7 @@ license texts and pinned source provenance are in `AdobeCMaps/`, and
 Apple packages also include `THIRD_PARTY_NOTICES.txt` and
 `runtime-package-inventory.json`, generated from the exact published dependency
 graph and reviewed license texts. Packaging fails when a runtime package version
-has no reviewed notice coverage. The native Apple targets carry these files in the engine notices resource bundle; the Avalonia Mac package uses `Contents/Resources/Licenses`. The repository’s
+has no reviewed notice coverage. The native Apple targets carry these files in the engine notices resource bundle. The repository’s
 [dependency inventory](https://officeimo.com/third-party/) identifies package
 dependencies and upstream license information; it is not a substitute for the
 notices required by the exact binaries in a distribution.

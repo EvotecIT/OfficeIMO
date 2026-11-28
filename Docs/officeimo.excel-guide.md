@@ -2,27 +2,235 @@
 
 This guide covers the `OfficeIMO.Excel` API beyond the common tasks in the [package README](../OfficeIMO.Excel/README.md), which also shows installation. Exact coverage and limits are in the [compatibility matrix](../OfficeIMO.Excel/COMPATIBILITY.md).
 
-## Bounded native inspection
+## Cells, formulas and formatting
 
-`ExcelLoadOptions.AllowBinaryProjection = false` accepts XML workbook packages
-and rejects XLS/XLSB before their secondary payload/model projection. The default
-keeps existing binary import behavior. The inspection snapshot retains saved
-values, authored formulas, comments and worksheet state without evaluating formulas.
 
-`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
-OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
-streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
-single-payload convenience API. Keep the workbook open while requesting reads;
-returned complete read-only streams are caller-owned and survive workbook
-disposal. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
-defines count, member, aggregate and cumulative work limits, unknown lengths and
-optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
-relationship without reading binary module content, with
-`ModuleInspectionRequested = false`.
+`GetFormattedText()` applies the cell's stored number format; raw and typed reads keep the stored value. Formula calculations retain double precision in numeric caches and use fifteen significant digits when a function converts a number to text. Numeric overflow is cached as `#NUM!`. Calculated text containing XML control characters or isolated surrogate units remains deferred to the spreadsheet application.
 
-If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Create("Budget.xlsx");
+ExcelSheet sheet = book.AddSheet("Budget");
+
+sheet.Range("A1:B3").SetValues(new object?[,] {
+    { "Item", "Cost" },
+    { "Laptops", 18_500m },
+    { "Licenses", 7_250m },
+});
+sheet.Cell("A4").SetValue("Total").SetBold();
+sheet.Cell("B4").SetFormula("SUM(B2:B3)");
+
+sheet.Range("A1:B1").SetBold().SetFillColor(OfficeColor.Parse("D9EAF7"));
+sheet.Range("B2:B4").SetNumberFormat("#,##0.00");
+sheet.Range("B2:B3").ConditionalFormat().DataBar(OfficeColor.Accent1);
+sheet.View.Freeze(topRows: 1);
+sheet.AutoFitColumns();
+
+book.Save();
+```
+
+Rows and columns are 1-based, as in Excel. `sheet.Cell(row, column)` and `sheet.Cell("B4")` return a lightweight
+`ExcelCell` handle (a struct, so a loop over cells allocates nothing); `sheet.Range("A1:V1")` returns an
+`ExcelRange`. Format a block through its range rather than cell by cell: one range call applies the style under
+one lock and saves the stylesheet once. `sheet.UsedRange` returns the range in use, and
+`book.GetNamedRange("Total")?.FirstCell` writes through a defined name without parsing its address.
+
+Cells created in a formatted row or column start with that row's or column's style, so values written into a
+template keep its number formats and fonts. A date written into a cell that already has a date format keeps it.
+
+Native roles such as `OfficeColor.Accent1` stay linked to the workbook theme.
+`Success`, `Warning` and `Danger` use the shared palette selected at creation
+or through `book.ApplyTheme(theme)`. Loading a file or replacing raw theme XML
+does not infer these status roles, because Excel's native theme has no slots for
+them. In that case, pass `color.Resolve(theme)` as a literal color, or call
+`book.ApplyTheme(theme)` before authoring with status roles.
+
+## Read rows back as objects
+
+
+```csharp
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+foreach (Order order in book["Orders"].RowsAs<Order>()) {
+    Console.WriteLine($"{order.Customer}: {order.Total:N0}");
+}
+
+record Order(string Customer, string Region, decimal Total, double Margin);
+```
+
+Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`. XLSB workbooks are always checked against `OfficePackageSecurityOptions.SecureDefaults` (entry count, sizes, compression ratio, part names) unless `PackageSecurity` sets another policy, and a workbook ZIP whose directory lists more entries than `MaxPartCount` is rejected before it is opened.
+
+For a forward-only read, `OpenReader(pathOrStream, options)` returns an
+`ExcelWorkbookDataReader` derived from `DbDataReader`. The shared `OfficeIMO.Data`
+mappings also work on loaded documents:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader("Orders.xlsx",
+    new ExcelReaderOptions { SheetName = "Orders" });
+List<Order> streamed = reader.RowsAs<Order>().ToList();
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+List<Order> loaded = book.RowsAs<Order>(
+    options: new ExcelReaderOptions { SheetName = "Orders" }).ToList();
+```
+
+Loaded-document `RowsAs` overloads support automatic, configured `RowMapper<T>`
+and factory mapping, with `ExcelReaderOptions` and cancellation. Their
+`RowsAsParallel` counterparts take `parallelOptions`, format `options`, then
+`cancellationToken` and preserve source order. `OpenReaderAsync` returns
+`Task<ExcelWorkbookDataReader>` on .NET 8 and later.
+
+On .NET 8 and later, XLSX worksheets of 1 MB or more that declare their dimension are checked
+while rows are returned, on background threads, so an invalid cell later in the sheet raises
+its error from the `Read` that reaches it, after the rows before it. Set
+`new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to validate the whole worksheet
+before the first row instead, where a part-way failure cannot be discarded. Smaller worksheets,
+worksheets without a dimension, XLSB and XLS always validate first.
+
+XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
+
+## Large exports
+
+
+The object model keeps the whole workbook editable until `Save()`. For hundreds of thousands of rows, the XLSX and XLSB streaming writers write each row as it arrives with bounded row memory:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+IEnumerable<LogEvent> events = Enumerable.Range(1, 200_000)
+    .Select(i => new LogEvent(DateTime.UtcNow.AddSeconds(-i), i % 7 == 0 ? "Warning" : "Info", $"Event {i}"));
+
+using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter("Events.xlsx", theme: OfficeTheme.Modern)) {
+    writer.WriteTable("Events", events);
+}
+
+record LogEvent(DateTime Time, string Level, string Message);
+```
+
+`WriteTable` also takes an `IAsyncEnumerable<T>`, a `DataTable` or an `IDataReader`. The file is published when the writer is disposed.
+
+The same writer supports binary formats with an explicit format argument. A typed callback writes scalar values directly to native records:
+
+```csharp
+using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xlsb")) {
+    writer.WriteTable("Events", events, new[] { "Time", "Level", "Message" },
+        static (row, item) => row.Write(item.Time).Write(item.Level).Write(item.Message));
+}
+```
+
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records in memory, so `RequireStreaming=true` rejects that format. With `UseSharedStrings=false` (the binary default) text up to 255 characters is written as inline BIFF8 labels; longer text, or `UseSharedStrings=true`, uses the shared-string table. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+
+In an editable workbook, `WriteData` with typed columns writes the same plain cells as `(header, selector)` columns, but keeps `int`, `long`, `double`, `DateTime` and `bool` values (and their nullable forms) unboxed until the workbook is saved. `decimal`, `float`, `ulong`, `char` and other values go through the same object path as a selector:
+
+```csharp
+sheet.WriteData(events, columns => columns
+    .Add("Time", item => item.Time)
+    .Add("Level", item => item.Level)
+    .Add("Message", item => item.Message));
+```
+
+XLS and XLSB numeric cells use IEEE-754 double precision, including when a callback supplies a `decimal`, `long` or `ulong`. Large integers and high-precision decimals may lose digits. Write identifiers or exact decimal text as strings when every digit matters.
+
+## Report sheets
+
+
+`sheet.Report()` lays out titled sections, KPI rows, paragraphs and tables on a sheet, for workbooks that people read rather than filter:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Create("Summary.xlsx");
+book.AddSheet("Summary").Report()
+    .Title("Service review", "October")
+    .KpiRow([("Availability", "99.95%"), ("Incidents", 3), ("Changes", 41)])
+    .Section("Highlights")
+    .BulletedList(["No priority 1 incidents", "Patch compliance at 98%"]);
+book.Save();
+```
+
+## Save as PDF
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
+Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
+```
+
+`SaveAsPdf` comes from [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md). The report counts the pages written and lists anything the PDF couldn't carry.
+
+## Chart images
+
+
+Render each worksheet chart on its own. Scheme colours and series without explicit colours resolve against the workbook theme:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+int number = 0;
+foreach (ExcelChart chart in book.Sheets.SelectMany(sheet => sheet.Charts)) {
+    OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { Scale = 2 });
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
+    foreach (OfficeImageExportDiagnostic diagnostic in png.Diagnostics) Console.WriteLine(diagnostic.Message);
+}
+```
+
+`OfficeChartImageExportOptions` is shared with Word and PowerPoint charts; set `Format`, `Width` and `Height` on it, or leave the size unset to keep the chart's anchor size. `SaveAsImage(pathOrStream, options)` writes the image and returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot` checks first without throwing.
+
+## Validate package signatures from a stream
+
+
+Pass the original XLSX/XLSM package stream and an explicit security provider.
+The managed provider is available in the optional `OfficeIMO.Security` package:
+
+```csharp
+using System.IO;
+using OfficeIMO.Excel;
+using OfficeIMO.Security;
+
+static OfficePackageSignatureValidationReport ValidateUpload(Stream upload) =>
+    ExcelDocument.ValidatePackageSignatures(upload, OfficeSecurityProvider.Default);
+```
+
+The stream stays open on success and failure. Seekable streams are read from the
+beginning and their original position is restored; non-seekable streams are read
+from the current position. The existing validation options control certificate
+policy and package limits, including the maximum bytes buffered from the stream.
+
+## Before sharing
+
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var document = ExcelDocument.Load("Budget.xlsx");
+OfficeHiddenDataReport report = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.HiddenContent
+});
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+document.Save("Budget-shared.xlsx");
+```
+
+`InspectHiddenData()` reports properties, notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot source paths, custom XML, image metadata and printer settings without changing anything. Hidden content is removed only when selected, because deleting hidden rows or sheets changes formulas that use them. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless `OfficeHiddenDataKind.Provenance` is selected; `ExcelDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
 
 ## Returned authoring objects
+
 
 `range.ConditionalFormat()` adds rules; each call returns the attached
 `ExcelConditionalFormattingInfo`, the same editable model used by
@@ -51,10 +259,10 @@ links. Use `AddImage` to create an image and receive its `ExcelImage`.
 Image dimensions and anchor offsets use `OfficeLength`: `image.Width`, `image.Height`,
 `image.OffsetX` and `image.OffsetY` retain whole EMUs. Two-cell ending offsets use
 `ToOffsetX` and `ToOffsetY`. For example, replace `widthPixels: 96` with
-`width: OfficeLength.Pixels(96)`. `SetSize`, `MoveTo`, `SetTwoCellEndingMarker` and
+`new ExcelImageOptions { Width = OfficeLength.Pixels(96) }`. `SetSize`, `MoveTo`, `SetTwoCellEndingMarker` and
 `TryGetAbsoluteAnchorBounds` use the same length contract. Cell and ending-marker
 offsets on existing XML remain inspectable when signed; `SetTwoCellEndingMarker`
-requires non-negative ending offsets; `AddImageAbsolute` requires non-negative
+requires non-negative ending offsets; the absolute-position `AddImage(x, y, ...)` overload requires non-negative
 authored positions. HTML round trips preserve signed positions and offsets read
 from existing native drawings. Omitted byte-image
 sizes remain 96 by 32 pixels at 96 DPI, while file/scaled placement retains its
@@ -64,6 +272,59 @@ when width, height and scale are omitted; use explicit lengths to request a fixe
 limits when rendering. `GetRangeSize` returns `Width` and `Height` as lengths;
 worksheet reports insert images through `sheet.Report().AddImage(...)`.
 
+
+Use `AddImage` with a path, stream or native byte array. `AddImageAsync` reads files
+and streams asynchronously or loads an HTTP or HTTPS `Uri`. Geometry, metadata,
+network policy and stream ownership belong to `ExcelImageOptions`:
+
+```csharp
+ExcelImage logo = sheet.AddImage(2, 3, "logo.png", new ExcelImageOptions {
+    ScalePercent = 20,
+    Description = "Company logo",
+    Title = "Logo"
+});
+sheet.AddImage("A1:C15", File.ReadAllBytes("header.png"), new ExcelImageOptions {
+    Placement = ExcelImagePlacement.MoveAndSize
+});
+await sheet.AddImageAsync(4, 2, new Uri("https://example.org/logo.png"));
+```
+
+A single A1 reference uses a one-cell anchor; a colon-delimited range, including
+`A1:A1`, uses a two-cell anchor. `AddImage(x, y, source, options)` uses an absolute
+anchor. Range anchors determine their own size and reject explicit dimensions or
+scale. `LockAspectRatio` sets Excel's picture lock; it does not calculate an omitted
+dimension. Streams stay open by default and retain their seekable position;
+`LeaveOpen = false` closes them on success, failure or cancellation. Image bytes
+are embedded without re-encoding. `Deduplicate = true` shares identical native
+payloads within the worksheet drawing while each picture keeps its own metadata;
+the default creates separate image parts. `sheet.Report()` uses the same options
+and returns the worksheet's attached image.
+
+## Tables and charts from objects
+
+`AddTable` writes a native Excel table: a header row from the property names, typed cells and the theme's table style. It returns the `ExcelTable`, and `AddChart` returns the `ExcelChart`, for further changes. `ExcelChartOptions.Row` and `Column` anchor the chart; `Width` and `Height` take an `OfficeLength`.
+
+A cell value written into a table header also renames the schema column and updates structured references. Header names must be nonempty, unique literal text. Clearing values retains those labels; write formulas to data rows. Use `SetTableSchema` to rename several columns together. A header-only table has no data records; the first append starts immediately below its headers. Explicit blank data rows remain records.
+
+## Bounded native inspection
+
+`ExcelLoadOptions.AllowBinaryProjection = false` accepts XML workbook packages
+and rejects XLS/XLSB before their secondary payload/model projection. The default
+keeps existing binary import behavior. The inspection snapshot retains saved
+values, authored formulas, comments and worksheet state without evaluating formulas.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Keep the workbook open while requesting reads;
+returned complete read-only streams are caller-owned and survive workbook
+disposal. The [Core payload contract](officeimo.core-guide.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content, with
+`ModuleInspectionRequested = false`.
+
+If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
 ## Stream a large export
 
@@ -737,7 +998,7 @@ take precedence. Type converters see the reader's original value before numeric
 mapping uses the serial.
 Explicit `RowMapper<T>` bindings also support aliases, optional source columns,
 per-column culture, date formats and converters through
-[`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
+[`RowMappingColumnOptions`](officeimo.core-guide.md#per-column-row-mapping).
 These controls apply to sequential, asynchronous and parallel projections.
 
 `ExcelReaderOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
@@ -745,27 +1006,36 @@ decompression with workbook metadata parsing on a spare worker. It is disabled b
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
 
-By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
-row, so a malformed workbook fails before any data is consumed. On .NET 8 and later, XLSX
-worksheets with 64 MB or more of XML are checked through a bounded window and decompressed a
-second time to return rows, so the reader holds a few megabytes of worksheet XML instead of the
-whole part. It still keeps a small position record for each row, and the window grows to fit a
-single row or trailing worksheet content larger than it. This does not apply when `DisplayText`
-or `CellValueConverter` is set.
-`ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
-worksheet is still being decompressed and checked. Every returned row is fully parsed and
-validated. A malformed cell later in the sheet raises the same exception as the default
-reader, but only when `Read` reaches it, after the rows before it have been returned; issues
-found by the final check of the worksheet are raised by the last `Read`. Use it when the caller
-can handle a failure part-way through, such as a stream into a staging table that is discarded
-on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
-diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
-allows background work, with `A1Range` and `CellValueConverter` unset: XLSX worksheets that
-declare their dimension, up to 256 MB, and XLSB worksheets read with a header row, up to 64 MB;
-larger worksheets use the default mode. An XLSB reader takes its columns from the header row, so a later cell outside them
-raises `NotSupportedException` at that row, because the default reader would return a wider
-table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
-worksheets and in the XLS reader, the reader always validates before the first row.
+On .NET 8 and later, an XLSX data reader checks a worksheet of 1 MB or more that declares its
+dimension while it returns rows: a background thread decompresses and checks the part once, and
+the reader receives each checked run of rows. Every returned row has been fully parsed and
+validated, and peak memory stays at a few megabytes of worksheet XML whatever the sheet's size.
+An invalid cell or malformed XML later in the sheet raises its exception from the `Read` that
+reaches it, after the rows before it were returned; problems in content after the last row are
+raised by the last `Read`. Rows the fast reader cannot prove by itself, such as formulas with
+attributes, are returned once a full XML check of a second read of the worksheet has passed them,
+on a second background thread. Content it cannot index, such as CDATA sections, is read on with
+the general XML reader and returns the same values.
+The reader's columns come from the declared dimension, which Excel and OfficeIMO's streaming
+writer record, so a later cell outside it raises `InvalidDataException` at that row.
+
+Set `ExcelReaderOptions.ValidateWorksheetBeforeFirstRow = true` when a part-way failure cannot be
+handled, for example when each row is applied to a database as it is read. The reader then
+validates the whole worksheet before the first row, as earlier versions did: worksheets with 64 MB
+or more of XML are checked through a bounded window and decompressed a second time to return
+rows, and smaller ones are held in memory. Worksheets without a declared dimension, smaller
+worksheets, XLSB and XLS worksheets, `A1Range`, `CellValueConverter` and `DisplayText` always use
+that mode. Reading while checking uses background threads; set `Execution.Mode` to
+`ExcelExecutionMode.Sequential` to read on the calling thread only, which also validates first.
+
+`ExcelReaderOptions.EnableSinglePassReading` returns XLSX and XLSB rows while the rest of the
+worksheet is still being decompressed, holding the whole part in memory. It applies on .NET 8 and
+later to worksheets of 1 MB or more, when no diagnostics or diagnostic callbacks are requested,
+parallelism is not capped at one and the execution policy allows background work, with `A1Range`
+and `CellValueConverter` unset: XLSX worksheets that declare their dimension, up to 256 MB, and XLSB
+worksheets read with a header row, up to 64 MB. An XLSB reader takes its columns from the header
+row, so a later cell outside them raises `NotSupportedException` at that row, because the default
+reader would return a wider table.
 
 ### Choose automatic or ordered parallel reads
 
@@ -1142,7 +1412,7 @@ save/reopen. A null style clears the point's fill and outline overrides.
 Snapshots, managed image export, and PDF export carry these styles through the shared
 renderer. Pie and doughnut legend swatches follow their slice appearance. Static area charts
 retain their series fill and report unsupported per-point appearance. See the
-[shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+[shared style example](officeimo.core-guide.md#style-individual-chart-points).
 
 ### Pie and doughnut geometry
 
@@ -2278,7 +2548,7 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 ## VBA source editing
 
 `ReadVbaProject()` and `SetVbaProject(OfficeVbaProject, ...)` use the
-[shared native VBA model](../OfficeIMO.Core/README.md#native-vba-projects).
+[shared native VBA model](officeimo.core-guide.md#native-vba-projects).
 They read/edit source without executing it or requiring Office, Python, or a new
 runtime dependency:
 

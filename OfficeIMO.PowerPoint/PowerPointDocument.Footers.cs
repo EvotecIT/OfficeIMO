@@ -13,14 +13,14 @@ namespace OfficeIMO.PowerPoint {
                 new NonVisualShapeProperties(new NonVisualDrawingProperties { Id = 0U, Name = "Footer" },
                     new NonVisualShapeDrawingProperties { TextBox = true }, new ApplicationNonVisualDrawingProperties()),
                 new ShapeProperties(), new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph()));
-            return new PowerPointLayoutNativeText(new PowerPointTextBox(shape, _presentationPart));
+            return new PowerPointLayoutNativeText(new PowerPointTextBox(shape, SdkPresentationPart));
         }
 
         /// <summary>Changes a deck slot and applies it to existing slides through the normal native footer renderer.</summary>
         internal void SetDeckFooter(OfficeAlignment alignment, PowerPointLayoutFooter footer) {
             EnsureFooterDefinitions();
             LayoutDeck.Footers[alignment] = footer;
-            foreach (var slide in _slides) {
+            foreach (var slide in LoadedSlides) {
                 foreach (var box in slide.TextBoxes.Where(box => TryReadFooterSlot(box, out var slot, out bool deck)
                              && deck && slot == alignment).ToArray()) box.Remove();
                 var context = new PowerPointLayoutContext(this, PowerPointLayoutTheme.From(slide.AuthoringTheme));
@@ -33,8 +33,8 @@ namespace OfficeIMO.PowerPoint {
         internal void EnsureFooterDefinitions() {
             if (_footerDefinitionsLoaded) return;
             _footerDefinitionsLoaded = true;
-            if (ReadFooterDefinitions(PresentationRoot, _presentationPart, LayoutDeck.Footers) == null) return;
-            foreach (var slide in _slides) {
+            if (ReadFooterDefinitions(PresentationRoot, SdkPresentationPart, LayoutDeck.Footers) == null) return;
+            foreach (var slide in LoadedSlides) {
                 var definitions = ReadFooterDefinitions(slide.SlidePart.Slide!, slide.SlidePart, slide.NativeFooters);
                 slide.SuppressFooterText = FooterAttribute(definitions, "omitText") == "1";
                 slide.SuppressFooterNumber = FooterAttribute(definitions, "omitNumber") == "1";

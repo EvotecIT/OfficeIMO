@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
@@ -27,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -52,7 +49,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -106,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -128,7 +125,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -150,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -172,7 +169,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -194,7 +191,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -216,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -237,7 +234,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -258,7 +255,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -277,7 +274,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -297,7 +294,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -313,7 +310,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -329,7 +326,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
     }

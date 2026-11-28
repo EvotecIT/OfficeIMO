@@ -1,6 +1,6 @@
-using System.Text;
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
@@ -21,90 +21,36 @@ namespace OfficeIMO.PowerPoint {
             bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
-            OpenXmlElement? child = Paragraph.FirstChild;
-            while (child != null) {
-                if (child is not A.Run run) {
-                    child = child.NextSibling();
+            OfficeXmlNode child = Element.FirstChild;
+            while (!child.IsNone) {
+                if (!child.Is(OfficeXmlNamespaces.DrawingML, "r")) {
+                    child = child.NextSibling;
                     continue;
                 }
 
-                List<A.Run>? runs = null;
-                OpenXmlElement? next = run.NextSibling();
-                while (next is A.Run adjacent) {
-                    (runs ??= new List<A.Run> { run }).Add(adjacent);
-                    next = adjacent.NextSibling();
+                var runs = new List<OfficeXmlNode> { child };
+                OfficeXmlNode next = child.NextSibling;
+                while (next.Is(OfficeXmlNamespaces.DrawingML, "r")) {
+                    runs.Add(next);
+                    next = next.NextSibling;
                 }
 
                 // Field text affects word boundaries but remains outside the text that can be replaced.
-                string? preceding = wholeWords ? (run.PreviousSibling() as A.Field)?.Text?.Text : null;
-                string? following = wholeWords ? (next as A.Field)?.Text?.Text : null;
-                if (runs == null) {
-                    int occurrences = 0;
-                    string updated = OfficeTextSearch.Replace(run.Text?.Text ?? string.Empty, text,
-                        replacement, comparison, wholeWords, ref occurrences, preceding, following);
-                    if (occurrences > 0) {
-                        new PowerPointTextRun(run, _slidePart, _ownerPart).Text = updated;
-                        count += occurrences;
-                    }
-                } else {
-                    count += ReplaceRunGroup(runs, text, replacement, comparison, wholeWords, preceding, following);
+                OfficeXmlNode previousSibling = child.PreviousSibling;
+                string? preceding = wholeWords && previousSibling.Is(OfficeXmlNamespaces.DrawingML, "fld") ? previousSibling.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
+                string? following = wholeWords && next.Is(OfficeXmlNamespaces.DrawingML, "fld") ? next.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
+                string[] texts = runs.Select(item => item.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty).ToArray();
+                string?[] updated = new string?[texts.Length];
+                count += PowerPointRunReplace.Plan(texts, text, replacement, comparison, wholeWords, preceding, following, updated);
+                // Assigning text may insert native line breaks.
+                for (int index = 0; index < updated.Length; index++) {
+                    if (updated[index] is { } value) RunFor(runs[index]).Text = value;
                 }
 
                 child = next;
             }
 
             return count;
-        }
-
-        private int ReplaceRunGroup(List<A.Run> runs, string text, string? replacement,
-            StringComparison comparison, bool wholeWords, string? preceding, string? following) {
-            string original = string.Concat(runs.Select(run => run.Text?.Text ?? string.Empty));
-            List<int>? matches = null;
-            int searchStart = 0;
-            while (searchStart <= original.Length - text.Length) {
-                int found = original.IndexOf(text, searchStart, comparison);
-                if (found < 0) break;
-                if (wholeWords && !OfficeTextSearch.HasWordBoundaries(original, found, text.Length, preceding, following)) {
-                    searchStart = found + 1;
-                    continue;
-                }
-
-                (matches ??= new List<int>()).Add(found);
-                searchStart = found + text.Length;
-            }
-
-            if (matches == null) return 0;
-
-            // Use original offsets and write each touched run once. Assigning text may insert native line breaks.
-            int match = 0;
-            int runStart = 0;
-            foreach (A.Run run in runs) {
-                if (match == matches.Count) break;
-
-                string current = run.Text?.Text ?? string.Empty;
-                int runEnd = runStart + current.Length;
-                if (current.Length > 0 && matches[match] < runEnd) {
-                    var updated = new StringBuilder(current.Length);
-                    int copied = 0;
-                    while (match < matches.Count && matches[match] < runEnd) {
-                        int startInRun = matches[match] - runStart;
-                        if (startInRun >= 0) {
-                            updated.Append(current, copied, startInRun - copied);
-                            updated.Append(replacement);
-                        }
-
-                        int endInRun = startInRun + text.Length;
-                        copied = Math.Min(endInRun, current.Length);
-                        if (endInRun > current.Length) break;
-                        match++;
-                    }
-                    updated.Append(current, copied, current.Length - copied);
-                    new PowerPointTextRun(run, _slidePart, _ownerPart).Text = updated.ToString();
-                }
-                runStart = runEnd;
-            }
-
-            return matches.Count;
         }
     }
 }

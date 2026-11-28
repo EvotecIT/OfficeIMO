@@ -1,32 +1,24 @@
-using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class XlsxTabularWorkbook {
         private (Dictionary<string, string> Overrides, Dictionary<string, string> Defaults)
             ReadContentTypes() {
             return ReadXmlPart("[Content_Types].xml", _options.MaxMetadataPartBytes, reader => {
-                if (reader.MoveToContent() != XmlNodeType.Element
-                    || reader.LocalName != "Types"
-                    || reader.NamespaceURI != PackageContentTypesNamespace) {
+                if (!reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Types")) {
                     throw new XlsxTabularFastPathNotSupportedException(
                         "The package content-type manifest namespace is not supported by the native path.");
                 }
 
                 var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                bool empty = reader.IsEmptyElement;
-                reader.Read();
-                while (!empty && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == 0)) {
+                while (reader.Read() && !IsRootEnd(reader)) {
                     _options.CancellationToken.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element || reader.Depth != 1) {
-                        if (!reader.Read()) break;
-                        continue;
-                    }
+                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
 
-                    if (reader.LocalName == "Override"
-                        && reader.NamespaceURI == PackageContentTypesNamespace) {
-                        string? rawPartName = reader.GetAttribute("PartName");
-                        string? contentType = reader.GetAttribute("ContentType");
+                    if (reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Override")) {
+                        string? rawPartName = GetAttribute(reader, "PartName");
+                        string? contentType = GetKnownAttribute(reader, "ContentType");
                         string normalizedPartName = NormalizeContentTypePartName(rawPartName);
                         if (normalizedPartName.Length == 0
                             || rawPartName![0] != '/'
@@ -36,10 +28,9 @@ namespace OfficeIMO.Excel {
                                 "The package content-type overrides require the Open XML SDK fallback path.");
                         }
                         overrides.Add(normalizedPartName, contentType!);
-                    } else if (reader.LocalName == "Default"
-                        && reader.NamespaceURI == PackageContentTypesNamespace) {
-                        string? extension = reader.GetAttribute("Extension");
-                        string? contentType = reader.GetAttribute("ContentType");
+                    } else if (reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Default")) {
+                        string? extension = GetAttribute(reader, "Extension");
+                        string? contentType = GetKnownAttribute(reader, "ContentType");
                         if (!IsValidContentTypeExtension(extension)
                             || !IsValidContentType(contentType)
                             || defaults.ContainsKey(extension!)) {
@@ -51,41 +42,33 @@ namespace OfficeIMO.Excel {
                         throw new XlsxTabularFastPathNotSupportedException(
                             "The package content-type manifest requires the Open XML SDK fallback path.");
                     }
-                    reader.Skip();
+                    reader.SkipElement();
                 }
                 return (overrides, defaults);
             });
         }
 
-        private IReadOnlyDictionary<string, PackageRelationship> ReadRelationships(
+        private Dictionary<string, PackageRelationship> ReadRelationships(
             string sourcePartName) {
             string relationshipPartName = GetRelationshipPartName(sourcePartName);
             return ReadXmlPart(relationshipPartName, _options.MaxMetadataPartBytes, reader => {
-                if (reader.MoveToContent() != XmlNodeType.Element
-                    || reader.LocalName != "Relationships"
-                    || reader.NamespaceURI != PackageRelationshipsNamespace) {
+                if (!reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationships")) {
                     throw new XlsxTabularFastPathNotSupportedException(
                         "The package relationship namespace is not supported by the native path.");
                 }
 
                 var result = new Dictionary<string, PackageRelationship>(StringComparer.Ordinal);
-                bool empty = reader.IsEmptyElement;
-                reader.Read();
-                while (!empty && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == 0)) {
+                while (reader.Read() && !IsRootEnd(reader)) {
                     _options.CancellationToken.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element || reader.Depth != 1) {
-                        if (!reader.Read()) break;
-                        continue;
-                    }
-                    if (reader.LocalName != "Relationship"
-                        || reader.NamespaceURI != PackageRelationshipsNamespace) {
+                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
+                    if (!reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                         throw new XlsxTabularFastPathNotSupportedException(
                             "The package relationships require the Open XML SDK fallback path.");
                     }
 
-                    string? id = reader.GetAttribute("Id");
-                    string? type = reader.GetAttribute("Type");
-                    string? target = reader.GetAttribute("Target");
+                    string? id = GetAttribute(reader, "Id");
+                    string? type = GetKnownAttribute(reader, "Type");
+                    string? target = GetAttribute(reader, "Target");
                     if (string.IsNullOrWhiteSpace(id)
                         || string.IsNullOrWhiteSpace(type)
                         || string.IsNullOrWhiteSpace(target)
@@ -97,8 +80,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     result.Add(id!, new PackageRelationship(
-                        type!, target!, ReadRelationshipTargetMode(reader.GetAttribute("TargetMode"))));
-                    reader.Skip();
+                        type!, target!, ReadRelationshipTargetMode(GetAttribute(reader, "TargetMode"))));
+                    reader.SkipElement();
                 }
                 return result;
             });
@@ -106,76 +89,48 @@ namespace OfficeIMO.Excel {
 
         private (XlsxTabularSheet[] Sheets, ExcelDateSystem DateSystem) ReadWorkbook(
             string workbookPartName,
-            IReadOnlyDictionary<string, PackageRelationship> relationships,
+            Dictionary<string, PackageRelationship> relationships,
             bool metadataOnly) {
             var (date1904, hasSheets, sheetCount, workbookSheets) = ReadXmlPart(
                 workbookPartName,
                 _options.MaxMetadataPartBytes,
                 reader => {
-                    if (reader.MoveToContent() != XmlNodeType.Element
-                        || reader.LocalName != "workbook"
-                        || (reader.NamespaceURI != TransitionalSpreadsheetNamespace
-                            && reader.NamespaceURI != StrictSpreadsheetNamespace)) {
+                    if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "workbook")) {
                         throw new XlsxTabularFastPathNotSupportedException(
                             "The workbook XML namespace is not supported by the native path.");
                     }
 
-                    string spreadsheetNamespace = reader.NamespaceURI;
-                    bool emptyWorkbook = reader.IsEmptyElement;
                     bool foundProperties = false;
                     bool foundSheets = false;
                     string? dateFlag = null;
                     int count = 0;
                     var entries = new List<(string? Name, string? RelationshipId)>();
-                    reader.Read();
-                    while (!emptyWorkbook && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == 0)) {
+                    while (reader.Read() && !IsRootEnd(reader)) {
                         _options.CancellationToken.ThrowIfCancellationRequested();
-                        if (reader.NodeType != XmlNodeType.Element || reader.Depth != 1) {
-                            if (!reader.Read()) break;
-                            continue;
-                        }
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
 
-                        if (reader.NamespaceURI == spreadsheetNamespace
-                            && reader.LocalName == "workbookPr"
-                            && !foundProperties) {
+                        if (!foundProperties && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "workbookPr")) {
                             foundProperties = true;
-                            dateFlag = reader.GetAttribute("date1904");
-                            reader.Skip();
-                            continue;
-                        }
-
-                        if (reader.NamespaceURI == spreadsheetNamespace
-                            && reader.LocalName == "sheets"
-                            && !foundSheets) {
+                            dateFlag = GetAttribute(reader, "date1904");
+                        } else if (!foundSheets && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "sheets")) {
                             foundSheets = true;
-                            bool emptySheets = reader.IsEmptyElement;
-                            int sheetsDepth = reader.Depth;
-                            reader.Read();
-                            while (!emptySheets
-                                && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == sheetsDepth)) {
+                            while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 2)) {
                                 _options.CancellationToken.ThrowIfCancellationRequested();
-                                if (reader.NodeType == XmlNodeType.Element) {
-                                    if (reader.Depth == sheetsDepth + 1
-                                        && reader.NamespaceURI == spreadsheetNamespace
-                                        && reader.LocalName == "sheet") {
-                                        count++;
-                                        if (count <= _options.MaxWorksheets) {
-                                            entries.Add((
-                                                reader.GetAttribute("name"),
-                                                reader.GetAttribute("id", TransitionalOfficeRelationshipsNamespace)
-                                                    ?? reader.GetAttribute("id", StrictOfficeRelationshipsNamespace)));
-                                        }
+                                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                                if (reader.Depth == 3 && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "sheet")) {
+                                    count++;
+                                    if (count <= _options.MaxWorksheets) {
+                                        entries.Add((
+                                            GetAttribute(reader, "name"),
+                                            reader.TryGetAttribute(OfficeXmlNamespaces.Relationships, "id", out string relationshipId)
+                                                ? relationshipId : null));
                                     }
-                                    reader.Skip();
-                                } else if (!reader.Read()) {
-                                    break;
                                 }
+                                reader.SkipElement();
                             }
-                            if (!emptySheets) reader.Read();
                             continue;
                         }
-
-                        reader.Skip();
+                        reader.SkipElement();
                     }
                     return (dateFlag, foundSheets, count, entries);
                 });
@@ -234,13 +189,62 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException(
                         $"The OpenXML worksheet '{name}' references missing relationship '{relationshipId}'.");
                 }
-                ValidatePartContentType(partName, WorksheetContentType, "worksheet");
+                ValidatePartContentType(partName, ExcelReadWorkbookParts.WorksheetContentType, "worksheet");
                 sheets.Add(new XlsxTabularSheet(name!, partName));
             }
 
             _options.CancellationToken.ThrowIfCancellationRequested();
             return (sheets.ToArray(), dateSystem);
         }
+
+        private static bool IsRootEnd(OfficeXmlPullReader reader) =>
+            reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 1;
+
+        // Relationship and content types repeat in every package; a value written exactly as one of these
+        // reuses the constant instead of decoding a new string.
+        private static readonly string[] KnownMetadataValues = {
+            TransitionalOfficeRelationshipsNamespace + "/officeDocument",
+            TransitionalOfficeRelationshipsNamespace + WorksheetRelationshipSuffix,
+            TransitionalOfficeRelationshipsNamespace + StylesRelationshipSuffix,
+            TransitionalOfficeRelationshipsNamespace + SharedStringsRelationshipSuffix,
+            TransitionalOfficeRelationshipsNamespace + "/theme",
+            TransitionalOfficeRelationshipsNamespace + "/extended-properties",
+            TransitionalOfficeRelationshipsNamespace + "/calcChain",
+            "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "application/vnd.openxmlformats-package.relationships+xml",
+            "application/xml",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            ExcelReadWorkbookParts.WorksheetContentType,
+            ExcelReadWorkbookParts.StylesContentType,
+            ExcelReadWorkbookParts.SharedStringsContentType,
+            "application/vnd.openxmlformats-officedocument.theme+xml",
+            "application/vnd.openxmlformats-package.core-properties+xml",
+            "application/vnd.openxmlformats-officedocument.extended-properties+xml",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.calcChain+xml"
+        };
+
+        private static readonly byte[][] KnownMetadataValueBytes =
+            Array.ConvertAll(KnownMetadataValues, static value => System.Text.Encoding.ASCII.GetBytes(value));
+
+        /// <summary>Reads an unprefixed attribute, returning a shared constant for a well-known value.</summary>
+        private static string? GetKnownAttribute(OfficeXmlPullReader reader, string localName) {
+            for (int index = 0; index < reader.AttributeCount; index++) {
+                if (reader.GetAttributeNamespace(index, out _) != OfficeXmlNamespaces.None
+                    || !string.Equals(reader.GetAttributeLocalName(index), localName, StringComparison.Ordinal)) continue;
+                reader.GetAttributeRawValue(index, out int start, out int length);
+                ReadOnlySpan<byte> raw = reader.Data.AsSpan(start, length);
+                for (int known = 0; known < KnownMetadataValueBytes.Length; known++) {
+                    // Known values hold no references or whitespace, so equal bytes decode to the same text.
+                    if (raw.SequenceEqual(KnownMetadataValueBytes[known])) return KnownMetadataValues[known];
+                }
+                return reader.GetAttributeValue(index);
+            }
+            return null;
+        }
+
+        // An unprefixed attribute, as XmlReader.GetAttribute(name) reads it; null when absent.
+        private static string? GetAttribute(OfficeXmlPullReader reader, string localName) =>
+            reader.TryGetAttribute(OfficeXmlNamespaces.None, localName, out string value) ? value : null;
 
     }
 }

@@ -303,17 +303,35 @@ internal static partial class OfficeJpegReader {
                 ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
                 progressiveState ??= ProgressiveState.Create(
                     frame, quantTables, orientation, checked(data.LongLength + retainedManagedBytes));
-                DecodeProgressiveScan(
-                    scanData,
-                    scan,
-                    frame,
-                    progressiveState,
-                    quantTables,
-                    dcTables,
-                    acTables,
-                    restartInterval,
-                    options.AllowTruncated,
-                    cancellationToken);
+                // The last scan before EOI can overlap the RGBA render, which RenderRgba then returns.
+                // The scan's lookups are reserved first, so the band plan is admitted against the budget left after them.
+                bool overlapEligible = !returnColorComponents && options.HighQualityChroma && IsFollowedByEndOfImage(data, scanEnd);
+                if (overlapEligible) PrepareProgressiveAcLookups(scan, frame, progressiveState, acTables);
+                BandOverlap? overlap = overlapEligible
+                    ? BandOverlap.TryStart(frame, progressiveState, adobeTransform, scan,
+                        GetProgressiveScanRows(scan, frame, progressiveState), cancellationToken)
+                    : null;
+                try {
+                    DecodeProgressiveScan(
+                        scanData,
+                        scan,
+                        frame,
+                        progressiveState,
+                        quantTables,
+                        dcTables,
+                        acTables,
+                        restartInterval,
+                        options.AllowTruncated,
+                        cancellationToken,
+                        overlap);
+                } catch {
+                    overlap?.Stop();
+                    throw;
+                }
+                if (overlap != null) {
+                    overlap.Finish();
+                    progressiveState.RenderedRgba = overlap.Output;
+                }
                 offset = scanEnd;
                 continue;
             }
@@ -488,6 +506,13 @@ internal static partial class OfficeJpegReader {
         }
 
         throw new FormatException("JPEG scan not found.");
+    }
+
+    private static bool IsFollowedByEndOfImage(OfficeByteView data, int scanEnd) {
+        int offset = scanEnd;
+        if (offset >= data.Length || data[offset] != 0xFF) return false;
+        while (offset < data.Length && data[offset] == 0xFF) offset++;
+        return offset < data.Length && data[offset] == 0xD9;
     }
 
     private static bool IsCompatibleAdobeTransform(int transform, int componentCount) {

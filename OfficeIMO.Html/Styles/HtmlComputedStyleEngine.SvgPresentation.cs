@@ -4,9 +4,6 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    // Authored layer indices are nonnegative. This implicit first layer places
-    // normal SVG presentation hints before every authored stylesheet layer.
-    private static readonly CascadeLayerOrder SvgPresentationAttributeLayerOrder = new CascadeLayerOrder(new[] { -1 });
     // These inherited SVG text and paint properties must participate in the
     // cascade before computed styles are projected into the shared SVG reader.
     // Geometry and transforms retain their separate SVG parsing contract.
@@ -42,7 +39,7 @@ public static partial class HtmlComputedStyleEngine {
                 value += "px";
             }
             ApplyDeclaration(properties, parentProperties, name, value, false,
-                Specificity.PresentationalHint, -1, layerOrder: SvgPresentationAttributeLayerOrder,
+                Specificity.PresentationalHint, -1, layerOrder: PresentationalHintLayerOrder,
                 enforceResolutionLimits: budget.HasDeclarationLimit);
         }
     }

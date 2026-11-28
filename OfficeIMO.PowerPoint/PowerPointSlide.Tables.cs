@@ -28,6 +28,10 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
+            if (TryAddPackageTable(rows, columns, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) {
+                if (automatic) AttachAuthoringContent(added);
+                return added;
+            }
 
             A.Table table = new();
             A.TableProperties props = new();
@@ -56,7 +60,9 @@ namespace OfficeIMO.PowerPoint {
                 A.TableRow row = new() { Height = 370840L };
                 for (int c = 0; c < columns; c++) {
                     A.TableCell cell = new(
-                        PowerPointTableTextDefaults.CreateTextBody(),
+                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(
+                            new A.Run(new A.RunProperties { Language = PowerPointTableTextDefaults.Language }, new A.Text(string.Empty)),
+                            new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language })),
                         new A.TableCellProperties());
 
                     row.Append(cell);
@@ -87,7 +93,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PowerPointTable tbl = new(frame, _slidePart);
+            PowerPointTable tbl = new(frame, SlidePart);
             tbl.SetColumnWidthsEvenly();
             tbl.SetRowHeightsEvenly();
             TrackShape(tbl);

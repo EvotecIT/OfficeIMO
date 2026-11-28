@@ -1,10 +1,11 @@
+using OfficeIMO;
 using OfficeIMO.Epub;
 using OfficeIMO.Word;
 using OfficeIMO.Workflows;
 using System.Text;
 
 internal static class ManuscriptImportFixtures {
-    internal static async Task<Dictionary<string, EpubPublication>> CreateAsync() {
+    internal static async Task<(Dictionary<string, EpubPublication> Imports, Dictionary<string, byte[]> Catalog)> CreateAsync() {
         using var word = WordDocument.Create();
         word.Properties.Title = "Word manuscript";
         word.Properties.Creator = "OfficeIMO";
@@ -36,14 +37,16 @@ internal static class ManuscriptImportFixtures {
             """;
 
         var publications = new Dictionary<string, EpubPublication>(StringComparer.Ordinal);
-        await AddAsync("word", ".docx", word.ToBytes());
-        await AddAsync("markdown", ".md", Encoding.UTF8.GetBytes(markdown));
-        await AddAsync("html", ".html", Encoding.UTF8.GetBytes(html));
-        return publications;
+        var catalog = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        OfficeWorkflow.RegisterConversions();
+        await AddAsync("word", ".docx", OfficeDocumentFormat.Word, word.ToBytes());
+        await AddAsync("markdown", ".md", OfficeDocumentFormat.Markdown, Encoding.UTF8.GetBytes(markdown));
+        await AddAsync("html", ".html", OfficeDocumentFormat.Html, Encoding.UTF8.GetBytes(html));
+        return (publications, catalog);
 
-        async Task AddAsync(string format, string extension, byte[] bytes) {
-            EpubManuscriptResult result = await BookManuscriptImporter.ImportBytesAsync(bytes, extension,
-                new EpubManuscriptOptions { Identifier = "urn:officeimo:fixture:manuscript:" + format });
+        async Task AddAsync(string format, string extension, OfficeDocumentFormat sourceFormat, byte[] bytes) {
+            var options = new EpubManuscriptOptions { Identifier = "urn:officeimo:fixture:manuscript:" + format };
+            EpubManuscriptResult result = await BookManuscriptImporter.ImportBytesAsync(bytes, extension, options);
             result.Report.ThrowIfLoss();
             EpubPublication publication = result.Publication;
             if (publication.Spine.Count != 2) throw new InvalidDataException("Expected two chapters in the " + format + " manuscript.");
@@ -54,6 +57,15 @@ internal static class ManuscriptImportFixtures {
                 Hazards = ["none"]
             });
             publications.Add("manuscript-" + format, publication);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using var output = new MemoryStream();
+            OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, sourceFormat, output, OfficeDocumentFormat.Epub,
+                new OfficeConversionOptions {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { EpubManuscript = options }
+                });
+            report.ThrowIfLoss();
+            catalog.Add("catalog-manuscript-" + format, output.ToArray());
         }
     }
 }

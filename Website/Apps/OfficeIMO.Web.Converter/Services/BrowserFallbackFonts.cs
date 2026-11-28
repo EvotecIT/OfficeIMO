@@ -37,13 +37,15 @@ internal static partial class BrowserFallbackFonts {
     internal static bool IsAvailable => FindAssembly() != null;
 
     /// <summary>True when a file's text or font choices need a fallback font. Unknown or unreadable input counts as needing it.</summary>
-    internal static bool Needed(byte[] bytes, string extension) {
+    internal static bool Needed(byte[] bytes, string extension, BrowserNotebookSettings? notebook = null) {
         try {
             return extension.ToLowerInvariant() switch {
                 ".docx" or ".docm" or ".dotx" or ".dotm" or
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or
                 ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PackageNeeds(bytes),
                 ".html" or ".htm" or ".xhtml" or ".md" or ".markdown" or ".txt" => Needed(Decode(bytes)),
+                ".ipynb" => (notebook != null && (Needed(notebook.Title) || Needed(notebook.Author)))
+                    || NotebookMayNeedFallback(bytes),
                 _ => true
             };
         } catch (Exception error) when (error is InvalidDataException or IOException or DecoderFallbackException) {
@@ -52,8 +54,20 @@ internal static partial class BrowserFallbackFonts {
         }
     }
 
+    private static bool NotebookMayNeedFallback(ReadOnlySpan<byte> utf8) {
+        // Notebook text can contain raw UTF-8, JSON-escaped Unicode or HTML character references.
+        // Scan the existing buffer without decoding large embedded image strings into UTF-16.
+        for (int index = 0; index < utf8.Length; index++) {
+            byte current = utf8[index];
+            if (current >= 0x80 || current == (byte)'&' ||
+                (current == (byte)'\\' && index + 1 < utf8.Length && utf8[index + 1] == (byte)'u')) return true;
+        }
+        return false;
+    }
+
     /// <summary>True when text contains a character Carlito lacks, an entity that may produce one, or names a symbol font.</summary>
     internal static bool Needed(string text) {
+        if (text.Length == 0) return false;
         CarlitoCoverage coverage = Coverage.Value;
         for (int index = 0; index < text.Length; index++) {
             char character = text[index];

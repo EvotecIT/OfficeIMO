@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool hidden = show.HasValue ? !show.Value : IsHiddenShowValue(entry.ListShowValue);
-            string? notes = includeNotes ? ReadNotes(_package, entry.PartName, _maximumCharacters, cancellationToken) : null;
+            string? notes = includeNotes && _hasNotesParts ? ReadNotes(_package, entry.PartName, _maximumCharacters, cancellationToken) : null;
             cancellationToken.ThrowIfCancellationRequested();
             return new PowerPointSlideContent(index + 1, hidden, context.Build(), notes);
         }

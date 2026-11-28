@@ -388,11 +388,17 @@ internal sealed class PdfTestPki : IDisposable {
         using var output = new MemoryStream();
         store.Save(output, "test".ToCharArray(), Random);
 #if NET9_0_OR_GREATER
-        return X509CertificateLoader.LoadPkcs12(output.ToArray(), "test", X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+        return X509CertificateLoader.LoadPkcs12(output.ToArray(), "test", PrivateKeyFlags);
 #else
-        return new X509Certificate2(output.ToArray(), "test", X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+        return new X509Certificate2(output.ToArray(), "test", PrivateKeyFlags);
 #endif
     }
+
+    // macOS has no ephemeral key sets; there the runtime keeps PKCS#12 keys in a temporary keychain instead.
+    private static X509KeyStorageFlags PrivateKeyFlags =>
+        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX)
+            ? X509KeyStorageFlags.Exportable
+            : X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet;
 
     internal static X509Certificate2 Load(byte[] encoded) {
 #if NET9_0_OR_GREATER

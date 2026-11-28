@@ -59,7 +59,7 @@ These tests cover export permission selection, revision-bound reads and redactio
 | `-OfficeIMOMeasure <file>` | Measures `Documents/Measurements/<file>` and writes `Documents/Results/measure-<file>.json`. |
 | `-OfficeIMOExit` | Quits when done. |
 
-Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
+Debug builds accept these arguments. Release builds ignore them unless built with the `OFFICEIMO_AUTORUN` Swift condition, as the measurement script does, so a shipped app never starts an unattended run. Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
 
 ## Development harness
 
@@ -71,4 +71,4 @@ xcrun simctl launch booted com.evotec.officeimo.studio -OfficeIMOOpen sample.pdf
 
 Copy the PDF into the container first; `xcrun simctl get_app_container booted com.evotec.officeimo.studio data` prints its folder. The harness shows the same window as a system document but saves nothing back.
 
-`-OfficeIMOScanFromPhotos` shows **Create PDF**'s **PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.
+`-OfficeIMOScanFromPhotos` shows **New PDF…**'s **New PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.

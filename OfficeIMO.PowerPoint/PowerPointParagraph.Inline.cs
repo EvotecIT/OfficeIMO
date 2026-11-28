@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Kind of authored inline node in a DrawingML paragraph.</summary>
@@ -49,20 +50,23 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraphInline> InlineNodes {
             get {
                 var result = new List<PowerPointParagraphInline>();
-                foreach (OpenXmlElement child in Paragraph.ChildElements) {
-                    if (child is A.Run run) {
-                        result.Add(new PowerPointParagraphInline(
-                            new PowerPointTextRun(run, _slidePart, _ownerPart)));
-                    } else if (child is A.Break) {
-                        result.Add(new PowerPointParagraphInline(
-                            PowerPointParagraphInlineKind.LineBreak, Environment.NewLine));
-                    } else if (child is A.Field textField) {
-                        result.Add(new PowerPointParagraphInline(
-                            PowerPointParagraphInlineKind.Field,
-                            textField.Text?.Text ?? textField.InnerText ?? string.Empty,
-                            textField.Id?.Value,
-                            textField.Type?.Value,
-                            new PowerPointTextRun(textField, _slidePart, _ownerPart)));
+                foreach (OfficeXmlNode child in Element.Children()) {
+                    if (child.NamespaceId != OfficeXmlNamespaces.DrawingML) continue;
+                    switch (child.LocalName) {
+                        case "r":
+                            result.Add(new PowerPointParagraphInline(RunFor(child)));
+                            break;
+                        case "br":
+                            result.Add(new PowerPointParagraphInline(PowerPointParagraphInlineKind.LineBreak, Environment.NewLine));
+                            break;
+                        case "fld":
+                            result.Add(new PowerPointParagraphInline(
+                                PowerPointParagraphInlineKind.Field,
+                                child.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? child.InnerText,
+                                child.Attribute("id"),
+                                child.Attribute("type"),
+                                RunFor(child)));
+                            break;
                     }
                 }
                 return result;
@@ -71,11 +75,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds an explicit DrawingML line break in paragraph order.</summary>
         public PowerPointParagraph AddLineBreak() {
-            var lineBreak = new A.Break();
-            A.EndParagraphRunProperties? endProps =
-                Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-            if (endProps != null) Paragraph.InsertBefore(lineBreak, endProps);
-            else Paragraph.Append(lineBreak);
+            OfficeXmlNode paragraph = Element;
+            paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "br"), paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
+            MarkEdited();
             return this;
         }
 
@@ -88,19 +90,23 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddField(string displayText, string fieldType, string? fieldId,
             Action<PowerPointTextRun>? configure) {
             ArgumentException.ThrowIfNullOrWhiteSpace(fieldType);
-            var field = new A.Field(new A.Text(PowerPointTextContent.ToSingleLine(displayText))) {
-                Id = string.IsNullOrWhiteSpace(fieldId)
-                    ? Guid.NewGuid().ToString("B").ToUpperInvariant()
-                    : fieldId,
-                Type = fieldType
-            };
-            if (configure != null) {
-                configure(new PowerPointTextRun(field, _slidePart, _ownerPart));
+            OfficeXmlNode paragraph = Element;
+            OfficeXmlNode field = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "fld");
+            field.SetAttribute("id", string.IsNullOrWhiteSpace(fieldId) ? Guid.NewGuid().ToString("B").ToUpperInvariant() : fieldId);
+            field.SetAttribute("type", fieldType);
+            field.Append(field.CreateElement(OfficeXmlNamespaces.DrawingML, "t")).SetInnerText(PowerPointTextContent.ToSingleLine(displayText));
+            field = paragraph.InsertBefore(field, paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
+            MarkEdited();
+            if (configure == null) return this;
+            PowerPointTextRun run = RunFor(field);
+            try {
+                configure(run);
+            } catch {
+                // A failed configuration leaves no field behind, so a retry doesn't add a second one.
+                OfficeXmlNode added = run.Element;
+                if (!added.Parent.IsNone) PowerPointTextRun.DiscardContent(added, OwnerPartRef, SlidePartRef);
+                throw;
             }
-            A.EndParagraphRunProperties? endProps =
-                Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-            if (endProps != null) Paragraph.InsertBefore(field, endProps);
-            else Paragraph.Append(field);
             return this;
         }
     }

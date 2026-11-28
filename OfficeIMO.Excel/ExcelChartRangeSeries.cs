@@ -1,11 +1,10 @@
-using System.Globalization;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     /// <summary>Category-chart series that reference their own worksheet ranges, validated before any part is written.</summary>
-    internal sealed class ExcelChartRangeSeries {
+    internal sealed partial class ExcelChartRangeSeries {
         private readonly IReadOnlyList<ExcelChartSeriesRange> _source;
         private readonly Vector _categories;
         private readonly Vector[] _values;
@@ -97,20 +96,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Points each category-chart series at its own category and values ranges.</summary>
-        internal void ApplyFormulas(ChartPart chartPart) {
-            PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<Chart>()?.GetFirstChild<PlotArea>();
-            if (plotArea == null) return;
+        internal void ApplyFormulas(ExcelPartRef chartPart) {
+            OfficeXmlNode plotArea = chartPart.Root.Child(C, "chart").Child(C, "plotArea");
+            if (plotArea.IsNone) return;
             string categoryFormula = _categories.Formula;
-            foreach (CategoryAxisData categories in plotArea.Descendants<CategoryAxisData>()) {
-                Formula? formula = categories.GetFirstChild<StringReference>()?.Formula ?? categories.GetFirstChild<NumberReference>()?.Formula;
-                if (formula != null) formula.Text = categoryFormula;
+            foreach (OfficeXmlNode categories in plotArea.Descendants(C, "cat")) {
+                OfficeXmlNode formula = categories.Child(C, "strRef").Child(C, "f");
+                if (formula.IsNone) formula = categories.Child(C, "numRef").Child(C, "f");
+                if (formula.Exists) formula.SetInnerText(categoryFormula);
             }
 
-            foreach (Values values in plotArea.Descendants<Values>()) {
-                uint? index = values.Parent?.GetFirstChild<ChartIndex>()?.Val?.Value;
-                Formula? formula = values.GetFirstChild<NumberReference>()?.Formula;
-                if (formula != null && index.HasValue && index.Value < (uint)_values.Length) {
-                    formula.Text = _values[(int)index.Value].Formula;
+            foreach (OfficeXmlNode values in plotArea.Descendants(C, "val")) {
+                if (!values.Parent.Is(C, "ser")) continue;
+                uint? index = values.Parent.Child(C, "idx").UInt32Val();
+                OfficeXmlNode formula = values.Child(C, "numRef").Child(C, "f");
+                if (formula.Exists && index.HasValue && index.Value < (uint)_values.Length) {
+                    formula.SetInnerText(_values[(int)index.Value].Formula);
                 }
             }
         }

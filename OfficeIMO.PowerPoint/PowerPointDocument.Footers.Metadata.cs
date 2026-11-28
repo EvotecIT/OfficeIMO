@@ -10,9 +10,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Stores the authored definition separately from its visible, possibly suppressed physical copies.</summary>
         private void PersistFooterDefinitions() {
             EnsureFooterDefinitions();
-            if (LayoutDeck.Footers.Count == 0 && !_slides.Any(slide => slide.NativeFooters.Count != 0)) return;
-            WriteFooterDefinitions(PresentationRoot, _presentationPart, LayoutDeck.Footers, persistEmpty: true);
-            foreach (var slide in _slides) WriteFooterDefinitions(slide.SlidePart.Slide!, slide.SlidePart,
+            if (LayoutDeck.Footers.Count == 0 && !LoadedSlides.Any(slide => slide.NativeFooters.Count != 0)) return;
+            WriteFooterDefinitions(PresentationRoot, SdkPresentationPart, LayoutDeck.Footers, persistEmpty: true);
+            foreach (var slide in LoadedSlides) WriteFooterDefinitions(slide.SlidePart.Slide!, slide.SlidePart,
                 slide.NativeFooters, slide.SuppressFooterText, slide.SuppressFooterNumber, slide.NativeFooterColor);
         }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
                 var entry = new OpenXmlUnknownElement("imo", "footer", FooterNamespace);
                 entry.SetAttribute(new OpenXmlAttribute("alignment", string.Empty, item.Key.ToString()));
                 var body = (TextBody)item.Value.Definition.Box.TextBody!.CloneNode(true);
-                if (owner is SlidePart slide) PowerPointLayoutNativeText.RehomeRelationships(body,
+                if (owner is SlidePart slide) PowerPointSlide.RehomeLayoutRelationships(body,
                     item.Value.Definition.Box.RelationshipOwnerPart, slide);
                 entry.Append(body);
                 definitions.Append(entry);

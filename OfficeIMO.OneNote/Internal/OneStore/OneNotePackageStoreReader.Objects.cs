@@ -88,7 +88,7 @@ internal static partial class OneNotePackageStoreReader {
                     accumulator.CellReferences,
                     options,
                     accumulator.Offset);
-                record.RawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(accumulator.PropertyData);
+                record.SetRawPropertyBytes(accumulator.PropertyData);
                 record.PropertySet = OneNotePropertySetReader.Read(accumulator.PropertyData, mappings, options, (ulong)Math.Max(0, accumulator.Offset));
                 ApplyFileDataProperties(record);
             }

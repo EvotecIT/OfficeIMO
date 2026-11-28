@@ -37,6 +37,8 @@ $WorkDirectory = (Resolve-Path $WorkDirectory).Path
 $corpus = Join-Path $WorkDirectory 'corpus'
 $results = Join-Path $WorkDirectory 'results'
 $derived = Join-Path $WorkDirectory 'DerivedData'
+# Release builds ignore the unattended-run launch arguments unless this Swift condition is set.
+$autorun = 'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) OFFICEIMO_AUTORUN'
 New-Item -ItemType Directory -Force $results | Out-Null
 
 function Invoke-Tool([string]$Tool, [string[]]$Arguments) {
@@ -73,7 +75,7 @@ if (-not (Test-Path (Join-Path $corpus 'long.pdf')) -or -not (Test-Path (Join-Pa
 if ('macOS' -in $Part) {
 Write-Host 'Building the macOS app'
 Invoke-Tool xcodebuild @('-project', $project, '-scheme', 'OfficeIMOStudio-macOS', '-configuration', 'Release', '-destination', 'platform=macOS',
-    '-derivedDataPath', $derived, 'LD_GENERATE_MAP_FILE=YES', 'build', '-quiet')
+    '-derivedDataPath', $derived, 'LD_GENERATE_MAP_FILE=YES', $autorun, 'build', '-quiet')
 $macApp = Join-Path $derived 'Build/Products/Release/OfficeIMO Studio.app'
 $macExecutable = Join-Path $macApp 'Contents/MacOS/OfficeIMO Studio'
 for ($run = 1; $run -le $Runs; $run++) {
@@ -113,7 +115,7 @@ try {
     Invoke-Tool xcrun @('simctl', 'bootstatus', $simulator)
     Write-Host "Building the iOS app for $SimulatorType, iOS $($runtime.version)"
     Invoke-Tool xcodebuild @('-project', $project, '-scheme', 'OfficeIMOStudio-iOS', '-configuration', 'Release', '-destination', "id=$simulator",
-        '-derivedDataPath', $derived, 'build', '-quiet')
+        '-derivedDataPath', $derived, $autorun, 'build', '-quiet')
     Invoke-Tool xcrun @('simctl', 'install', $simulator, (Join-Path $derived 'Build/Products/Release-iphonesimulator/OfficeIMO Studio.app'))
     for ($run = 1; $run -le $Runs; $run++) {
         $output = xcrun simctl launch --console-pty --terminate-running-process $simulator $bundleId -OfficeIMOJourney -OfficeIMOExit

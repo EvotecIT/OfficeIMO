@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>
@@ -75,14 +73,9 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointLayoutBox GetSlideContentBounds(OfficeLength margin) {
             if (margin < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(margin));
-            PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
-            PresentationPart? presentationPart = document?.PresentationPart;
-            if (presentationPart == null) {
-                return GetSelectionBounds(ShapeList);
-            }
-
-            var slideSize = new PowerPointSlideSize(presentationPart);
-            return slideSize.GetContentBox(margin);
+            return OwnerDocument is { } document
+                ? document.SlideSize.GetContentBox(margin)
+                : GetSelectionBounds(ShapeList);
         }
     }
 }

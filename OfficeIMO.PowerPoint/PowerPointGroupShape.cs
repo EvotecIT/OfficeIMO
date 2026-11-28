@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -7,11 +8,20 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointGroupShape : PowerPointShape {
         internal PowerPointGroupShape(GroupShape groupShape, OpenXmlPartContainer? ownerPart = null) : base(groupShape) {
-            OwnerPart = ownerPart;
+            _ownerPart = ownerPart;
+        }
+
+        private readonly OpenXmlPartContainer? _ownerPart;
+
+        internal PowerPointGroupShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
+
+        internal PowerPointGroupShape(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
         }
 
         internal GroupShape GroupShape => (GroupShape)Element;
 
-        internal OpenXmlPartContainer? OwnerPart { get; }
+        /// <summary>The part whose relationships the group's children use: a master's or layout's for a group held there.</summary>
+        internal OpenXmlPartContainer? OwnerPart => _ownerPart ?? (PackagePart.IsNone ? null : RelationshipOwnerPart);
     }
 }

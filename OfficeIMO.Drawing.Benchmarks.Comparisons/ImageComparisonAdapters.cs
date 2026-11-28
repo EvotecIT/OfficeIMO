@@ -6,8 +6,10 @@ namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 internal static class ImageComparisonAdapters {
     internal static byte[] DecodeOfficeImoRgba(byte[] encoded) {
-        OfficeRasterImage image = ImageBenchmarkCorpus.Decode(encoded, "OfficeIMO decode");
-        return image.GetPixels();
+        if (!OfficeRasterImageDecoder.TryDecodeRgba32(encoded, out byte[]? pixels, out _, out _) || pixels == null) {
+            throw new InvalidOperationException("The managed image engine could not decode the OfficeIMO input.");
+        }
+        return pixels;
     }
 
     internal static byte[] DecodeSkiaRgba(byte[] encoded) {

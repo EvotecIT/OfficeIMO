@@ -60,11 +60,11 @@ public static partial class InvoiceSerializer {
                 string path = "Payments[" + index + "]";
                 if (options.Syntax == InvoiceSyntax.Ubl && payment.CardNumber != null && string.IsNullOrWhiteSpace(payment.CardNetworkId))
                     Unsupported(path + ".CardNetworkId", "UBL requires a card network identifier when card account data is present.");
-                if (options.Syntax == InvoiceSyntax.Cii && payment.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(payment.DebitedAccount))
+                if (options.Syntax == InvoiceSyntax.Cii && payment.DebitedAccount != null && !FinancialSchemes.Iban.IsValid(payment.DebitedAccount))
                     Unsupported(path + ".DebitedAccount", "The CII debtor-account target requires a valid IBAN; identifier '" + payment.DebitedAccount + "' cannot be relabeled as an IBAN.");
                 InvoiceBankAccount? account = payment.Account;
                 if (account == null) continue;
-                bool validIban = InvoiceBankAccountIdentity.IsValidIban(account.Identifier);
+                bool validIban = FinancialSchemes.Iban.IsValid(account.Identifier);
                 if (account.IsIban && !validIban)
                     Unsupported(path + ".Account", "An account marked as an IBAN must have a registered country format and valid checksum.");
                 else if (options.Syntax == InvoiceSyntax.Ubl && !account.IsIban && validIban)

@@ -28,14 +28,13 @@ internal sealed partial class StudioOcrSetupViewModel : ObservableObject, IDispo
         _inspect = inspect ?? (runtime ?? new StudioOcrRuntime(preferences)).InspectAsync;
         _executablePath = preferences.Current.OcrExecutablePath ?? string.Empty;
         _savedPath = _executablePath;
-        _status = StudioOcrProvider.UnavailableReason ?? T("CheckToStart");
+        _status = T("CheckToStart");
         _preferences.Changed += PreferencesChanged;
     }
 
-    public bool IsAvailable => StudioOcrProvider.UnavailableReason is null;
     public string InstallationCommand => TesseractRuntime.GetInstallationCommand();
     public string LanguageHelp => T("LanguageHelp");
-    public bool CanCheck => IsAvailable && !_disposed && !IsBusy;
+    public bool CanCheck => !_disposed && !IsBusy;
 
     [ObservableProperty] private string _executablePath;
     [ObservableProperty] private string _status;

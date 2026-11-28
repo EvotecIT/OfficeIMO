@@ -50,6 +50,13 @@ internal static partial class OfficeJpegReader {
 
         public bool AllowTruncated => _allowTruncated;
 
+        // Tops up a prefetching buffer without consuming a marker or failing at the end of the
+        // data; a read that needs more than it holds afterwards goes through the checked methods.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void FillBuffered() {
+            if (_prefetch && _bitCount < PrefetchBits) Fill(PrefetchBits);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryPeekBits(int count, out int value) {
             if (_bitCount < count && !TryFillForPeek(count)) {

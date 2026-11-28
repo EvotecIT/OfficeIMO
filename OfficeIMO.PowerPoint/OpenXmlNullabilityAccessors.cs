@@ -5,15 +5,15 @@ using DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         private Presentation PresentationRoot {
-            get => _presentationPart.Presentation ??= new Presentation();
-            set => _presentationPart.Presentation = value;
+            get => SdkPresentationPart.Presentation ??= new Presentation();
+            set => SdkPresentationPart.Presentation = value;
         }
     }
 
     public partial class PowerPointSlide {
         private Slide SlideRoot {
-            get => _slidePart.Slide ?? throw new InvalidOperationException("Slide is null.");
-            set => _slidePart.Slide = value;
+            get => SlidePart.Slide ?? throw new InvalidOperationException("Slide is null.");
+            set => SlidePart.Slide = value;
         }
     }
 

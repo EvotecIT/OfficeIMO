@@ -16,7 +16,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordTable table = document.AddTable(1, 1);
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
@@ -61,9 +61,9 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = WordListLevelAlignment.Left;
-        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
+        level.OpenXmlLevel().PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY";
@@ -78,7 +78,7 @@ public sealed class PdfListMarkerAnchorTests {
         if (mode == 2) paragraph._paragraph.ParagraphProperties.Tabs = new Tabs(
             new TabStop { Val = TabStopValues.Clear, Position = 3000 });
         if (mode >= 3) {
-            var replacement = (Level)level.OpenXmlElement.CloneNode(true);
+            var replacement = (Level)level.OpenXmlLevel().CloneNode(true);
             replacement.PreviousParagraphProperties!.RemoveAllChildren<Tabs>();
             if (mode == 3) replacement.PreviousParagraphProperties.InsertAt(new Tabs(
                 new TabStop { Val = TabStopValues.Number, Position = 2000 }), 0);
@@ -118,7 +118,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = alignment;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY\nNEXT";
@@ -156,7 +156,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = WordListLevelAlignment.Left;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY";
@@ -169,7 +169,7 @@ public sealed class PdfListMarkerAnchorTests {
         using var explicitPdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var expected = explicitPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         // Remove last: the public getter can materialize Word's left default.
-        level.OpenXmlElement.LevelJustification = null;
+        level.OpenXmlLevel().LevelJustification = null;
         using var omittedPdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var actual = omittedPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.BODY", string.Concat(actual.Select(letter => letter.Value)));
@@ -195,7 +195,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = suffix;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = (markerFontSize * 2).ToString() });
         foreach (string text in new[] { "FIRST", "SECOND" }) {
             WordParagraph paragraph = list.AddItem(text);
@@ -237,7 +237,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("MARKER BODY");
         paragraph.Text = "MARKER BODY";
@@ -275,7 +275,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingTwips) / 20D);
         level.LevelJustification = alignment;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "MARKER BODY";
@@ -317,7 +317,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingTwips) / 20D);
         level.LevelJustification = alignment;
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" }, new CharacterScale { Val = 100 });
         WordParagraph paragraph = list.AddItem("MARKER BODY");
         paragraph.FontFamily = "Courier New";

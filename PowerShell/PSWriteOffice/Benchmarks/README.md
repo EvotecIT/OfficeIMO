@@ -388,6 +388,21 @@ pwsh -NoLogo -NoProfile -File ./Benchmarks/Compare-MarkdownPerformance.ps1
 `OfficeIMO.Markdown.Benchmarks` remains the engine comparison against standalone
 Markdig.
 
+## Per-call cost over a session
+
+`Measure-CmdletSessionGrowth.ps1` runs cmdlets that scripts call in loops
+(`Add-OfficeWordParagraph`, `Set-OfficeExcelCell`, `Add-OfficeMarkdownParagraph`,
+`Get-OfficeExcelTable`, `Get-OfficeExcelNamedRange`, `Split-OfficeDocument` and
+`Convert-OfficeDocument`) in batches of calls, each cmdlet in its own fresh
+process against one live document. It prints the per-call time of every batch
+and the gen 2 collections, so a cost that grows with the number of calls in a
+session shows up as a rising row. `New-OfficeMarkdownHtmlOptions` gives the
+binding floor.
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./Benchmarks/Measure-CmdletSessionGrowth.ps1
+```
+
 ## Options
 
 The wrappers build PSWriteOffice in `Release` mode by default and import local
@@ -418,3 +433,58 @@ Benchmark artifacts are written under `Ignore\Benchmarks\ExcelPerformance` and
 
 Start with `comparison.md` or the generated README table for the comparison,
 then use `samples.csv` when diagnosing individual failures.
+
+## Notebook
+
+The [PowerShell execution benchmark](NotebookExecution/README.md) compares running notebooks and saving output.
+
+`Compare-NotebookPerformance.ps1` exercises the PowerShell commands with
+deterministic Jupyter notebooks containing prose, Markdown tables, Python
+source, and saved standard output. Each sample checks cell or document order
+and verifies the requested content. Export validation also checks table counts.
+Notebook code stays inert throughout the benchmark.
+
+Run from the PSWriteOffice directory after building the Release development
+module, or pass `-ModuleManifest` for a staged module. The runner requires
+PSPublishModule 3.0.194 or later. `-PowerForge` accepts a path to its manifest.
+Keep the checkout stable during the run because PowerForge verifies source
+provenance.
+
+```powershell
+pwsh -NoProfile -File ./Benchmarks/Compare-NotebookPerformance.ps1 -Plan
+pwsh -NoProfile -File ./Benchmarks/Compare-NotebookPerformance.ps1 -Mode Warm
+pwsh -NoProfile -File ./Benchmarks/Compare-NotebookPerformance.ps1 -Mode Cold -CellCount 120
+pwsh -NoProfile -File ./Benchmarks/Compare-NotebookPerformance.ps1 -Mode Batch -CellCount 120 -BatchSize 8 -ThrottleLimit 4
+```
+
+- **Warm** measures ordered cell kind and source, Markdown export, and HTML
+  export with the module already loaded. The default corpus sizes are 12,
+  120, and 1,200 cells.
+- **Cold** starts the same PowerShell executable with profiles disabled, imports
+  the module, writes the first Markdown file, and waits for the process to exit.
+- **Batch** measures PSWriteOffice Markdown file conversion with configurable
+  concurrency. Use the verified file count divided by elapsed seconds for
+  files per second.
+
+The warm and cold lanes can include PowerShellNotebook 3.0.0 by passing
+`-PowerShellNotebookManifest` to the extracted Gallery package. The runner
+checks the version and MIT license. Both engines receive identical inputs
+and validate the same cell or export contract. PowerShellNotebook requires
+PowerShell 6.2 or later. The OfficeIMO SDK's Markdown and PDF performance has
+separate [notebook benchmarks](../../../OfficeIMO.Notebook.Benchmarks/README.md).
+
+```powershell
+$peerRoot = Join-Path ([IO.Path]::GetTempPath()) 'pswriteoffice-benchmark-peer'
+[void][IO.Directory]::CreateDirectory($peerRoot)
+Save-Module -Name PowerShellNotebook -RequiredVersion 3.0.0 -Path $peerRoot
+$peer = Join-Path $peerRoot 'PowerShellNotebook/3.0.0/PowerShellNotebook.psd1'
+pwsh -NoProfile -File ./Benchmarks/Compare-NotebookPerformance.ps1 -PowerShellNotebookManifest $peer
+```
+
+Use `-MemorySamplingIntervalMilliseconds 10` for an instrumented cohort.
+PowerForge samples the supervising process and reports managed allocation for
+its operation boundary. In a cold run, a separate worker peak covers that
+worker's lifetime where the host supports it. On macOS the instrumented cold
+lane reads peak RSS from Darwin `time -l`. An unavailable worker peak is
+omitted. Compare timing within the same cohort and keep Windows PowerShell
+5.1 results separate from PowerShell 7 results.

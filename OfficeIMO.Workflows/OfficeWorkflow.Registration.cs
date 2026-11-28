@@ -4,15 +4,21 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows;
 
 public static partial class OfficeWorkflow {
-    private static readonly Lazy<bool> ConverterRegistration = new(() => {
+    private static readonly Lazy<bool> ConverterRegistration = new(RegisterBuiltinConversions);
+
+    private static bool RegisterBuiltinConversions() {
         foreach (OfficeWorkflowRoute route in OfficeWorkflowCatalog.ExecutableRoutes.Where(route => !OfficeConverter.IsBuiltinRoute(route.Id) && !IsPairRoute(route.Id)))
             OfficeConverter.Register(new BuiltinWorkflowRoute(route.Id));
         foreach (string id in PairRouteIds) OfficeConverter.Register(new PairRoute(id));
+        foreach (ImportedEbookRoute route in ImportedEbookRoutes) OfficeConverter.Register(route);
         return true;
-    });
+    }
 
     // Pair adapters are owned by OfficeConverter registrations; the runner delegates to them instead of re-registering itself.
-    internal static bool IsPairRoute(string id) => PairRouteIds.Contains(id, StringComparer.OrdinalIgnoreCase);
+    internal static bool IsPairRoute(string id) => PairRouteIds.Contains(id, StringComparer.OrdinalIgnoreCase) || IsImportedEbookRoute(id);
+
+    internal static bool IsImportedEbookRoute(string id) =>
+        ImportedEbookRoutes.Any(route => route.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Registers the additional Workflows conversion engines with <see cref="OfficeConverter"/>. Repeated calls reuse the same registrations.</summary>
     public static void RegisterConversions() => _ = ConverterRegistration.Value;

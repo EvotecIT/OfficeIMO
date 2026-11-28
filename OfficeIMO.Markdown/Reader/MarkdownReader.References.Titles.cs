@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static bool TryParseReferenceDestinationAndMultilineTitle(
-        string[] lines,
+        MarkdownSourceLines lines,
         int destinationLineIndex,
         string rest,
         int contentStartColumnZeroBased,

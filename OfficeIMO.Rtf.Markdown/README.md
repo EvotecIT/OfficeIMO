@@ -25,12 +25,18 @@ Convert the other direction with `markdown.ToRtf(options, out report)` or `markd
 
 This bridge converts document meaning, not raw control words. Use `OfficeIMO.Rtf` lossless APIs when the original RTF syntax must remain exact.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Rtf.Markdown
+```
+
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Markdown`, and `OfficeIMO.Core` own parsing, semantic mapping, image export hooks, and loss reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

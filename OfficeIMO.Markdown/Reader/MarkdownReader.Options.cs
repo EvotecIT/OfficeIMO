@@ -95,6 +95,7 @@ internal static partial class MarkdownReader {
             BackslashHardBreaks = source.BackslashHardBreaks,
             SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks,
             InlineHtml = source.InlineHtml,
+            ImageSourceResolver = source.ImageSourceResolver,
             Abbreviations = source.Abbreviations,
             GenericAttributes = source.GenericAttributes,
             CustomContainers = source.CustomContainers,

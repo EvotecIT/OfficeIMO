@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <Using Include="System.Net" />
     <Using Include="System.Text" />
   </ItemGroup>

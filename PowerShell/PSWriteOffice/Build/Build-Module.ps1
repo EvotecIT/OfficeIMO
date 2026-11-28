@@ -48,9 +48,9 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         # Copyright statement for this module
         Copyright              = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
         # Description of the functionality provided by this module
-        Description            = 'PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.'
+        Description            = 'PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, Jupyter notebooks, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.'
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags                   = @('officeimo', 'word', 'excel', 'powerpoint', 'pdf', 'iwork', 'pages', 'numbers', 'keynote', 'onenote', 'ocr', 'provenance', 'security', 'opendocument', 'email', 'markdown', 'asciidoc', 'latex', 'csv', 'confluence', 'adf', 'atlassian', 'docx', 'xlsx', 'pptx', 'openxml', 'windows', 'linux', 'macos')
+        Tags                   = @('officeimo', 'word', 'excel', 'powerpoint', 'pdf', 'iwork', 'pages', 'numbers', 'keynote', 'onenote', 'ocr', 'provenance', 'security', 'opendocument', 'email', 'markdown', 'asciidoc', 'latex', 'csv', 'confluence', 'jupyter', 'ipynb', 'adf', 'atlassian', 'docx', 'xlsx', 'pptx', 'openxml', 'windows', 'linux', 'macos')
         # A URL to the main website for this project.
         ProjectUri             = 'https://github.com/EvotecIT/OfficeIMO'
 
@@ -130,7 +130,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         NETProjectPath                    = 'Sources\PSWriteOffice\PSWriteOffice.csproj'
         NETAssemblyLoadContext            = $true
         NETAssemblyTypeAcceleratorMode    = 'Assembly'
-        NETAssemblyTypeAcceleratorAssemblies = @('OfficeIMO.Core', 'OfficeIMO.Word', 'OfficeIMO.Excel', 'OfficeIMO.PowerPoint', 'OfficeIMO.Pdf')
+        NETAssemblyTypeAcceleratorAssemblies = @('OfficeIMO.Core', 'OfficeIMO.Word', 'OfficeIMO.Excel', 'OfficeIMO.PowerPoint', 'OfficeIMO.Pdf', 'OfficeIMO.Notebook', 'OfficeIMO.Notebook.Import')
         NETDevelopmentBinaries            = $true
         NETDevelopmentBinariesMode        = 'Auto'
         NETDevelopmentSourceBootstrapperMode = 'ReplaceSingleFile'

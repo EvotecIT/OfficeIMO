@@ -10,6 +10,7 @@ namespace OfficeIMO.CSV;
 public sealed class CsvSaveOptions
 {
     private const char DefaultDelimiter = ',';
+    internal CsvFormulaInjectionPolicy? ConfiguredFormulaInjectionPolicy { get; private set; }
 
     /// <summary>
     /// Gets or sets the field delimiter character. Default is <c>,</c>.
@@ -80,7 +81,11 @@ public sealed class CsvSaveOptions
     /// <summary>
     /// Gets or sets how formula-like values are handled before writing CSV output. Default preserves values exactly.
     /// </summary>
-    public CsvFormulaInjectionPolicy FormulaInjectionPolicy { get; set; } = CsvFormulaInjectionPolicy.Preserve;
+    public CsvFormulaInjectionPolicy FormulaInjectionPolicy
+    {
+        get => ConfiguredFormulaInjectionPolicy ?? CsvFormulaInjectionPolicy.Preserve;
+        set => ConfiguredFormulaInjectionPolicy = value;
+    }
 
     /// <summary>
     /// Gets or sets when fields are quoted. Default quotes only fields that need quoting.

@@ -127,6 +127,8 @@ internal sealed partial class OfficeXmlPullReader {
         }
 
         _depth++;
+        _markupStart = qnameStart - 1;
+        _markupEnd = position;
         NodeKind = OfficeXmlNodeKind.StartElement;
         NamespaceId = frame.NamespaceId;
         _nameStart = frame.LocalStart;
@@ -212,12 +214,8 @@ internal sealed partial class OfficeXmlPullReader {
             return AsciiEquals(attribute.LocalStart, attribute.LocalLength, "xmlns") ? OfficeXmlNamespaces.Xmlns : OfficeXmlNamespaces.None;
         }
         if (attribute.PrefixLength == 5 && AsciiEquals(attribute.PrefixStart, 5, "xmlns")) return OfficeXmlNamespaces.Xmlns;
-        for (int index = _bindingCount - 1; index >= 0; index--) {
-            ref Binding binding = ref _bindings[index];
-            if (binding.PrefixLength == attribute.PrefixLength && BytesEqual(binding.PrefixStart, attribute.PrefixStart, attribute.PrefixLength)) {
-                return binding.UriId;
-            }
-        }
+        int found = FindBinding(attribute.PrefixStart, attribute.PrefixLength);
+        if (found >= 0) return _bindings[found].UriId;
         // The xml prefix is bound implicitly; any other unbound prefix fails here as it does everywhere else.
         return ResolvePrefix(attribute.PrefixStart, attribute.PrefixLength);
     }
@@ -253,13 +251,45 @@ internal sealed partial class OfficeXmlPullReader {
 
     // Resolves a prefix (empty for the default namespace) against the bindings in scope.
     private int ResolvePrefix(int start, int length) {
-        for (int index = _bindingCount - 1; index >= 0; index--) {
-            ref Binding binding = ref _bindings[index];
-            if (binding.PrefixLength == length && BytesEqual(binding.PrefixStart, start, length)) return binding.NamespaceId;
-        }
+        int found = FindBinding(start, length);
+        if (found >= 0) return _bindings[found].NamespaceId;
         if (length == 0) return OfficeXmlNamespaces.None;
         if (length == 3 && AsciiEquals(start, 3, "xml")) return OfficeXmlNamespaces.Xml;
         throw Malformed("The prefix '" + System.Text.Encoding.UTF8.GetString(_data, start, length) + "' is not declared.");
+    }
+
+    // The binding of a prefix, or -1. Documents declare most prefixes once on the root, so a lookup that scanned the
+    // bindings from the top would pass dozens of them on every element; a small cache remembers where each prefix was
+    // found. A cached index counts only while it is in scope, still names the prefix, and no later binding shadows it.
+    private int[]? _bindingCache;
+
+    private int FindBinding(int start, int length) {
+        int[] cache = _bindingCache ??= new int[16];
+        int key = length == 0 ? 0 : (length * 31 + _data[start]) * 31 + _data[start + length - 1];
+        int slot = key & 15;
+        int cached = cache[slot] - 1;
+        if (cached >= 0 && cached < _bindingCount) {
+            ref Binding candidate = ref _bindings[cached];
+            if (candidate.PrefixLength == length && BytesEqual(candidate.PrefixStart, start, length)) {
+                bool shadowed = false;
+                for (int index = _bindingCount - 1; index > cached; index--) {
+                    ref Binding later = ref _bindings[index];
+                    if (later.PrefixLength == length && BytesEqual(later.PrefixStart, start, length)) {
+                        shadowed = true;
+                        break;
+                    }
+                }
+                if (!shadowed) return cached;
+            }
+        }
+        for (int index = _bindingCount - 1; index >= 0; index--) {
+            ref Binding binding = ref _bindings[index];
+            if (binding.PrefixLength == length && BytesEqual(binding.PrefixStart, start, length)) {
+                cache[slot] = index + 1;
+                return index;
+            }
+        }
+        return -1;
     }
 
     private void ApplySpecialAttributes(ref Frame frame) {
@@ -269,9 +299,15 @@ internal sealed partial class OfficeXmlPullReader {
             int namespaceId = ResolvePrefix(attribute.PrefixStart, attribute.PrefixLength);
             if (namespaceId == OfficeXmlNamespaces.Xml) {
                 if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "space")) {
-                    string value = GetAttributeValue(attribute);
-                    if (value == "preserve") frame.PreserveSpace = true;
-                    else if (value == "default") frame.PreserveSpace = false;
+                    // Almost every text element says xml:space="preserve"; the bytes are compared without decoding them.
+                    if (!attribute.NeedsDecoding) {
+                        if (AsciiEquals(attribute.ValueStart, attribute.ValueLength, "preserve")) frame.PreserveSpace = true;
+                        else if (AsciiEquals(attribute.ValueStart, attribute.ValueLength, "default")) frame.PreserveSpace = false;
+                    } else {
+                        string value = GetAttributeValue(attribute);
+                        if (value == "preserve") frame.PreserveSpace = true;
+                        else if (value == "default") frame.PreserveSpace = false;
+                    }
                 }
             } else if (namespaceId == OfficeXmlNamespaces.MarkupCompatibility && _processMarkupCompatibility) {
                 if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "Ignorable")) {
@@ -401,7 +437,7 @@ internal sealed partial class OfficeXmlPullReader {
             } else if (next == (byte)'?') {
                 SkipPast("?>", 2);
             } else if (next == (byte)'!') {
-                if (StartsWith(position, "<!--")) SkipPast("-->", 4);
+                if (StartsWith(position, "<!--")) SkipComment();
                 else if (StartsWith(position, "<![CDATA[")) SkipPast("]]>", 9);
                 else throw Malformed("The part has a document type declaration.");
             } else {

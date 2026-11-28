@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -21,16 +20,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var dop = new byte[body.DopLength];
             // Word 97/2000 reads document note options from DOP rather than section SPRMs.
             byte footnotePosition = GetFootnotePositionOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.FootnotePosition, FootnotePositionValues.PageBottom, "footnote placement"))!.Value;
+                section => section.FootnotePosition, LegacyDocFootnotePosition.PageBottom, "footnote placement").ToXml())!.Value;
             ushort baseFlags = (ushort)(footnotePosition << 5);
             if (body.FacingPages) baseFlags |= FacingPagesDopFlag;
             WriteUInt16(dop, 0, baseFlags);
             WriteUInt16(dop, 2, CreateDocumentNoteSequence(body.Sections, false));
             WriteUInt16(dop, 10, body.DefaultTabStop);
             WriteUInt16(dop, 492, GetPageNumberFormatOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.FootnoteNumberFormat, NumberFormatValues.Decimal, "footnote numbering format"))!.Value);
+                section => section.FootnoteNumberFormat, LegacyDocNumberFormat.Decimal, "footnote numbering format").ToXml())!.Value);
             WriteUInt16(dop, 494, GetPageNumberFormatOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.EndnoteNumberFormat, NumberFormatValues.LowerRoman, "endnote numbering format"))!.Value);
+                section => section.EndnoteNumberFormat, LegacyDocNumberFormat.LowerRoman, "endnote numbering format").ToXml())!.Value);
 
             // MS-DOC DopBase's second flags word contains revision tracking and mirrored margins.
             uint flags = 0;
@@ -46,7 +45,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (body.RequiresWord2000Format) WriteUInt16(dop, Dop2000CompatibilityFlagsOffset, NoColumnBalanceDopFlag);
             }
 
-            uint placement = body.EndnotePosition == null ? 3u : (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;
+            uint placement = body.EndnotePosition == null ? 3u : (uint)GetEndnotePositionOperand(body.EndnotePosition)!.Value;
             WriteUInt32(dop, DopBaseEndnotePlacementOffset, (uint)CreateDocumentNoteSequence(body.Sections, true) | placement << DopBaseEndnotePlacementShift);
             if (body.GutterAtTop) WriteUInt16(dop, DopBaseViewFlagsOffset, GutterAtTopDopFlag);
             return dop;
@@ -56,8 +55,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int start = ReadDocumentNoteValue(sections, section => endnotes ? section.EndnoteStart : section.FootnoteStart,
                 1, endnotes ? "endnote starting number" : "footnote starting number");
             var restart = ReadDocumentNoteValue(sections, section => endnotes ? section.EndnoteRestart : section.FootnoteRestart,
-                RestartNumberValues.Continuous, endnotes ? "endnote numbering restart" : "footnote numbering restart");
-            return (ushort)((start << 2) | GetNoteRestartOperand(restart)!.Value);
+                LegacyDocRestartNumber.Continuous, endnotes ? "endnote numbering restart" : "footnote numbering restart");
+            return (ushort)((start << 2) | GetNoteRestartOperand(restart.ToXml())!.Value);
         }
 
         private static T ReadDocumentNoteValue<T>(IReadOnlyList<LegacyDocWritableSection> sections,

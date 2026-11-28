@@ -26,10 +26,11 @@ namespace OfficeIMO.Excel {
 
             try {
                 ReleaseReadSnapshot();
-                if (this._spreadSheetDocument != null) {
+                // A workbook that never opened its SDK package has none to close.
+                if (_deferredWorkbook != null || this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                            bool shouldSave = FileOpenAccess != FileAccess.Read &&
                                               (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
@@ -38,11 +39,13 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        ReleasePackage();
+                        if (_deferredWorkbook == null) ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
-                        this._spreadSheetDocument = null!;
+                        _deferredWorkbook = null;
+                        _deferredPackageBytes = null;
+                        this._spreadSheetDocumentValue = null!;
                     }
                 }
 
@@ -77,15 +80,24 @@ namespace OfficeIMO.Excel {
         /// memory only, so it is left to the collector.
         /// </summary>
         private void ReleasePackage() {
-            _packageCopyOnWriteStream?.Abandon();
             if (_packageCopyOnWriteStream != null
                 && ReferenceEquals(_spreadSheetDocument, _packageOnCopyOnWriteStream)
                 && !_openXmlDocumentExposed) {
+                _packageCopyOnWriteStream.Abandon();
                 return;
             }
+#if !NETFRAMEWORK
+            // The package writes its changes on dispose and nothing reads them, so they need not land.
+            _packageCopyOnWriteStream?.Abandon();
+#endif
+            // .NET Framework's package API reads back the blocks it moves while it writes, so its writes must land.
 
-            CommitPendingStylesheet();
-            _spreadSheetDocument.Dispose();
+            SpreadsheetDocument package = _spreadSheetDocument;
+            try {
+                CommitPendingPartStreams();
+            } finally {
+                package.Dispose();
+            }
         }
 
         /// <summary>
@@ -99,10 +111,11 @@ namespace OfficeIMO.Excel {
             Exception? persistenceFailure = null;
 
             try {
-                if (this._spreadSheetDocument != null) {
+                // A workbook that never opened its SDK package has none to close.
+                if (_deferredWorkbook != null || this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                            bool shouldSave = FileOpenAccess != FileAccess.Read &&
                                               (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
@@ -111,11 +124,13 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        ReleasePackage();
+                        if (_deferredWorkbook == null) ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
-                        this._spreadSheetDocument = null!;
+                        _deferredWorkbook = null;
+                        _deferredPackageBytes = null;
+                        this._spreadSheetDocumentValue = null!;
                     }
                 }
 

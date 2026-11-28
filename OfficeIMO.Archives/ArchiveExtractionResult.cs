@@ -13,7 +13,11 @@ public enum ArchiveFormat {
     /// <summary>A TAR archive compressed with gzip (.tar.gz, .tgz).</summary>
     TarGZip,
     /// <summary>A single file compressed with gzip (.gz) whose content is not a TAR archive.</summary>
-    GZip
+    GZip,
+    /// <summary>A 7z archive.</summary>
+    SevenZip,
+    /// <summary>A RAR 5.0 container.</summary>
+    Rar5
 }
 
 /// <summary>A verified file published by an extraction operation.</summary>

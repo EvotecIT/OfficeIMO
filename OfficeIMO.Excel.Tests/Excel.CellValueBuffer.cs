@@ -80,8 +80,15 @@ namespace OfficeIMO.Tests {
             Assert.True(document.HasPendingDirectCellValues);
         };
 
+        // A new workbook records plain values without the model until its SDK opens; the cell buffer serves the model.
+        private static ExcelDocument CreateBufferedWorkbook() {
+            ExcelDocument document = ExcelDocument.Create();
+            document.OpenDeferredSdk("cell buffer test");
+            return document;
+        }
+
         private static MemoryStream SaveWorkbook(Action<ExcelDocument> write, ExcelSaveOptions? options) {
-            using ExcelDocument document = ExcelDocument.Create();
+            using ExcelDocument document = CreateBufferedWorkbook();
             write(document);
             var output = new MemoryStream();
             document.Save(output, options);
@@ -165,7 +172,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CellValueBuffer_AutoFitMatchesTheMeasuredDomWidths() {
             static double[] Widths(bool materializeFirst) {
-                using ExcelDocument document = ExcelDocument.Create();
+                using ExcelDocument document = CreateBufferedWorkbook();
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 5000; row++) {
                     sheet.Cell(row, 1).SetValue("item number " + row + (row % 97 == 0 ? " WWWWWWWW" : string.Empty));
@@ -462,6 +469,56 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(0, sheet.PendingCellValueCount);
+        }
+
+        private sealed record BufferedRecord(string Name, int Id, DateTime CreatedOn, double Amount);
+
+        // A second WriteData sheet keeps its rows as the selector values; every route that reads or changes them must
+        // see the cells the selectors produced.
+        [Fact]
+        public void CellValueBuffer_WriteDataRowsKeepTheirValuesThroughReadsEditsAndSave() {
+            BufferedRecord[] records = Enumerable.Range(0, 300)
+                .Select(index => new BufferedRecord("Name <" + index + "> & co", index + 1, new DateTime(2024, 1, 1).AddDays(index).AddMinutes(index), index * 1.25))
+                .ToArray();
+            using var output = new MemoryStream();
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet second = null!;
+                foreach (string name in new[] { "First", "Second" }) {
+                    second = document.AddSheet(name);
+                    second.WriteData(records, ("Name", static row => row.Name), ("Id", static row => row.Id),
+                        ("CreatedOn", static row => row.CreatedOn), ("Amount", static row => row.Amount));
+                }
+
+                Assert.True(second.PendingCellValueCount > 0);
+                Assert.Equal(records[149].Name, second.EnumerateCells().Single(cell => cell.Row == 151 && cell.Column == 1).Value);
+                Assert.Equal(records.Length * 4 + 4, second.EnumerateCells().Count());
+
+                second.Cell(200, 2).SetValue("edited");
+                second.Cell(250, 4).SetBold();
+                second.Cell(303, 1).SetValue("after");
+                document.Save(output);
+            }
+
+            output.Position = 0;
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            for (int sheetIndex = 0; sheetIndex < 2; sheetIndex++) {
+                ExcelSheet sheet = reopened.Sheets[sheetIndex];
+                var cells = sheet.EnumerateCells().ToDictionary(cell => (cell.Row, cell.Column), cell => cell.Value);
+                Assert.Equal(new object?[] { "Name", "Id", "CreatedOn", "Amount" }, Enumerable.Range(1, 4).Select(column => cells[(1, column)]));
+                for (int index = 0; index < records.Length; index++) {
+                    int row = index + 2;
+                    bool edited = sheetIndex == 1 && row == 200;
+                    Assert.Equal(records[index].Name, cells[(row, 1)]);
+                    Assert.Equal(edited ? "edited" : (object)(double)records[index].Id, cells[(row, 2)]);
+                    Assert.Equal(records[index].CreatedOn, cells[(row, 3)]);
+                    Assert.Equal(records[index].Amount, cells[(row, 4)]);
+                }
+
+                Assert.Equal("yyyy-mm-dd hh:mm", sheet.Cell(150, 3).GetStyle().NumberFormatCode);
+                Assert.Equal(sheetIndex == 1 ? "after" : null, cells.TryGetValue((303, 1), out object? after) ? after : null);
+                Assert.Equal(sheetIndex == 1, sheet.Cell(250, 4).GetStyle().Bold);
+            }
         }
     }
 }

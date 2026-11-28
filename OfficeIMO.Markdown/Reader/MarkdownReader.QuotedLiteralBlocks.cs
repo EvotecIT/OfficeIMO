@@ -2,11 +2,11 @@ namespace OfficeIMO.Markdown;
 
 /// <summary>The quoted content (one '>' level stripped) of one run of quote lines in a source line array.</summary>
 internal sealed class QuotedContentRun {
-    private readonly string[] _source;
+    private readonly MarkdownSourceLines _source;
     private readonly int _continuationIndent;
     private readonly int _start;
 
-    internal QuotedContentRun(string[] source, int continuationIndent, int start, string[] content) {
+    internal QuotedContentRun(MarkdownSourceLines source, int continuationIndent, int start, string[] content) {
         _source = source;
         _continuationIndent = continuationIndent;
         _start = start;
@@ -16,7 +16,7 @@ internal sealed class QuotedContentRun {
     internal string[] Content { get; }
 
     /// <summary>Returns true when line <paramref name="index"/> of <paramref name="source"/> lies in this run.</summary>
-    internal bool Covers(string[] source, int continuationIndent, int index) =>
+    internal bool Covers(MarkdownSourceLines source, int continuationIndent, int index) =>
         ReferenceEquals(_source, source)
         && _continuationIndent == continuationIndent
         && index >= _start
@@ -71,7 +71,7 @@ internal static partial class MarkdownReader {
         }
 
         /// <summary>Opens an HTML block that starts on the top-level quote line at <paramref name="index"/>.</summary>
-        internal void TryOpenTopLevelHtmlBlock(string content, string[] lines, int index, MarkdownLoadOptions options) {
+        internal void TryOpenTopLevelHtmlBlock(string content, MarkdownSourceLines lines, int index, MarkdownLoadOptions options) {
             if (!StartsHtmlBlock(content, options)) return;
             var run = _state.QuotedContentRun;
             if (run == null || !run.Covers(lines, TopLevelQuote, index)) {
@@ -83,7 +83,7 @@ internal static partial class MarkdownReader {
         }
 
         /// <summary>Opens an HTML block that starts on the list-item quote line at <paramref name="index"/>.</summary>
-        internal void TryOpenNestedHtmlBlock(string content, string[] lines, int index, int continuationIndent, MarkdownLoadOptions options) {
+        internal void TryOpenNestedHtmlBlock(string content, MarkdownSourceLines lines, int index, int continuationIndent, MarkdownLoadOptions options) {
             if (!StartsHtmlBlock(content, options)) return;
             var run = _state.QuotedContentRun;
             if (run == null || !run.Covers(lines, continuationIndent, index)) {
@@ -108,7 +108,7 @@ internal static partial class MarkdownReader {
     }
 
     // The quoted content (one '>' level stripped) of the consecutive top-level quote lines starting at start.
-    private static string[] CollectTopLevelQuotedContent(string[] lines, int start) {
+    private static string[] CollectTopLevelQuotedContent(MarkdownSourceLines lines, int start) {
         var content = new System.Collections.Generic.List<string>();
         for (int k = start; k < lines.Length; k++) {
             string line = lines[k] ?? string.Empty;
@@ -120,7 +120,7 @@ internal static partial class MarkdownReader {
     }
 
     // The quoted content of the consecutive quote lines in a list item, from start, at the item's continuation indent.
-    private static string[] CollectNestedQuotedContent(string[] lines, int start, int continuationIndent) {
+    private static string[] CollectNestedQuotedContent(MarkdownSourceLines lines, int start, int continuationIndent) {
         var content = new System.Collections.Generic.List<string>();
         for (int k = start; k < lines.Length; k++) {
             string raw = lines[k] ?? string.Empty;

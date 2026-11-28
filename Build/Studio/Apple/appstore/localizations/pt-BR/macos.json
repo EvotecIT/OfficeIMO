@@ -1,0 +1,14 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "macOS",
+  "locale": "pt-BR",
+  "metadata": {
+    "description": "Leia e anote PDFs no Mac. Abra seus documentos direto pelo Finder.\n\nPesquise e selecione texto, adicione notas e marcações, preencha os campos compatíveis dos formulários e organize as páginas. Salve o PDF com as alterações ou compartilhe uma cópia.\n\nConverta arquivos compatíveis para PDF. Use o reconhecimento de texto para fazer buscas em documentos digitalizados. Salve uma cópia protegida por senha ou remova trechos confidenciais antes de compartilhar o documento.\n\nAbra arquivos do Word, do Excel e do PowerPoint em modo somente leitura, sem precisar instalar o Microsoft Office. Salve uma cópia em PDF para adicionar marcações ou reorganizar as páginas.\n\nOs documentos são processados no próprio dispositivo. O OfficeIMO Studio é gratuito e tem código aberto sob a licença MIT. O código-fonte e o suporte da comunidade estão no GitHub.\nhttps://github.com/EvotecIT/OfficeIMO",
+    "keywords": "editar,anotação,formulário,extrair texto,ocr,juntar,dividir,senha,docx,xlsx,pptx,tarja",
+    "promotionalText": "Abra documentos pelo Finder, reorganize páginas e salve cópias em PDF protegidas por senha.",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}

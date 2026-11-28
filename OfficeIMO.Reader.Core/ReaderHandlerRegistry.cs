@@ -3,15 +3,18 @@ namespace OfficeIMO.Reader;
 internal sealed class ReaderHandlerRegistry {
     private readonly Dictionary<string, ReaderHandlerDescriptor> _handlersById = new Dictionary<string, ReaderHandlerDescriptor>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _handlerIdByExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _fallbackHandlerIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _sync = new object();
 
-    public void Register(ReaderHandlerRegistration registration, bool replaceExisting) {
+    public void Register(ReaderHandlerRegistration registration, bool replaceExisting, bool fallback = false) {
         ReaderHandlerDescriptor handler = ReaderHandlerDescriptor.Create(registration);
 
         lock (_sync) {
-            if (!replaceExisting) {
-                ValidateNoConflicts(handler.Id, handler.Extensions);
+            if (fallback) {
+                if (_handlersById.ContainsKey(handler.Id) || handler.Extensions.Any(_handlerIdByExtension.ContainsKey)) return;
+                _fallbackHandlerIds.Add(handler.Id);
             } else {
+                if (!replaceExisting) ValidateNoConflicts(handler.Id, handler.Extensions);
                 RemoveConflicts(handler.Id, handler.Extensions);
             }
 
@@ -32,12 +35,12 @@ internal sealed class ReaderHandlerRegistry {
     }
 
     private void ValidateNoConflicts(string handlerId, IReadOnlyList<string> extensions) {
-        if (_handlersById.ContainsKey(handlerId)) {
+        if (_handlersById.ContainsKey(handlerId) && !_fallbackHandlerIds.Contains(handlerId)) {
             throw new InvalidOperationException($"Handler '{handlerId}' is already registered.");
         }
 
         foreach (string extension in extensions) {
-            if (_handlerIdByExtension.ContainsKey(extension)) {
+            if (_handlerIdByExtension.TryGetValue(extension, out string? owner) && !_fallbackHandlerIds.Contains(owner)) {
                 throw new InvalidOperationException($"Extension '{extension}' is already handled by a configured reader.");
             }
         }
@@ -66,6 +69,7 @@ internal sealed class ReaderHandlerRegistry {
         }
 
         _handlersById.Remove(handlerId);
+        _fallbackHandlerIds.Remove(handlerId);
         foreach (string extension in existing.Extensions) {
             if (_handlerIdByExtension.TryGetValue(extension, out string? current) &&
                 string.Equals(current, handlerId, StringComparison.OrdinalIgnoreCase)) {
@@ -80,12 +84,15 @@ internal sealed class ReaderHandlerRegistry {
 internal sealed class ReaderHandlerRegistrySnapshot {
     private readonly IReadOnlyDictionary<string, ReaderHandlerDescriptor> _handlersById;
     private readonly IReadOnlyDictionary<string, string> _handlerIdByExtension;
+    internal IReadOnlyList<string> CompoundExtensions { get; }
 
     public ReaderHandlerRegistrySnapshot(
         IReadOnlyDictionary<string, ReaderHandlerDescriptor> handlersById,
         IReadOnlyDictionary<string, string> handlerIdByExtension) {
         _handlersById = handlersById;
         _handlerIdByExtension = handlerIdByExtension;
+        CompoundExtensions = handlerIdByExtension.Keys.Where(extension => extension.IndexOf('.', 1) >= 0)
+            .OrderByDescending(extension => extension.Length).ToArray();
     }
 
     public IReadOnlyList<ReaderHandlerDescriptor> Handlers => _handlersById.Values

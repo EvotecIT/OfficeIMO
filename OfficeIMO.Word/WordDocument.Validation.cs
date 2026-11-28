@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.OpenXml.Internal;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -11,7 +12,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to the document background settings.
         /// </summary>
-        public WordBackground Background { get; set; } = null!;
+        public WordBackground Background {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _background;
+            }
+            set => _background = value;
+        }
+
+        private WordBackground _background = null!;
 
         /// <summary>
         /// Indicates whether the document passes Open XML validation.
@@ -55,7 +64,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets compatibility settings for the document.
         /// </summary>
-        public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
+        public WordCompatibilitySettings CompatibilitySettings {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _compatibilitySettings;
+            }
+            set => _compatibilitySettings = value;
+        }
+
+        private WordCompatibilitySettings _compatibilitySettings = null!;
 
         internal void NotifyTableOfContentUpdateQueued(bool enabledUpdateFieldsOnOpen = false) {
             _tableOfContentUpdateQueued = true;
@@ -150,8 +167,10 @@ namespace OfficeIMO.Word {
         private void RefreshGeneratedTableOfContent() {
             WordTableOfContent? generated = _generatedTableOfContent;
             if (generated == null) return;
-            if (generated.SdtBlock.Parent == null || !ReferenceEquals(generated.SdtBlock.Ancestors<Body>().FirstOrDefault(),
-                    _wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+            OfficeXmlNode body = _ownedModel is { } model
+                ? new OfficeXmlNode(model.Document, model.Body)
+                : OfficeXmlNode.FromSdk(_wordprocessingDocument.MainDocumentPart?.Document?.Body);
+            if (!generated.BelongsToBody(body)) {
                 _generatedTableOfContent = null;
                 return;
             }
@@ -177,6 +196,8 @@ namespace OfficeIMO.Word {
                 new WordDocumentVariables(this, true);
             }
             new WordBibliography(this, true);
+            // Identifiers written outside the allocators since the last save are picked up again on the next add.
+            InvalidateIdentifierState();
         }
     }
 }

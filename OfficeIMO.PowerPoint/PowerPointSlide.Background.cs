@@ -1,53 +1,43 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private const int BackgroundPml = OfficeXmlNamespaces.PresentationML;
+        private const int BackgroundDrawing = OfficeXmlNamespaces.DrawingML;
+
         /// <summary>
         ///     Gets or sets the local solid background color, retaining native theme slots and opacity.
         /// </summary>
         public OfficeColor? BackgroundColor {
-            get {
-                CommonSlideData? common = SlideRoot.CommonSlideData;
-                Background? bg = common?.Background;
-                A.SolidFill? solid = bg?.BackgroundProperties?.GetFirstChild<A.SolidFill>();
-                return PowerPointDrawingColor.Read(solid);
-            }
+            get => PowerPointDrawingColor.Read(BackgroundOf(PartRef).Child(BackgroundPml, "bgPr").Child(BackgroundDrawing, "solidFill"));
             set {
-                CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-                if (value == null) {
-                    BackgroundProperties? properties = common.Background?.BackgroundProperties;
-                    if (properties == null) {
-                        return;
-                    }
-
-                    properties.RemoveAllChildren<A.SolidFill>();
-                    if (!properties.HasChildren) {
-                        common.Background = null;
-                    }
+                if (value is not { } color) {
+                    PowerPointPartRef current = PartRef;
+                    RemoveBackgroundFill(current, EnsureCommonSlideData(current), "solidFill");
                     return;
                 }
 
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(color) ? AuthoringTheme : null;
                 ClearBackgroundImage();
-                Background bg = common.Background ?? new Background();
-                BackgroundProperties props = bg.BackgroundProperties ?? new BackgroundProperties();
-                RemoveBackgroundFillChildren(props);
-                props.Append(PowerPointDrawingColor.Fill(value, AuthoringTheme));
-                bg.BackgroundProperties = props;
-                common.Background = bg;
+                PowerPointPartRef part = PartRef;
+                OfficeXmlNode data = EnsureCommonSlideData(part);
+                SetBackgroundFill(part, data, PowerPointDrawingColor.CreateFill(data, color, theme));
             }
         }
 
         /// <summary>Sets an explicit no-fill slide background, overriding inherited theme fills.</summary>
         public void SetBackgroundNoFill() {
-            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            Background background = new Background();
-            background.BackgroundProperties = new BackgroundProperties(new A.NoFill());
-            common.Background = background;
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode data = EnsureCommonSlideData(part);
+            OfficeXmlNode background = data.CreateElement(BackgroundPml, "bg");
+            background.Append(background.CreateElement(BackgroundPml, "bgPr"))
+                .Append(background.CreateElement(BackgroundDrawing, "noFill"));
+            data.RemoveChildren(BackgroundPml, "bg");
+            data.InsertOrdered(background, PCommonSlideDataView.Order);
+            part.MarkEdited();
         }
 
         /// <summary>
@@ -89,43 +79,30 @@ namespace OfficeIMO.PowerPoint {
             SetBackgroundImageCore(image, imageType, PowerPointPartFactory.GetImageExtension(imageType));
         }
 
-        private void SetBackgroundImageCore(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, string imageExtension) {
-            A.Blip? previousBlip = GetBackgroundBlip();
-            string? previousRelationshipId = previousBlip?.Embed?.Value;
-            PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
-            string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
-                "ppt/media",
-                "image",
-                imageExtension,
-                allowBaseWithoutIndex: false);
-
-            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
-                partTypeInfo.ContentType,
-                imagePartUri);
-
-            if (image.CanSeek) {
-                image.Position = 0;
+        private void SetBackgroundImageCore(Stream image, OfficeImageFormat imageType, string imageExtension) {
+            string relationshipId;
+            PowerPointPartRef part = PartRef;
+            if (!part.IsSdk && OwnerDocument is { CanEditPackage: true } document) {
+                if (image.CanSeek) image.Position = 0;
+                using var buffer = new MemoryStream();
+                image.CopyTo(buffer);
+                if (!document.TryAddPackageImagePart(part.Name, buffer.ToArray(), PowerPointImageContentTypes.For(imageType),
+                        imageExtension, out relationshipId, out _, out _, reuse: false)) {
+                    throw new InvalidOperationException("The slide image part could not be added.");
+                }
+            } else {
+                relationshipId = AddSdkBackgroundImagePart(image, imageType, imageExtension);
+                part = PartRef;
             }
-            imagePart.FeedData(image);
-            string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
-            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            Background background = common.Background ?? new Background();
-            BackgroundProperties props = background.BackgroundProperties ?? new BackgroundProperties();
-
-            RemoveBackgroundFillChildren(props);
-
-            props.Append(new A.BlipFill(
-                new A.Blip { Embed = relationshipId },
-                new A.Stretch(new A.FillRectangle())
-            ));
-
-            background.BackgroundProperties = props;
-            common.Background = background;
-
-            RemoveUnusedImagePart(previousRelationshipId, previousBlip);
+            OfficeXmlNode data = EnsureCommonSlideData(part);
+            string? previousRelationshipId = BackgroundImageRelationship(data);
+            OfficeXmlNode fill = data.CreateElement(BackgroundDrawing, "blipFill");
+            fill.Append(fill.CreateElement(BackgroundDrawing, "blip"))
+                .SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
+            fill.Append(fill.CreateElement(BackgroundDrawing, "stretch")).Append(fill.CreateElement(BackgroundDrawing, "fillRect"));
+            SetBackgroundFill(part, data, fill);
+            if (previousRelationshipId != null) part.RemoveRelationshipIfUnused(previousRelationshipId, default);
         }
 
         /// <summary>
@@ -133,96 +110,67 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetBackgroundGradient(OfficeColor startColor, OfficeColor endColor, double angleDegrees = 135d) {
             int angle = ToOpenXmlAngle(angleDegrees);
+            OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(startColor) || PowerPointDrawingColor.NeedsTheme(endColor)
+                ? AuthoringTheme : null;
             ClearBackgroundImage();
-
-            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            Background background = common.Background ?? new Background();
-            BackgroundProperties props = background.BackgroundProperties ?? new BackgroundProperties();
-
-            RemoveBackgroundFillChildren(props);
-
-            A.GradientFill gradient = new() { RotateWithShape = true };
-            A.GradientStopList stops = new();
-            stops.Append(
-                new A.GradientStop(PowerPointDrawingColor.Create(startColor, AuthoringTheme)) {
-                    Position = 0
-                });
-            stops.Append(
-                new A.GradientStop(PowerPointDrawingColor.Create(endColor, AuthoringTheme)) {
-                    Position = 100000
-                });
-            gradient.Append(stops);
-            gradient.Append(new A.LinearGradientFill {
-                Angle = angle,
-                Scaled = false
-            });
-
-            props.Append(gradient);
-            background.BackgroundProperties = props;
-            common.Background = background;
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode data = EnsureCommonSlideData(part);
+            OfficeXmlNode gradient = data.CreateElement(BackgroundDrawing, "gradFill");
+            gradient.SetBooleanAttribute("rotWithShape", true);
+            OfficeXmlNode stops = gradient.Append(gradient.CreateElement(BackgroundDrawing, "gsLst"));
+            OfficeXmlNode first = stops.Append(stops.CreateElement(BackgroundDrawing, "gs"));
+            first.SetInt32Attribute("pos", 0);
+            PowerPointDrawingColor.Append(first, startColor, theme);
+            OfficeXmlNode last = stops.Append(stops.CreateElement(BackgroundDrawing, "gs"));
+            last.SetInt32Attribute("pos", 100000);
+            PowerPointDrawingColor.Append(last, endColor, theme);
+            OfficeXmlNode linear = gradient.Append(gradient.CreateElement(BackgroundDrawing, "lin"));
+            linear.SetInt32Attribute("ang", angle);
+            linear.SetBooleanAttribute("scaled", false);
+            SetBackgroundFill(part, data, gradient);
         }
 
         /// <summary>
         ///     Clears any background image from the slide.
         /// </summary>
         public void ClearBackgroundImage() {
-            CommonSlideData? common = SlideRoot.CommonSlideData;
-            if (common?.Background?.BackgroundProperties == null) {
-                return;
-            }
-
-            A.Blip? previousBlip = GetBackgroundBlip();
-            string? previousRelationshipId = previousBlip?.Embed?.Value;
-            common.Background.BackgroundProperties.RemoveAllChildren<A.BlipFill>();
-            if (!common.Background.BackgroundProperties.HasChildren) {
-                common.Background = null;
-            }
-
-            RemoveUnusedImagePart(previousRelationshipId, previousBlip);
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode data = part.Root.Child(BackgroundPml, "cSld");
+            string? previousRelationshipId = BackgroundImageRelationship(data);
+            RemoveBackgroundFill(part, data, "blipFill");
+            if (previousRelationshipId != null) part.RemoveRelationshipIfUnused(previousRelationshipId, default);
         }
 
-        private static void RemoveBackgroundFillChildren(BackgroundProperties properties) {
-            properties.RemoveAllChildren<A.BlipFill>();
-            properties.RemoveAllChildren<A.GradientFill>();
-            properties.RemoveAllChildren<A.GroupFill>();
-            properties.RemoveAllChildren<A.NoFill>();
-            properties.RemoveAllChildren<A.PatternFill>();
-            properties.RemoveAllChildren<A.SolidFill>();
+        private static string? BackgroundImageRelationship(OfficeXmlNode data) =>
+            data.Child(BackgroundPml, "bg").Child(BackgroundPml, "bgPr").Child(BackgroundDrawing, "blipFill")
+                .Child(BackgroundDrawing, "blip").Attribute(OfficeXmlNamespaces.Relationships, "embed");
+
+        private static void RemoveBackgroundFill(PowerPointPartRef part, OfficeXmlNode data, string name) {
+            OfficeXmlNode background = data.Child(BackgroundPml, "bg");
+            OfficeXmlNode properties = background.Child(BackgroundPml, "bgPr");
+            if (properties.IsNone) return;
+            properties.RemoveChildren(BackgroundDrawing, name);
+            if (properties.FirstChild.IsNone) background.Remove();
+            part.MarkEdited();
+        }
+
+        private static void SetBackgroundFill(PowerPointPartRef part, OfficeXmlNode data, OfficeXmlNode fill) {
+            OfficeXmlNode background = data.GetOrAddChild(BackgroundPml, "bg", PCommonSlideDataView.Order);
+            OfficeXmlNode properties = background.GetOrPrependChild(BackgroundPml, "bgPr");
+            properties.RemoveChildren(BackgroundDrawing, "blipFill");
+            properties.RemoveChildren(BackgroundDrawing, "gradFill");
+            properties.RemoveChildren(BackgroundDrawing, "grpFill");
+            properties.RemoveChildren(BackgroundDrawing, "noFill");
+            properties.RemoveChildren(BackgroundDrawing, "pattFill");
+            properties.RemoveChildren(BackgroundDrawing, "solidFill");
+            properties.Append(fill);
+            part.MarkEdited();
         }
 
         private static int ToOpenXmlAngle(double degrees) {
             double normalized = degrees % 360d;
-            if (normalized < 0) {
-                normalized += 360d;
-            }
-
+            if (normalized < 0) normalized += 360d;
             return (int)Math.Round(normalized * 60000d);
-        }
-
-        private A.Blip? GetBackgroundBlip() {
-            return SlideRoot.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<A.BlipFill>()?.Blip;
-        }
-
-        private void RemoveUnusedImagePart(string? relationshipId, A.Blip? currentBlip) {
-            string resolvedRelationshipId = relationshipId ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(resolvedRelationshipId)) {
-                return;
-            }
-            if (IsImageRelationshipReferenced(resolvedRelationshipId, currentBlip)) {
-                return;
-            }
-
-            try {
-                _slidePart.DeletePart(resolvedRelationshipId);
-            } catch (ArgumentOutOfRangeException) {
-                // The previous relationship may already be absent on damaged input.
-            }
-        }
-
-        private bool IsImageRelationshipReferenced(string relationshipId, A.Blip? currentBlip) {
-            return SlideRoot
-                .Descendants<A.Blip>()
-                .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
         }
     }
 }

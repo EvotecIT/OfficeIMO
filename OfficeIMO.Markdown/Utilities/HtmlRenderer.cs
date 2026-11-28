@@ -370,6 +370,19 @@ internal static class HtmlRenderer {
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string> _unscopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string> _defaultScopedBaseCssCache = new();
+
+    private static string GetUnscopedBaseCss(MarkdownHtmlStyle style) =>
+        _unscopedBaseCssCache.GetOrAdd(style, static value =>
+            value == MarkdownHtmlStyle.Plain ? string.Empty : HtmlResources.GetStyleCss(value) + HtmlResources.CommonExtraCss);
+
+    private static string GetScopedBaseCss(MarkdownHtmlStyle style, string? scopeSelector) {
+        if (scopeSelector == MarkdownHtmlExportOptions.DefaultCssScopeSelector) {
+            return _defaultScopedBaseCssCache.GetOrAdd(style, static value =>
+                ScopeCss(GetUnscopedBaseCss(value), MarkdownHtmlExportOptions.DefaultCssScopeSelector));
+        }
+        return ScopeCss(GetUnscopedBaseCss(style), scopeSelector);
+    }
 
     private static string? BuildCss(MarkdownHtmlExportOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
@@ -377,12 +390,10 @@ internal static class HtmlRenderer {
         // deliberately rendered on demand so unique request values cannot grow static state.
         MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
         MarkdownHtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
-        string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
-            static style => style == MarkdownHtmlStyle.Plain ? string.Empty : HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
         bool nativeThemeDefaults = effectiveVisualTheme?.SourceTheme != null;
         string baseCss = nativeThemeDefaults && options.Style == MarkdownHtmlStyle.Plain
             ? HtmlResources.GetOfficeThemeCss(NormalizeScope(options.CssScopeSelector))
-            : ScopeCss(rawBaseCss, options.CssScopeSelector);
+            : GetScopedBaseCss(effectiveStyle, options.CssScopeSelector);
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();

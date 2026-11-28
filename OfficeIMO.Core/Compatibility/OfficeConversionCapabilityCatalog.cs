@@ -252,11 +252,17 @@ public static partial class OfficeConversionCapabilityCatalog {
     // The shared host route set. OfficeIMO.Workflows executes exactly these routes and the Tool CLI and MCP server
     // resolve conversions from it; host tests verify every id has an implementation.
     private static readonly HashSet<string> HostExecutableIds = new(StringComparer.OrdinalIgnoreCase) {
-        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf",
+        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx", "notebook-source-ipynb", "notebook-source-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub",
         "odt-pdf", "ods-pdf", "odp-pdf", "email-pdf", "epub-pdf", "markdown-docx", "html-docx", "rtf-docx",
-        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
-        "csv-xlsx", "xlsx-csv"
+        "docx-epub", "markdown-epub", "html-epub", "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
+        "csv-xlsx", "xlsx-csv",
+        "ebook-cb7-epub", "ebook-cb7-pdf", "ebook-cb7-html", "ebook-cb7-markdown",
+        "ebook-cbr-epub", "ebook-cbr-pdf", "ebook-cbr-html", "ebook-cbr-markdown",
+        "ebook-cbz-epub", "ebook-cbz-pdf", "ebook-cbz-html", "ebook-cbz-markdown",
+        "ebook-fb2-epub", "ebook-fb2-pdf", "ebook-fb2-html", "ebook-fb2-markdown",
+        "ebook-mobi-epub", "ebook-mobi-pdf", "ebook-mobi-html", "ebook-mobi-markdown"
     };
 
     internal static bool IsHostExecutable(string id) => HostExecutableIds.Contains(id);
@@ -278,6 +284,17 @@ public static partial class OfficeConversionCapabilityCatalog {
         string.IsNullOrWhiteSpace(id)
             ? null
             : All.FirstOrDefault(route => string.Equals(route.Id, id!.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static readonly string[] CompoundSourceExtensions = All.Where(static route => route.HostExecutable).SelectMany(static route => route.SourceExtensions)
+        .Where(extension => extension.IndexOf('.', 1) >= 0).Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderByDescending(extension => extension.Length).ToArray();
+
+    internal static string GetSourceExtension(string? name) {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        foreach (string extension in CompoundSourceExtensions)
+            if (name!.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) return extension;
+        return Path.GetExtension(name!) ?? string.Empty;
+    }
 
     /// <summary>Returns routes that accept the supplied source extension.</summary>
     public static IReadOnlyList<OfficeConversionCapability> FindBySourceExtension(string extension) {
@@ -368,6 +385,7 @@ public static partial class OfficeConversionCapabilityCatalog {
     }
 
     private static OfficeConversionCapability[] CreateRoutes() {
+        string[] notebookSources = [".qmd", ".rmd", ".deepnote", ".zpln"];
         var routes = new List<OfficeConversionCapability> {
         new OfficeConversionCapability(
             "heic-pdf", "HEIC", "PDF", OfficeConversionInputKind.File,
@@ -381,13 +399,33 @@ public static partial class OfficeConversionCapabilityCatalog {
             knownLimitations: "Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected.",
             textFormatting: OfficeConversionTextFormattingKind.FixedLayoutAppearance,
             textFormattingContract: "The source is a raster image; PDF output preserves its supported pixels as a fixed-layout page without adding searchable or editable text."),
+        Route("ebook-mobi-epub", "Mobipocket and Kindle", "EPUB", OfficeConversionInputKind.File, new[] { ".mobi", ".prc", ".pdb", ".azw", ".azw3" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Mobipocket and Kindle content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-mobi-pdf", "Mobipocket and Kindle", "PDF", OfficeConversionInputKind.File, new[] { ".mobi", ".prc", ".pdb", ".azw", ".azw3" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Mobipocket and Kindle content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-mobi-html", "Mobipocket and Kindle", "HTML", OfficeConversionInputKind.File, new[] { ".mobi", ".prc", ".pdb", ".azw", ".azw3" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Mobipocket and Kindle content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-mobi-markdown", "Mobipocket and Kindle", "Markdown", OfficeConversionInputKind.File, new[] { ".mobi", ".prc", ".pdb", ".azw", ".azw3" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Mobipocket and Kindle content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("email-pdf", "Email", "PDF", OfficeConversionInputKind.File, new[] { ".eml", ".msg", ".oft", ".tnef" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Render the message header, sanitized body, inline images and attachment list into searchable PDF through the HTML engine; the TextOnly profile writes the Reader text projection.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("epub-pdf", "EPUB", "PDF", OfficeConversionInputKind.File, new[] { ".epub" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Render styled EPUB chapters in spine order into searchable PDF with a navigation outline and chapter diagnostics. The TextOnly profile uses the Reader text projection.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("reader-visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx", ".vstx", ".vssx", ".vsdm", ".vstm", ".vssm", ".vdx", ".vsx", ".vtx", ".vsd", ".vss", ".vst" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Project Visio semantic content and preview policy into searchable PDF, with explicit fallback evidence.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("doc-pdf", "DOC", "PDF", OfficeConversionInputKind.File, new[] { ".doc", ".dot" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(sourcePath, destinationPath, options)", "Convert supported binary Word documents to PDF with import and rendering evidence.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("txt-pdf", "Plain text", "PDF", OfficeConversionInputKind.Text, new[] { ".txt" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(sourcePath, destinationPath, options)", "Render literal text with explicit decoding, tab columns and page limits.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cbz-epub", "Comic book ZIP", "EPUB", OfficeConversionInputKind.File, new[] { ".cbz" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cbz-pdf", "Comic book ZIP", "PDF", OfficeConversionInputKind.File, new[] { ".cbz" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cbz-html", "Comic book ZIP", "HTML", OfficeConversionInputKind.File, new[] { ".cbz" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cbz-markdown", "Comic book ZIP", "Markdown", OfficeConversionInputKind.File, new[] { ".cbz" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cb7-epub", "Comic book 7z", "EPUB", OfficeConversionInputKind.File, new[] { ".cb7" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cbr-epub", "Comic book RAR 5 (stored)", "EPUB", OfficeConversionInputKind.File, new[] { ".cbr" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book RAR 5 (stored) content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cb7-pdf", "Comic book 7z", "PDF", OfficeConversionInputKind.File, new[] { ".cb7" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cbr-pdf", "Comic book RAR 5 (stored)", "PDF", OfficeConversionInputKind.File, new[] { ".cbr" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book RAR 5 (stored) content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cb7-html", "Comic book 7z", "HTML", OfficeConversionInputKind.File, new[] { ".cb7" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cbr-html", "Comic book RAR 5 (stored)", "HTML", OfficeConversionInputKind.File, new[] { ".cbr" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book RAR 5 (stored) content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cb7-markdown", "Comic book 7z", "Markdown", OfficeConversionInputKind.File, new[] { ".cb7" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cbr-markdown", "Comic book RAR 5 (stored)", "Markdown", OfficeConversionInputKind.File, new[] { ".cbr" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book RAR 5 (stored) content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("xps-pdf", "XPS/OpenXPS", "PDF", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, ".pdf", "OfficeIMO.Xps.Pdf", "XpsDocument.Load(stream).SaveAsPdf(output, options)", "Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-fb2-epub", "FictionBook 2", "EPUB", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-fb2-pdf", "FictionBook 2", "PDF", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-fb2-html", "FictionBook 2", "HTML", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-fb2-markdown", "FictionBook 2", "Markdown", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("chm-pdf", "Compiled HTML Help", "PDF", OfficeConversionInputKind.File, new[] { ".chm" }, ".pdf", "OfficeIMO.Chm.Pdf", "ChmDocument.Load(stream).SaveAsPdf(output, options)", "Render selected help topics independently with embedded resources and explicit fidelity evidence.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("chm-markdown", "Compiled HTML Help", "Markdown", OfficeConversionInputKind.File, new[] { ".chm" }, ".md", "OfficeIMO.Chm.Markdown", "ChmDocument.Load(stream).SaveAsMarkdown(output, options)", "Recover a linked topic book through the canonical HTML-to-Markdown engine.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("chm-epub", "Compiled HTML Help", "EPUB", OfficeConversionInputKind.File, new[] { ".chm" }, ".epub", "OfficeIMO.Chm.Epub", "ChmDocument.Load(stream).SaveAsEpub(output, options)", "Publish selected topics and embedded resources as a reflowable EPUB with contents hierarchy and conversion reports.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
@@ -398,9 +436,9 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("pptx-pdf", "PPTX", "PDF", OfficeConversionInputKind.File, new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" }, ".pdf", "OfficeIMO.PowerPoint.Pdf", "PowerPointDocument.Load(stream).SaveAsPdf(output, options)", "Render presentation slides into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport", browser: true),
         Route("html-pdf", "HTML", "PDF", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".pdf", "OfficeIMO.Html.Pdf", "HtmlConversionDocument.Parse(html).SaveAsPdf(output, options)", "Render bounded HTML and CSS into a tagged PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport", browser: true),
         Route("book-project-epub", "Book project", "EPUB", OfficeConversionInputKind.File, new[] { ".oibook" }, ".epub", "OfficeIMO.Workflows", "BookProject.LoadProject(bytes).Export(options)", "Export a reviewed book project through the EPUB owner, retaining its publication and fidelity evidence.", OfficeConversionFidelityKind.Semantic, "EpubWriteResult"),
-        Route("html-epub", "HTML", "EPUB", OfficeConversionInputKind.ObjectModel, new[] { ".html", ".htm" }, ".epub", "OfficeIMO.Epub", "EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)", "Package a static reflowable HTML manuscript with chapter navigation, bounded resources and explicit import evidence.", OfficeConversionFidelityKind.Semantic, "EpubManuscriptResult"),
-        Route("markdown-epub", "Markdown", "EPUB", OfficeConversionInputKind.ObjectModel, new[] { ".md", ".markdown" }, ".epub", "OfficeIMO.Workflows", "BookManuscriptImporter.ImportMarkdownAsync(document, options)", "Compose typed Markdown and EPUB owners into a reflowable book with source metadata and import review.", OfficeConversionFidelityKind.Semantic, "EpubManuscriptResult"),
-        Route("docx-epub", "DOCX", "EPUB", OfficeConversionInputKind.ObjectModel, new[] { ".docx" }, ".epub", "OfficeIMO.Workflows", "BookManuscriptImporter.ImportWordAsync(document, options)", "Project Word's static final view into a reflowable book while retaining source conversion losses.", OfficeConversionFidelityKind.Semantic, "EpubManuscriptResult"),
+        Route("html-epub", "HTML", "EPUB", OfficeConversionInputKind.File, new[] { ".html", ".htm" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Package a static HTML manuscript and its bounded assets into a reflowable EPUB with chapter navigation.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("markdown-epub", "Markdown", "EPUB", OfficeConversionInputKind.File, new[] { ".md", ".markdown" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Publish Markdown with front matter, headings and bounded assets as a reflowable EPUB.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("docx-epub", "DOCX", "EPUB", OfficeConversionInputKind.File, new[] { ".docx" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Publish the static final view of a DOCX manuscript as a reflowable EPUB with the Word projection's fidelity findings.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", expandModernOfficeFamily: false),
         Route("markdown-html", "Markdown", "HTML", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".html", "OfficeIMO.Markdown", "MarkdownDocument.Parse(markdown).SaveAsHtml(output, options)", "Render typed Markdown through an explicit safe HTML profile.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", browser: true),
         Route("html-markdown", "HTML", "Markdown", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".md", "OfficeIMO.Markdown.Html", "HtmlConversionDocument.Parse(html).SaveAsMarkdown(output, options)", "Project HTML into portable Markdown with explicit resource and loss policy.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", browser: true),
         Route("markdown-pptx", "Markdown", "PowerPoint", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".pptx", "OfficeIMO.Workflows", "MarkdownPowerPointConverterExtensions.SaveAsPowerPoint(markdown, output, options)", "Compose Markdown outlines into editable native slides with notes, front matter and loss diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
@@ -418,6 +456,12 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("pptx-odp", "PPTX", "ODP", OfficeConversionInputKind.File, new[] { ".pptx" }, ".odp", "OfficeIMO.PowerPoint.OpenDocument", "PowerPointDocument.Load(stream).SaveAsOpenDocument(output, options)", "Convert an editable presentation to OpenDocument Presentation.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
         Route("odp-pptx", "ODP", "PPTX", OfficeConversionInputKind.File, new[] { ".odp", ".fodp" }, ".pptx", "OfficeIMO.PowerPoint.OpenDocument", "OdpPresentation.Load(stream) or LoadFlatXml(stream).SaveAsPowerPoint(output, options)", "Convert OpenDocument Presentation into an editable presentation.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
         Route("markdown-pdf", "Markdown", "PDF", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".pdf", "OfficeIMO.Markdown.Pdf", "MarkdownDocument.Parse(markdown).SaveAsPdf(output, options)", "Render Markdown into PDF with structured conversion warnings.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("notebook-pdf", "Jupyter Notebook", "PDF", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".pdf", "OfficeIMO.Notebook.Pdf", "NotebookDocument.Load(stream).SaveAsPdf(output, options)", "Render notebook cells and saved outputs into a paginated PDF with fidelity diagnostics.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport", browser: true),
+        Route("notebook-markdown", "Jupyter Notebook", "Markdown", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".md", "OfficeIMO.Notebook.Markdown", "NotebookDocument.Load(stream).ToMarkdown(options, out report)", "Project notebook cells and supported saved outputs into typed Markdown.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("notebook-html", "Jupyter Notebook", "HTML", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".html", "OfficeIMO.Notebook.Html", "NotebookDocument.Load(stream).SaveAsHtml(output, options)", "Export notebook cells and supported saved outputs into standalone HTML.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("notebook-docx", "Jupyter Notebook", "DOCX", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".docx", "OfficeIMO.Notebook.Word", "NotebookDocument.Load(stream).SaveAsWord(output, options)", "Export notebook cells and supported saved outputs into an editable Word document.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
+        Route("notebook-source-ipynb", "Notebook source", "Jupyter Notebook", OfficeConversionInputKind.File, notebookSources, ".ipynb", "OfficeIMO.Notebook.Import", "NotebookImporter.Load(stream, format).Value.Save(output)", "Import notebook source and saved results into an editable Jupyter notebook.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
+        Route("notebook-source-pdf", "Notebook source", "PDF", OfficeConversionInputKind.File, notebookSources, ".pdf", "OfficeIMO.Notebook.Import", "OfficeConverter.Convert(source, destination, options)", "Import notebook source and render supported saved content to PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("rtf-markdown", "RTF", "Markdown", OfficeConversionInputKind.File, new[] { ".rtf" }, ".md", "OfficeIMO.Rtf.Markdown", "RtfDocument.LoadResult(stream, readOptions).Document.SaveAsMarkdown(output, options)", "Project bounded RTF into portable Markdown.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("rtf-pdf", "RTF", "PDF", OfficeConversionInputKind.File, new[] { ".rtf" }, ".pdf", "OfficeIMO.Rtf.Pdf", "RtfDocument.Load(stream).SaveAsPdf(output, options)", "Render bounded RTF into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("markdown-rtf", "Markdown", "RTF", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".rtf", "OfficeIMO.Rtf.Markdown", "MarkdownDocument.Parse(markdown).SaveAsRtf(output, options)", "Convert typed Markdown into semantic RTF with loss diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
@@ -676,9 +720,10 @@ public static partial class OfficeConversionCapabilityCatalog {
         string id, string source, string target, OfficeConversionInputKind inputKind,
         IEnumerable<string> sourceExtensions, string targetExtension, string packageId,
         string api, string description, OfficeConversionFidelityKind fidelity,
-        string resultContract, bool browser = false) =>
-        CreateRoute(id, source, target, inputKind, sourceExtensions, targetExtension,
-            packageId, api, description, fidelity, resultContract, browser);
+        string resultContract, bool browser = false, bool expandModernOfficeFamily = true) =>
+        CreateRoute(id, source, target, inputKind,
+            expandModernOfficeFamily ? ExpandModernOfficeFamily(source, sourceExtensions) : sourceExtensions,
+            targetExtension, packageId, api, description, fidelity, resultContract, browser);
 
     private static OfficeConversionCapability CreateRoute(
         string id, string source, string target, OfficeConversionInputKind inputKind,
@@ -688,7 +733,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
         (OfficeConversionTextFormattingKind textFormatting, string textFormattingContract) = GetTextFormattingContract(source, target);
         return new OfficeConversionCapability(
-            id, source, target, inputKind, ExpandModernOfficeFamily(source, sourceExtensions), targetExtension,
+            id, source, target, inputKind, sourceExtensions, targetExtension,
             packageId, api, description, fidelity, resultContract, browser,
             agentDiscoverable: true,
             supportLevel: support.Level,
@@ -715,6 +760,26 @@ public static partial class OfficeConversionCapabilityCatalog {
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
         string source,
         string target) {
+        if (source is "Comic book ZIP" or "Comic book 7z" or "Comic book RAR 5 (stored)") {
+            return (OfficeConversionTextFormattingKind.FlattenedRaster,
+                "Preserves lettering as part of the raster pages in every output.");
+        }
+        if (source == "FictionBook 2") {
+            if (target == "PDF") {
+                return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                    "Renders supported inline styling as fixed-layout PDF text. Custom FictionBook stylesheets produce a conversion warning.");
+            }
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Retains supported inline emphasis, decoration and script. Custom FictionBook stylesheets produce a conversion warning.");
+        }
+        if (source == "Mobipocket and Kindle") {
+            if (target == "PDF") {
+                return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                    "Renders supported inline styling as fixed-layout PDF text. Separate Kindle styling and font flows produce a conversion warning.");
+            }
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Retains supported inline emphasis, decoration and script. Separate Kindle styling and font flows are omitted with a conversion warning.");
+        }
         if (string.Equals(target, "SVG", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.VectorAppearance,
                 "Preserves rendered font, color, weight, italic, decoration, and script appearance as SVG text and vector graphics; source-native editable semantics are not retained.");

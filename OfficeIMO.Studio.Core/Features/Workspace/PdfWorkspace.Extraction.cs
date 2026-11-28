@@ -58,7 +58,8 @@ internal sealed partial class PdfWorkspace {
             using var output = new OfficeBoundedMemoryStream(StudioDocumentStorage.MaximumDocumentBytes);
             extracted.SaveAsync(output, cancellationToken:token).GetAwaiter().GetResult();
             byte[] saved = output.ToArray();
-            if (PdfDocument.Load(new System.IO.MemoryStream(saved)).Inspect().PageCount != pages.Length)
+            using PdfDocument readback = PdfDocument.LoadOwned(saved, cancellationToken: token);
+            if (readback.Inspect(options: null, token).PageCount != pages.Length)
                 throw new InvalidDataException("The saved extraction does not contain the requested number of pages.");
             return saved;
         }, token).ConfigureAwait(false);

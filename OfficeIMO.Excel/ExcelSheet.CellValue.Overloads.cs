@@ -6,8 +6,14 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
 
+        // The cell setters run once per cell, so they are compiled optimized from the first call rather than tiered up.
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, string value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Text(value))) {
                 return;
             }
@@ -30,7 +36,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, double value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Number(value))) {
                 return;
             }
@@ -54,6 +65,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, float value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -76,7 +88,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, decimal value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -99,7 +116,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, int value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int32(value))) {
                 return;
             }
@@ -122,7 +144,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, long value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int64(value))) {
                 return;
             }
@@ -146,6 +173,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, short value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -168,7 +196,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, DateTime value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.DateTimeCell(value))) {
                 return;
             }
@@ -192,6 +225,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, DateTimeOffset value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -216,6 +250,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #if NET6_0_OR_GREATER
         internal void CellValue(int row, int column, DateOnly value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -239,6 +274,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, TimeOnly value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -263,6 +299,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #endif
         internal void CellValue(int row, int column, TimeSpan value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -286,6 +323,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, uint value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -309,6 +347,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, ulong value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -332,6 +371,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, ushort value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -355,6 +395,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, byte value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -378,6 +419,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, sbyte value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -400,7 +442,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void CellValue(int row, int column, bool value) {
+            if (TryDeferCellValue(row, column, value)) return;
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Boolean(value))) {
                 return;
             }

@@ -82,9 +82,23 @@ internal sealed partial class PdfReadDocument {
             }
         }
 
+        PdfDictionary? classMap = null;
+        if (orderedElements.Count > 0 &&
+            FindCatalog() is PdfDictionary catalog &&
+            ResolveDict(catalog.Items.TryGetValue("StructTreeRoot", out PdfObject? rootObject) ? rootObject : null) is PdfDictionary root) {
+            classMap = ResolveDict(root.Items.TryGetValue("ClassMap", out PdfObject? classMapObject) ? classMapObject : null);
+        }
+
         foreach (var item in orderedElements) {
             cancellationToken.ThrowIfCancellationRequested();
             var dictionary = (PdfDictionary)item.Value.Value;
+            string? structureType = TryReadName(dictionary, "S");
+            int rowSpan = 1;
+            int columnSpan = 1;
+            if (structureType is not null &&
+                (dictionary.Items.ContainsKey("A") || dictionary.Items.ContainsKey("C"))) {
+                ReadTableCellSpans(dictionary, classMap, ref rowSpan, ref columnSpan, cancellationToken);
+            }
 
             int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg");
             int objectReferenceCount = 0;
@@ -95,17 +109,81 @@ internal sealed partial class PdfReadDocument {
 
             elements.Add(new PdfStructureElementInfo(
                 item.Key,
-                TryReadName(dictionary, "S"),
+                structureType,
                 ReadReferenceObjectNumber(dictionary, "P"),
                 pageObjectNumber,
                 TryReadText(dictionary, "Lang"),
                 TryReadText(dictionary, "Alt"),
                 childElementObjectNumbers,
                 markedContentReferences.Count == 0 ? Array.Empty<PdfMarkedContentReference>() : markedContentReferences.AsReadOnly(),
-                objectReferenceCount));
+                objectReferenceCount,
+                rowSpan,
+                columnSpan));
         }
 
         return elements.Count == 0 ? Array.Empty<PdfStructureElementInfo>() : elements.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Reads RowSpan and ColSpan from Table attribute objects. Classes from /C apply first;
+    /// attributes on the element itself (/A) take precedence, as ISO 32000 requires.
+    /// </summary>
+    private void ReadTableCellSpans(
+        PdfDictionary element,
+        PdfDictionary? classMap,
+        ref int rowSpan,
+        ref int columnSpan,
+        System.Threading.CancellationToken cancellationToken) {
+        if (classMap is not null && element.Items.TryGetValue("C", out PdfObject? classesObject)) {
+            PdfObject? classes = ResolveObject(classesObject);
+            IReadOnlyList<PdfObject> names = classes is PdfArray classArray ? classArray.Items : classes is PdfName ? new[] { classes } : Array.Empty<PdfObject>();
+            for (int index = 0; index < names.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ResolveObject(names[index]) is PdfName name &&
+                    classMap.Items.TryGetValue(name.Name, out PdfObject? classAttributes)) {
+                    ApplyTableAttributeSpans(classAttributes, ref rowSpan, ref columnSpan, cancellationToken);
+                }
+            }
+        }
+
+        if (element.Items.TryGetValue("A", out PdfObject? attributes)) {
+            ApplyTableAttributeSpans(attributes, ref rowSpan, ref columnSpan, cancellationToken);
+        }
+    }
+
+    private void ApplyTableAttributeSpans(
+        PdfObject? attributes,
+        ref int rowSpan,
+        ref int columnSpan,
+        System.Threading.CancellationToken cancellationToken) {
+        PdfObject? resolved = ResolveObject(attributes);
+        if (resolved is PdfArray array) {
+            // Revision numbers may follow attribute objects; only dictionaries carry values.
+            for (int index = 0; index < array.Items.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (AsAttributeDictionary(ResolveObject(array.Items[index])) is PdfDictionary item) ApplyTableAttributeDictionary(item, ref rowSpan, ref columnSpan);
+            }
+            return;
+        }
+        if (AsAttributeDictionary(resolved) is PdfDictionary dictionary) ApplyTableAttributeDictionary(dictionary, ref rowSpan, ref columnSpan);
+    }
+
+    /// <summary>An attribute object is a dictionary or a stream whose dictionary holds the attributes.</summary>
+    private static PdfDictionary? AsAttributeDictionary(PdfObject? value) =>
+        value as PdfDictionary ?? (value as PdfStream)?.Dictionary;
+
+    private void ApplyTableAttributeDictionary(PdfDictionary attributes, ref int rowSpan, ref int columnSpan) {
+        if (!string.Equals(TryReadName(attributes, "O"), "Table", StringComparison.Ordinal)) return;
+        if (attributes.Items.TryGetValue("RowSpan", out PdfObject? rowObject) &&
+            ResolveObject(rowObject) is PdfNumber rowNumber &&
+            TryGetNonNegativeInteger(rowNumber, out int rows) && rows > 0) {
+            rowSpan = rows;
+        }
+        if (attributes.Items.TryGetValue("ColSpan", out PdfObject? columnObject) &&
+            ResolveObject(columnObject) is PdfNumber columnNumber &&
+            TryGetNonNegativeInteger(columnNumber, out int columns) && columns > 0) {
+            columnSpan = columns;
+        }
     }
 
     private IReadOnlyList<int> ReadStructureElementReferences(PdfObject? obj, System.Threading.CancellationToken cancellationToken) {

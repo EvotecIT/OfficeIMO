@@ -1,5 +1,3 @@
-using A = DocumentFormat.OpenXml.Drawing;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTableCell {
         /// <summary>
@@ -139,28 +137,6 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetNumberedList(IEnumerable<string> items, int startAt = 1, int level = 0, Action<PowerPointParagraph>? configure = null) {
             return SetNumberedList(items, PowerPointNumberingScheme.ArabicPeriod, startAt, level, configure);
-        }
-
-        private IReadOnlyList<PowerPointParagraph> ReplaceTableCellParagraphs<T>(IEnumerable<T> items, Func<T, A.Paragraph?, PowerPointParagraph> addParagraph) {
-            A.TextBody textBody = EnsureTextBody();
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(textBody);
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            textBody.RemoveAllChildren<A.Paragraph>();
-
-            var results = new List<PowerPointParagraph>();
-            foreach (T item in items) {
-                results.Add(addParagraph(item, templateParagraph));
-            }
-
-            if (results.Count == 0) {
-                textBody.Append(CreateEmptyParagraph(templateParagraph));
-            }
-
-            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
-
-            return results;
         }
     }
 }

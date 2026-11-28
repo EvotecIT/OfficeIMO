@@ -18,13 +18,14 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
+            if (TryAddSlideWithoutSdk(masterIndex, layoutIndex) is { } added) return added;
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
             return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId());
         }
 
         private PowerPointSlide AddSlideCore(SlideLayoutPart layoutPart, string slideRelId,
             uint newId) {
-            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
+            SlidePart slidePart = SdkPresentationPart.AddNewPart<SlidePart>(slideRelId);
             // Create slide exactly like the working example
             slidePart.Slide = new Slide(
                 new CommonSlideData(
@@ -76,11 +77,11 @@ namespace OfficeIMO.PowerPoint {
             SlideId slideId = new() { Id = newId };
             PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             PresentationRoot.SlideIdList.Append(slideId);
-            AssignSlideToNearestSection(newId, _slides.Count);
+            AssignSlideToNearestSection(newId, LoadedSlides.Count);
 
             PowerPointSlide slide = new(slidePart, this);
-            slide.RememberSlideId(slideId);
-            _slides.Add(slide);
+            slide.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
+            LoadedSlides.Add(slide);
             return slide;
         }
 
@@ -89,8 +90,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
+            if (TryRemoveSlideWithoutSdk(index)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList == null) {
@@ -99,12 +101,12 @@ namespace OfficeIMO.PowerPoint {
 
             SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
             string? relIdValue = PowerPointUtils.GetRelationshipIdValue(slideId);
-            PowerPointSlide removedSlide = _slides[index];
+            PowerPointSlide removedSlide = LoadedSlides[index];
             GetCommentAuthorIdsForSlideRemoval(removedSlide,
                 out uint[] removedClassicAuthorIds,
                 out string[] removedModernAuthorIds);
 
-            _slides.RemoveAt(index);
+            LoadedSlides.RemoveAt(index);
             slideId.Remove();
             _slideRelationshipSearchStart = 1;
 
@@ -136,15 +138,15 @@ namespace OfficeIMO.PowerPoint {
                 foreach (uint customShowId in emptiedCustomShowIds) {
                     RemoveCustomShowLinks(customShowId);
                 }
-                OpenXmlPart part = _presentationPart.GetPartById(relId);
+                OpenXmlPart part = SdkPresentationPart.GetPartById(relId);
                 if (part is SlidePart targetSlidePart) {
                     RemoveInboundSlideLinks(targetSlidePart);
                 }
                 MediaDataPart[] referencedMedia =
                     PowerPointEmbeddedSound.GetReferencedMediaDataParts(part);
-                _presentationPart.DeletePart(part);
+                SdkPresentationPart.DeletePart(part);
                 PowerPointEmbeddedSound.RemoveUnreferencedMediaDataParts(
-                    _document!, referencedMedia);
+                    SdkDocument!, referencedMedia);
             }
 
             ReconcileCommentAuthorsAfterSlideRemoval(
@@ -157,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
         private void RemoveCustomShowLinks(uint customShowId) {
             var visited = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPart>();
-            pending.Push(_presentationPart);
+            pending.Push(SdkPresentationPart);
             while (pending.Count > 0) {
                 OpenXmlPart part = pending.Pop();
                 if (!visited.Add(part)) continue;
@@ -200,7 +202,7 @@ namespace OfficeIMO.PowerPoint {
         private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
             var visited = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPart>();
-            pending.Push(_presentationPart);
+            pending.Push(SdkPresentationPart);
             while (pending.Count > 0) {
                 OpenXmlPart ownerPart = pending.Pop();
                 if (!visited.Add(ownerPart)) continue;
@@ -210,7 +212,7 @@ namespace OfficeIMO.PowerPoint {
                         pending.Push(child.OpenXmlPart);
                     }
                 }
-                if (ReferenceEquals(ownerPart, _presentationPart)
+                if (ReferenceEquals(ownerPart, SdkPresentationPart)
                     || ReferenceEquals(ownerPart, targetSlidePart)
                     || ownerPart.RootElement == null) {
                     continue;
@@ -251,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void ValidateSlideIndex(int index) {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
         }
 
         /// <summary>
@@ -260,11 +262,12 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
+            if (TryMoveSlideWithoutSdk(fromIndex, toIndex)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, _slides.Count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, LoadedSlides.Count);
 
             ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, _slides.Count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, LoadedSlides.Count);
 
             if (fromIndex == toIndex) {
                 return;
@@ -275,9 +278,9 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
 
-            PowerPointSlide slide = _slides[fromIndex];
-            _slides.RemoveAt(fromIndex);
-            _slides.Insert(toIndex, slide);
+            PowerPointSlide slide = LoadedSlides[fromIndex];
+            LoadedSlides.RemoveAt(fromIndex);
+            LoadedSlides.Insert(toIndex, slide);
 
             List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
             SlideId movingId = ids[fromIndex];
@@ -300,15 +303,16 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
         public PowerPointSlide DuplicateSlide(int index, int? insertAt = null) {
             ThrowIfDisposed();
+            if (TryDuplicateSlideWithoutSdk(index, insertAt) is { } duplicated) return duplicated;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 
             int targetIndex = insertAt ?? index + 1;
-            if (targetIndex < 0 || targetIndex > _slides.Count) {
+            if (targetIndex < 0 || targetIndex > LoadedSlides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(insertAt));
             }
 
-            PowerPointSlide sourceSlide = _slides[index];
+            PowerPointSlide sourceSlide = LoadedSlides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
             uint nextSlideId = GetNextSlideId();
 
@@ -317,7 +321,7 @@ namespace OfficeIMO.PowerPoint {
             bool copiedSerializedSlide = !sourcePart.IsRootElementLoaded;
 
             string slideRelId = GetNextSlideRelationshipId();
-            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
+            SlidePart slidePart = SdkPresentationPart.AddNewPart<SlidePart>(slideRelId);
             if (copiedSerializedSlide) {
                 using Stream sourceXml = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
                 slidePart.FeedData(sourceXml);
@@ -332,7 +336,7 @@ namespace OfficeIMO.PowerPoint {
                 RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
             } catch {
                 try {
-                    _presentationPart.DeletePart(slidePart);
+                    SdkPresentationPart.DeletePart(slidePart);
                 } catch {
                     // Preserve the original clone failure when best-effort cleanup fails.
                 }
@@ -347,10 +351,10 @@ namespace OfficeIMO.PowerPoint {
                 targetIndex);
 
             PowerPointSlide duplicate = new(slidePart, this);
-            duplicate.RememberSlideId(slideId);
+            duplicate.RememberSlideId(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slideId));
             // Serialized copies already carry the source show attribute; Save() only defers loading when no legacy value exists.
             if (!copiedSerializedSlide) duplicate.Hidden = sourceSlide.Hidden;
-            _slides.Insert(targetIndex, duplicate);
+            LoadedSlides.Insert(targetIndex, duplicate);
             // The package save persists the loaded presentation root; serializing it per slide made copying quadratic.
             return duplicate;
         }
@@ -392,8 +396,8 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointSlide> sourceSlides = sourcePresentation.Slides;
             if (indices.Any(index => index < 0 || index >= sourceSlides.Count))
                 throw new ArgumentOutOfRangeException(nameof(sourceIndices));
-            int targetIndex = insertAt ?? _slides.Count;
-            if (targetIndex < 0 || targetIndex > _slides.Count)
+            int targetIndex = insertAt ?? LoadedSlides.Count;
+            if (targetIndex < 0 || targetIndex > LoadedSlides.Count)
                 throw new ArgumentOutOfRangeException(nameof(insertAt));
             if (indices.Length == 0) return Array.Empty<PowerPointSlide>();
             if (ReferenceEquals(sourcePresentation, this) && indices.Length == 1)
@@ -410,9 +414,9 @@ namespace OfficeIMO.PowerPoint {
             Presentation originalPresentation = (Presentation)
                 PresentationRoot.CloneNode(true);
             var originalTopLevelParts = new HashSet<OpenXmlPart>(
-                _presentationPart.Parts.Select(pair => pair.OpenXmlPart));
+                SdkPresentationPart.Parts.Select(pair => pair.OpenXmlPart));
             var originalDataParts = new HashSet<DataPart>(
-                _document!.DataParts);
+                SdkDocument!.DataParts);
             try {
                 SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
                 var importedSlides = new Dictionary<SlidePart, PowerPointSlide>();
@@ -424,7 +428,7 @@ namespace OfficeIMO.PowerPoint {
                         ?? throw new InvalidOperationException(
                             "Source slide is missing its slide definition.");
                     string slideRelId = GetNextSlideRelationshipId();
-                    SlidePart targetPart = _presentationPart
+                    SlidePart targetPart = SdkPresentationPart
                         .AddNewPart<SlidePart>(slideRelId);
                     targetPart.Slide = (Slide)sourceRoot.CloneNode(true);
                     var imported = new PowerPointSlide(targetPart, this);
@@ -432,7 +436,7 @@ namespace OfficeIMO.PowerPoint {
                     SlideId slideId = new() { Id = GetNextSlideId() };
                     PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
                     InsertSlideId(slideIdList, slideId, insertionIndex);
-                    _slides.Insert(insertionIndex, imported);
+                    LoadedSlides.Insert(insertionIndex, imported);
                     importedSlides.Add(sourceSlide.SlidePart, imported);
                     importedPartRoots.Add(new ImportedPartRoot(
                         sourceSlide.SlidePart, targetPart));
@@ -561,21 +565,21 @@ namespace OfficeIMO.PowerPoint {
             Presentation originalPresentation,
             ISet<OpenXmlPart> originalTopLevelParts,
             ISet<DataPart> originalDataParts) {
-            foreach (IdPartPair relationship in _presentationPart.Parts
+            foreach (IdPartPair relationship in SdkPresentationPart.Parts
                          .Where(pair => !originalTopLevelParts.Contains(
                              pair.OpenXmlPart)).ToArray()) {
-                _presentationPart.DeletePart(relationship.RelationshipId);
+                SdkPresentationPart.DeletePart(relationship.RelationshipId);
             }
-            foreach (DataPart dataPart in _document!.DataParts
+            foreach (DataPart dataPart in SdkDocument!.DataParts
                          .Where(part => !originalDataParts.Contains(part))
                          .ToArray()) {
                 if (!dataPart.GetDataPartReferenceRelationships().Any()) {
-                    _document.DeletePart(dataPart);
+                    SdkDocument.DeletePart(dataPart);
                 }
             }
             PresentationRoot = (Presentation)
                 originalPresentation.CloneNode(true);
-            _slides.Clear();
+            LoadedSlides.Clear();
             LoadExistingSlides();
             PresentationRoot.Save();
         }

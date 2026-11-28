@@ -63,7 +63,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
     /// Returns the document's definition of a built-in table style, adding OfficeIMO's definition first when
     /// the document has none. A definition the document already has is never replaced.
     /// </summary>
-    public WordStyle GetOrAdd(WordTableStyle style) => GetOrAddLibraryStyle(WordTableStyles.GetStyle(style).Val!.Value!);
+    public WordStyle GetOrAdd(WordTableStyle style) => GetOrAddLibraryStyle(WordTableStyles.GetStyleId(style));
 
     /// <summary>
     /// Removes a style. Content that used it falls back to the default style, styles based on it inherit from its
