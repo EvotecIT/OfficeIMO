@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Writes the package of a new, empty workbook.</summary>
-        private static string CreatedStylesXml(OfficeTheme? theme) {
+        internal static string CreatedStylesXml(OfficeTheme? theme) {
             OfficeTheme source = theme ?? OfficeTheme.Default;
             return CreatedStylesXmlStart + source.TypeScale.Body.ToPoints().ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                 + "\" /><x:name val=\"" + ExcelPartEdits.Escape(source.Fonts.Body.Family) + CreatedStylesXmlEnd;

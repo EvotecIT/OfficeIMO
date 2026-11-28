@@ -322,7 +322,7 @@ namespace OfficeIMO.Excel {
 
             private static string CreateStylesXml(DirectStylePlan stylePlan, OfficeTheme? theme = null) {
                 if (stylePlan.TabularStyles != null) {
-                    return stylePlan.TabularStyles.Stylesheet.OuterXml;
+                    return stylePlan.TabularStyles.StylesheetXml;
                 }
                 var builder = new StringBuilder(1024 + stylePlan.CustomNumberFormats.Count * 160);
                 builder.Append("<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");

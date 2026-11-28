@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// using the unchanged named style receive the replacement formatting.
         /// </summary>
         public ExcelNamedStyleInfo DefineNamedStyle(string name, ExcelStyleDefinition definition, bool hidden = false) {
-            string normalizedName = ExcelSheet.ValidateNamedStyleName(name);
+            string normalizedName = ExcelStyleDefinition.ValidateNamedStyleName(name);
             ArgumentNullException.ThrowIfNull(definition);
             ExcelStyleDefinition snapshot = definition.Snapshot();
             ExcelNamedStyleInfo? result = null;
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelSheet {
-        internal static CellFormat CreateDefinitionFormat(Stylesheet stylesheet, ExcelStyleDefinition definition, OfficeTheme? theme = null) {
+        private static CellFormat CreateDefinitionFormat(Stylesheet stylesheet, ExcelStyleDefinition definition, OfficeTheme? theme = null) {
             EnsureDefaultStylePrimitives(stylesheet);
             CellFormat format = GetBaseCellFormat(stylesheet, 0U);
             format.FontId = GetOrCreateFontVariant(stylesheet, format.FontId?.Value, font => {
@@ -59,10 +59,6 @@ namespace OfficeIMO.Excel {
             }
             return format;
         }
-
-        internal static uint AddDefinitionCellFormat(Stylesheet stylesheet, CellFormat format) => AppendOrReuseCellFormat(stylesheet, format);
-
-        internal static uint AddDefinitionNumberFormat(Stylesheet stylesheet, string code) => GetOrCreateNumberFormatId(stylesheet, code);
 
         internal static ExcelNamedStyleInfo DefineDeclaredNamedStyle(Stylesheet stylesheet, string name, ExcelStyleDefinition definition, bool hidden, OfficeTheme? theme = null) {
             EnsureNamedStyleContainers(stylesheet);
