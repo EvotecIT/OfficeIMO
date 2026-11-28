@@ -463,7 +463,7 @@ namespace OfficeIMO.Excel {
                     editable.ReplacePart(entry.PartName, merged, mergedLength, pooled: true);
                 }
 
-                if (HasFormulaResults(edits)) RemoveCalculationChain(editable, workbook.WorkbookPartName);
+                RemoveCalculationChain(editable, workbook.WorkbookPartName);
                 if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return Decline("the shared strings part cannot take new items");
                 styles?.Write();
                 if (_deferredCreated) CreateApplicationPropertiesIfMissing(editable, applicationPropertiesRelated);
@@ -488,18 +488,9 @@ namespace OfficeIMO.Excel {
         private const string NewCorePropertiesPartName = "/docProps/core.xml";
         private const string CalculationChainRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "calcChain";
 
-        private static bool HasFormulaResults((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits) {
-            foreach ((_, ExcelDeferredCellStore store) in edits) {
-                for (int index = 0; index < store.Count; index++) {
-                    if (store[index].Kind == ExcelDeferredCellKind.FormulaResult) return true;
-                }
-            }
-            return false;
-        }
-
         /// <summary>
-        /// Removes the calculation chain, as the model's save of a calculated workbook leaves it out; the application
-        /// that opens the workbook builds a new one.
+        /// Removes the calculation chain, as the model's save preflight does for every changed workbook; the
+        /// application that opens the workbook builds a new one.
         /// </summary>
         private static void RemoveCalculationChain(OfficeOpcEditablePackage package, string workbookPartName) {
             OfficeXmlTree relationships = package.GetRelationships(workbookPartName);
