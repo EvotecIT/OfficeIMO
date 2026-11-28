@@ -38,6 +38,12 @@ Formula and address conversion uses typed Excel A1/OpenFormula syntax. Quoted wo
 
 `ExcelOpenDocumentConversionOptions` bounds rows, columns, converted cells, and merge or validation-range materialization in both directions. Content omitted by those limits or disabled style options is returned as a `Skipped` mapping rather than silently disappearing. Set `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when a workflow must reject any approximation, skipped feature, or unsupported mapping.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Excel.OpenDocument
+```
+
 ## Page images
 
 The adapter renders ODS through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.

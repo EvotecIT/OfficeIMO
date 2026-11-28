@@ -5,6 +5,12 @@ The [DbaClientX DBF codec](https://github.com/EvotecIT/DbaClientX/tree/master/Db
 owns the file format, code pages, typed values and DBT/FPT memo handling. This
 adapter projects those values into Reader tables without adding a database driver.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Dbf
+```
+
 ## Read a table
 
 ```csharp
@@ -93,7 +99,7 @@ decoding: plain dBASE III, dBASE III with DBT, FoxPro 2 with FPT, and Visual Fox
 with FPT, nulls, typed numbers, timestamps and binary values. Tests reopen CSV and
 XLSX output, validate the Open XML package, and exercise stream ownership,
 cancellation, registration snapshots, chunking and memo access policy. See the
-[fixture provenance](../OfficeIMO.Reader.Dbf.Tests/Fixtures/README.md).
+[fixture provenance](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Dbf.Tests/Fixtures/README.md).
 
 This evidence does not establish native dBASE/FoxPro application acceptance,
 Visual FoxPro `31`/`32` generation coverage, Windows .NET Framework runtime

@@ -24,6 +24,12 @@ Raster picture crops use the embedded pixel dimensions and horizontal and vertic
 
 Negative crop offsets, collapsed source regions, malformed crop values, cropped vector images, and unavailable intrinsic dimensions remain explicit conversion losses. For image formats supported by the PowerPoint image model, these crops are omitted while the image bytes and frame bounds are retained. Crops that collapse after rounding to either format's stored precision are also omitted.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.PowerPoint.OpenDocument
+```
+
 ## Page images
 
 The adapter renders ODP through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.

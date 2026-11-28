@@ -2,6 +2,12 @@
 
 Read `.djvu` and `.djv` scanned documents, reuse stored text, and render pages with managed OfficeIMO codecs. No external decoder, native library, or executable is required. PDF export and Reader ingestion live in separate adapter packages.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.DjVu
+```
+
 Reference the owning project from a source checkout:
 
 ```xml
@@ -31,7 +37,7 @@ Indirect documents require a caller-supplied `DjVuLoadOptions.ComponentResolver`
 
 Rendering defaults to native DPI, applies display rotation, and returns an RGBA raster. `Region` selects an unrotated native rectangle before scaling and rotation. Read and render options bound input, expansion, page pixels, codec memory, symbols, and output; cancellation is observed during parsing and decoding. `DjVuRenderOptions.RenderTimeout` bounds one render and throws `OfficeImageExportTimeoutException`, which is distinct from caller cancellation. `ThrowIfLoss()` rejects reported rendering qualifications.
 
-See the [support and independent evidence contract](SUPPORT.md), [Reader adapter](../OfficeIMO.Reader.DjVu/README.md), and [searchable PDF adapter](../OfficeIMO.DjVu.Pdf/README.md).
+See the [support and independent evidence contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/SUPPORT.md), [Reader adapter](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.DjVu/README.md), and [searchable PDF adapter](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu.Pdf/README.md).
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

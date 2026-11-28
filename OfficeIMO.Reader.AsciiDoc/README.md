@@ -16,6 +16,12 @@ The handler emits deterministic block-aware chunks with source lines, heading pa
 
 `OfficeIMO.Reader.All` registers this handler.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.AsciiDoc
+```
+
 ## Registration
 
 | Item | Value |
@@ -82,4 +88,4 @@ Chunk ids follow the parser's source block index rather than a running count, so
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.AsciiDoc`, and `OfficeIMO.AsciiDoc.Markdown`; parsing stays in the native AsciiDoc package.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

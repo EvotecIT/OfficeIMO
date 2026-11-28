@@ -8,12 +8,18 @@ Save an unchanged native source exactly, or save the supported source edits with
 an explicit fidelity policy and an operation report.
 The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
-[The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
+[The support contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md) identifies the qualified fixtures and rendering
 limits.
 
 `OfficeIMO.Publisher` references only `OfficeIMO.Core`. Native records belong to
 this package; compound storage, OfficeArt properties and image envelopes, text
 layout, and SVG rendering use shared OfficeIMO engines.
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Publisher
+```
 
 ## Read and inspect a publication
 
@@ -156,7 +162,7 @@ application-zone profile. Unknown or mixed word languages do not select an
 invented dictionary. Generated display hyphens retain their source offsets and
 continue across linked frames. Native dictionaries can choose different breaks.
 The application's zone is not a recovered document setting. See the
-[native setting contract](SUPPORT.md#native-hyphenation-settings).
+[native setting contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#native-hyphenation-settings).
 
 Frame-layout saves retain links and page/master ownership. They can add missing
 default fields and relocate native records; changed distances must be exact
@@ -188,7 +194,7 @@ For native center/right paragraphs, use tab settings with
 and the source default interval must be retained. Use `lineHeightFactor: 1` for explicit single
 spacing. The support contract defines native units and representability limits.
 Ambiguous source definitions and unsupported directory layouts are refused. The
-[support contract](SUPPORT.md) defines the precise restrictions and qualified
+[support contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md) defines the precise restrictions and qualified
 editing/authoring profiles. Edits outside those profiles refuse native output.
 Source-free native creation is unavailable.
 
@@ -368,7 +374,7 @@ supported. Grouped artwork and unqualified side, outline or master wrapping
 remain outside this profile. The save report includes
 `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` and, when exclusions change,
 `PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED`, requiring explicit `AllowLoss = true`. See the
-[qualified ordering contract](SUPPORT.md#existing-page-object-ordering).
+[qualified ordering contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#existing-page-object-ordering).
 
 ### Edit text and layout
 
@@ -398,7 +404,7 @@ intact; it does not clear it. Language IDs are 16-bit Windows identifiers.
 Enabled automatic hyphenation uses supported language patterns; the current
 English and German resources do not supply French breaks. Paragraph and drawing
 copies retain the annotation. See the [qualified language
-profile](SUPPORT.md) for native creation/editing coverage and limits.
+profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md) for native creation/editing coverage and limits.
 
 `OfficeRichTextRun.WithAutomaticPairKerningThreshold(8)` returns a copy carrying
 an 8-point native pair-kerning threshold. Native source saves can set the
@@ -412,7 +418,7 @@ through the retained source definitions, including the native 14-point default;
 public story and cell metadata stays nullable. Source-free runs keep the renderer's
 normal feature defaults. Same-font mixed-run activation and exact native glyph
 geometry remain qualification limits. See the
-[native threshold contract](SUPPORT.md#native-pair-kerning-metadata).
+[native threshold contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#native-pair-kerning-metadata).
 
 `PublisherLoadOptions.Fonts` supplies scoped font faces for story flow and page
 rendering. The options clone the font collection, and exported drawing snapshots
@@ -428,7 +434,7 @@ File.WriteAllText("newsletter.svg", withFonts.ToSvg());
 
 Publisher paragraphs separate font content height from line advance and baseline;
 the final line's unused advance is excluded from vertical alignment. The
-[font profile](SUPPORT.md) defines the qualified native PDF reference and its limits.
+[font profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md) defines the qualified native PDF reference and its limits.
 
 `ReplaceStoryParagraphs` replaces a complete non-table story. It derives `Text`
 from the supplied paragraphs, normalizes carriage returns to newlines, and
@@ -621,7 +627,7 @@ fills and borders beside an already decorated table in a qualified populated
 drawing. This can compose with supported peer border edits and cell-paragraph
 growth in one save. A fill or border decoration
 change can also initialize selectively missing cell utilities in qualified tables,
-including the [decorated merged profile](SUPPORT.md#decorated-merged-table-utilities).
+including the [decorated merged profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#decorated-merged-table-utilities).
 Only missing native cell-definition indices receive the final
 fill/no-fill state; existing invisible cell records retain their ownership.
 Text or bounds edits alone do not initialize missing cells. Selective
@@ -635,7 +641,7 @@ refuse saving. A border must fit the table's final perpendicular extent, includi
 after resizing.
 Qualified allocation uses the remaining slots in the current SPID cluster before
 appending fresh ordered clusters. Existing allocation entries keep their positions
-and consumed history; retired identifiers are not reused. The [support contract](SUPPORT.md#ordered-table-utility-cluster-allocation)
+and consumed history; retired identifiers are not reused. The [support contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#ordered-table-utility-cluster-allocation)
 defines the dense-grid source profiles and their native validation limits.
 Gradients, cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
@@ -643,7 +649,7 @@ Unsupported paint is reported rather than presented as an observed empty style.
 Fill visibility changes compose with supported cell-paragraph growth. Native
 source saving refuses ambiguous visibility ownership and unsupported complex or
 BLIP-role boolean fields, including under `AllowLoss = true`. See the [qualified fill and
-shared-border profiles](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
+shared-border profiles](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
 
 ```csharp
 var styledTable = publication.Pages[0].Tables.First();
@@ -744,7 +750,7 @@ records retained, but resizing them is refused. Supported moves rebuild native
 rectangular wrap references; unqualified wrap relationships refuse saving.
 Edited output reports `PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and requires explicit
 `AllowLoss = true`. Native opening can reflow a table, so stored bounds do not promise a
-fixed rendered height. See the [qualified source profile](SUPPORT.md#native-table-placement-and-fixed-track-resizing).
+fixed rendered height. See the [qualified source profile](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md#native-table-placement-and-fixed-track-resizing).
 
 `AddTable` copies positive finite column widths and row heights, appends an empty,
 unmerged, borderless table to an existing qualified document or master page and
@@ -886,7 +892,7 @@ The report combines source recovery with image-rendering diagnostics.
 dimension units, an optional image codec, and resource-ID prefixes for inline
 composition. Default dimensions are physical points.
 
-Reference [OfficeIMO.Publisher.Pdf](../OfficeIMO.Publisher.Pdf/README.md) for
+Reference [OfficeIMO.Publisher.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher.Pdf/README.md) for
 multi-page PDF conversion.
 
 ## Resource limits and acceptance

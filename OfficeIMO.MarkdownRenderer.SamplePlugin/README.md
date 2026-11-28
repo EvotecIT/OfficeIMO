@@ -4,6 +4,14 @@
 
 This sample is not published as a standalone NuGet package.
 
+## Use from source
+
+This project isn't published to NuGet. Reference it from an OfficeIMO checkout:
+
+```sh
+dotnet add reference path/to/OfficeIMO/OfficeIMO.MarkdownRenderer.SamplePlugin/OfficeIMO.MarkdownRenderer.SamplePlugin.csproj
+```
+
 ## Use it from a renderer host
 
 ```csharp
@@ -70,4 +78,4 @@ string markdown = document.ToMarkdown();
 - **External:** `System.Text.Json`.
 - **OfficeIMO:** `OfficeIMO.MarkdownRenderer` and `OfficeIMO.Markdown.Html`; this sample demonstrates the supported third-party plug-in boundary.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

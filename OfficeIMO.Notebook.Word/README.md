@@ -2,6 +2,12 @@
 
 Create editable DOCX reports from saved Jupyter notebook content. Prose, code and saved text are editable, and supported tables become native Word tables.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.Word
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 using OfficeIMO.Notebook.Word;

@@ -82,7 +82,7 @@ Console.WriteLine(recognition.Result.Text);
 Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
 ```
 
-`baselineEngine`, `alternateEngine`, and `request` are your configured providers and raster request. See the [Tesseract example](../OfficeIMO.Ocr.Tesseract/README.md#bounded-segmentation-retries) for a concrete setup. Pass `adaptive` anywhere an `IOcrEngine` is accepted, including Reader and PDF OCR. Its normal result carries a content-free `adaptive-ocr-review-recommended` or `adaptive-ocr-unassessed` warning, or an `adaptive-ocr-thresholds-met` information diagnostic. `RecognizeWithReviewAsync` additionally returns attempt outcomes and selected word-level evidence.
+`baselineEngine`, `alternateEngine`, and `request` are your configured providers and raster request. See the [Tesseract example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Ocr.Tesseract/README.md#bounded-segmentation-retries) for a concrete setup. Pass `adaptive` anywhere an `IOcrEngine` is accepted, including Reader and PDF OCR. Its normal result carries a content-free `adaptive-ocr-review-recommended` or `adaptive-ocr-unassessed` warning, or an `adaptive-ocr-thresholds-met` information diagnostic. `RecognizeWithReviewAsync` additionally returns attempt outcomes and selected word-level evidence.
 
 The default checks require at least one word span, confidence of at least 0.8 for at least 90% of words, and no warning/error diagnostics or omitted spans. Unknown or invalid confidence counts as uncertain. A retry can replace the baseline only if it retains at least 90% of the baseline word count, has usable evidence, and improves uncertainty or repairs missing evidence. This count check cannot prove that the same facts survived. Overall confidence never ranks results. Text disagreement, after Unicode and whitespace normalization, and failed or timed-out retries recommend review even when the selected confidence checks pass.
 
@@ -103,7 +103,7 @@ Console.WriteLine(result.Review.Status);
 
 `attempts` contains your configured `OcrRecognitionAttempt` instances. The default `WhenUncertain` strategy retains its fast early exit. `CompareAll` also runs variants after a confidence pass, exposing high-confidence disagreement; it does not select a different output merely because more variants agree.
 
-These thresholds are starting settings, not calibrated correctness probabilities or human approval. The [native quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) measures confidence false passes against independent gold text. In particular, high-confidence output can still omit text or misorder columns.
+These thresholds are starting settings, not calibrated correctness probabilities or human approval. The [native quality corpus](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/OcrQuality/README.md) measures confidence false passes against independent gold text. In particular, high-confidence output can still omit text or misorder columns.
 
 ## Discover optional providers
 
@@ -148,4 +148,4 @@ All integrations accept the same `IOcrEngine`; providers do not reference Reader
 - Dependencies: none.
 - License: MIT.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

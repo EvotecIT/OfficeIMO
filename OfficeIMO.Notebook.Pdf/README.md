@@ -2,6 +2,12 @@
 
 Export a Jupyter notebook to a PDF using the managed OfficeIMO layout engine. Code, prose, tables, equations and supported saved images stay in reading order. Conversion uses the notebook's stored data and works offline.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.Pdf
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 using OfficeIMO.Notebook.Pdf;

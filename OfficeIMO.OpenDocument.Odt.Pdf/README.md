@@ -2,6 +2,12 @@
 
 Bidirectional ODT and PDF conversion without Excel or PowerPoint dependencies.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.OpenDocument.Odt.Pdf
+```
+
 ```csharp
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Odt.Pdf;

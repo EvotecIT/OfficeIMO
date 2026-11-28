@@ -2,6 +2,12 @@
 
 `OfficeIMO.OneNote.Markdown` is the shared semantic projection from offline `OfficeIMO.OneNote` models to Markdown text and `MarkdownDocument`. Reader, HTML, and PDF adapters consume this projection instead of implementing separate OneNote format logic.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.OneNote.Markdown
+```
+
 ```csharp
 using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Markdown;

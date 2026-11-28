@@ -6,6 +6,12 @@ OfficeIMO renderers. It implements the shared
 keeping `OfficeIMO.Core` and `OfficeIMO.Pdf` dependency-light. Drawing APIs remain
 in the `OfficeIMO.Drawing` namespace.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Drawing.HarfBuzz
+```
+
 ```csharp
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
@@ -32,3 +38,4 @@ declines true vertical shaping and the same fallback is reported.
 The package uses HarfBuzzSharp `14.2.1.2` and matching Windows, Linux, macOS,
 and WebAssembly native assets. HarfBuzzSharp is MIT licensed; applications
 should include the upstream notices required by their own distribution policy.
+

@@ -6,6 +6,12 @@ or an external conversion process. The package references only `OfficeIMO.Core`.
 
 `XpsPage.AddPath`, `AddText` and `AddImage` return the created `XpsVisual`. Keep the page variable for sibling additions. A visual exposes its containing `Page`, detached `GetMarkup()` and validated `ReplaceMarkup()`. Page-wide markup replacement invalidates earlier handles.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Xps
+```
+
 ## Read and convert
 
 ```csharp
@@ -45,7 +51,7 @@ foreach (string diagnostic in result.Diagnostics)
 ```
 
 Drawing, image, and PDF conversion also enforce the shared engines' resource
-limits and reject reported SVG import losses. See the [support matrix](SUPPORT.md)
+limits and reject reported SVG import losses. See the [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md)
 for the precise rendering and preservation boundaries.
 
 ## Create and edit
@@ -138,7 +144,7 @@ foreach (var block in model.Blocks)
     Console.WriteLine($"Page {block.Location.Page}: {block.Text}");
 ```
 
-The [Reader adapter](../OfficeIMO.Reader.Xps/README.md) adds bounded chunks, source
+The [Reader adapter](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Xps/README.md) adds bounded chunks, source
 hashes and JSON transport. Optional SVG previews use the strict native renderer.
 Authored graphic descriptions also appear as payload-free `graphic-description`
 assets in the shared model, with the short name in `Title` and the name followed
@@ -155,7 +161,7 @@ references before committing; a failed edit leaves the package unchanged. A shar
 StoryFragments replacement must remain valid for every page that owns it.
 
 Native numeric story addresses use the documented payload-global interpretation;
-see the [support matrix](SUPPORT.md) for the specification ambiguity and qualification
+see the [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md) for the specification ambiguity and qualification
 boundary. Missing story addresses, unknown semantic extensions, and unresolved names
 are reported through `Diagnostics` and `IsComplete`.
 
@@ -166,7 +172,7 @@ and visual brushes containing paths, glyphs, or canvases. Image and visual brush
 map absolute viewboxes into viewports and support tiled and mirrored repetition.
 Canvas, path, and glyph opacity masks use brush alpha. These features flow through
 `ToSvg()`, `ToDrawing()`, image export, and the PDF bridge within the
-[documented rendering limits](SUPPORT.md). Conversion rejects unsupported drawing
+[documented rendering limits](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md). Conversion rejects unsupported drawing
 features instead of silently dropping them.
 
 ## I/O and preservation

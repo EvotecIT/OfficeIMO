@@ -29,6 +29,12 @@ Pass `ReaderOpenDocumentOptions` to `AddOpenDocumentHandler(...)` to select `She
 
 The platform XML-character ceiling remains a malformed-XML boundary. For a separate native load shared with Reader projection, an ingestion profile can keep XML entry and decrypted-entry byte limits at or below `MaxXmlCharacters`; flat XML additionally requires the input-byte limit at or below that character limit. DTDs are prohibited. Reader's ordinary character policy is not raised automatically.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.OpenDocument
+```
+
 ## Text and metadata projection
 
 ```csharp
@@ -69,4 +75,4 @@ Enable `ReaderOptions.Inspection` to collect native revision declarations, spars
 - **External:** None; no LibreOffice runtime.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.OpenDocument`; ODT/ODS/ODP/ODG parsing stays in the native package.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

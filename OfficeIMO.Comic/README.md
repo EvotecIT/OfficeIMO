@@ -29,4 +29,4 @@ officeimo convert comic.cb7 comic.pdf
 officeimo convert comic.cbr comic.epub
 ```
 
-[Supported features and limits](SUPPORT.md)
+[Supported features and limits](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Comic/SUPPORT.md)

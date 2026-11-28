@@ -28,4 +28,4 @@ OfficeDocumentReadResult document = reader.ReadDocument("subscriptions.opml");
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Opml`.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

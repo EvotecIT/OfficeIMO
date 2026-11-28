@@ -2,6 +2,12 @@
 
 `OfficeIMO.Markup.PowerPoint` exports the semantic `OfficeIMO.Markup` presentation model to editable PowerPoint `.pptx` files through `OfficeIMO.PowerPoint`.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Markup.PowerPoint
+```
+
 ## Quick start
 
 ```csharp
@@ -61,7 +67,7 @@ Set `MermaidRendererPath` in `MarkupPowerPointExportOptions`, pass `--mermaid-re
 - **External:** None by default. Mermaid image export can use a caller-installed Mermaid CLI.
 - **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Core`; the exporter maps semantic nodes to editable slide content.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
