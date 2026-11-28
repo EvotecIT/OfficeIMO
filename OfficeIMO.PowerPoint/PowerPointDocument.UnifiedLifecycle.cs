@@ -225,12 +225,18 @@ public sealed partial class PowerPointDocument {
             byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
             var seen = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPartContainer>();
-            pending.Push(copy);
+            // The presentation's own markup, the parts the binary writer reads; package-level parts such as ribbon
+            // customizations and payloads such as custom XML stay as stored.
+            if (copy.PresentationPart is { } presentationPart) {
+                LoadForMarkupCompatibility(presentationPart);
+                pending.Push(presentationPart);
+            }
             while (pending.Count > 0) {
                 foreach (IdPartPair pair in pending.Pop().Parts) {
                     OpenXmlPart part = pair.OpenXmlPart;
                     if (!seen.Add(part)) continue;
-                    if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) LoadForMarkupCompatibility(part);
+                    if (!OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptPackageView.IsPresentationMarkup(part.ContentType)) continue;
+                    LoadForMarkupCompatibility(part);
                     pending.Push(part);
                 }
             }

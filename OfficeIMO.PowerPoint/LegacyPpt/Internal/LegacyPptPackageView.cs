@@ -205,6 +205,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return count;
         }
 
+        /// <summary>
+        /// Whether a content type is presentation markup the binary writer reads: PresentationML, DrawingML, themes and
+        /// Office drawing extensions. Custom XML, ribbon customizations and other payloads are not.
+        /// </summary>
+        internal static bool IsPresentationMarkup(string? contentType) =>
+            contentType != null
+            && (contentType.StartsWith("application/vnd.openxmlformats-officedocument.presentationml.", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("application/vnd.openxmlformats-officedocument.drawingml.", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("application/vnd.openxmlformats-officedocument.theme", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("application/vnd.ms-office.drawingml.", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("application/vnd.ms-powerpoint.", StringComparison.OrdinalIgnoreCase));
+
         internal string? ContentTypeOf(string partName) => _package.GetContentType(partName);
 
         internal byte[] BytesOf(string partName) => _package.ReadPartBytes(partName);

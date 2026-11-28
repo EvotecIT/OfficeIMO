@@ -200,11 +200,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out string? reason) => TryReadPictureBulletCatalog(view, null,
                 out catalog, out reason);
 
-        private static bool IsUntypedXmlPart(LegacyPptPartView part) =>
-            part.ContentType is { } contentType
-            && (contentType.Equals("application/xml", StringComparison.OrdinalIgnoreCase)
-                || contentType.Equals("text/xml", StringComparison.OrdinalIgnoreCase));
-
         /// <summary>
         /// Reads the picture-bullet catalog of the presentation captured for the write; with <paramref name="liveDocument"/>,
         /// its bullets are also found by the live document's elements.
@@ -227,8 +222,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 StringComparer.Ordinal);
             foreach (LegacyPptPartView ownerPart in EnumeratePictureBulletParts(
                          view.Presentation)) {
-                // Untyped XML (custom XML payloads) holds no presentation markup, and the typed SDK lookup never parsed it.
-                if (IsUntypedXmlPart(ownerPart)) continue;
+                // Only presentation markup carries picture bullets; custom XML and other payloads stay unread, as the typed
+                // SDK lookup never parsed them.
+                if (!LegacyPptPackageView.IsPresentationMarkup(ownerPart.ContentType)) continue;
                 OfficeXmlNode root = ownerPart.Root;
                 if (root.IsNone) continue;
                 OfficeXmlNode liveRoot = default;

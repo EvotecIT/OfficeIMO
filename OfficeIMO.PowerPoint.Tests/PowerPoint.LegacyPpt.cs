@@ -174,8 +174,10 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
         }
 
-        [Fact]
-        public void Preflight_ReportsOversizedCustomXmlWithoutReadingIt() {
+        [Theory]
+        [InlineData("application/xml")]
+        [InlineData("application/vnd.example.payload+xml")]
+        public void Preflight_ReportsOversizedCustomXmlWithoutReadingIt(string contentType) {
             byte[] pptx;
             using (PowerPointDocument created = PowerPointDocument.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -185,7 +187,7 @@ namespace OfficeIMO.Tests {
                 stream.Write(pptx, 0, pptx.Length);
                 using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
                     DocumentFormat.OpenXml.Packaging.CustomXmlPart custom = package.PresentationPart!
-                        .AddCustomXmlPart(DocumentFormat.OpenXml.Packaging.CustomXmlPartType.CustomXml);
+                        .AddCustomXmlPart(contentType);
                     using var payload = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
                         "<root>" + new string('x', 510_000) + "</root>"));
                     custom.FeedData(payload);
