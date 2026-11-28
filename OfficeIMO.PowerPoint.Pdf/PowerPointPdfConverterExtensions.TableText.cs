@@ -198,10 +198,10 @@ public static partial class PowerPointPdfConverterExtensions {
             string? font = source.GetFirstChild<A.LatinFont>()?.Typeface;
             if (string.IsNullOrWhiteSpace(font)) continue;
             if (font!.StartsWith("+mj-", StringComparison.OrdinalIgnoreCase)) {
-                return PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(cell.SlidePart ?? cell.OwnerPart, major: true);
+                return PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(cell.SlidePartRef.IsNone ? cell.OwnerPartRef : cell.SlidePartRef, major: true);
             }
             if (font.StartsWith("+mn-", StringComparison.OrdinalIgnoreCase)) {
-                return PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(cell.SlidePart ?? cell.OwnerPart);
+                return PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(cell.SlidePartRef.IsNone ? cell.OwnerPartRef : cell.SlidePartRef);
             }
             return font;
         }
@@ -209,7 +209,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static string? ResolveTableDefaultFontFamily(PptCore.PowerPointTable table) =>
-        PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(table.OwnerSlide?.SlidePart ?? table.RelationshipOwnerPart);
+        PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(table.OwnerSlide?.PartRef ?? table.OwnerPartRef);
 
     private static SlideMasterPart? ResolveTableMasterPart(PptCore.PowerPointTableCell cell) =>
         (cell.SlidePart ?? cell.OwnerPart) switch {
@@ -220,7 +220,7 @@ public static partial class PowerPointPdfConverterExtensions {
         };
 
     private static A.ColorScheme? ResolveTableTextColorScheme(PptCore.PowerPointTableCell cell) =>
-        PptCore.PowerPointEffectiveRunStyleResolver.ResolveColorScheme(cell.SlidePart ?? cell.OwnerPart);
+        PptCore.PowerPointThemeScope.For(cell.SlidePartRef.IsNone ? cell.OwnerPartRef : cell.SlidePartRef).ColorScheme.SdkElement as A.ColorScheme;
 
     private static A.SolidFill ApplyTableTextColorMapping(
         PptCore.PowerPointTableCell cell,
@@ -257,7 +257,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static OpenXmlElement? ResolveTableTextColorMapping(PptCore.PowerPointTableCell cell) {
-        if (cell.SlidePart == null) return PptCore.PowerPointEffectiveRunStyleResolver.ResolveColorMap(cell.OwnerPart);
+        if (cell.SlidePart == null) return PptCore.PowerPointThemeScope.For(cell.OwnerPartRef).ColorMap.SdkElement as OpenXmlCompositeElement;
         P.ColorMap? master = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap;
         P.ColorMapOverride? slideOverride = cell.SlidePart?.Slide?.ColorMapOverride;
         if (slideOverride?.GetFirstChild<A.OverrideColorMapping>() is A.OverrideColorMapping slideMapping) {

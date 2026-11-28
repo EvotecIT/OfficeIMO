@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>

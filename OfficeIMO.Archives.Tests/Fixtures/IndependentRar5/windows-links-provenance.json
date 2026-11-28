@@ -1,0 +1,20 @@
+{
+  "producer": "RARLAB RAR command-line tool for Windows",
+  "producerPlatform": "aarch64, wine-11.0 (debian 11.0~repack-1)",
+  "rarVersion": "7.30 beta 2",
+  "file": "windows-links.rar",
+  "arguments": [
+    "a",
+    "-cfg-",
+    "-idq",
+    "-ma5",
+    "-m0",
+    "-ola",
+    "windows-links.rar",
+    "directory",
+    "file-link",
+    "junction"
+  ],
+  "verification": "RAR listed both link types and rar t passed.",
+  "sha256": "2c79564710575be6c633d2b038b7f2989f8f46f91706c407ace488dec7d531b6"
+}

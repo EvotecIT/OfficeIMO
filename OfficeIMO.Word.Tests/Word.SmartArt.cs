@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 // Debug: ensure the SmartArt data part contains at least 1 editable node
                 var main = document._wordprocessingDocument.MainDocumentPart!;
-                var rel = sa._drawing.Descendants<DocumentFormat.OpenXml.Drawing.Diagrams.RelationshipIds>().First();
+                var rel = sa.SdkDrawing().Descendants<DocumentFormat.OpenXml.Drawing.Diagrams.RelationshipIds>().First();
                 var dataPart = (DocumentFormat.OpenXml.Packaging.DiagramDataPart)main.GetPartById(rel.DataPart!);
                 using (var s = dataPart.GetStream(FileMode.Open, FileAccess.Read)) {
                     var xdoc = System.Xml.Linq.XDocument.Load(s);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var smartArt = document.AddSmartArt(type);
                 var mainPart = document._wordprocessingDocument.MainDocumentPart!;
-                var rel = smartArt._drawing.Descendants<RelationshipIds>().First();
+                var rel = smartArt.SdkDrawing().Descendants<RelationshipIds>().First();
 
                 Assert.False(string.IsNullOrEmpty(rel.LayoutPart));
                 Assert.False(string.IsNullOrEmpty(rel.ColorPart));
@@ -122,11 +122,19 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var smartArt = document.SmartArts.Single();
                 var mainPart = document._wordprocessingDocument.MainDocumentPart!;
-                var rel = smartArt._drawing.Descendants<RelationshipIds>().First();
+                var rel = smartArt.SdkDrawing().Descendants<RelationshipIds>().First();
                 var layoutPart = (DiagramLayoutDefinitionPart)mainPart.GetPartById(rel.LayoutPart!);
 
                 Assert.Equal(expectedLayoutUid, layoutPart.LayoutDefinition?.UniqueId?.Value);
             }
         }
+    }
+}
+
+namespace OfficeIMO.Tests {
+    internal static class WordSmartArtTestExtensions {
+        /// <summary>The SmartArt's drawing as the SDK element, for tests that inspect the package through the SDK.</summary>
+        internal static DocumentFormat.OpenXml.Wordprocessing.Drawing SdkDrawing(this WordSmartArt smartArt) =>
+            (DocumentFormat.OpenXml.Wordprocessing.Drawing)smartArt._drawing.SdkElement!;
     }
 }

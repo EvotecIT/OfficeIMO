@@ -17,13 +17,13 @@ namespace OfficeIMO.PowerPoint {
         /// before; false, having changed nothing, when the model has to add it.
         /// </summary>
         internal bool TryAddPackageImagePart(string slidePart, byte[] data, string contentType, string extension,
-            out string relationshipId, out int width, out int height) {
+            out string relationshipId, out int width, out int height, bool reuse = true) {
             relationshipId = string.Empty;
             width = height = 0;
             if (GetPackage(edit: true) is not { } package) return false;
-            string key = CreateImageContentKey(contentType, data);
+            string? key = reuse ? CreateImageContentKey(contentType, data) : null;
             string partName;
-            if (_packageImageParts != null && _packageImageParts.TryGetValue(key, out var reused) && package.PartExists(reused.Part)) {
+            if (key != null && _packageImageParts != null && _packageImageParts.TryGetValue(key, out var reused) && package.PartExists(reused.Part)) {
                 partName = reused.Part;
                 width = reused.Width;
                 height = reused.Height;
@@ -32,12 +32,12 @@ namespace OfficeIMO.PowerPoint {
                 // asks for image1 and the SDK numbers on from there when that name is taken.
                 string normalized = extension.StartsWith(".", StringComparison.Ordinal) ? extension : "." + extension;
                 partName = UniquePartName(package, contentType, "/ppt/media/image1" + normalized);
-                if (!PowerPointImageSize.TryRead(data, out width, out height)) width = height = 0;
+                if (reuse && !PowerPointImageSize.TryRead(data, out width, out height)) width = height = 0;
                 package.CreateBinaryPart(partName, null, data);
                 string? declared = package.GetContentType(partName);
                 if (declared == null) package.AddDefaultContentType(normalized.Substring(1), contentType);
                 else if (!string.Equals(declared, contentType, StringComparison.OrdinalIgnoreCase)) package.SetOverride(partName, contentType);
-                (_packageImageParts ??= new Dictionary<string, (string, int, int)>(StringComparer.Ordinal))[key] = (partName, width, height);
+                if (key != null) (_packageImageParts ??= new Dictionary<string, (string, int, int)>(StringComparer.Ordinal))[key] = (partName, width, height);
             }
 
             // The slide's relationship to the part when it has one; otherwise a new one with the SDK's kind of id.

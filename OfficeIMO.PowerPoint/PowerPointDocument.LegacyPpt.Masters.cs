@@ -921,5 +921,50 @@ namespace OfficeIMO.PowerPoint {
             else outline.Append(child);
         }
 
+
+        // The colour scheme of a master's theme, added with the name Office when missing, for the legacy import.
+        private static A.ColorScheme EnsureColorScheme(SlideMasterPart masterPart) {
+            ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
+            themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
+            themePart.Theme.ThemeElements ??= new A.ThemeElements();
+            return themePart.Theme.ThemeElements.ColorScheme ??= new A.ColorScheme { Name = "Office" };
+        }
+
+        // A theme colour slot of a colour scheme, added last when missing, for the legacy import.
+        private static DocumentFormat.OpenXml.OpenXmlCompositeElement GetOrCreateColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {
+            DocumentFormat.OpenXml.OpenXmlCompositeElement? element = color switch {
+                PowerPointThemeColor.Dark1 => scheme.Dark1Color,
+                PowerPointThemeColor.Light1 => scheme.Light1Color,
+                PowerPointThemeColor.Dark2 => scheme.Dark2Color,
+                PowerPointThemeColor.Light2 => scheme.Light2Color,
+                PowerPointThemeColor.Accent1 => scheme.Accent1Color,
+                PowerPointThemeColor.Accent2 => scheme.Accent2Color,
+                PowerPointThemeColor.Accent3 => scheme.Accent3Color,
+                PowerPointThemeColor.Accent4 => scheme.Accent4Color,
+                PowerPointThemeColor.Accent5 => scheme.Accent5Color,
+                PowerPointThemeColor.Accent6 => scheme.Accent6Color,
+                PowerPointThemeColor.Hyperlink => scheme.Hyperlink,
+                PowerPointThemeColor.FollowedHyperlink => scheme.FollowedHyperlinkColor,
+                _ => scheme.Dark1Color
+            };
+            if (element != null) return element;
+            element = color switch {
+                PowerPointThemeColor.Dark1 => new A.Dark1Color(),
+                PowerPointThemeColor.Light1 => new A.Light1Color(),
+                PowerPointThemeColor.Dark2 => new A.Dark2Color(),
+                PowerPointThemeColor.Light2 => new A.Light2Color(),
+                PowerPointThemeColor.Accent1 => new A.Accent1Color(),
+                PowerPointThemeColor.Accent2 => new A.Accent2Color(),
+                PowerPointThemeColor.Accent3 => new A.Accent3Color(),
+                PowerPointThemeColor.Accent4 => new A.Accent4Color(),
+                PowerPointThemeColor.Accent5 => new A.Accent5Color(),
+                PowerPointThemeColor.Accent6 => new A.Accent6Color(),
+                PowerPointThemeColor.Hyperlink => new A.Hyperlink(),
+                PowerPointThemeColor.FollowedHyperlink => new A.FollowedHyperlinkColor(),
+                _ => new A.Dark1Color()
+            };
+            scheme.Append(element);
+            return element;
+        }
     }
 }

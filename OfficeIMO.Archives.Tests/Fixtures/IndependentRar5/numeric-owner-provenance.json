@@ -1,0 +1,18 @@
+{
+  "producer": "RARLAB RAR command-line tool for Linux",
+  "producerPlatform": "aarch64, Linux with QEMU user-mode execution",
+  "rarVersion": "7.23",
+  "file": "numeric-owner.rar",
+  "arguments": [
+    "a",
+    "-cfg-",
+    "-idq",
+    "-ma5",
+    "-m0",
+    "-ow",
+    "numeric-owner.rar",
+    "owner.txt"
+  ],
+  "verification": "RAR listed the numeric Unix IDs and rar t passed.",
+  "sha256": "20877b61d7c179035d6b94ffae0e64013d294ba03210126f97ee5b553ac56815"
+}

@@ -102,6 +102,7 @@ public sealed class OfficeWorkflowRunnerTests {
                 "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
                 "docx-odt", "docx-pdf",
                 "ebook-cb7-epub", "ebook-cb7-html", "ebook-cb7-markdown", "ebook-cb7-pdf",
+                "ebook-cbr-epub", "ebook-cbr-html", "ebook-cbr-markdown", "ebook-cbr-pdf",
                 "ebook-cbz-epub", "ebook-cbz-html", "ebook-cbz-markdown", "ebook-cbz-pdf",
                 "ebook-fb2-epub", "ebook-fb2-html", "ebook-fb2-markdown", "ebook-fb2-pdf",
                 "ebook-mobi-epub", "ebook-mobi-html", "ebook-mobi-markdown", "ebook-mobi-pdf",

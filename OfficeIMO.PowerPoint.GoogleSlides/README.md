@@ -99,7 +99,7 @@ Authoring uses `GoogleWorkspaceScopeCatalog.SlidesAuthoring` (`drive.file` and `
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
-See `GoogleSlidesFeatureSupportCatalog.Features` for the code-owned support matrix and the [complete OfficeIMO package map](../README.md) for related formats.
+See `GoogleSlidesFeatureSupportCatalog.Features` for the code-owned support matrix and the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

@@ -20,7 +20,8 @@ $types = @(
     'p:CT_GraphicalObjectFrame', 'p:CT_GraphicalObjectFrameNonVisual', 'a:CT_GraphicalObject', 'a:CT_GraphicalObjectData',
     'a:CT_Table', 'a:CT_TableProperties', 'a:CT_TableGrid', 'a:CT_TableCol', 'a:CT_TableRow', 'a:CT_TableCell',
     'a:CT_TableCellProperties', 'a:CT_LineProperties',
-    'p:CT_NotesSlide', 'p:CT_NotesMaster', 'p:CT_NotesMasterIdList', 'p:CT_NotesMasterIdListEntry'
+    'p:CT_NotesSlide', 'p:CT_NotesMaster', 'p:CT_NotesMasterIdList', 'p:CT_NotesMasterIdListEntry',
+    'a:CT_OfficeStyleSheet', 'a:CT_BaseStyles', 'a:CT_ColorScheme', 'a:CT_FontScheme', 'a:CT_FontCollection'
 )
 
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlViews.ps1') `

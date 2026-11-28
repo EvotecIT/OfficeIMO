@@ -1203,3 +1203,4 @@ virtual OfficeIMO.Entities.EntityScheme.MaxLength.get -> int
 virtual OfficeIMO.Entities.EntityScheme.MinLength.get -> int
 virtual OfficeIMO.Entities.EntityScheme.Sensitivity.get -> OfficeIMO.Entities.EntitySensitivity
 virtual OfficeIMO.Entities.EntityScheme.Specification.get -> System.Uri?
+OfficeIMO.Provenance.OfficeProvenanceCarrierKind.AiGeneratorMetadata = 3 -> OfficeIMO.Provenance.OfficeProvenanceCarrierKind
