@@ -26,9 +26,9 @@ The cells and merges themselves must match. It ignores the modification time wri
 the same exception type and message.
 
 Run the paired benchmark on the Mac mini. The lock covers both builds and all
-measurements. The baseline executable generates the plain input workbook and
-the workbook with array formulas. Each revision validates the cell values and
-array metadata. The runner records raw time and allocation samples with
+measurements. The baseline executable generates the plain and array-formula
+XLSB inputs and a styled XLSX for the native save workload. Each revision
+validates the cell values, array metadata, and styled output. The runner records raw time and allocation samples with
 alternating revision order.
 
 ```sh
