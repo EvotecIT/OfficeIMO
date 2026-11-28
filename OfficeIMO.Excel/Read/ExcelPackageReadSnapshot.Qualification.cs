@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -10,69 +9,57 @@ namespace OfficeIMO.Excel {
             CloseInput = false
         };
 
-        private readonly Dictionary<Uri, WorksheetExtent?> _worksheetExtents = new();
+        private readonly Dictionary<string, WorksheetExtent?> _worksheetExtents = new(StringComparer.Ordinal);
 
-        /// <summary>
-        /// Scans a worksheet on its first tabular read; a canceled scan is not kept. Only the chunk or
-        /// schema sample the SDK route would actually buffer can stay there, where it reports the buffered
-        /// cell limit. Dense reads check their own limit on either route, so sheet size alone does not
-        /// disqualify a worksheet.
-        /// </summary>
-        internal bool QualifiesForTabularReaders(WorksheetPart worksheet, ExcelReaderOptions options) {
+        /// <summary>Checks whether the streamed projection preserves the worksheet's shape and the requested limits.</summary>
+        internal bool QualifiesForTabularReaders(string worksheet, ExcelReaderOptions options) {
             WorksheetExtent? extent;
             lock (_gate) {
-                if (!_worksheetExtents.TryGetValue(worksheet.Uri, out extent)) {
-                    extent = ScanWorksheet(worksheet, options);
-                    _worksheetExtents[worksheet.Uri] = extent;
+                if (!_worksheetExtents.TryGetValue(worksheet, out extent)) {
+                    extent = MeasureWorksheet(worksheet, options);
+                    _worksheetExtents.Add(worksheet, extent);
                 }
             }
+            return FitsBufferedWindow(extent, options);
+        }
 
-            int bufferedRows = Math.Max(
-                Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
+        private static bool FitsBufferedWindow(WorksheetExtent? extent, ExcelReaderOptions options) {
+            int bufferedRows = Math.Max(Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
                 options.SchemaSampleRows);
             return extent is WorksheetExtent known
                 && known.Columns * Math.Min(known.Rows, bufferedRows) <= options.MaxDataReaderBufferedCells;
         }
 
-        private WorksheetExtent? ScanWorksheet(WorksheetPart worksheet, ExcelReaderOptions options) {
+        private WorksheetExtent? MeasureWorksheet(string worksheet, ExcelReaderOptions options) {
             byte[]? buffer = null;
             try {
-                // The indexed reader uses this same bounded UTF-8 buffer. The byte scan decides the
-                // strict common shape; everything else keeps the complete XmlReader qualification.
-                // Either way the bytes transfer to the reader rather than inflating again.
                 const int maximumBufferedBytes = 256 * 1024 * 1024;
-                if (PartBufferReader.TryGetLength(worksheet.Uri.OriginalString, out long partLength)
-                    && partLength >= 1_048_576
-                    && PartBufferReader.TryRead(worksheet.Uri.OriginalString, maximumBufferedBytes,
-                        options.CancellationToken, out buffer, out int length,
-                        ExcelSheetReader.CanBufferUtf8WorksheetPrefix)) {
+                if (PartBufferReader.TryGetLength(worksheet, out long length) && length >= 1_048_576
+                    && PartBufferReader.TryRead(worksheet, maximumBufferedBytes, options.CancellationToken,
+                        out buffer, out int bytesRead, ExcelSheetReader.CanBufferUtf8WorksheetPrefix)) {
                     WorksheetExtent? extent;
                     bool validatedIndexedXml = false;
-                    if (ExcelSheetReader.TryMeasureCanonicalWorksheet(buffer!, length, options.Execution, options.CancellationToken,
-                            out WorksheetExtent measured)) {
+                    if (ExcelSheetReader.TryMeasureCanonicalWorksheet(buffer!, bytesRead, options.Execution, options.CancellationToken,
+                        out WorksheetExtent measured)) {
                         extent = measured;
                     } else {
-                        using var buffered = new MemoryStream(buffer!, 0, length, writable: false);
+                        using var buffered = new MemoryStream(buffer!, 0, bytesRead, writable: false);
                         using XmlReader bufferedReader = XmlReader.Create(buffered, QualificationXmlReaderSettings);
-                        extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken,
-                            out validatedIndexedXml);
+                        extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken, out validatedIndexedXml);
                     }
-                    int bufferedRows = Math.Max(
-                        Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
-                        options.SchemaSampleRows);
-                    if (extent is WorksheetExtent known
-                        && known.Columns * Math.Min(known.Rows, bufferedRows) <= options.MaxDataReaderBufferedCells
-                        && PartBufferReader.TryRetainReadBuffer(worksheet.Uri.OriginalString, buffer!, length, validatedIndexedXml)) {
+                    if (FitsBufferedWindow(extent, options)
+                        && PartBufferReader.TryRetainReadBuffer(worksheet, buffer!, bytesRead, validatedIndexedXml)) {
                         buffer = null;
                     }
                     return extent;
                 }
-                using Stream stream = worksheet.GetStream(FileMode.Open, FileAccess.Read);
+
+                using Stream stream = PartBufferReader.OpenPart(worksheet, int.MaxValue, options.CancellationToken);
                 using XmlReader reader = XmlReader.Create(stream, QualificationXmlReaderSettings);
                 return ExcelSheetReader.MeasureCanonicalWorksheet(reader, options.CancellationToken, out _);
             } catch (XmlException) {
                 return null;
-            } catch (IOException) {
+            } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
                 return null;
             } finally {
                 if (buffer != null) OpenXmlPartBufferPool.Return(buffer);

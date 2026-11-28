@@ -12,7 +12,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     private const string ContentTypesMember = "[Content_Types].xml";
 
-    private readonly OfficeZipPackageReader _zip;
+    private readonly OfficeZipPackageReader? _zip;
+    private readonly Func<string, OfficePooledBytes>? _readMember;
+    private readonly Func<string, long?>? _getMemberLength;
+    private readonly bool _validateMetadata;
     // Keyed by part identity, like the members, so names that differ only in non-ASCII case stay separate.
     private readonly Dictionary<string, RelationshipSet> _relationships = new(OfficeAsciiIgnoreCaseComparer.Instance);
     private Dictionary<string, string>? _defaultContentTypes;
@@ -21,10 +24,14 @@ internal sealed class OfficeOpcPackage : IDisposable {
     // Part identity (percent-decoded once, ASCII case-insensitive) to the ZIP member that stores the part.
     private readonly Dictionary<string, string> _members;
 
-    private OfficeOpcPackage(OfficeZipPackageReader zip) {
+    private OfficeOpcPackage(IEnumerable<string> names, int count, OfficeZipPackageReader? zip,
+        Func<string, OfficePooledBytes>? readMember = null, Func<string, long?>? getMemberLength = null, bool validateMetadata = false) {
         _zip = zip;
-        _members = new Dictionary<string, string>(zip.Count, OfficeAsciiIgnoreCaseComparer.Instance);
-        foreach (string member in zip.Names) {
+        _readMember = readMember;
+        _getMemberLength = getMemberLength;
+        _validateMetadata = validateMetadata;
+        _members = new Dictionary<string, string>(count, OfficeAsciiIgnoreCaseComparer.Instance);
+        foreach (string member in names) {
             string identity = ToIdentity(member) ?? member;
             // Two members that name the same part make every reference to it ambiguous.
             if (_members.ContainsKey(identity)) throw new InvalidDataException("The package stores the part '/" + identity + "' more than once.");
@@ -41,11 +48,29 @@ internal sealed class OfficeOpcPackage : IDisposable {
     internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false) {
         OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen);
         try {
-            return new OfficeOpcPackage(zip);
+            return new OfficeOpcPackage(zip.Names, zip.Count, zip);
         } catch {
             zip.Dispose();
             throw;
         }
+    }
+
+    /// <summary>Uses an existing, validated member index. The caller owns the member source.</summary>
+    internal static OfficeOpcPackage OpenFromParts(IEnumerable<string> names, int count,
+        Func<string, OfficePooledBytes> readMember, Func<string, long?> getMemberLength, bool validateMetadata) =>
+        new(names, count, zip: null, readMember, getMemberLength, validateMetadata);
+
+    private bool TryReadMember(string member, out OfficePooledBytes content) {
+        if (_zip != null) return _zip.TryRead(member, out content);
+        content = _readMember!(member);
+        return true;
+    }
+
+    private bool TryGetMemberLength(string member, out long length) {
+        if (_zip != null) return _zip.TryGetLength(member, out length);
+        long? result = _getMemberLength!(member);
+        length = result.GetValueOrDefault();
+        return result.HasValue;
     }
 
     /// <summary>Returns whether the package has a part with this name, for example <c>/word/document.xml</c>.</summary>
@@ -55,7 +80,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
     /// <exception cref="InvalidDataException">The part is missing or its ZIP member is corrupt.</exception>
     internal OfficePooledBytes ReadPart(string partName) {
         string? member = FindMember(partName);
-        if (member == null || !_zip.TryRead(member, out OfficePooledBytes content)) {
+        if (member == null || !TryReadMember(member, out OfficePooledBytes content)) {
             throw new InvalidDataException("The package has no part '" + partName + "'.");
         }
         return content;
@@ -65,14 +90,14 @@ internal sealed class OfficeOpcPackage : IDisposable {
     /// <exception cref="InvalidDataException">The part is missing.</exception>
     internal long GetPartLength(string partName) {
         string? member = FindMember(partName);
-        if (member == null || !_zip.TryGetLength(member, out long length)) throw new InvalidDataException("The package has no part '" + partName + "'.");
+        if (member == null || !TryGetMemberLength(member, out long length)) throw new InvalidDataException("The package has no part '" + partName + "'.");
         return length;
     }
 
     /// <summary>Whether any XML part declares an uncompressed length above <paramref name="length"/> bytes.</summary>
     internal bool HasXmlPartLongerThan(long length) {
         foreach (KeyValuePair<string, string> entry in _members) {
-            if (!_zip.TryGetLength(entry.Value, out long partLength) || partLength <= length) continue;
+            if (!TryGetMemberLength(entry.Value, out long partLength) || partLength <= length) continue;
             string? contentType = GetContentType("/" + entry.Value);
             if (contentType != null && contentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) return true;
         }
@@ -205,18 +230,26 @@ internal sealed class OfficeOpcPackage : IDisposable {
         var relationships = new List<OfficeOpcRelationship>();
         var ids = new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal);
         string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
-        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
+        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content, processMarkupCompatibility: !_validateMetadata);
         using (content) {
             while (reader.Read()) {
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
-                    || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                if (_validateMetadata && reader.Depth == 1
+                    && !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationships")) {
+                    throw new System.Xml.XmlException("The package relationships part has no Relationships root element.");
+                }
+                if (reader.Depth != 2 || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Type", out string type)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string target)) {
                     throw new InvalidDataException("A relationship in '" + relationshipsPart + "' lacks its Id, Type or Target.");
                 }
-                bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
-                    && string.Equals(mode, "External", StringComparison.Ordinal);
+                bool hasMode = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode);
+                if (_validateMetadata && hasMode && mode != "Internal" && mode != "External") {
+                    throw new System.Xml.XmlException("The package relationship has an invalid TargetMode.",
+                        new ArgumentException("TargetMode must be Internal or External."));
+                }
+                bool external = hasMode && mode == "External";
                 if (ids.ContainsKey(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
                 var relationship = new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external);
                 ids.Add(id, relationship);
@@ -241,23 +274,39 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private void ReadContentTypes() {
         var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var overrides = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
-        if (!_zip.TryRead(ContentTypesMember, out OfficePooledBytes content)) {
+        string? member = FindMember("/" + ContentTypesMember);
+        if (member == null || !TryReadMember(member, out OfficePooledBytes content)) {
             throw new InvalidDataException("The package has no content-types part.");
         }
         using (content) {
-            var reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+            var reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces, processMarkupCompatibility: !_validateMetadata);
             while (reader.Read()) {
                 if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 1
                     && !(reader.NamespaceId == OfficeXmlNamespaces.ContentTypes && reader.LocalNameEquals("Types"))) {
                     throw new InvalidDataException("The content-types part has no Types root element.");
                 }
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
-                    || reader.NamespaceId != OfficeXmlNamespaces.ContentTypes) continue;
-                if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ContentType", out string contentType)) continue;
-                if (reader.LocalNameEquals("Default") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "Extension", out string extension)) {
-                    defaults[extension] = contentType;
-                } else if (reader.LocalNameEquals("Override") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "PartName", out string partName)) {
-                    overrides[GetPartIdentity(partName)] = contentType;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
+                bool isDefault = reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Default");
+                if (!isDefault && !reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Override")) {
+                    if (_validateMetadata) throw new System.Xml.XmlException("The package contains an unexpected content-type declaration.");
+                    continue;
+                }
+                if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ContentType", out string contentType)
+                    || !reader.TryGetAttribute(OfficeXmlNamespaces.None, isDefault ? "Extension" : "PartName", out string key)) {
+                    if (_validateMetadata) throw new System.Xml.XmlException("The package contains an incomplete content-type declaration.");
+                    continue;
+                }
+                if (isDefault) {
+                    if (_validateMetadata) ValidateContentTypeEntry(defaults, key, contentType);
+                    defaults[key] = contentType;
+                } else {
+                    string identity = GetPartIdentity(key);
+                    if (_validateMetadata) {
+                        if (key.Length < 2 || key[0] != '/' || key.IndexOf("//", StringComparison.Ordinal) >= 0
+                            || key.IndexOf('\\') >= 0) throw new ArgumentException("The content-type override has an invalid part name.");
+                        ValidateContentTypeEntry(overrides, identity, contentType);
+                    }
+                    overrides[identity] = contentType;
                 }
             }
         }
@@ -265,7 +314,13 @@ internal sealed class OfficeOpcPackage : IDisposable {
         _overrideContentTypes = overrides;
     }
 
-    public void Dispose() => _zip.Dispose();
+    private static void ValidateContentTypeEntry(Dictionary<string, string> entries, string key, string value) {
+        if (entries.ContainsKey(key) || !System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(value, out _)) {
+            throw new ArgumentException("The package contains an invalid or duplicate content-type declaration.");
+        }
+    }
+
+    public void Dispose() => _zip?.Dispose();
 }
 
 /// <summary>One package or part relationship. <see cref="TargetPartName"/> is null for external or unresolvable targets.</summary>

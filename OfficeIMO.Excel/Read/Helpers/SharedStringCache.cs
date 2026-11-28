@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Text;
 using System.Xml;
 
@@ -13,12 +13,10 @@ namespace OfficeIMO.Excel {
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
         private static readonly XmlReaderSettings SharedStringWhitespaceXmlReaderSettings = CreateSharedStringWhitespaceXmlReaderSettings();
 
-        // Only the SDK route has a part. The native constructors leave it null, so a native read never
-        // loads the Open XML SDK.
-        private readonly Lazy<SharedStringTablePart?>? _part;
+        private readonly ExcelPartRef _workbook;
         private readonly Func<Stream>? _openPartStream;
-        private readonly Func<SharedStringTablePart, Stream?>? _openIndexedPartStream;
         private readonly bool _preferDom;
+        private readonly bool _reportMalformedXml;
         private readonly bool _keepUnmarkedWhitespace;
         private readonly int _maxSharedStringItems;
         private readonly int _maxSharedStringItemCharacters;
@@ -33,13 +31,9 @@ namespace OfficeIMO.Excel {
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private ExcelUtf8TextCache? _utf8Cache;
 
-        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false,
-            Func<SharedStringTablePart, Stream?>? openIndexedPartStream = null) {
-            _keepUnmarkedWhitespace = keepUnmarkedWhitespace;
-            _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
-            _openPartStream = null;
-            _openIndexedPartStream = openIndexedPartStream;
-            _preferDom = preferDom;
+        private SharedStringCache(ExcelPartRef workbook, ExcelReaderOptions options) {
+            _workbook = workbook;
+            _preferDom = !workbook.IsReadOnly;
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
             _maxSharedStringCharacters = options.MaxSharedStringCharacters;
@@ -47,9 +41,10 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false) {
+        private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false, bool reportMalformedXml = false) {
             _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
             _keepUnmarkedWhitespace = keepUnmarkedWhitespace;
+            _reportMalformedXml = reportMalformedXml;
             _preferDom = false;
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
@@ -69,26 +64,11 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(() => true, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReaderOptions? options = null) {
-            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReaderOptions());
-        }
+        public static SharedStringCache Build(object document, ExcelReaderOptions? options = null) =>
+            Build(ExcelPartRef.FromSdk(document), options ?? new ExcelReaderOptions());
 
-        /// <summary>
-        /// Builds a table with the text the SDK model gives an editable document, where &lt;t&gt;   &lt;/t&gt;
-        /// keeps its spaces without xml:space, for cell enumeration that must match that route.
-        /// </summary>
-        internal static SharedStringCache BuildKeepingUnmarkedWhitespace(SpreadsheetDocument doc, ExcelReaderOptions options) =>
-            new(doc.WorkbookPart, preferDom: false, options, keepUnmarkedWhitespace: true);
-
-        /// <summary>
-        /// Builds the same table, first trying the plain-text index over a buffered copy of the part.
-        /// That index accepts only text both routes read identically; anything else keeps the XML route.
-        /// </summary>
-        internal static SharedStringCache BuildKeepingUnmarkedWhitespace(
-            SpreadsheetDocument doc,
-            ExcelReaderOptions options,
-            Func<SharedStringTablePart, Stream?> openIndexedPartStream) =>
-            new(doc.WorkbookPart, preferDom: false, options, keepUnmarkedWhitespace: true, openIndexedPartStream);
+        internal static SharedStringCache Build(ExcelPartRef workbook, ExcelReaderOptions options) =>
+            new(workbook, options);
 
         internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options);
@@ -96,6 +76,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Builds the table from the part's bytes with the text the SDK model gives an editable document.</summary>
         internal static SharedStringCache BuildKeepingUnmarkedWhitespace(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options, keepUnmarkedWhitespace: true);
+
+        internal static SharedStringCache BuildForPackage(Func<Stream> openPartStream, ExcelReaderOptions options, bool keepUnmarkedWhitespace) =>
+            new(openPartStream, options, keepUnmarkedWhitespace, reportMalformedXml: true);
 
         internal static SharedStringCache Empty(ExcelReaderOptions options) =>
             new(new List<string>(), options);
@@ -142,8 +125,9 @@ namespace OfficeIMO.Excel {
                         return nativeItems;
                     }
 
+                    if (_reportMalformedXml) throw new XmlException("The shared-string part has no shared-string table.");
                     throw new XlsxTabularFastPathNotSupportedException(
-                        "The shared-string table requires the Open XML SDK fallback path.");
+                        "The shared-string table requires the general workbook reader.");
                 } finally {
                     stream?.Dispose();
                 }
@@ -152,73 +136,32 @@ namespace OfficeIMO.Excel {
             return LoadItemsFromPackage();
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private List<string>? LoadItemsFromPackage() {
-            SharedStringTablePart? part = GetSharedStringTablePart();
-            if (part == null) return new List<string>();
-            if (_openIndexedPartStream != null) {
-                Stream? indexedStream = _openIndexedPartStream(part);
-                try {
-                    if (indexedStream is OpenXmlPooledPartStream pooled
-                        && TryIndexSimpleAsciiItems(pooled, out IndexedAsciiItems? indexedItems)) {
-                        _indexedItems = indexedItems;
-                        indexedStream = null; // The validated index now owns the pooled stream.
-                        return null;
-                    }
-                    // The same part bytes, already inflated: parse them instead of reading the part again.
-                    if (indexedStream != null && !_preferDom) {
-                        if (indexedStream.CanSeek) indexedStream.Position = 0;
-                        if (TryLoadItemsXmlFast(indexedStream, out List<string> bufferedItems)) return bufferedItems;
-                        return LoadItemsFromDom();
-                    }
-                } finally {
-                    indexedStream?.Dispose();
-                }
-            }
-            if (_preferDom && part.SharedStringTable != null) {
-                return LoadItemsFromDom();
+        private List<string> LoadItemsFromPackage() {
+            ExcelPartRef part = _workbook.FindWorkbookPart(ExcelReadWorkbookParts.SharedStrings);
+            if (part.IsNone) return new List<string>();
+
+            if (!_preferDom) {
+                using Stream stream = part.OpenRead();
+                if (TryLoadItemsXmlFast(stream, out List<string> items)) return items;
             }
 
-            if (TryLoadItemsXmlFast(part, out var items)) {
-                return items;
-            }
-
-            return LoadItemsFromDom();
-        }
-
-        private List<string> LoadItemsFromDom() {
-            var part = GetSharedStringTablePart();
-            if (part == null || part.SharedStringTable == null) return new List<string>();
-            var table = part.SharedStringTable;
-            var list = new List<string>(GetBoundedCapacity(table.UniqueCount?.Value, table.Count?.Value));
+            OfficeXmlNode table = part.Root;
+            if (table.IsNone) return new List<string>();
+            const int spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
+            var list = new List<string>(GetBoundedCapacity(table.UInt32Attribute("uniqueCount"), table.UInt32Attribute("count")));
             long totalCharacters = 0;
             StringBuilder? runTextBuffer = null;
-            foreach (var item in table.Elements<SharedStringItem>()) {
+            foreach (OfficeXmlNode item in table.Children(spreadsheet, "si")) {
                 CheckCancellation(list.Count);
                 EnsureCanAddSharedString(list);
-                string value;
-                if (item.Text?.Text != null) {
-                    value = Utilities.ExcelSanitizer.DecodeXString(item.Text.Text);
-                } else if (item.HasChildren) {
-                    value = GetRunText(item, _maxSharedStringItemCharacters, ref runTextBuffer);
-                } else {
-                    value = string.Empty;
-                }
-
+                OfficeXmlNode text = item.Child(spreadsheet, "t");
+                string value = text.Exists ? Utilities.ExcelSanitizer.DecodeXString(text.InnerText)
+                    : GetRunText(item, _maxSharedStringItemCharacters, ref runTextBuffer);
                 ValidateSharedStringText(value, ref totalCharacters);
                 list.Add(value);
             }
 
             return list;
-        }
-
-        private SharedStringTablePart? GetSharedStringTablePart() {
-            return _part?.Value;
-        }
-
-        private bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
-            using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            return TryLoadItemsXmlFast(stream, out items);
         }
 
         private bool TryLoadItemsXmlFast(Stream stream, out List<string> items) {
@@ -271,7 +214,7 @@ namespace OfficeIMO.Excel {
                 if (tableDepth >= 0) return true;
                 items = null!;
                 return false;
-            } catch (XmlException) {
+            } catch (XmlException) when (!_reportMalformedXml) {
                 items = null!;
                 return false;
             } catch (IOException exception) when (!ExcelReadLimitFailure.Is(exception)) {
@@ -368,17 +311,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static string GetRunText(OpenXmlElement parent) {
+        internal static string GetRunText(object parent) => GetRunText(OfficeXmlNode.FromSdk(parent));
+
+        internal static string GetRunText(OfficeXmlNode parent) {
             StringBuilder? runTextBuffer = null;
             return GetRunText(parent, int.MaxValue, ref runTextBuffer);
         }
 
-        private static string GetRunText(OpenXmlElement parent, int maxItemCharacters, ref StringBuilder? runTextBuffer) {
+        private static string GetRunText(OfficeXmlNode parent, int maxItemCharacters, ref StringBuilder? runTextBuffer) {
             string? first = null;
             StringBuilder? builder = null;
 
-            foreach (var run in parent.Elements<Run>()) {
-                string text = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty);
+            foreach (OfficeXmlNode run in parent.Children(OfficeXmlNamespaces.SpreadsheetML, "r")) {
+                string text = Utilities.ExcelSanitizer.DecodeXString(run.Child(OfficeXmlNamespaces.SpreadsheetML, "t").InnerText);
                 if (builder != null) {
                     EnsureItemCharacterBudget(builder.Length, text.Length, maxItemCharacters);
                     builder.Append(text);

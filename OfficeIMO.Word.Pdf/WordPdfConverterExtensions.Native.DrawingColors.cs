@@ -1,46 +1,44 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.Word.OpenXml.WordXml;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryGetNativeDrawingSolidFillColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
+        private static bool TryGetNativeDrawingSolidFillColor(OfficeXmlNode owner, out OfficeColor color, IReadOnlyDictionary<string, OfficeColor>? themeColors = null) {
             color = default;
-            A.SolidFill? solidFill = owner?.GetFirstChild<A.SolidFill>();
+            OfficeXmlNode solidFill = owner.IsNone ? default : owner.Child(A, "solidFill");
             return TryGetNativeDrawingColor(solidFill, out color, themeColors);
         }
 
-        private static bool TryGetNativeDrawingOutlineColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
+        private static bool TryGetNativeDrawingOutlineColor(OfficeXmlNode owner, out OfficeColor color, IReadOnlyDictionary<string, OfficeColor>? themeColors = null) {
             color = default;
-            A.Outline? outline = owner?.GetFirstChild<A.Outline>();
-            if (outline == null || outline.GetFirstChild<A.NoFill>() != null) {
+            OfficeXmlNode outline = owner.IsNone ? default : owner.Child(A, "ln");
+            if (outline.IsNone || outline.Child(A, "noFill").Exists) {
                 return false;
             }
 
             return TryGetNativeDrawingSolidFillColor(outline, out color, themeColors);
         }
 
-        private static bool HasNativeDrawingNoFill(OpenXmlElement? owner) => owner?.GetFirstChild<A.NoFill>() != null;
+        private static bool HasNativeDrawingNoFill(OfficeXmlNode owner) => owner.Exists && owner.Child(A, "noFill").Exists;
 
-        private static bool HasNativeDrawingOutlineNoFill(OpenXmlElement? owner) =>
-            owner?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+        private static bool HasNativeDrawingOutlineNoFill(OfficeXmlNode owner) =>
+            owner.Exists && owner.Child(A, "ln") is { IsNone: false } outline && outline.Child(A, "noFill").Exists;
 
-        private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
+        private static bool TryGetNativeDrawingGradientFill(OfficeXmlNode owner, out OfficeLinearGradient? gradient, IReadOnlyDictionary<string, OfficeColor>? themeColors = null) {
             gradient = null;
-            A.GradientFill? gradientFill = owner?.GetFirstChild<A.GradientFill>();
-            A.GradientStopList? stopList = gradientFill?.GetFirstChild<A.GradientStopList>();
-            if (gradientFill == null || stopList == null) {
+            OfficeXmlNode gradientFill = owner.IsNone ? default : owner.Child(A, "gradFill");
+            OfficeXmlNode stopList = gradientFill.IsNone ? default : gradientFill.Child(A, "gsLst");
+            if (gradientFill.IsNone || stopList.IsNone) {
                 return false;
             }
 
             var stops = new List<(double Offset, OfficeColor Color)>();
-            foreach (A.GradientStop stop in stopList.Elements<A.GradientStop>()) {
+            foreach (OfficeXmlNode stop in stopList.Children(A, "gs")) {
                 if (!TryGetNativeDrawingColor(stop, out OfficeColor color, themeColors)) {
                     continue;
                 }
 
-                double offset = Math.Max(0D, Math.Min(100000D, stop.Position?.Value ?? 0)) / 100000D;
+                double offset = Math.Max(0D, Math.Min(100000D, ParseInt32(stop.Attr("pos")) ?? 0)) / 100000D;
                 stops.Add((offset, color));
             }
 
@@ -51,12 +49,12 @@ namespace OfficeIMO.Word.Pdf {
             stops.Sort((left, right) => left.Offset.CompareTo(right.Offset));
             OfficeColor startColor = stops[0].Color;
             OfficeColor endColor = stops[stops.Count - 1].Color;
-            gradient = CreateNativeDrawingLinearGradient(gradientFill.GetFirstChild<A.LinearGradientFill>(), startColor, endColor);
+            gradient = CreateNativeDrawingLinearGradient(gradientFill.Child(A, "lin"), startColor, endColor);
             return true;
         }
 
-        private static OfficeLinearGradient CreateNativeDrawingLinearGradient(A.LinearGradientFill? linear, OfficeColor startColor, OfficeColor endColor) {
-            double angle = NormalizeNativeDrawingAngleDegrees(linear?.Angle?.Value);
+        private static OfficeLinearGradient CreateNativeDrawingLinearGradient(OfficeXmlNode linear, OfficeColor startColor, OfficeColor endColor) {
+            double angle = NormalizeNativeDrawingAngleDegrees(ParseInt32(linear.Attr("ang")));
             if (IsNativeDrawingAngleNear(angle, 0D) || IsNativeDrawingAngleNear(angle, 180D)) {
                 return OfficeLinearGradient.Horizontal(startColor, endColor);
             }
@@ -82,17 +80,17 @@ namespace OfficeIMO.Word.Pdf {
             return distance <= 22.5D;
         }
 
-        private static bool TryGetNativeDrawingColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
+        private static bool TryGetNativeDrawingColor(OfficeXmlNode owner, out OfficeColor color, IReadOnlyDictionary<string, OfficeColor>? themeColors = null) {
             color = default;
-            if (owner == null) {
+            if (owner.IsNone) {
                 return false;
             }
 
-            A.SchemeColor? scheme = owner as A.SchemeColor ?? owner.GetFirstChild<A.SchemeColor>();
-            if (scheme != null) {
+            OfficeXmlNode scheme = owner.Is(A, "schemeClr") ? owner : owner.Child(A, "schemeClr");
+            if (scheme.Exists) {
                 string? schemeName = GetNativeDrawingEnumAttributeValue(scheme, "val");
-                if (scheme.Val?.Value != null && themeColors != null &&
-                    themeColors.TryGetValue(scheme.Val.Value, out color) ||
+                if (scheme.Attr("val") is string schemeToken && themeColors != null &&
+                    themeColors.TryGetValue(schemeToken, out color) ||
                     TryGetNativeDefaultThemeColor(schemeName, out color)) {
                     color = ApplyNativeDrawingColorTransforms(color, scheme);
                     return true;
@@ -101,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Non-scheme decoding, including linear scRGB, belongs to the shared resolver.
-            OfficeColor? resolved = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ResolveColor(owner, colorScheme: null);
+            OfficeColor? resolved = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ResolveColor(owner, colorScheme: default);
             if (!resolved.HasValue) {
                 return false;
             }
@@ -109,43 +107,45 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> GetNativeDrawingThemeColors(OpenXmlPart? sourcePart) {
-            var colors = new Dictionary<A.SchemeColorValues, OfficeColor>();
-            if (!(sourcePart?.OpenXmlPackage is WordprocessingDocument wordDocument)) {
+        /// <summary>
+        /// The theme colours of the document that holds <paramref name="sourceElement"/>, keyed by the
+        /// <c>a:schemeClr</c> token (<c>"accent1"</c>, <c>"tx1"</c>, ...).
+        /// </summary>
+        private static IReadOnlyDictionary<string, OfficeColor> GetNativeDrawingThemeColors(OfficeXmlNode sourceElement) {
+            var colors = new Dictionary<string, OfficeColor>(StringComparer.Ordinal);
+            OfficeXmlNode theme = sourceElement.IsNone ? default : sourceElement.PackageThemeNode();
+            OfficeXmlNode themeElements = theme.IsNone ? default : theme.Child(A, "themeElements");
+            OfficeXmlNode colorScheme = themeElements.IsNone ? default : themeElements.Child(A, "clrScheme");
+            if (colorScheme.IsNone) {
                 return colors;
             }
 
-            A.ColorScheme? colorScheme = wordDocument.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-            if (colorScheme == null) {
-                return colors;
-            }
-
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Dark1, colorScheme.GetFirstChild<A.Dark1Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Light1, colorScheme.GetFirstChild<A.Light1Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Dark2, colorScheme.GetFirstChild<A.Dark2Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Light2, colorScheme.GetFirstChild<A.Light2Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent1, colorScheme.GetFirstChild<A.Accent1Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent2, colorScheme.GetFirstChild<A.Accent2Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent3, colorScheme.GetFirstChild<A.Accent3Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent4, colorScheme.GetFirstChild<A.Accent4Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent5, colorScheme.GetFirstChild<A.Accent5Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent6, colorScheme.GetFirstChild<A.Accent6Color>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Hyperlink, colorScheme.GetFirstChild<A.Hyperlink>());
-            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.FollowedHyperlink, colorScheme.GetFirstChild<A.FollowedHyperlinkColor>());
-            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Background1, A.SchemeColorValues.Light1);
-            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Text1, A.SchemeColorValues.Dark1);
-            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Background2, A.SchemeColorValues.Light2);
-            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Text2, A.SchemeColorValues.Dark2);
+            AddNativeDrawingThemeColor(colors, "dk1", colorScheme.Child(A, "dk1"));
+            AddNativeDrawingThemeColor(colors, "lt1", colorScheme.Child(A, "lt1"));
+            AddNativeDrawingThemeColor(colors, "dk2", colorScheme.Child(A, "dk2"));
+            AddNativeDrawingThemeColor(colors, "lt2", colorScheme.Child(A, "lt2"));
+            AddNativeDrawingThemeColor(colors, "accent1", colorScheme.Child(A, "accent1"));
+            AddNativeDrawingThemeColor(colors, "accent2", colorScheme.Child(A, "accent2"));
+            AddNativeDrawingThemeColor(colors, "accent3", colorScheme.Child(A, "accent3"));
+            AddNativeDrawingThemeColor(colors, "accent4", colorScheme.Child(A, "accent4"));
+            AddNativeDrawingThemeColor(colors, "accent5", colorScheme.Child(A, "accent5"));
+            AddNativeDrawingThemeColor(colors, "accent6", colorScheme.Child(A, "accent6"));
+            AddNativeDrawingThemeColor(colors, "hlink", colorScheme.Child(A, "hlink"));
+            AddNativeDrawingThemeColor(colors, "folHlink", colorScheme.Child(A, "folHlink"));
+            AddNativeDrawingThemeAlias(colors, "bg1", "lt1");
+            AddNativeDrawingThemeAlias(colors, "tx1", "dk1");
+            AddNativeDrawingThemeAlias(colors, "bg2", "lt2");
+            AddNativeDrawingThemeAlias(colors, "tx2", "dk2");
             return colors;
         }
 
-        private static void AddNativeDrawingThemeColor(Dictionary<A.SchemeColorValues, OfficeColor> colors, A.SchemeColorValues key, OpenXmlElement? element) {
+        private static void AddNativeDrawingThemeColor(Dictionary<string, OfficeColor> colors, string key, OfficeXmlNode element) {
             if (TryGetNativeDrawingColor(element, out OfficeColor color, colors)) {
                 colors[key] = color;
             }
         }
 
-        private static void AddNativeDrawingThemeAlias(Dictionary<A.SchemeColorValues, OfficeColor> colors, A.SchemeColorValues alias, A.SchemeColorValues target) {
+        private static void AddNativeDrawingThemeAlias(Dictionary<string, OfficeColor> colors, string alias, string target) {
             if (!colors.ContainsKey(alias) && colors.TryGetValue(target, out OfficeColor color)) {
                 colors[alias] = color;
             }
@@ -207,11 +207,11 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static OfficeColor ApplyNativeDrawingColorTransforms(OfficeColor color, OpenXmlElement colorElement) =>
+        private static OfficeColor ApplyNativeDrawingColorTransforms(OfficeColor color, OfficeXmlNode colorElement) =>
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ApplyTransforms(color, colorElement);
 
-        private static string? GetNativeDrawingEnumAttributeValue(OpenXmlElement element, string name) {
-            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+        private static string? GetNativeDrawingEnumAttributeValue(OfficeXmlNode element, string name) {
+            foreach (OfficeXmlAttribute attribute in element.Attributes()) {
                 if (attribute.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase)) {
                     return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
                 }

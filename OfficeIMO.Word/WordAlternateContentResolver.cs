@@ -38,11 +38,16 @@ internal static class WordAlternateContentResolver {
     };
 
     /// <summary>Returns the first supported choice, or the fallback when no choice can be interpreted.</summary>
-    internal static OpenXmlCompositeElement? SelectBranch(AlternateContent alternateContent) {
-        foreach (AlternateContentChoice choice in alternateContent.Elements<AlternateContentChoice>()) {
+    internal static OpenXmlCompositeElement? SelectBranch(AlternateContent alternateContent) =>
+        (OpenXmlCompositeElement?)SelectBranch(OfficeXmlNode.FromSdk(alternateContent)).SdkElement;
+
+    /// <summary>Returns the first supported <c>mc:Choice</c>, or the <c>mc:Fallback</c> when no choice can be interpreted.</summary>
+    internal static OfficeXmlNode SelectBranch(OfficeXmlNode alternateContent) {
+        const int Mc = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.MarkupCompatibility;
+        foreach (OfficeXmlNode choice in alternateContent.Children(Mc, "Choice")) {
             if (AreRequiredNamespacesSupported(choice)) return choice;
         }
-        return alternateContent.GetFirstChild<AlternateContentFallback>();
+        return alternateContent.Child(Mc, "Fallback");
     }
 
     /// <summary>Enumerates immediate content, flattening only selected compatibility wrappers.</summary>
@@ -57,12 +62,12 @@ internal static class WordAlternateContentResolver {
         }
     }
 
-    private static bool AreRequiredNamespacesSupported(AlternateContentChoice choice) {
-        string? requires = choice.Requires?.Value;
+    private static bool AreRequiredNamespacesSupported(OfficeXmlNode choice) {
+        string? requires = choice.Attribute("Requires");
         if (string.IsNullOrWhiteSpace(requires)) return false;
         string[] prefixes = requires!.Split(new[] { ' ', '\t', '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
         return prefixes.Length > 0 && prefixes.All(prefix => {
-            string? namespaceUri = choice.LookupNamespace(prefix);
+            string? namespaceUri = OfficeIMO.Word.OpenXml.WordXmlNodes.LookupNamespace(choice, prefix);
             // Older OfficeIMO documents could omit the canonical declaration from header/footer parts.
             if (namespaceUri == null) SupportedPrefixNamespaces.TryGetValue(prefix, out namespaceUri);
             return namespaceUri != null && SupportedNamespaces.Contains(namespaceUri);

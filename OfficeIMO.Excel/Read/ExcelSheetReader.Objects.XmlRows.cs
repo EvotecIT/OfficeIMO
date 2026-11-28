@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Runtime.Serialization;
 using System.Collections.Concurrent;
 using System.Xml;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>

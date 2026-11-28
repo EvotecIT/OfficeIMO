@@ -1,16 +1,13 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static string? GetNativeImageLink(WordImage image) {
             Uri? uri = image.Hyperlink;
-            if (uri == null && image._Image?.Descendants<A.HyperlinkOnClick>().FirstOrDefault()?.Id?.Value is { } relationshipId) {
-                WordParagraph paragraph = image.Paragraph;
-                DocumentFormat.OpenXml.Packaging.HyperlinkRelationship? relationship = WordHyperLink.FindHyperlinkRelationship(
-                    WordHyperLink.ResolveRelationshipPart(paragraph._document, paragraph._paragraph), relationshipId);
-                uri = relationship is { IsExternal: true } ? relationship.Uri : null;
+            if (uri == null && image.DrawingNode().FirstDescendantSkippingExtLst(WordXml.A, "hlinkClick").Attribute(WordXml.R, "id") is { } relationshipId) {
+                uri = image.Paragraph.ExternalHyperlinkTarget(relationshipId);
             }
 
             return uri?.IsAbsoluteUri == true && OfficeDrawingLinkPolicy.TryNormalize(uri.AbsoluteUri, out string link)
@@ -21,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
         // drawing for effects and for rounding the picture to whole pixels. The bottom extent lifts
         // the picture above the baseline, so it makes the line taller like the picture itself.
         private static double GetNativeInlineImageBottomExtent(WordImage image) {
-            long? bottom = image._Image?.Inline?.EffectExtent?.BottomEdge?.Value;
+            long? bottom = image.DrawingNode().Child(WordXml.Wp, "inline").Child(WordXml.Wp, "effectExtent").Int64Attr("b");
             return bottom is > 0L and <= 12_700L * 1_584L ? bottom.Value / 12_700D : 0D;
         }
 

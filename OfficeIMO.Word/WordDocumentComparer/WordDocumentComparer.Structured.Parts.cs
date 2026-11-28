@@ -1,110 +1,93 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
-using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static Dictionary<HeaderPart, string> CreateHeaderPartKeys(MainDocumentPart mainPart) {
+        private static Dictionary<WordPartView, string> CreateHeaderPartKeys(WordPartView mainPart) {
             return CreateOrderedHeaderPartKeys(mainPart).ToDictionary(item => item.Key, item => item.Value);
         }
 
-        private static List<KeyValuePair<HeaderPart, string>> CreateOrderedHeaderPartKeys(MainDocumentPart mainPart) {
-            var orderedKeys = new List<KeyValuePair<HeaderPart, string>>();
-            var keys = new Dictionary<HeaderPart, string>();
-            var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
-            var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
-            foreach (HeaderReference reference in mainPart.Document?.Descendants<HeaderReference>() ?? Enumerable.Empty<HeaderReference>()) {
-                if (reference.Id?.Value is not string relationshipId) {
-                    continue;
-                }
+        private static List<KeyValuePair<WordPartView, string>> CreateOrderedHeaderPartKeys(WordPartView mainPart) =>
+            CreateOrderedHeaderFooterPartKeys(mainPart, "headerReference", WordPackageView.HeaderRelationshipType, "hdr", HeaderPartKeyPrefix);
 
-                if (!IsHeaderFooterReferenceVisible(mainPart, reference.Type?.Value, reference)) {
-                    continue;
-                }
-
-                if (mainPart.GetPartById(relationshipId) is not HeaderPart headerPart || keys.ContainsKey(headerPart)) {
-                    continue;
-                }
-
-                string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
-                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(headerPart, headerPart.Header))) {
-                    continue;
-                }
-
-                int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
-                string key = HeaderPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                keys[headerPart] = key;
-                orderedKeys.Add(new KeyValuePair<HeaderPart, string>(headerPart, key));
-            }
-
-            return orderedKeys;
-        }
-
-        private static Dictionary<FooterPart, string> CreateFooterPartKeys(MainDocumentPart mainPart) {
+        private static Dictionary<WordPartView, string> CreateFooterPartKeys(WordPartView mainPart) {
             return CreateOrderedFooterPartKeys(mainPart).ToDictionary(item => item.Key, item => item.Value);
         }
 
-        private static List<KeyValuePair<FooterPart, string>> CreateOrderedFooterPartKeys(MainDocumentPart mainPart) {
-            var orderedKeys = new List<KeyValuePair<FooterPart, string>>();
-            var keys = new Dictionary<FooterPart, string>();
+        private static List<KeyValuePair<WordPartView, string>> CreateOrderedFooterPartKeys(WordPartView mainPart) =>
+            CreateOrderedHeaderFooterPartKeys(mainPart, "footerReference", WordPackageView.FooterRelationshipType, "ftr", FooterPartKeyPrefix);
+
+        private static List<KeyValuePair<WordPartView, string>> CreateOrderedHeaderFooterPartKeys(
+            WordPartView mainPart,
+            string referenceName,
+            string relationshipType,
+            string rootName,
+            string keyPrefix) {
+            var orderedKeys = new List<KeyValuePair<WordPartView, string>>();
+            var keys = new Dictionary<WordPartView, string>();
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
             var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
-            foreach (FooterReference reference in mainPart.Document?.Descendants<FooterReference>() ?? Enumerable.Empty<FooterReference>()) {
-                if (reference.Id?.Value is not string relationshipId) {
+            foreach (OfficeXmlNode reference in DescendantsW(DocumentRoot(mainPart), referenceName)) {
+                if (reference.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id") is not string relationshipId) {
                     continue;
                 }
 
-                if (!IsHeaderFooterReferenceVisible(mainPart, reference.Type?.Value, reference)) {
+                string? type = GetHeaderFooterReferenceType(reference);
+                if (!IsHeaderFooterReferenceVisible(mainPart, type, reference)) {
                     continue;
                 }
 
-                if (mainPart.GetPartById(relationshipId) is not FooterPart footerPart || keys.ContainsKey(footerPart)) {
+                // The SDK path threw for a reference to a relationship that targets no part.
+                WordPartView part = mainPart.GetPartById(relationshipId) ??
+                    throw new ArgumentOutOfRangeException("id");
+                if (!string.Equals(mainPart.PartRelationshipType(relationshipId), relationshipType, StringComparison.Ordinal) ||
+                    keys.ContainsKey(part)) {
                     continue;
                 }
 
-                string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
-                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(footerPart, footerPart.Footer))) {
+                string typeKey = GetHeaderFooterReferenceTypeKey(type);
+                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(part, part.RootNamed(W, rootName)))) {
                     continue;
                 }
 
                 int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
-                string key = FooterPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                keys[footerPart] = key;
-                orderedKeys.Add(new KeyValuePair<FooterPart, string>(footerPart, key));
+                string key = keyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                keys[part] = key;
+                orderedKeys.Add(new KeyValuePair<WordPartView, string>(part, key));
             }
 
             return orderedKeys;
         }
 
-        private static string GetHeaderPartKey(IReadOnlyDictionary<HeaderPart, string> keys, HeaderPart headerPart, int fallbackIndex) {
+        private static string GetHeaderPartKey(IReadOnlyDictionary<WordPartView, string> keys, WordPartView headerPart, int fallbackIndex) {
             return keys.TryGetValue(headerPart, out string? key)
                 ? key
                 : HeaderPartKeyPrefix + "unreferenced:" + fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static string GetFooterPartKey(IReadOnlyDictionary<FooterPart, string> keys, FooterPart footerPart, int fallbackIndex) {
+        private static string GetFooterPartKey(IReadOnlyDictionary<WordPartView, string> keys, WordPartView footerPart, int fallbackIndex) {
             return keys.TryGetValue(footerPart, out string? key)
                 ? key
                 : FooterPartKeyPrefix + "unreferenced:" + fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static string GetHeaderFooterReferenceTypeKey(HeaderFooterValues? type) {
-            if (type == HeaderFooterValues.First) {
+        /// <summary>The <c>w:type</c> of a header or footer reference: null when absent, a format error when invalid.</summary>
+        private static string? GetHeaderFooterReferenceType(OfficeXmlNode reference) =>
+            EnumToken(reference.Attribute(W, "type"), "default", "even", "first");
+
+        private static string GetHeaderFooterReferenceTypeKey(string? type) {
+            if (type == "first") {
                 return "first";
             }
 
-            if (type == HeaderFooterValues.Even) {
+            if (type == "even") {
                 return "even";
             }
 
             return "default";
         }
 
-        private static string GetHeaderFooterPartSignature(OpenXmlPart part, OpenXmlElement? root) {
-            if (root == null) {
+        private static string GetHeaderFooterPartSignature(WordPartView part, OfficeXmlNode root) {
+            if (root.IsNone) {
                 return string.Empty;
             }
 
@@ -112,105 +95,91 @@ namespace OfficeIMO.Word {
                 return GetTextOnlyHeaderFooterPartSignature(part, root);
             }
 
-            OpenXmlElement clone = root.CloneNode(true);
-            NormalizeHeaderFooterSignatureElement(part, clone);
-            return clone.OuterXml;
+            return GetElementSignature(root, new HeaderFooterSignatureRules(part));
         }
 
-        private static bool IsTextOnlyHeaderFooterContent(OpenXmlElement root) {
-            return !root.Descendants<Table>().Any() &&
-                   !root.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() &&
-                   !root.Descendants<V.ImageData>().Any() &&
-                   !root.Descendants<Hyperlink>().Any() &&
-                   !root.Descendants<SimpleField>().Any() &&
-                   !root.Descendants<FieldCode>().Any();
-        }
-
-        private static string GetTextOnlyHeaderFooterPartSignature(OpenXmlPart part, OpenXmlElement root) {
-            string[] paragraphs = root.Descendants<Paragraph>()
-                .Where(paragraph => paragraph.Ancestors<TableCell>().FirstOrDefault() == null)
-                .Select(paragraph => "p:" + GetParagraphMatchText(paragraph, part))
-                .ToArray();
-
-            return paragraphs.Length == 0
-                ? root.InnerText ?? string.Empty
-                : string.Join("\n", paragraphs);
-        }
-
-        private static void NormalizeHeaderFooterSignatureElement(OpenXmlPart part, OpenXmlElement root) {
-            foreach (OpenXmlElement element in new[] { root }.Concat(root.Descendants())) {
-                foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
-                    if (IsVolatileHeaderFooterSignatureAttribute(attribute)) {
-                        element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
-                    } else if (IsRelationshipHeaderFooterSignatureAttribute(attribute) && attribute.Value is string relationshipId) {
-                        element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, GetPartRelationshipSignature(part, relationshipId)));
-                    }
+        private static bool IsTextOnlyHeaderFooterContent(OfficeXmlNode root) {
+            foreach (OfficeXmlNode element in TypedDescendants(root)) {
+                if (element.Is(W, "tbl") || element.Is(W, "drawing") || element.Is(Vml, "imagedata") ||
+                    element.Is(W, "hyperlink") || element.Is(W, "fldSimple") || element.Is(W, "instrText")) {
+                    return false;
                 }
-
-                if (element is DW.DocProperties docProperties) {
-                    docProperties.Id = 0U;
-                    docProperties.Name = string.Empty;
-                } else if (element is PIC.NonVisualDrawingProperties pictureProperties) {
-                    pictureProperties.Id = 0U;
-                    pictureProperties.Name = string.Empty;
-                }
-            }
-        }
-
-        private static bool IsVolatileHeaderFooterSignatureAttribute(OpenXmlAttribute attribute) {
-            return attribute.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" &&
-                   attribute.LocalName.StartsWith("rsid", StringComparison.Ordinal);
-        }
-
-        private static bool IsRelationshipHeaderFooterSignatureAttribute(OpenXmlAttribute attribute) {
-            return attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
-                   (attribute.LocalName == "id" || attribute.LocalName == "embed" || attribute.LocalName == "link");
-        }
-
-        private static string GetPartRelationshipSignature(OpenXmlPart part, string relationshipId) {
-            ExternalRelationship? externalRelationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
-            if (externalRelationship != null) {
-                return "external:" + externalRelationship.RelationshipType + ":" + externalRelationship.Uri;
-            }
-
-            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(part, relationshipId);
-            if (hyperlinkRelationship != null) {
-                return "hyperlink:" + hyperlinkRelationship.Uri + ":" + hyperlinkRelationship.IsExternal.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            OpenXmlPart relatedPart;
-            try {
-                relatedPart = part.GetPartById(relationshipId);
-            } catch (ArgumentOutOfRangeException) {
-                return "missing:" + relationshipId;
-            }
-
-            if (relatedPart is ImagePart imagePart) {
-                using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                ImageFingerprint fingerprint = CreateImageFingerprint(stream);
-                return "image:" + imagePart.ContentType + ":" + fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
-            }
-
-            return "part:" + relatedPart.ContentType;
-        }
-
-        private static bool IsHeaderFooterReferenceVisible(MainDocumentPart mainPart, HeaderFooterValues? type, OpenXmlElement reference) {
-            if (type == HeaderFooterValues.First) {
-                SectionProperties? sectionProperties = reference.Ancestors<SectionProperties>().FirstOrDefault();
-                TitlePage? titlePage = sectionProperties?.Elements<TitlePage>().FirstOrDefault();
-                return titlePage != null && IsOnOffEnabled(titlePage);
-            }
-
-            if (type == HeaderFooterValues.Even) {
-                Settings? settings = mainPart.DocumentSettingsPart?.Settings;
-                return settings?.Elements<EvenAndOddHeaders>().Any(IsOnOffEnabled) == true;
             }
 
             return true;
         }
 
-        private static bool IsOnOffEnabled(OnOffType onOff) {
-            return onOff.Val == null || onOff.Val.Value;
+        private static string GetTextOnlyHeaderFooterPartSignature(WordPartView part, OfficeXmlNode root) {
+            string[] paragraphs = DescendantsW(root, "p")
+                .Where(paragraph => !HasAncestorW(paragraph, "tc"))
+                .Select(paragraph => "p:" + GetParagraphMatchText(paragraph, part))
+                .ToArray();
+
+            return paragraphs.Length == 0
+                ? InnerText(root)
+                : string.Join("\n", paragraphs);
+        }
+
+        /// <summary>Header and footer markup without revision save ids, relationship ids replaced by what they target.</summary>
+        private sealed class HeaderFooterSignatureRules : SignatureRules {
+            private readonly WordPartView _part;
+
+            internal HeaderFooterSignatureRules(WordPartView part) => _part = part;
+
+            internal override void Rewrite(OfficeXmlNode element, List<WordXmlAttribute> attributes) {
+                for (int index = attributes.Count - 1; index >= 0; index--) {
+                    WordXmlAttribute attribute = attributes[index];
+                    if (attribute.NamespaceUri == WordprocessingNamespaceUri && attribute.LocalName.StartsWith("rsid", StringComparison.Ordinal)) {
+                        attributes.RemoveAt(index);
+                    } else if (attribute.NamespaceUri == RelationshipsNamespaceUri &&
+                               (attribute.LocalName == "id" || attribute.LocalName == "embed" || attribute.LocalName == "link")) {
+                        attributes[index] = new WordXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, GetPartRelationshipSignature(_part, attribute.Value));
+                    }
+                }
+
+                ResetDrawingProperties(element, attributes);
+            }
+        }
+
+        private static string GetPartRelationshipSignature(WordPartView part, string relationshipId) {
+            if (part.TryGetExternalRelationship(relationshipId, out string relationshipType, out string uri)) {
+                return "external:" + relationshipType + ":" + uri;
+            }
+
+            string? hyperlinkTarget = part.HyperlinkTarget(relationshipId, out bool isExternal);
+            if (hyperlinkTarget != null) {
+                return "hyperlink:" + hyperlinkTarget + ":" + isExternal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            WordPartView? relatedPart = part.GetPartById(relationshipId);
+            if (relatedPart == null) {
+                return "missing:" + relationshipId;
+            }
+
+            if (IsImagePartRelationship(part, relationshipId)) {
+                ImageFingerprint fingerprint = CreateImageFingerprint(relatedPart);
+                return "image:" + relatedPart.ContentType + ":" + fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
+            }
+
+            return "part:" + relatedPart.ContentType;
+        }
+
+        private static bool IsImagePartRelationship(WordPartView part, string relationshipId) =>
+            string.Equals(part.PartRelationshipType(relationshipId), WordPackageView.ImageRelationshipType, StringComparison.Ordinal);
+
+        private static bool IsHeaderFooterReferenceVisible(WordPartView mainPart, string? type, OfficeXmlNode reference) {
+            if (type == "first") {
+                OfficeXmlNode sectionProperties = AncestorW(reference, "sectPr");
+                OfficeXmlNode titlePage = sectionProperties.IsNone ? default : sectionProperties.Child(W, "titlePg");
+                return !titlePage.IsNone && IsOnOffEnabled(titlePage);
+            }
+
+            if (type == "even") {
+                OfficeXmlNode settings = SettingsRoot(mainPart);
+                return !settings.IsNone && settings.Children(W, "evenAndOddHeaders").ToList().Any(IsOnOffEnabled);
+            }
+
+            return true;
         }
 
         private static int GetAndIncrementOrdinal(Dictionary<string, int> ordinals, string typeKey) {
@@ -219,57 +188,54 @@ namespace OfficeIMO.Word {
             return ordinal;
         }
 
-        private static bool IsVisibleNote(Footnote footnote) {
-            return WordNoteResolver.IsOrdinary(footnote);
+        private static bool IsVisibleNote(OfficeXmlNode note) {
+            return WordNoteResolver.IsOrdinary(note);
         }
 
-        private static bool IsVisibleNote(Endnote endnote) {
-            return WordNoteResolver.IsOrdinary(endnote);
-        }
+        /// <summary>The <c>w:id</c> of a footnote or endnote as its typed integer reads it, or null.</summary>
+        private static long? GetNoteId(OfficeXmlNode note) => ParseInt64(note.Attribute(W, "id"));
 
-        private static string GetNotePartKeyId(Footnote footnote, int fallbackIndex) {
-            return footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+        private static string GetNotePartKeyId(OfficeXmlNode note, int fallbackIndex) {
+            return GetNoteId(note)?.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
                 fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static string GetNotePartKeyId(Endnote endnote, int fallbackIndex) {
-            return endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
-                fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
+        private static List<OfficeXmlNode> GetReferencedFootnotes(WordPartView mainPart) =>
+            GetReferencedNotes(mainPart, FootnotesRoot(FootnotesPart(mainPart)), "footnote", "footnoteReference");
 
-        private static List<Footnote> GetReferencedFootnotes(MainDocumentPart mainPart) {
-            Dictionary<long, Footnote> footnotesById = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
-                .Where(IsVisibleNote)
-                .Where(footnote => footnote.Id?.Value != null)
-                .ToDictionary(footnote => footnote.Id!.Value, footnote => footnote) ?? new Dictionary<long, Footnote>();
-            return GetReferencedNoteIds<FootnoteReference>(mainPart)
-                .Where(footnotesById.ContainsKey)
-                .Select(noteId => footnotesById[noteId])
+        private static List<OfficeXmlNode> GetReferencedEndnotes(WordPartView mainPart) =>
+            GetReferencedNotes(mainPart, EndnotesRoot(EndnotesPart(mainPart)), "endnote", "endnoteReference");
+
+        private static List<OfficeXmlNode> GetReferencedNotes(WordPartView mainPart, OfficeXmlNode notesRoot, string noteName, string referenceName) {
+            var notesById = new Dictionary<long, OfficeXmlNode>();
+            if (!notesRoot.IsNone) {
+                foreach (OfficeXmlNode note in notesRoot.Children(W, noteName).ToList().Where(IsVisibleNote)) {
+                    long? id = GetNoteId(note);
+                    if (id == null) {
+                        continue;
+                    }
+
+                    // The SDK path built this map with ToDictionary, which rejects a repeated identifier.
+                    notesById.Add(id.Value, note);
+                }
+            }
+
+            return GetReferencedNoteIds(mainPart, referenceName)
+                .Where(notesById.ContainsKey)
+                .Select(noteId => notesById[noteId])
                 .ToList();
         }
 
-        private static List<Endnote> GetReferencedEndnotes(MainDocumentPart mainPart) {
-            Dictionary<long, Endnote> endnotesById = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
-                .Where(IsVisibleNote)
-                .Where(endnote => endnote.Id?.Value != null)
-                .ToDictionary(endnote => endnote.Id!.Value, endnote => endnote) ?? new Dictionary<long, Endnote>();
-            return GetReferencedNoteIds<EndnoteReference>(mainPart)
-                .Where(endnotesById.ContainsKey)
-                .Select(noteId => endnotesById[noteId])
-                .ToList();
-        }
-
-        private static List<long> GetReferencedNoteIds<TReference>(MainDocumentPart mainPart)
-            where TReference : OpenXmlElement {
+        private static List<long> GetReferencedNoteIds(WordPartView mainPart, string referenceName) {
             var ids = new List<long>();
             var seenIds = new HashSet<long>();
-            foreach (OpenXmlElement root in GetNoteReferenceRoots(mainPart)) {
-                foreach (TReference reference in EnumerateComparableDescendants(root).OfType<TReference>()) {
-                    long? noteId = reference switch {
-                        FootnoteReference footnoteReference => footnoteReference.Id?.Value,
-                        EndnoteReference endnoteReference => endnoteReference.Id?.Value,
-                        _ => null
-                    };
+            foreach (OfficeXmlNode root in GetNoteReferenceRoots(mainPart)) {
+                foreach (OfficeXmlNode reference in EnumerateComparableDescendants(root)) {
+                    if (!reference.Is(W, referenceName)) {
+                        continue;
+                    }
+
+                    long? noteId = GetNoteId(reference);
                     if (noteId != null && seenIds.Add(noteId.Value)) {
                         ids.Add(noteId.Value);
                     }
@@ -279,20 +245,23 @@ namespace OfficeIMO.Word {
             return ids;
         }
 
-        private static IEnumerable<OpenXmlElement> GetNoteReferenceRoots(MainDocumentPart mainPart) {
-            if (mainPart.Document != null) {
-                yield return mainPart.Document;
+        private static IEnumerable<OfficeXmlNode> GetNoteReferenceRoots(WordPartView mainPart) {
+            OfficeXmlNode document = DocumentRoot(mainPart);
+            if (!document.IsNone) {
+                yield return document;
             }
 
-            foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                if (headerPart.Header != null) {
-                    yield return headerPart.Header;
+            foreach (WordPartView headerPart in HeaderParts(mainPart)) {
+                OfficeXmlNode header = HeaderRoot(headerPart);
+                if (!header.IsNone) {
+                    yield return header;
                 }
             }
 
-            foreach (FooterPart footerPart in mainPart.FooterParts) {
-                if (footerPart.Footer != null) {
-                    yield return footerPart.Footer;
+            foreach (WordPartView footerPart in FooterParts(mainPart)) {
+                OfficeXmlNode footer = FooterRoot(footerPart);
+                if (!footer.IsNone) {
+                    yield return footer;
                 }
             }
         }

@@ -1,6 +1,5 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
@@ -150,51 +149,35 @@ namespace OfficeIMO.Word {
             FieldEvaluationState state,
             string sequenceName,
             int headingLevel) {
-            string? headingKey = FindNearestPrecedingHeadingKey(document, candidate.AnchorElement, headingLevel);
-            if (headingKey == null) {
-                return false;
-            }
+            OfficeXmlNode heading = FindNearestPrecedingHeading(document, candidate.AnchorElement, headingLevel);
+            if (heading.IsNone) return false;
 
             string resetKey = sequenceName + "|" + headingLevel.ToString(CultureInfo.InvariantCulture);
-            if (!state.SequenceHeadingResetKeys.TryGetValue(resetKey, out string? knownHeadingKey) ||
-                !string.Equals(knownHeadingKey, headingKey, StringComparison.Ordinal)) {
-                state.SequenceHeadingResetKeys[resetKey] = headingKey;
+            if (!state.SequenceHeadingResetKeys.TryGetValue(resetKey, out OfficeXmlNode prior) || prior != heading) {
+                state.SequenceHeadingResetKeys[resetKey] = heading;
                 state.Sequences[sequenceName] = 0;
             }
-
             return true;
         }
 
-        private static string? FindNearestPrecedingHeadingKey(WordDocument document, OpenXmlElement anchorElement, int headingLevel) {
-            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            Paragraph? targetParagraph = anchorElement is Paragraph paragraph
-                ? paragraph
-                : anchorElement.Ancestors<Paragraph>().FirstOrDefault();
+        private static OfficeXmlNode FindNearestPrecedingHeading(WordDocument document, OfficeXmlNode anchor, int headingLevel) {
+            const int W = FieldNamespace;
+            OfficeXmlNode body = WordFieldInventory.BodyNode(document);
+            OfficeXmlNode target = anchor.AncestorOrSelf(W, "p");
+            if (target.IsNone || !target.IsInside(body)) return default;
 
-            if (body == null || targetParagraph == null) {
-                return null;
+            OfficeXmlNode preceding = default;
+            foreach (OfficeXmlNode paragraph in WordFieldInventory.EnumerateFieldContent(body)) {
+                if (!paragraph.Is(W, "p")) continue;
+                if (paragraph == target) return preceding;
+
+                string? style = paragraph.Child(W, "pPr").Child(W, "pStyle").Attribute(W, "val");
+                int level = document._ownedModel is { } model
+                    ? WordBuiltInStyleNames.GetHeadingLevel(model.Styles.GetBuiltInStyleId(style))
+                    : document.GetHeadingLevel(style);
+                if (level == headingLevel) preceding = paragraph;
             }
-
-            string? currentHeadingKey = null;
-            int paragraphIndex = 0;
-            foreach (Paragraph currentParagraph in body.Descendants<Paragraph>()) {
-                if (ReferenceEquals(currentParagraph, targetParagraph)) {
-                    return currentHeadingKey;
-                }
-
-                if (TryGetHeadingLevel(document, currentParagraph, out int currentLevel) && currentLevel == headingLevel) {
-                    currentHeadingKey = paragraphIndex.ToString(CultureInfo.InvariantCulture);
-                }
-
-                paragraphIndex++;
-            }
-
-            return null;
-        }
-
-        private static bool TryGetHeadingLevel(WordDocument document, Paragraph paragraph, out int level) {
-            level = document.GetHeadingLevel(paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
-            return level > 0;
+            return default;
         }
 
         private static string FormatSequenceValue(int value, IReadOnlyList<WordFieldFormat> formatSwitches) {

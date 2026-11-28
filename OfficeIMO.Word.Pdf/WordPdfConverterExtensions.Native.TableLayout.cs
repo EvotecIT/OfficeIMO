@@ -1,8 +1,8 @@
 using System.Globalization;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const double NativeAutoFitGridMinimumScale = 0.8D;
 
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 if (layout.ColumnWidths.Length > 0 &&
                     layout.ColumnWidths.All(width => width > 0) &&
-                    (!IsNativeTableAutoFitToContents(table._tableProperties) || HasNativeTableCellWidthPreferences(layout)) &&
+                    (!IsNativeTableAutoFitToContents(table.PropertiesNode()) || HasNativeTableCellWidthPreferences(layout)) &&
                     layout.ColumnWidths.Skip(1).Any(width => Math.Abs(width - layout.ColumnWidths[0]) > 0.01F)) {
                     style.ColumnWidthWeights = layout.ColumnWidths.Select(width => (double)width).ToList();
                 }
@@ -237,18 +237,18 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
-            W.TableProperties? properties = table._tableProperties;
+            OfficeXmlNode properties = table.PropertiesNode();
             if (ShouldUseNativeAutoFitTableLayout(properties, tableStyleDefaults)) {
                 style.AutoFitColumns = true;
             }
             style.ImportedColumnWidthFractions = CreateNativeColumnWidthFractions(layout);
 
-            double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing) ?? tableStyleDefaults.CellSpacing;
+            double? cellSpacing = GetNativeTableCellSpacing(properties.WChild("tblCellSpacing")) ?? tableStyleDefaults.CellSpacing;
             if (cellSpacing.HasValue) {
                 style.CellSpacing = global::OfficeIMO.OfficeLength.Points(cellSpacing.Value);
             }
 
-            double? preferredWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
+            double? preferredWidth = GetNativeTablePreferredWidth(properties.WChild("tblW"), contentWidth) ??
                 GetNativeTablePreferredWidth(tableStyleDefaults.PreferredWidth, contentWidth);
             if (preferredWidth.HasValue && !style.AutoFitColumns) {
                 style.MaxWidth = global::OfficeIMO.OfficeLength.Points(preferredWidth.Value);
@@ -262,10 +262,10 @@ namespace OfficeIMO.Word.Pdf {
                     // An automatic table's preferred width can grow to fit an
                     // unbreakable cell; it is not a clipping boundary.
                     style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(preferredWidth.Value);
-                    W.TableWidth? authoredWidth = properties?.TableWidth;
+                    OfficeXmlNode authoredWidth = properties.WChild("tblW");
                     if (!GetNativeTablePreferredWidth(authoredWidth, contentWidth).HasValue)
                         authoredWidth = tableStyleDefaults.PreferredWidth;
-                    if (style.AutoFitColumns && ResolveNativeTablePreferredWidthType(authoredWidth) == W.TableWidthUnitValues.Dxa) {
+                    if (style.AutoFitColumns && ResolveNativeTablePreferredWidthType(authoredWidth) == "dxa") {
                         style.AllowWidthBeyondFrame = true;
                         style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
                     }
@@ -297,7 +297,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int column = 0; column < style.ImportedColumnWidthFractions.Count; column++)
                     if (!style.ImportedColumnWidthFractions[column].HasValue)
                         style.AutoFitColumnPreferredWidthPoints[column] ??= Math.Max(.001D, layout.ColumnWidths[column]);
-                if (ResolveNativeTablePreferredWidthType(properties?.TableWidth) == W.TableWidthUnitValues.Auto) {
+                if (ResolveNativeTablePreferredWidthType(properties.WChild("tblW")) == "auto") {
                     style.PreferredWidth = null;
                     style.AutoFitUnspecifiedWidthToContent = true;
                     style.PreserveWidth = true;
@@ -307,9 +307,9 @@ namespace OfficeIMO.Word.Pdf {
 
             // tblInd applies only to left-aligned tables. A floating coordinate
             // remains a placement coordinate even in the column fallback path.
-            double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
+            double? leftIndent = GetNativeTableHorizontalPositionIndent(properties.WChild("tblpPr")) ??
                 (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == global::OfficeIMO.OfficeAlignment.Left
-                    ? GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent
+                    ? GetNativeTableLeftIndent(properties.WChild("tblInd")) ?? tableStyleDefaults.LeftIndent
                     : null);
             if (leftIndent.HasValue) {
                 style.LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent.Value);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static double? GetNativeAutoFitGridPreferredWidth(W.TableProperties? properties, TableLayout layout, double? contentWidth, double cellSpacing) {
+        private static double? GetNativeAutoFitGridPreferredWidth(OfficeXmlNode properties, TableLayout layout, double? contentWidth, double cellSpacing) {
             if (!IsNativeTableAutoFitToContents(properties) ||
                 layout.ColumnWidths.Length == 0 ||
                 !layout.ColumnWidths.All(width => width > 0F) ||
@@ -351,13 +351,13 @@ namespace OfficeIMO.Word.Pdf {
                 WordTableWidthNative.HasAbsoluteCellPreference(cell.Cell) ||
                 GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue);
 
-        private static bool ShouldUseNativeAutoFitTableLayout(W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
-            W.TableLayoutValues? effectiveLayout = properties?.TableLayout?.Type?.Value ?? tableStyleDefaults.Layout;
-            if (effectiveLayout == W.TableLayoutValues.Fixed) {
+        private static bool ShouldUseNativeAutoFitTableLayout(OfficeXmlNode properties, NativeTableStyleDefaults tableStyleDefaults) {
+            string? effectiveLayout = properties.WChild("tblLayout").WAttr("type") ?? tableStyleDefaults.Layout;
+            if (effectiveLayout == "fixed") {
                 return false;
             }
 
-            if (effectiveLayout == W.TableLayoutValues.Autofit) {
+            if (effectiveLayout == "autofit") {
                 return true;
             }
 
@@ -365,20 +365,20 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>
+        private static bool IsNativeTableAutoFitToContents(OfficeXmlNode properties) =>
             IsNativeTableAutoFitLayout(properties) &&
-            ResolveNativeTablePreferredWidthType(properties?.TableWidth) == W.TableWidthUnitValues.Auto;
+            ResolveNativeTablePreferredWidthType(properties.WChild("tblW")) == "auto";
 
-        private static bool IsNativeTableAutoFitLayout(W.TableProperties? properties) =>
-            properties?.TableLayout?.Type?.Value != W.TableLayoutValues.Fixed;
+        private static bool IsNativeTableAutoFitLayout(OfficeXmlNode properties) =>
+            properties.WChild("tblLayout").WAttr("type") != "fixed";
 
         /// <summary>Resolves omitted defaults and Word's zero, nil and percentage preferred-width rules.</summary>
-        private static W.TableWidthUnitValues? ResolveNativeTablePreferredWidthType(W.TableWidth? width) =>
-            WordTableWidthNative.ResolveType(width);
+        private static string? ResolveNativeTablePreferredWidthType(OfficeXmlNode width) =>
+            WordConverterNodes.ResolveTableWidthType(width);
 
-        private static double? GetNativeTablePreferredWidth(W.TableWidth? width, double? contentWidth) {
-            W.TableWidthUnitValues? type = ResolveNativeTablePreferredWidthType(width);
-            if (type == W.TableWidthUnitValues.Pct && width != null) {
+        private static double? GetNativeTablePreferredWidth(OfficeXmlNode width, double? contentWidth) {
+            string? type = ResolveNativeTablePreferredWidthType(width);
+            if (type == "pct" && width.Exists) {
                 double? percent = GetNativeTablePreferredWidthPercent(width);
                 if (!percent.HasValue || !contentWidth.HasValue || contentWidth.Value <= 0D) {
                     return null;
@@ -387,72 +387,74 @@ namespace OfficeIMO.Word.Pdf {
                 return contentWidth.Value * percent.Value;
             }
 
-            if (type != W.TableWidthUnitValues.Dxa || width == null) {
+            if (type != "dxa" || width.IsNone) {
                 return null;
             }
 
-            double? points = ConvertNativeTwipsToPoints(width.Width?.Value);
+            double? points = ConvertNativeTwipsToPoints(width.WAttr("w"));
             return points > 0D ? points : null;
         }
 
-        private static double? GetNativeTablePreferredWidthPercent(W.TableWidth width) {
-            return GetNativeTableWidthPercent(width.Width?.Value);
+        private static double? GetNativeTablePreferredWidthPercent(OfficeXmlNode width) {
+            return GetNativeTableWidthPercent(width.WAttr("w"));
         }
 
         private static double? GetNativeTableCellPreferredWidthPercent(WordTableCell cell) {
-            W.TableCellWidth? width = cell._tableCellProperties?.TableCellWidth;
-            if (WordTableWidthNative.ResolveCellType(width) != W.TableWidthUnitValues.Pct) {
+            OfficeXmlNode width = cell.PropertiesNode().WChild("tcW");
+            if (WordConverterNodes.ResolveTableCellWidthType(width) != "pct") {
                 return null;
             }
 
-            return GetNativeTableWidthPercent(width?.Width?.Value);
+            return GetNativeTableWidthPercent(width.WAttr("w"));
         }
 
         private static double? GetNativeTableWidthPercent(string? rawWidth) => WordTableWidthNative.Percentage(rawWidth);
 
-        private static double? GetNativeTableLeftIndent(W.TableIndentation? indentation) {
-            if (indentation?.Type?.Value != W.TableWidthUnitValues.Dxa || indentation.Width == null) {
+        private static double? GetNativeTableLeftIndent(OfficeXmlNode indentation) {
+            int? width = indentation.WInt32("w");
+            if (indentation.WAttr("type") != "dxa" || !width.HasValue) {
                 return null;
             }
 
-            return indentation.Width.Value / 20D;
+            return width.Value / 20D;
         }
 
-        private static double? GetNativeTableHorizontalPositionIndent(W.TablePositionProperties? position) {
-            if (position?.TablePositionX == null || position.TablePositionXAlignment?.Value != null) {
+        private static double? GetNativeTableHorizontalPositionIndent(OfficeXmlNode position) {
+            int? positionX = position.WInt32("tblpX");
+            if (!positionX.HasValue || position.WAttr("tblpXSpec") != null) {
                 return null;
             }
 
-            W.HorizontalAnchorValues? anchor = position.HorizontalAnchor?.Value;
-            if (anchor.HasValue &&
-                anchor.Value != W.HorizontalAnchorValues.Margin &&
-                anchor.Value != W.HorizontalAnchorValues.Text) {
+            string? anchor = position.WAttr("horzAnchor");
+            if (anchor != null &&
+                anchor != "margin" &&
+                anchor != "text") {
                 return null;
             }
 
-            double? indent = ConvertNativeTwipsToPoints(position.TablePositionX.Value);
+            double? indent = ConvertNativeTwipsToPoints(positionX.Value);
             return indent.HasValue && indent.Value >= 0D ? indent.Value : null;
         }
 
-        private static double? GetNativeTableCellSpacing(W.TableCellSpacing? spacing) {
+        private static double? GetNativeTableCellSpacing(OfficeXmlNode spacing) {
             // Word treats these explicit units as zero rather than falling
             // through to a positive spacing value from the table style.
-            if (spacing?.Type?.Value == W.TableWidthUnitValues.Auto ||
-                spacing?.Type?.Value == W.TableWidthUnitValues.Pct) return 0D;
-            if (spacing?.Type?.Value != W.TableWidthUnitValues.Dxa) {
+            string? type = spacing.WAttr("type");
+            if (type == "auto" || type == "pct") return 0D;
+            if (type != "dxa") {
                 return null;
             }
 
-            return ConvertNativeTwipsToPoints(spacing.Width?.Value);
+            return ConvertNativeTwipsToPoints(spacing.WAttr("w"));
         }
 
         /// <summary>An absolute spacing declaration selects separate border geometry even when its value is zero.</summary>
         private static bool UsesNativeSeparateTableCellBorders(WordTable table, PdfCore.PdfTableStyle style,
             NativeTableStyleDefaults defaults) {
             if (style.CellSpacing.ToPoints() > 0D) return true;
-            W.TableCellSpacing? spacing = table._tableProperties?.TableCellSpacing;
+            OfficeXmlNode spacing = table.PropertiesNode().WChild("tblCellSpacing");
             return GetNativeTableCellSpacing(spacing).HasValue
-                ? spacing!.Type?.Value == W.TableWidthUnitValues.Dxa
+                ? spacing.WAttr("type") == "dxa"
                 : defaults.SeparateCellBorders == true;
         }
 
@@ -468,19 +470,12 @@ namespace OfficeIMO.Word.Pdf {
             if (tableStyleDefaults.CellPadding != null) {
                 ApplyNativeResolvedTableCellPadding(style, tableStyleDefaults.CellPadding);
             }
-            W.TableCellMarginDefault? margins = table._tableProperties?.TableCellMarginDefault;
-            if (margins == null) {
+            OfficeXmlNode margins = table.PropertiesNode().WChild("tblCellMar");
+            if (margins.IsNone) {
                 return;
             }
 
-            double? top = ConvertNativeTwipsToPoints(margins.TopMargin?.Width?.Value);
-            double? bottom = ConvertNativeTwipsToPoints(margins.BottomMargin?.Width?.Value);
-            double? left = margins.TableCellLeftMargin?.Width == null
-                ? null
-                : ConvertNativeTwipsToPoints(margins.TableCellLeftMargin.Width.Value);
-            double? right = margins.TableCellRightMargin?.Width == null
-                ? null
-                : ConvertNativeTwipsToPoints(margins.TableCellRightMargin.Width.Value);
+            (double? top, double? bottom, double? left, double? right) = ReadNativeTableCellMarginDefault(margins);
 
             if (top.HasValue) {
                 style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(top.Value);
@@ -498,6 +493,22 @@ namespace OfficeIMO.Word.Pdf {
                 style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(right.Value);
             }
         }
+
+        /// <summary>
+        /// Reads a <c>w:tblCellMar</c>: the top and bottom widths, and the physical left and right widths, as points.
+        /// </summary>
+        private static (double? Top, double? Bottom, double? Left, double? Right) ReadNativeTableCellMarginDefault(OfficeXmlNode margins) {
+            OfficeXmlNode left = margins.WChild("left"), right = margins.WChild("right");
+            return (ConvertNativeTwipsToPoints(margins.WChild("top").WAttr("w")),
+                ConvertNativeTwipsToPoints(margins.WChild("bottom").WAttr("w")),
+                ParseNativeShortTwips(left.WAttr("w")),
+                ParseNativeShortTwips(right.WAttr("w")));
+        }
+
+        /// <summary>A short twips measurement (a <c>w:left</c>/<c>w:right</c> cell margin width) as points.</summary>
+        private static double? ParseNativeShortTwips(string? value) =>
+            short.TryParse(value?.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out short twips)
+                ? ConvertNativeTwipsToPoints(twips) : null;
 
         private static void ApplyNativeResolvedTableCellPadding(PdfCore.PdfTableStyle style, PdfCore.PdfCellPadding padding) {
             if (padding.Top.HasValue) {
@@ -595,8 +606,8 @@ namespace OfficeIMO.Word.Pdf {
             var heights = new List<double?>(table.Rows.Count);
             bool hasHeight = false;
             foreach (WordTableRow row in table.Rows) {
-                W.TableRowHeight? rowHeight = row._tableRow.TableRowProperties?.Elements<W.TableRowHeight>().FirstOrDefault();
-                bool isExact = rowHeight?.HeightType?.Value == W.HeightRuleValues.Exact;
+                OfficeXmlNode rowHeight = row.Node().WChild("trPr").WChild("trHeight");
+                bool isExact = rowHeight.WAttr("hRule") == "exact";
                 double? height = row.Height.HasValue && checked((int)(row.Height.Value.ToTwips())) > 0 && isExact == exact
                     ? ConvertNativeTwipsToPoints(checked((int)(row.Height.Value.ToTwips())))
                     : null;
@@ -627,35 +638,35 @@ namespace OfficeIMO.Word.Pdf {
             return height;
         }
 
-        private static global::OfficeIMO.OfficeAlignment MapNativeTableAlignment(W.TableRowAlignmentValues? alignment) {
-            if (alignment == W.TableRowAlignmentValues.Center) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeTableAlignment(string? alignment) {
+            if (alignment == "center") {
                 return global::OfficeIMO.OfficeAlignment.Center;
             }
 
-            if (alignment == W.TableRowAlignmentValues.Right) {
+            if (alignment == "right") {
                 return global::OfficeIMO.OfficeAlignment.Right;
             }
 
             return global::OfficeIMO.OfficeAlignment.Left;
         }
 
-        private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
-            ResolveNativeTablePositionAlignment(table._tableProperties?.TablePositionProperties) ??
-            WordTableAlignmentResolver.Read(table._tableProperties?.TableJustification, tableStyleDefaults.RightToLeft) ??
+        private static string? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
+            ResolveNativeTablePositionAlignment(table.PropertiesNode().WChild("tblpPr")) ??
+            WordConverterNodes.ReadTableAlignment(table.PropertiesNode().WChild("jc"), tableStyleDefaults.RightToLeft) ??
             tableStyleDefaults.Alignment;
 
-        private static W.TableRowAlignmentValues? ResolveNativeTablePositionAlignment(W.TablePositionProperties? position) {
-            W.HorizontalAlignmentValues? alignment = position?.TablePositionXAlignment?.Value;
-            if (alignment == W.HorizontalAlignmentValues.Center) {
-                return W.TableRowAlignmentValues.Center;
+        private static string? ResolveNativeTablePositionAlignment(OfficeXmlNode position) {
+            string? alignment = position.WAttr("tblpXSpec");
+            if (alignment == "center") {
+                return "center";
             }
 
-            if (alignment == W.HorizontalAlignmentValues.Right || alignment == W.HorizontalAlignmentValues.Outside) {
-                return W.TableRowAlignmentValues.Right;
+            if (alignment == "right" || alignment == "outside") {
+                return "right";
             }
 
-            if (alignment == W.HorizontalAlignmentValues.Left || alignment == W.HorizontalAlignmentValues.Inside) {
-                return W.TableRowAlignmentValues.Left;
+            if (alignment == "left" || alignment == "inside") {
+                return "left";
             }
 
             return null;

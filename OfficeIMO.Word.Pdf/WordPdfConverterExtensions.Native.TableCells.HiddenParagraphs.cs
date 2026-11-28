@@ -1,8 +1,8 @@
 using System.Globalization;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     private static int GetNativeJoinedCellParagraphEnd(IReadOnlyList<WordElement> elements, int index, ref int rejectedJoinUntil,
@@ -65,7 +65,7 @@ public static partial class WordPdfConverterExtensions {
         NativeTableStyleDefaults tableStyle) {
         NativeParagraphStyleDefaults style = GetNativeParagraphStyleDefaults(paragraph);
         if (!tableStyle.UseConfiguredTypography) return ResolveNativeParagraphLayoutFontSize(paragraph, defaults, style, tableStyle.RunStyle);
-        string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+        string? markSize = paragraph.Node().WChild("pPr").WChild("rPr").WChild("sz").WVal();
         return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
             ? halfPoints / 2D : style.FontSize ?? tableStyle.RunStyle.FontSize;
     }

@@ -1,5 +1,4 @@
 using PdfCore = OfficeIMO.Pdf;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
@@ -11,7 +10,7 @@ namespace OfficeIMO.Word.Pdf {
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
             double? indentStop = !IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D
                 ? textIndent : null;
-            W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
+            OfficeXmlNode levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStopsNode() ?? default;
             foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph, levelTabs)
                 .Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {

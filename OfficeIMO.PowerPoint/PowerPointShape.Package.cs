@@ -28,10 +28,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The part that holds the shape: its slide's part, or the layout, master or notes part it was read from.</summary>
         internal PowerPointPartRef OwnerPartRef {
             get {
-                if (TryGetPackageElement(out _, out _)) return OwnerSlide?.PartRef ?? PackagePart;
+                if (TryGetPackageElement(out _, out _)) return !PackagePart.IsNone ? PackagePart : OwnerSlide?.PartRef ?? default;
                 PowerPointPartRef current = PowerPointPartRef.FromSdk(OfficeSdkXml.PartOf(SdkElementObject));
                 return !current.IsNone ? current : PowerPointPartRef.FromSdk(SdkRelationshipOwnerPart ?? OwnerSlide?.SdkSlidePart);
             }
+        }
+
+        internal PowerPointShape AttachToPackageSlide(PowerPointSlide slide) {
+            OwnerSlide = slide;
+            return this;
         }
 
         /// <summary>The slide the shape is on, or none for a shape of a layout or master.</summary>

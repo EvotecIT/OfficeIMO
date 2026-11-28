@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.OpenXml {
         private ExcelPartRef(OpenXmlPart part) => _part = part;
 
         /// <summary>An SDK part, passed as <see cref="object"/> so callers name no SDK type.</summary>
-        internal static ExcelPartRef FromSdk(object? part) => part is OpenXmlPart sdk ? new ExcelPartRef(sdk) : default;
+        internal static ExcelPartRef FromSdk(object? part) => part is SpreadsheetDocument workbook ? FromSdk(workbook.WorkbookPart) : part is OpenXmlPart sdk ? new ExcelPartRef(sdk) : default;
 
         internal static ExcelPartRef None => default;
 
@@ -81,8 +81,10 @@ namespace OfficeIMO.Excel.OpenXml {
         internal Uri? Uri => _part?.Uri;
 
         internal string ContentType => _part?.ContentType ?? string.Empty;
-
-
+        internal string? RelationshipType => _part?.RelationshipType;
+        internal bool IsReadOnly => _part?.OpenXmlPackage.FileOpenAccess == FileAccess.Read;
+        internal bool ProcessesMarkupCompatibility => _part?.OpenXmlPackage.MarkupCompatibilityProcessSettings.ProcessMode != MarkupCompatibilityProcessMode.NoProcess;
+        internal bool IsRootLoaded => _part?.IsRootElementLoaded == true;
         internal ExcelPartKind Kind => _part switch {
             WorkbookPart => ExcelPartKind.Workbook,
             WorksheetPart => ExcelPartKind.Worksheet,
@@ -104,7 +106,6 @@ namespace OfficeIMO.Excel.OpenXml {
 
         /// <summary>The root element, read from the part on first use; none for a part without XML content.</summary>
         internal OfficeXmlNode Root => OfficeXmlNode.FromSdk(_part?.RootElement);
-
 
         /// <summary>Writes the root element back to the part.</summary>
         internal void SaveRoot() {
@@ -128,7 +129,6 @@ namespace OfficeIMO.Excel.OpenXml {
             stream.CopyTo(copy);
             return copy.ToArray();
         }
-
 
         /// <summary>Replaces the part's bytes.</summary>
         internal void Feed(byte[] data) {

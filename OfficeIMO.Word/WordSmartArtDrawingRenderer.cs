@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
@@ -364,15 +365,25 @@ internal static class WordSmartArtDrawingRenderer {
     private static bool TryGetSmartArtSize(WordSmartArt smartArt, out double width, out double height) {
         width = 0D;
         height = 0D;
-        DW.Extent? extent = smartArt._drawing.GetFirstChild<DW.Inline>()?.Extent
-            ?? smartArt._drawing.GetFirstChild<DW.Anchor>()?.Extent;
-        if (extent?.Cx?.Value is long cx && extent.Cy?.Value is long cy && cx > 0L && cy > 0L) {
+        OfficeXmlNode frame = smartArt._drawing.Child(OfficeXmlNamespaces.WordprocessingDrawing, "inline");
+        OfficeXmlNode extent = frame.IsNone ? default : frame.Child(OfficeXmlNamespaces.WordprocessingDrawing, "extent");
+        if (extent.IsNone) {
+            frame = smartArt._drawing.Child(OfficeXmlNamespaces.WordprocessingDrawing, "anchor");
+            extent = frame.IsNone ? default : frame.Child(OfficeXmlNamespaces.WordprocessingDrawing, "extent");
+        }
+        if (ReadInt64(extent, "cx") is long cx && ReadInt64(extent, "cy") is long cy && cx > 0L && cy > 0L) {
             width = Helpers.ConvertEmusToPoints(cx);
             height = Helpers.ConvertEmusToPoints(cy);
             return width > 0D && height > 0D;
         }
 
         return false;
+    }
+
+    // As the SDK's typed value reads it: null when absent, a FormatException when malformed.
+    private static long? ReadInt64(OfficeXmlNode element, string localName) {
+        string? value = element.IsNone ? null : element.Attribute(localName);
+        return value == null ? null : System.Xml.XmlConvert.ToInt64(value);
     }
 
     private static double Clamp(double value, double minimum, double maximum) =>

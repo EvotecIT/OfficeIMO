@@ -83,13 +83,5 @@ namespace OfficeIMO.Word {
             model.MarkChanged();
             return new OfficeXmlNode(tree, properties);
         }
-
-        /// <summary>
-        /// Copies a run property the paragraph just set to the runs of a page number field built from it, which only
-        /// the SDK path creates.
-        /// </summary>
-        private void SyncPageNumberFormatting(OfficeXmlNode properties, string localName) {
-            if (properties.IsSdk) SdkSyncPageNumberFormatting(properties.SdkElement!, localName);
-        }
     }
 }

@@ -1,3 +1,5 @@
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
@@ -990,6 +992,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
+            if (TryReadOwnedSectionParagraphs(out List<WordParagraph> owned)) return owned;
+            EnsureSdkSection();
             int targetSection = GetSectionOrdinal();
             var body = _document._document?.Body;
             if (body == null) {
@@ -1368,74 +1372,34 @@ namespace OfficeIMO.Word {
         /// On the other hand page size doesn't apply to other sections
         /// and word uses default values. 
         /// </summary>
-        /// <param name="sectionProperties"></param>
-        /// <param name="newSectionProperties"></param>
-        private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
-            bool canMoveInheritedSectionParts = newSectionProperties.ChildElements.Count == 0;
-            if (canMoveInheritedSectionParts || HasOnlySectionType(newSectionProperties)) {
-                var listSectionEntries = sectionProperties.ChildElements.ToList();
-                foreach (var element in listSectionEntries) {
-                    if (element is HeaderReference) {
-                        if (canMoveInheritedSectionParts) {
-                            newSectionProperties.Append(element.CloneNode(true));
-                            sectionProperties.RemoveChild(element);
-                        }
-                    } else if (element is FooterReference) {
-                        if (canMoveInheritedSectionParts) {
-                            newSectionProperties.Append(element.CloneNode(true));
-                            sectionProperties.RemoveChild(element);
-                        }
-                    } else if (element is PageSize) {
-                        AppendMissingSectionElement<PageSize>(newSectionProperties, element);
-                    } else if (element is PageMargin) {
-                        AppendMissingSectionElement<PageMargin>(newSectionProperties, element);
-                        //sectionProperties.RemoveChild(element);
-                        //} else if (element is Columns) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                        //} else if (element is DocGrid) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                        //} else if (element is SectionType) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                    } else if (element is FootnoteProperties footnoteProps) {
-                        if (canMoveInheritedSectionParts) {
-                            var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
-                            // The copy belongs to the preceding section; the new final section continues by default.
-                            newSectionProperties.AddChild(cloned, true);
-                            footnoteProps.RemoveAllChildren<NumberingRestart>();
-                        }
-                    } else if (element is EndnoteProperties endnoteProps) {
-                        if (canMoveInheritedSectionParts) {
-                            var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
-                            newSectionProperties.AddChild(cloned, true);
-                            endnoteProps.RemoveAllChildren<NumberingRestart>();
-                        }
-                    } else if (element is TitlePage) {
-                        if (canMoveInheritedSectionParts) {
-                            newSectionProperties.Append(element.CloneNode(true));
-                            sectionProperties.RemoveChild(element);
-                        }
-                    } else {
-                        if (canMoveInheritedSectionParts) {
-                            newSectionProperties.Append(element.CloneNode(true));
-                        }
-                        //throw new NotImplementedException("This isn't implemented yet?");
-                    }
+        private static void CopySectionProperties(OfficeXmlNode previous, OfficeXmlNode boundary) {
+            bool moveParts = boundary.FirstChild.IsNone;
+            if (!moveParts) {
+                foreach (OfficeXmlNode child in boundary.Children()) {
+                    if (!child.Is(SectionNamespace, "type")) return;
                 }
-                //sectionProperties.RemoveAllChildren();
-                //newSectionProperties.Append(listSectionEntries);
+            }
+
+            for (OfficeXmlNode child = previous.FirstChild; child.Exists;) {
+                OfficeXmlNode next = child.NextSibling;
+                if (child.NamespaceId == SectionNamespace) {
+                    string name = child.LocalName;
+                    if (name is "pgSz" or "pgMar") {
+                        if (boundary.Child(SectionNamespace, name).IsNone) boundary.Append(child.Clone());
+                    } else if (moveParts) {
+                        if (name is "footnotePr" or "endnotePr") {
+                            boundary.InsertOrdered(child.Clone(), WSectPrView.Order);
+                            child.RemoveChildren(SectionNamespace, "numRestart");
+                        } else {
+                            boundary.Append(child.Clone());
+                            if (name is "headerReference" or "footerReference" or "titlePg") child.Remove();
+                        }
+                    }
+                } else if (moveParts) {
+                    boundary.Append(child.Clone());
+                }
+                child = next;
             }
         }
-
-        private static bool HasOnlySectionType(SectionProperties sectionProperties) =>
-            sectionProperties.ChildElements.Count > 0 &&
-            sectionProperties.ChildElements.All(element => element is SectionType);
-
-        private static void AppendMissingSectionElement<TElement>(SectionProperties sectionProperties, OpenXmlElement source)
-            where TElement : OpenXmlElement {
-            if (!sectionProperties.Elements<TElement>().Any()) {
-                sectionProperties.Append(source.CloneNode(true));
-            }
-        }
-
     }
 }

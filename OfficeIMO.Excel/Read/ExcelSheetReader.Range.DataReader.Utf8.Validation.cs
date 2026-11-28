@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                         nodesUntilCancellationCheck = 1024;
                     }
                     IndexedXmlNamespaceStatus status = namespaces.Observe(reader);
-                    if (status == IndexedXmlNamespaceStatus.RequiresSdk) return false;
+                    if (status == IndexedXmlNamespaceStatus.NeedsGeneralProjection) return false;
                     if (status == IndexedXmlNamespaceStatus.UnexpectedNamespace)
                         ThrowUnexpectedIndexedElementNamespace(reader.LocalName);
                 }

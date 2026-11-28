@@ -1,14 +1,15 @@
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static bool HasNativeConditionalCellBorders(WordTable table, NativeTableStyleDefaults defaults) =>
-            (table.ConditionalFormattingFirstRow == true && defaults.FirstRowStyle.CellBorders?.HasChildren == true) ||
-            (table.ConditionalFormattingLastRow == true && defaults.LastRowStyle.CellBorders?.HasChildren == true) ||
-            (table.ConditionalFormattingFirstColumn == true && defaults.FirstColumnStyle.CellBorders?.HasChildren == true) ||
-            (table.ConditionalFormattingLastColumn == true && defaults.LastColumnStyle.CellBorders?.HasChildren == true) ||
-            (table.ConditionalFormattingNoHorizontalBand != true && (defaults.Band1HorizontalStyle.CellBorders?.HasChildren == true || defaults.Band2HorizontalStyle.CellBorders?.HasChildren == true)) ||
-            (table.ConditionalFormattingNoVerticalBand != true && (defaults.Band1VerticalStyle.CellBorders?.HasChildren == true || defaults.Band2VerticalStyle.CellBorders?.HasChildren == true));
+            (table.ConditionalFormattingFirstRow == true && defaults.FirstRowStyle.CellBorders.HasChildren()) ||
+            (table.ConditionalFormattingLastRow == true && defaults.LastRowStyle.CellBorders.HasChildren()) ||
+            (table.ConditionalFormattingFirstColumn == true && defaults.FirstColumnStyle.CellBorders.HasChildren()) ||
+            (table.ConditionalFormattingLastColumn == true && defaults.LastColumnStyle.CellBorders.HasChildren()) ||
+            (table.ConditionalFormattingNoHorizontalBand != true && (defaults.Band1HorizontalStyle.CellBorders.HasChildren() || defaults.Band2HorizontalStyle.CellBorders.HasChildren())) ||
+            (table.ConditionalFormattingNoVerticalBand != true && (defaults.Band1VerticalStyle.CellBorders.HasChildren() || defaults.Band2VerticalStyle.CellBorders.HasChildren()));
 
         /// <summary>Word cell borders take precedence over adjacent borders inherited from the table.</summary>
         private static void ReconcileNativeCellTableBorders(WordTable table, TableLayout layout,
@@ -55,8 +56,8 @@ namespace OfficeIMO.Word.Pdf {
                     value = edge == NativeBorderEdge.Top ? source.TopStyle : source.BottomStyle;
                 if (value.HasValue) return value == WordBorderStyle.Nil ? PdfCore.PdfCellBorderPriority.Nil : PdfCore.PdfCellBorderPriority.Cell;
                 var conditional = GetNativeConditionalCellBorderValue(table, layout, defaults, headerRows, columns, key, span, edge);
-                return conditional == DocumentFormat.OpenXml.Wordprocessing.BorderValues.Nil ? PdfCore.PdfCellBorderPriority.Nil
-                    : conditional.HasValue ? PdfCore.PdfCellBorderPriority.Cell : PdfCore.PdfCellBorderPriority.Table;
+                return conditional == "nil" ? PdfCore.PdfCellBorderPriority.Nil
+                    : conditional != null ? PdfCore.PdfCellBorderPriority.Cell : PdfCore.PdfCellBorderPriority.Table;
             }
 
             bool HasCellOverride((int Row, int Column) key, int span, NativeBorderEdge edge) {
@@ -69,7 +70,7 @@ namespace OfficeIMO.Word.Pdf {
                     };
                     if (value.HasValue) return true;
                 }
-                return GetNativeConditionalCellBorderValue(table, layout, defaults, headerRows, columns, key, span, edge).HasValue;
+                return GetNativeConditionalCellBorderValue(table, layout, defaults, headerRows, columns, key, span, edge) != null;
             }
         }
     }

@@ -46,6 +46,7 @@ namespace OfficeIMO.Excel {
 
                 if (reader.Depth == 0) {
                     _hasWorksheetRoot = SpreadsheetXmlContent.IsSpreadsheetElement(reader, "worksheet");
+                    if (!_hasWorksheetRoot) throw new InvalidDataException("The worksheet part has no worksheet root.");
                     _worksheetDepth = reader.Depth;
                     _inSheetData = false;
                     _inRow = false;

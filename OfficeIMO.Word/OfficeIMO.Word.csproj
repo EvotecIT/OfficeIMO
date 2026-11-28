@@ -62,6 +62,7 @@
         <EmbeddedResource Include="BuildingBlocks\*.xml" LogicalName="OfficeIMO.Word.BuildingBlocks.%(Filename).xml" />
         <EmbeddedResource Include="Parts\Defaults\*.xml" LogicalName="OfficeIMO.Word.Parts.Defaults.%(Filename).xml" />
         <EmbeddedResource Include="ListStyles\WordListStyles.xml" LogicalName="OfficeIMO.Word.ListStyles.WordListStyles.xml" />
+        <EmbeddedResource Include="SmartArt\Templates\*.xml" LogicalName="OfficeIMO.Word.SmartArt.Templates.%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>

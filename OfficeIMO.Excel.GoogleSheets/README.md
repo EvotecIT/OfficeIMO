@@ -91,7 +91,7 @@ preserve that measure nesting.
 - **External:** `System.Text.Json` plus platform HTTP/cryptography through `OfficeIMO.GoogleWorkspace`; no Google client SDK.
 - **OfficeIMO:** `OfficeIMO.Excel` and `OfficeIMO.GoogleWorkspace` own the workbook model, session, translation plan, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

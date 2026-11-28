@@ -293,7 +293,7 @@ namespace OfficeIMO.Word {
         internal WordList? _list;
         internal List<Run>? _runs;
         internal Hyperlink? _hyperlink;
-        internal SimpleField? _simpleField;
+
         private BookmarkStart? _bookmarkStartValue;
 
         internal BookmarkStart? _bookmarkStart {
@@ -311,7 +311,7 @@ namespace OfficeIMO.Word {
         private void ResolveOwnedToSdk() {
             OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? tree = _ownedTree;
             if (tree == null) return;
-            if (_document.IsDisposed && !ReferenceEquals(_document._ownedNodeTree, tree)) {
+            if (_document.IsDisposed && _document.FindSdkWordNodeMap(tree) == null) {
                 // A disposed document opens an SDK package over the copy it kept, as its paragraphs used to keep theirs.
                 if (!TryRebindToDisposedCopy()) throw new ObjectDisposedException(nameof(WordDocument));
                 _document.OpenSdkPackageAfterDispose();
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word {
                 _document.OpenSdkPackage(null);
             }
             int paragraphNode = _ownedParagraphNode, runNode = _ownedRunNode, bookmarkNode = _ownedBookmarkNode;
-            if (!ReferenceEquals(_document._ownedNodeTree, tree) || _document._ownedNodeElements is not { } elements) {
+            if (_document.FindSdkWordNodeMap(tree) is not { } elements) {
                 throw new InvalidOperationException("The paragraph is no longer part of the document.");
             }
             _ownedTree = null;
@@ -328,6 +328,7 @@ namespace OfficeIMO.Word {
                 ?? throw new InvalidOperationException("The paragraph is no longer part of the document.");
             _runValue = Element(elements, runNode) as Run;
             _bookmarkStartValue = Element(elements, bookmarkNode) as BookmarkStart;
+            if (_authoredField != null) UpdateAuthoredSdkField(_authoredField);
 
             static object? Element(object?[] elements, int node) =>
                 node >= 0 && node < elements.Length ? elements[node] : null;

@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const double NativeDefaultParagraphLineHeight = 1.15D;
         private const double NativeDefaultParagraphSpacingAfter = 0D;
@@ -226,7 +222,7 @@ namespace OfficeIMO.Word.Pdf {
                     keywords: BuildNativeKeywords(options, properties));
 
             Dictionary<WordParagraph, (int Level, int Index)> listIndices = WordDocumentTraversal.BuildListIndices(document);
-            Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
+            Dictionary<OfficeXmlNode, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             nativeDefaults = nativeDefaults with {
@@ -396,25 +392,26 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativeRenderedListStoryParagraph(WordDocument document, WordParagraph paragraph) {
-            if (IsNativeDescendantOf(paragraph._paragraph, document._wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+            OfficeXmlNode source = paragraph.Node();
+            if (IsNativeDescendantOf(source, document.BodyNode())) {
                 return true;
             }
 
             foreach (WordSection section in document.Sections) {
-                if (IsNativeDescendantOf(paragraph._paragraph, section.ResolveDefaultHeader()?._header) ||
-                    IsNativeDescendantOf(paragraph._paragraph, section.ResolveDefaultFooter()?._footer)) {
+                if (IsNativeDescendantOf(source, NativeStoryNode(section.ResolveDefaultHeader())) ||
+                    IsNativeDescendantOf(source, NativeStoryNode(section.ResolveDefaultFooter()))) {
                     return true;
                 }
 
                 if (section.PageSetup.DifferentFirstPage &&
-                    (IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstHeader()?._header) ||
-                     IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstFooter()?._footer))) {
+                    (IsNativeDescendantOf(source, NativeStoryNode(section.ResolveFirstHeader())) ||
+                     IsNativeDescendantOf(source, NativeStoryNode(section.ResolveFirstFooter())))) {
                     return true;
                 }
 
                 if (section.PageSetup.DifferentOddAndEvenPages &&
-                    (IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenHeader()?._header) ||
-                     IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenFooter()?._footer))) {
+                    (IsNativeDescendantOf(source, NativeStoryNode(section.ResolveEvenHeader())) ||
+                     IsNativeDescendantOf(source, NativeStoryNode(section.ResolveEvenFooter())))) {
                     return true;
                 }
             }
@@ -422,13 +419,15 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static bool IsNativeDescendantOf(DocumentFormat.OpenXml.OpenXmlElement element, DocumentFormat.OpenXml.OpenXmlElement? ancestor) {
-            if (ancestor == null) {
+        private static OfficeXmlNode NativeStoryNode(WordHeaderFooter? story) => story?.Node() ?? default;
+
+        private static bool IsNativeDescendantOf(OfficeXmlNode element, OfficeXmlNode ancestor) {
+            if (ancestor.IsNone) {
                 return false;
             }
 
-            for (DocumentFormat.OpenXml.OpenXmlElement? current = element.Parent; current != null; current = current.Parent) {
-                if (ReferenceEquals(current, ancestor)) {
+            for (OfficeXmlNode current = element.Parent; !current.IsNone; current = current.Parent) {
+                if (current == ancestor) {
                     return true;
                 }
             }
@@ -460,7 +459,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (current._sectionProperties?.GetFirstChild<W.PageNumberType>()?.Start?.HasValue == true) {
+            if (WordXml.ParseInt32(current.Node().WChild("pgNumType").WAttr("start")).HasValue) {
                 return false;
             }
 
@@ -487,12 +486,12 @@ namespace OfficeIMO.Word.Pdf {
         private static double? GetNativeSectionOutgoingSpacingAfter(IReadOnlyList<WordElement> elements,
             NativeSpacingCollapseFlow flow, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
             elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
-            sectionMark._paragraph != null && IsSectionMarkOnly(sectionMark._paragraph)
+            sectionMark.Node().Exists && IsSectionMarkOnly(sectionMark.Node())
                 ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
                 : flow.PendingSpacingAfter;
 
         private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
-            int? restart = section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0 ? start : null;
+            int? restart = WordXml.ParseInt32(section.Node().WChild("pgNumType").WAttr("start")) is int start && start > 0 ? start : null;
             // Facing pages keep odd numbers on right-hand pages, so Word adds a blank page
             // whenever the section's first number would land on the wrong side. Without
             // facing pages a restart only renumbers: odd and even starts move the number
@@ -525,14 +524,14 @@ namespace OfficeIMO.Word.Pdf {
             first.PageSetup.DifferentFirstPage == second.PageSetup.DifferentFirstPage &&
             (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(checked((uint)(first.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())))) &&
             (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(checked((uint)(first.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())))) &&
-            ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
-            ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
+            NativeStoryNode(first.ResolveDefaultHeader()) == NativeStoryNode(second.ResolveDefaultHeader()) &&
+            NativeStoryNode(first.ResolveDefaultFooter()) == NativeStoryNode(second.ResolveDefaultFooter()) &&
             (!first.PageSetup.DifferentFirstPage ||
-                (ReferenceEquals(first.ResolveFirstHeader()?._header, second.ResolveFirstHeader()?._header) &&
-                 ReferenceEquals(first.ResolveFirstFooter()?._footer, second.ResolveFirstFooter()?._footer))) &&
+                (NativeStoryNode(first.ResolveFirstHeader()) == NativeStoryNode(second.ResolveFirstHeader()) &&
+                 NativeStoryNode(first.ResolveFirstFooter()) == NativeStoryNode(second.ResolveFirstFooter()))) &&
             (!first.DocumentOddEvenSettingEnabled ||
-                (ReferenceEquals(first.ResolveEvenHeader()?._header, second.ResolveEvenHeader()?._header) &&
-                 ReferenceEquals(first.ResolveEvenFooter()?._footer, second.ResolveEvenFooter()?._footer)));
+                (NativeStoryNode(first.ResolveEvenHeader()) == NativeStoryNode(second.ResolveEvenHeader()) &&
+                 NativeStoryNode(first.ResolveEvenFooter()) == NativeStoryNode(second.ResolveEvenFooter())));
 
         private static bool HasNativeSectionStory(WordSection section, bool isFooter) => isFooter
             ? section.ResolveDefaultFooter() != null ||
@@ -543,22 +542,18 @@ namespace OfficeIMO.Word.Pdf {
                 (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null);
 
         private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>
-            NativeOpenXmlChildEquivalent<W.PageNumberType>(first, second);
+            NativeSectionChildEquivalent(first, second, "pgNumType");
 
-        private static bool NativeOpenXmlChildEquivalent<T>(WordSection first, WordSection second)
-            where T : DocumentFormat.OpenXml.OpenXmlElement =>
-            string.Equals(
-                first._sectionProperties?.GetFirstChild<T>()?.OuterXml,
-                second._sectionProperties?.GetFirstChild<T>()?.OuterXml,
-                StringComparison.Ordinal);
+        private static bool NativeSectionChildEquivalent(WordSection first, WordSection second, string localName) =>
+            first.Node().WChild(localName).OuterXml().SequenceEqual(second.Node().WChild(localName).OuterXml());
 
         private static IReadOnlyList<WordElement> CollapseNativeParagraphElements(IEnumerable<WordElement> elements) {
             var collapsed = new List<WordElement>();
-            var paragraphIndexes = new Dictionary<W.Paragraph, int>();
+            var paragraphIndexes = new Dictionary<OfficeXmlNode, int>();
 
             foreach (WordElement element in elements) {
-                if (element is WordParagraph paragraph && paragraph._paragraph != null) {
-                    if (paragraphIndexes.TryGetValue(paragraph._paragraph, out int existingIndex)) {
+                if (element is WordParagraph paragraph && paragraph.Node() is { Exists: true } source) {
+                    if (paragraphIndexes.TryGetValue(source, out int existingIndex)) {
                         if (ShouldReplaceNativeParagraphElement(collapsed[existingIndex], paragraph)) {
                             collapsed[existingIndex] = paragraph;
                         }
@@ -566,7 +561,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    paragraphIndexes.Add(paragraph._paragraph, collapsed.Count);
+                    paragraphIndexes.Add(source, collapsed.Count);
                 }
 
                 collapsed.Add(element);

@@ -1,11 +1,5 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
-using WP14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -56,7 +50,7 @@ public static partial class WordPdfConverterExtensions {
                 // Like a running-story picture, it paints in the story's in-front layer, ordered by z-order
                 // with every other drawing of the header or footer, whichever paragraph anchors it.
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(items, frame.ZOrder) };
-                anchored.AddItems(new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasAnchoredImageItem(box.Drawing!,
+                anchored.AddItems(new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasAnchoredImageItem(box.DrawingNode(),
                     new PdfCore.PdfCanvasBlock(items), frame.Width, frame.Height,
                     new PdfCore.PdfAnchoredImagePosition(frame.X, frame.Y, frame.MarginOrigin.HasValue, frame.MarginOrigin ?? 0D,
                         frame.ParagraphRelative), frame.Exclusion) });
@@ -131,7 +125,7 @@ public static partial class WordPdfConverterExtensions {
         NativeNoteNumbering notes, WordPdfExportOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap,
         double contentWidth) {
         var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(builder, pageSize), preserveInitialSpacingBefore: true);
-        var destinations = new Dictionary<W.Paragraph, string>();
+        var destinations = new Dictionary<OfficeXmlNode, string>();
         for (int index = 0; index < paragraphs.Count; index++) {
             options?.CancellationToken.ThrowIfCancellationRequested();
             RenderNativeElement(flow, paragraphs[index], section, getMarker, Array.Empty<int>(), notes, options,
@@ -151,15 +145,16 @@ public static partial class WordPdfConverterExtensions {
         boxes = new List<(WordTextBox, NativePlacedTextBoxFrame)>();
         own = new List<WordParagraph>();
         // A framed anchor paragraph is positioned by its own frame; keep the bounded flow for it.
-        if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0 ||
-            paragraph._paragraph.ParagraphProperties?.FrameProperties != null) return false;
+        OfficeXmlNode source = paragraph.Node();
+        if (paragraph._document.EquationOccurrences(source).Count > 0 ||
+            source.WChild("pPr").WChild("framePr").Exists) return false;
         // Boxes that must not overlap would need Word's repositioning; keep the bounded flow.
         if (defaults?.RunningStoryHasDisallowedTextBoxPeers == true) return false;
         foreach (WordParagraph run in runs) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                if (child is W.RunProperties) continue;
+                if (child.IsW("rPr")) continue;
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                 List<WordTextBox> childBoxes = view.GetTextBoxes().ToList();
                 if (childBoxes.Count > 0) {
@@ -185,32 +180,36 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryGetNativePlacedTextBoxFrame(WordTextBox box, WordSection section, WordPdfExportOptions? options,
         PdfCore.PdfPageSize page, out NativePlacedTextBoxFrame? frame) {
         frame = null;
-        var properties = box.DrawingShapeProperties;
+        OfficeXmlNode properties = box.ShapePropertiesNode();
+        OfficeXmlNode drawing = box.DrawingNode();
+        OfficeXmlNode content = box.ContentNode();
         // Nested boxes keep the bounded flow; a frame lays out ordinary paragraphs only.
-        if (box.Drawing == null || box.Content == null || box.Content.Descendants<W.TextBoxContent>().Any() ||
-            box.Content.Descendants<W.Table>().Any() ||
-            properties?.GetFirstChild<A.CustomGeometry>() != null ||
-            properties?.GetFirstChild<A.PresetGeometry>() is { } geometry &&
-                !string.Equals(geometry.Preset?.InnerText, "rect", StringComparison.Ordinal) ||
-            properties?.GetFirstChild<A.Transform2D>() is { } transform &&
-                (transform.Rotation?.Value is > 0 or < 0 || transform.HorizontalFlip?.Value == true || transform.VerticalFlip?.Value == true))
+        if (drawing.IsNone || content.IsNone || content.HasDescendant(WordXml.W, "txbxContent") ||
+            content.ModelDescendants("tbl").Any() ||
+            properties.Child(WordXml.A, "custGeom").Exists ||
+            properties.Child(WordXml.A, "prstGeom") is { Exists: true } geometry &&
+                !string.Equals(geometry.Attr("prst"), "rect", StringComparison.Ordinal) ||
+            properties.Child(WordXml.A, "xfrm") is { Exists: true } transform &&
+                (transform.Int32Attr("rot") is > 0 or < 0 || WordXml.ParseBoolean(transform.Attr("flipH")) == true ||
+                 WordXml.ParseBoolean(transform.Attr("flipV")) == true))
             return false;
-        if (!WordDrawingLayoutReader.TryRead(box.Drawing, out WordDrawingLayoutInfo layout) ||
+        if (!WordConverterNodes.TryReadDrawingLayout(drawing, out WordDrawingLayoutInfo layout) ||
             layout.Placement != WordDrawingPlacementKind.Anchored || layout.UsesSimplePosition) return false;
-        var body = box.DrawingTextBodyProperties;
-        if (body != null && (body.Rotation?.Value is > 0 or < 0 ||
-            body.Vertical?.Value is { } vertical && vertical != A.TextVerticalValues.Horizontal ||
-            body.ColumnCount?.Value is > 1)) return false;
+        OfficeXmlNode body = box.TextBodyPropertiesNode();
+        if (body.Exists && (body.Int32Attr("rot") is > 0 or < 0 ||
+            body.Attr("vert") is { } vertical && vertical != "horz" ||
+            body.Int32Attr("numCol") is > 1)) return false;
 
         string? horizontalReference = layout.HorizontalRelativeFrom == "column" ? "margin" : layout.HorizontalRelativeFrom;
         string? verticalReference = layout.VerticalRelativeFrom == "line" ? "paragraph" : layout.VerticalRelativeFrom;
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options, (0D, 0D));
         double width = layout.WidthPoints, height = layout.HeightPoints;
-        WP14.RelativeWidth? relativeWidth = box.Anchor?.GetFirstChild<WP14.RelativeWidth>();
-        WP14.RelativeHeight? relativeHeight = box.Anchor?.GetFirstChild<WP14.RelativeHeight>();
-        if (!TryGetNativeRunningRelativeExtent(relativeWidth?.PercentageWidth?.Text, relativeWidth?.ObjectId?.InnerText,
+        OfficeXmlNode anchor = box.AnchorNode();
+        OfficeXmlNode relativeWidth = anchor.IsNone ? default : anchor.Child(WordXml.Wp14, "sizeRelH");
+        OfficeXmlNode relativeHeight = anchor.IsNone ? default : anchor.Child(WordXml.Wp14, "sizeRelV");
+        if (!TryGetNativeRunningRelativeExtent(ChildTextOrNull(relativeWidth, "pctWidth"), relativeWidth.Attr("relativeFrom"),
                 page.Width.ToPoints(), margins.Left.ToPoints(), margins.Right.ToPoints(), ref width) ||
-            !TryGetNativeRunningRelativeExtent(relativeHeight?.PercentageHeight?.Text, relativeHeight?.RelativeFrom?.InnerText,
+            !TryGetNativeRunningRelativeExtent(ChildTextOrNull(relativeHeight, "pctHeight"), relativeHeight.Attr("relativeFrom"),
                 page.Height.ToPoints(), margins.Top.ToPoints(), margins.Bottom.ToPoints(), ref height) ||
             !(width > 0D) || !(height > 0D)) return false;
         if (!TryGetNativeGroupAxis(horizontalReference, layout.HorizontalOffsetPoints, layout.HorizontalAlignment,
@@ -218,12 +217,12 @@ public static partial class WordPdfConverterExtensions {
             !TryGetNativeGroupAxis(verticalReference, layout.VerticalOffsetPoints, layout.VerticalAlignment,
                 page.Height.ToPoints(), margins.Top.ToPoints(), margins.Bottom.ToPoints(), height, true, out double y)) return false;
 
-        if (box.Anchor is not DW.Anchor anchor || !TryReadNativePlacedTextBoxExclusion(anchor, out PdfCore.PdfImageTextExclusion? exclusion))
+        if (!anchor.Is(WordXml.Wp, "anchor") || !TryReadNativePlacedTextBoxExclusion(anchor, out PdfCore.PdfImageTextExclusion? exclusion))
             return false;
         if (exclusion != null) exclusion = AddNativeEffectExtentToExclusion(anchor, exclusion);
-        double Inset(Int32Value? value, int fallback) => (value?.Value ?? fallback) / 12700D;
-        double left = Inset(body?.LeftInset, 91440), right = Inset(body?.RightInset, 91440);
-        double top = Inset(body?.TopInset, 45720), bottom = Inset(body?.BottomInset, 45720);
+        double Inset(string name, int fallback) => (body.Int32Attr(name) ?? fallback) / 12700D;
+        double left = Inset("lIns", 91440), right = Inset("rIns", 91440);
+        double top = Inset("tIns", 45720), bottom = Inset("bIns", 45720);
         if (left < 0D || right < 0D || top < 0D || bottom < 0D) return false;
         var placed = new NativePlacedTextBoxFrame(x, y, width, height, left, top, right, bottom,
             ParagraphRelative: verticalReference == "paragraph",
@@ -241,11 +240,11 @@ public static partial class WordPdfConverterExtensions {
     /// frames, floating drawings and indents that leave no text width keep the bounded flow instead.
     /// </summary>
     private static bool CanLayOutNativePlacedTextBoxContent(WordTextBox box, double contentWidth) {
-        W.TextBoxContent content = box.Content!;
-        if (content.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column) ||
-            content.Descendants<W.FrameProperties>().Any() || content.Descendants<W.SectionProperties>().Any() ||
-            content.Descendants<DW.Anchor>().Any() || content.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any() ||
-            content.Descendants<DocumentFormat.OpenXml.Vml.Group>().Any()) return false;
+        OfficeXmlNode content = box.ContentNode();
+        if (content.DescendantElements(WordXml.W, "br").Any(IsNativeFlowBreak) ||
+            content.HasDescendant(WordXml.W, "framePr") || content.HasDescendant(WordXml.W, "sectPr") ||
+            content.HasDescendant(WordXml.Wp, "anchor") || content.HasDescendant(WordXml.V, "shape") ||
+            content.HasDescendant(WordXml.V, "group")) return false;
         foreach (WordParagraph inner in GetNativeTextBoxParagraphs(box)) {
             if (HasNativePageBreakBefore(inner)) return false;
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(inner);
@@ -258,20 +257,21 @@ public static partial class WordPdfConverterExtensions {
     }
 
     /// <summary>A text box is rectangular, so tight and through wrapping clear the same rectangle as square wrapping.</summary>
-    private static bool TryReadNativePlacedTextBoxExclusion(DW.Anchor anchor, out PdfCore.PdfImageTextExclusion? exclusion) {
+    private static bool TryReadNativePlacedTextBoxExclusion(OfficeXmlNode anchor, out PdfCore.PdfImageTextExclusion? exclusion) {
         exclusion = null;
-        if (anchor.GetFirstChild<DW.WrapTight>() == null && anchor.GetFirstChild<DW.WrapThrough>() == null)
+        OfficeXmlNode wrapping = anchor.Child(WordXml.Wp, "wrapTight");
+        if (wrapping.IsNone) wrapping = anchor.Child(WordXml.Wp, "wrapThrough");
+        if (wrapping.IsNone)
             return TryReadNativeAnchoredImageExclusion(anchor, out exclusion, out _);
-        OpenXmlElement wrapping = (OpenXmlElement?)anchor.GetFirstChild<DW.WrapTight>() ?? anchor.GetFirstChild<DW.WrapThrough>()!;
-        PdfCore.PdfImageTextWrapSide side = ReadNativeImageWrapAttribute(wrapping, "wrapText") switch {
+        PdfCore.PdfImageTextWrapSide side = wrapping.Attr("wrapText") switch {
             "left" => PdfCore.PdfImageTextWrapSide.Left,
             "right" => PdfCore.PdfImageTextWrapSide.Right,
             "largest" => PdfCore.PdfImageTextWrapSide.Largest,
             _ => PdfCore.PdfImageTextWrapSide.BothSides
         };
         exclusion = new PdfCore.PdfImageTextExclusion(PdfCore.PdfImageTextWrapKind.Square, side,
-            (anchor.DistanceFromLeft?.Value ?? 0U) / 12700D, (anchor.DistanceFromTop?.Value ?? 0U) / 12700D,
-            (anchor.DistanceFromRight?.Value ?? 0U) / 12700D, (anchor.DistanceFromBottom?.Value ?? 0U) / 12700D);
+            (WordXml.ParseUInt32(anchor.Attr("distL")) ?? 0U) / 12700D, (WordXml.ParseUInt32(anchor.Attr("distT")) ?? 0U) / 12700D,
+            (WordXml.ParseUInt32(anchor.Attr("distR")) ?? 0U) / 12700D, (WordXml.ParseUInt32(anchor.Attr("distB")) ?? 0U) / 12700D);
         return true;
     }
 
@@ -281,46 +281,58 @@ public static partial class WordPdfConverterExtensions {
     /// it is in front of the header text.
     /// </summary>
     private static bool CanPaintNativePlacedTextBox(WordTextBox box, NativePlacedTextBoxFrame frame) {
-        var properties = box.DrawingShapeProperties;
-        if (properties?.GetFirstChild<A.GradientFill>() != null || properties?.GetFirstChild<A.BlipFill>() != null ||
-            properties?.GetFirstChild<A.PatternFill>() != null || properties?.GetFirstChild<A.GroupFill>() != null ||
+        OfficeXmlNode properties = box.ShapePropertiesNode();
+        if (properties.Exists && (properties.Child(WordXml.A, "gradFill").Exists || properties.Child(WordXml.A, "blipFill").Exists ||
+            properties.Child(WordXml.A, "pattFill").Exists || properties.Child(WordXml.A, "grpFill").Exists) ||
             HasNativeUnsupportedRunningTextBoxPaint(properties)) return false;
         if (CreateNativePlacedTextBoxDecoration(box, frame) is { StrokeOpacity: { } opacity } && opacity != 1D) return false;
-        if (box.DrawingTextBodyProperties is { } body &&
-            (body.Anchor?.Value is { } anchor && anchor != A.TextAnchoringTypeValues.Top ||
-             body.GetFirstChild<A.PresetTextWarp>() is { } warp && warp.Preset?.Value != A.TextShapeValues.TextNoShape ||
-             body.GetFirstChild<A.Scene3DType>() != null || body.GetFirstChild<A.Shape3DType>() != null ||
-             body.GetFirstChild<A.NormalAutoFit>() != null)) return false;
+        if (box.TextBodyPropertiesNode() is { Exists: true } body &&
+            (body.Attr("anchor") is { } anchor && anchor != "t" ||
+             body.Child(WordXml.A, "prstTxWarp") is { Exists: true } warp && warp.Attr("prst") != "textNoShape" ||
+             body.Child(WordXml.A, "scene3d").Exists || body.Child(WordXml.A, "sp3d").Exists ||
+             body.Child(WordXml.A, "normAutofit").Exists)) return false;
         return true;
     }
 
     /// <summary>Leaves paint that the fixed canvas cannot reproduce on the explicitly approximated route.</summary>
-    private static bool HasNativeUnsupportedRunningTextBoxPaint(Wps.ShapeProperties? properties) {
-        if (properties == null) return false;
-        if (properties.GetFirstChild<A.EffectList>()?.HasChildren == true ||
-            properties.GetFirstChild<A.EffectDag>()?.HasChildren == true ||
-            properties.GetFirstChild<A.Scene3DType>() != null || properties.GetFirstChild<A.Shape3DType>() != null) return true;
-        Wps.ShapeStyle? reference = properties.Parent?.GetFirstChild<Wps.ShapeStyle>();
-        if (reference?.GetFirstChild<A.EffectReference>()?.Index?.Value is > 0U) return true;
+    private static bool HasNativeUnsupportedRunningTextBoxPaint(OfficeXmlNode properties) {
+        if (properties.IsNone) return false;
+        if (properties.Child(WordXml.A, "effectLst").HasChildren() ||
+            properties.Child(WordXml.A, "effectDag").HasChildren() ||
+            properties.Child(WordXml.A, "scene3d").Exists || properties.Child(WordXml.A, "sp3d").Exists) return true;
+        OfficeXmlNode parent = properties.Parent;
+        OfficeXmlNode reference = parent.IsNone ? default : parent.Child(WordXml.Wps, "style");
+        if (StyleReferenceIndex(reference, "effectRef") is > 0U) return true;
         // Direct fills override the theme fill. The style mapper resolves direct scheme colors,
         // but does not resolve the theme's fill/line style matrix.
-        if (properties.GetFirstChild<A.NoFill>() == null && properties.GetFirstChild<A.SolidFill>() == null &&
-            reference?.GetFirstChild<A.FillReference>()?.Index?.Value is > 0U) return true;
-        A.Outline? outline = properties.GetFirstChild<A.Outline>();
-        if (outline?.GetFirstChild<A.NoFill>() != null) return false;
-        if (reference?.GetFirstChild<A.LineReference>()?.Index?.Value is > 0U) return true;
-        if (outline == null) return false;
-        return outline.GetFirstChild<A.GradientFill>() != null || outline.GetFirstChild<A.PatternFill>() != null ||
-            outline.GetFirstChild<A.CustomDash>() != null ||
-            outline.GetFirstChild<A.PresetDash>()?.Val?.Value is { } dash && dash != A.PresetLineDashValues.Solid ||
-            outline.CompoundLineType?.Value is { } compound && compound != A.CompoundLineValues.Single ||
-            outline.Alignment?.Value is { } alignment && alignment != A.PenAlignmentValues.Center ||
-            outline.CapType?.Value is { } cap && cap != A.LineCapValues.Flat ||
-            outline.GetFirstChild<A.Round>() != null || outline.GetFirstChild<A.LineJoinBevel>() != null ||
-            outline.GetFirstChild<A.Miter>()?.Limit != null ||
-            outline.GetFirstChild<A.HeadEnd>()?.Type?.Value is { } head && head != A.LineEndValues.None ||
-            outline.GetFirstChild<A.TailEnd>()?.Type?.Value is { } tail && tail != A.LineEndValues.None;
+        if (properties.Child(WordXml.A, "noFill").IsNone && properties.Child(WordXml.A, "solidFill").IsNone &&
+            StyleReferenceIndex(reference, "fillRef") is > 0U) return true;
+        OfficeXmlNode outline = properties.Child(WordXml.A, "ln");
+        if (outline.Exists && outline.Child(WordXml.A, "noFill").Exists) return false;
+        if (StyleReferenceIndex(reference, "lnRef") is > 0U) return true;
+        if (outline.IsNone) return false;
+        return outline.Child(WordXml.A, "gradFill").Exists || outline.Child(WordXml.A, "pattFill").Exists ||
+            outline.Child(WordXml.A, "custDash").Exists ||
+            outline.Child(WordXml.A, "prstDash").Attr("val") is { } dash && dash != "solid" ||
+            outline.Attr("cmpd") is { } compound && compound != "sng" ||
+            outline.Attr("algn") is { } alignment && alignment != "ctr" ||
+            outline.Attr("cap") is { } cap && cap != "flat" ||
+            outline.Child(WordXml.A, "round").Exists || outline.Child(WordXml.A, "bevel").Exists ||
+            outline.Child(WordXml.A, "miter").Attr("lim") != null ||
+            outline.Child(WordXml.A, "headEnd").Attr("type") is { } head && head != "none" ||
+            outline.Child(WordXml.A, "tailEnd").Attr("type") is { } tail && tail != "none";
+
+        static uint? StyleReferenceIndex(OfficeXmlNode style, string name) =>
+            style.IsNone ? null : WordXml.ParseUInt32(style.Child(WordXml.A, name).Attr("idx"));
     }
+
+    /// <summary>The text of the first <c>wp14:</c> child with this name, or null when there is none.</summary>
+    private static string? ChildTextOrNull(OfficeXmlNode element, string localName) {
+        if (element.IsNone) return null;
+        OfficeXmlNode child = element.Child(WordXml.Wp14, localName);
+        return child.IsNone ? null : child.InnerText;
+    }
+
 
     private static bool TryGetNativeRunningRelativeExtent(string? percentage, string? reference,
         double pageLength, double leadingMargin, double trailingMargin, ref double extent) {
@@ -339,10 +351,11 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>The box's own fill and outline, painted under its text.</summary>
     private static OfficeShape? CreateNativePlacedTextBoxDecoration(WordTextBox box, NativePlacedTextBoxFrame frame) {
-        W.Run? sourceRun = box.Drawing?.Ancestors<W.Run>().FirstOrDefault();
-        W.Paragraph? sourceParagraph = sourceRun?.Ancestors<W.Paragraph>().FirstOrDefault();
-        if (sourceRun == null || sourceParagraph == null || box.Drawing == null) return null;
-        var wordShape = new WordShape(box.Document, sourceParagraph, sourceRun, box.Drawing);
+        OfficeXmlNode drawing = box.DrawingNode();
+        OfficeXmlNode sourceRun = drawing.Ancestor(WordXml.W, "r");
+        OfficeXmlNode sourceParagraph = sourceRun.Ancestor(WordXml.W, "p");
+        if (sourceRun.IsNone || sourceParagraph.IsNone || drawing.IsNone) return null;
+        var wordShape = WordConverterNodes.CreateShape(box.Document, sourceParagraph, sourceRun, drawing);
         var shape = OfficeShape.Rectangle(frame.Width, frame.Height);
         shape.FillColor = null; shape.StrokeColor = null; shape.StrokeWidth = 0D;
         ApplyNativeShapeStyle(shape, wordShape, GetNativeDrawingThemeColors(GetNativeShapeSourcePart(wordShape)));

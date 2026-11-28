@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         /// <summary>Projects source rows, styles and content once for both ordinary and contained table flow.</summary>
         private static PdfCore.TableBlock? BuildNativeTableBlock(WordTable table, Func<WordParagraph, (int Level, string Marker)?>? getMarker, NativeNoteNumbering? footnoteNumbersById, WordPdfExportOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, bool supportsPositionedTables, int tableNestingDepth = 0) {
@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
-            bool hasNestedTables = table._table.Descendants<W.Table>().Any();
+            bool hasNestedTables = table.Node().ModelDescendants("tbl").Any();
             bool preservesNestedTables = hasNestedTables &&
                 nativeDefaults.RunningContentContext == null &&
                 (tableNestingDepth > 0 || supportsPositionedTables || nativeDefaults.NoteContentSection != null) &&
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
             if (hasNestedTables && !preservesNestedTables && options != null)
                 AddNativeNestedTableLayoutWarning(options, "table");
             bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
-                table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
+                table.Node().WChild("tblPr"), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
                         options: options,
                         inlineImages: embeddedContent.InlineImages,
                         tableNestingDepth: tableNestingDepth,
-                        preserveNestedBlocks: preservesNestedTables && cell._tableCell.Elements<W.Table>().Any());
+                        preserveNestedBlocks: preservesNestedTables && cell.Node().Elements(WordXml.W, "tbl").Any());
                     int rowSpan = GetNativeCellRowSpan(cell);
                     nativeCells.Add(new PdfCore.PdfTableCell(
                         cellText.Runs,
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults,
                 layout,
                 nativeFontMap);
-            if (table._tableProperties?.TablePositionProperties is { } tablePosition) {
+            if (table.PropertiesNode().WChild("tblpPr") is { Exists: true } tablePosition) {
                 style.ConsumesVerticalFlow = false;
                 if (!supportsPositionedTables && options != null) {
                     AddNativeExportWarning(options,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 if (supportsPositionedTables) {
                     style.Position = CreateNativeTablePosition(tablePosition,
-                        table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
+                        table.PropertiesNode().ChildVal("tblOverlap") != "never");
                     // tblpX is a placement coordinate, not a width reservation.
                     style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
                 }

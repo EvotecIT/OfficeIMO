@@ -1,12 +1,11 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeParagraphPaginationDefaults(bool? KeepTogether, bool? KeepWithNext, bool? WidowControl) {
-            public NativeParagraphPaginationDefaults Merge(DocumentFormat.OpenXml.OpenXmlElement? properties) => new(
-                ReadNativeOnOff(properties?.GetFirstChild<W.KeepLines>()) ?? KeepTogether,
-                ReadNativeOnOff(properties?.GetFirstChild<W.KeepNext>()) ?? KeepWithNext,
-                ReadNativeOnOff(properties?.GetFirstChild<W.WidowControl>()) ?? WidowControl);
+            public NativeParagraphPaginationDefaults Merge(OfficeXmlNode properties) => new(
+                properties.WChild("keepLines").OnOff() ?? KeepTogether,
+                properties.WChild("keepNext").OnOff() ?? KeepWithNext,
+                properties.WChild("widowControl").OnOff() ?? WidowControl);
 
             public NativeParagraphPaginationDefaults Inherit(NativeParagraphPaginationDefaults inherited) => new(
                 KeepTogether ?? inherited.KeepTogether, KeepWithNext ?? inherited.KeepWithNext, WidowControl ?? inherited.WidowControl);
@@ -22,14 +21,14 @@ namespace OfficeIMO.Word.Pdf {
                 return new(false, false, false);
             }
 
-            W.ParagraphPropertiesBaseStyle? defaults = WordStyleCatalog.For(document).DocumentDefaults?
-                .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>();
+            OfficeXmlNode defaults = WordConverterNodes.DocumentDefaultsNode(document).WChild("pPrDefault").WChild("pPr");
             var inherited = new NativeParagraphPaginationDefaults(false, false, documentDefaults.ParagraphWidowControl).Merge(defaults);
             var resolved = new NativeParagraphPaginationDefaults(paragraphDefaults.KeepTogether, paragraphDefaults.KeepWithNext, paragraphDefaults.WidowControl)
                 .Inherit(tableDefaults.ParagraphPagination).Inherit(inherited);
-            return new(ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? resolved.KeepTogether,
-                ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? resolved.KeepWithNext,
-                ReadNativeDirectParagraphOnOff<W.WidowControl>(paragraph) ?? resolved.WidowControl);
+            OfficeXmlNode direct = paragraph.Node().WChild("pPr");
+            return new(direct.WChild("keepLines").OnOff() ?? resolved.KeepTogether,
+                direct.WChild("keepNext").OnOff() ?? resolved.KeepWithNext,
+                direct.WChild("widowControl").OnOff() ?? resolved.WidowControl);
         }
     }
 }

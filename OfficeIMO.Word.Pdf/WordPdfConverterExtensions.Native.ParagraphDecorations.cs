@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const double MaxNativeParagraphBorderSpacingPoints = 31D;
         // Word places side borders outside the text frame, including a 1.5-point gap.
@@ -180,11 +180,11 @@ namespace OfficeIMO.Word.Pdf {
             return (color, topSize / 8D);
         }
 
-        private static bool HasNativeBorder(W.BorderValues? style) =>
-            style != null && style != W.BorderValues.Nil && style != W.BorderValues.None;
+        private static bool HasNativeBorder(string? style) =>
+            style != null && style != "nil" && style != "none";
 
         private static bool HasNativeBorder(WordBorderStyle? style) =>
-            HasNativeBorder(style.ToOpenXml());
+            style.HasValue && HasNativeBorder(style.Value.ToOpenXmlToken());
 
         private static bool HasNativeParagraphBorder(NativeParagraphBorders borders) =>
             HasNativeBorder(borders.Top.Style) ||
@@ -235,21 +235,21 @@ namespace OfficeIMO.Word.Pdf {
 
         // A direct shading declaration, including an automatic fill, replaces the style fill.
         private static string? GetNativeEffectiveParagraphShadingFill(WordParagraph paragraph) =>
-            paragraph._paragraphProperties?.Shading is { } shading
-                ? NormalizeNativeShadingFill(shading.Fill?.Value)
+            paragraph.ParagraphPropertiesNode().WChild("shd") is { Exists: true } shading
+                ? NormalizeNativeShadingFill(shading.WAttr("fill"))
                 : GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
 
         private static NativeParagraphBorders GetNativeEffectiveParagraphBorders(WordParagraph paragraph) =>
             MergeNativeParagraphBorders(GetNativeParagraphStyleDefaults(paragraph).Borders, GetNativeDirectParagraphBorders(paragraph));
 
         private static NativeParagraphBorders GetNativeDirectParagraphBorders(WordParagraph paragraph) {
-            W.ParagraphBorders? borders = paragraph._paragraph?.ParagraphProperties?.ParagraphBorders;
+            OfficeXmlNode borders = paragraph.Node().WChild("pPr").WChild("pBdr");
             return new NativeParagraphBorders(
-                ReadNativeParagraphBorderSide(borders?.TopBorder) ?? default,
-                ReadNativeParagraphBorderSide(borders?.RightBorder) ?? default,
-                ReadNativeParagraphBorderSide(borders?.BottomBorder) ?? default,
-                ReadNativeParagraphBorderSide(borders?.LeftBorder) ?? default) {
-                Between = ReadNativeParagraphBorderSide(borders?.BetweenBorder) ?? default
+                ReadNativeParagraphBorderSide(borders.WChild("top")) ?? default,
+                ReadNativeParagraphBorderSide(borders.WChild("right")) ?? default,
+                ReadNativeParagraphBorderSide(borders.WChild("bottom")) ?? default,
+                ReadNativeParagraphBorderSide(borders.WChild("left")) ?? default) {
+                Between = ReadNativeParagraphBorderSide(borders.WChild("between")) ?? default
             };
         }
 

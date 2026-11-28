@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
@@ -738,7 +739,8 @@ public partial class Word {
         var secondWrapper = new Run(new Picture(middle));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("OrderNativeVmlCoverChildren", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var ordered = ((IEnumerable<OpenXmlElement>)method.Invoke(null, new object[] { new OpenXmlElement[] { firstWrapper, secondWrapper } })!).ToList();
+        var ordered = ((IEnumerable<OfficeXmlNode>)method.Invoke(null, new object[] { new[] { OfficeXmlNode.FromSdk(firstWrapper), OfficeXmlNode.FromSdk(secondWrapper) } })!)
+            .Select(node => (OpenXmlElement)node.SdkElement!).ToList();
 
         Assert.Equal(new[] { "low", "middle", "high" }, ordered.Select(element => element.GetAttribute("id", string.Empty).Value).ToArray());
     }
@@ -911,7 +913,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Applies_Default_White_Vml_Fill() {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeVmlShape", BindingFlags.NonPublic | BindingFlags.Static)!;
         object?[] arguments = {
-            new DocumentFormat.OpenXml.Vml.Rectangle(),
+            OfficeXmlNode.FromSdk(new DocumentFormat.OpenXml.Vml.Rectangle()),
             120D,
             60D,
             CreateNativeVmlFrame(120D, 60D),
@@ -929,9 +931,9 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_Vml_NoFill() {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeVmlShape", BindingFlags.NonPublic | BindingFlags.Static)!;
         object?[] arguments = {
-            new DocumentFormat.OpenXml.Vml.Rectangle {
+            OfficeXmlNode.FromSdk(new DocumentFormat.OpenXml.Vml.Rectangle {
                 FillColor = "none"
-            },
+            }),
             120D,
             60D,
             CreateNativeVmlFrame(120D, 60D),
@@ -951,9 +953,9 @@ public partial class Word {
         var stroke = new V.Stroke();
         stroke.SetAttribute(new OpenXmlAttribute("color", string.Empty, "none"));
         object?[] arguments = {
-            new V.Rectangle(stroke) {
+            OfficeXmlNode.FromSdk(new V.Rectangle(stroke) {
                 StrokeColor = "none"
-            },
+            }),
             120D,
             60D,
             CreateNativeVmlFrame(120D, 60D),
@@ -995,8 +997,8 @@ public partial class Word {
             FillColor = "#C1121F"
         };
 
-        Assert.False((bool)method.Invoke(null, new object[] { imageShape })!);
-        Assert.True((bool)method.Invoke(null, new object[] { plainShape })!);
+        Assert.False((bool)method.Invoke(null, new object[] { OfficeXmlNode.FromSdk(imageShape) })!);
+        Assert.True((bool)method.Invoke(null, new object[] { OfficeXmlNode.FromSdk(plainShape) })!);
     }
 
     [Fact]
@@ -1012,9 +1014,9 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Ignores_Unsafe_Vml_TextPath_FontSize() {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextPathFontSize", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        Assert.Null(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:1e309pt" } }));
-        Assert.Null(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:999999pt" } }));
-        Assert.Equal(24D, Assert.IsType<double>(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:24pt" } })));
+        Assert.Null(method.Invoke(null, new object[] { OfficeXmlNode.FromSdk(new V.TextPath { Style = "font-size:1e309pt" }) }));
+        Assert.Null(method.Invoke(null, new object[] { OfficeXmlNode.FromSdk(new V.TextPath { Style = "font-size:999999pt" }) }));
+        Assert.Equal(24D, Assert.IsType<double>(method.Invoke(null, new object[] { OfficeXmlNode.FromSdk(new V.TextPath { Style = "font-size:24pt" }) })));
     }
 
     [Fact]
@@ -1085,7 +1087,7 @@ public partial class Word {
         Paragraph textBoxParagraph = CreateNativeVmlTextBoxParagraph(paragraph);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, OfficeXmlNode.FromSdk(textBoxParagraph) })!;
 
         Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
         Assert.All(runs, run => {
@@ -1117,7 +1119,7 @@ public partial class Word {
 
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, OfficeXmlNode.FromSdk(textBoxParagraph) })!;
 
         PdfTextRun plain = Assert.Single(runs, run => run.Text == "Not underlined");
         Assert.False(plain.Underline);
@@ -1504,7 +1506,7 @@ public partial class Word {
                     new NumericPoint(new NumericValue("8")) { Index = 2U })));
 
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
-        IReadOnlyList<double> extracted = Assert.IsAssignableFrom<IReadOnlyList<double>>(method.Invoke(null, new object?[] { values }));
+        IReadOnlyList<double> extracted = Assert.IsAssignableFrom<IReadOnlyList<double>>(method.Invoke(null, new object?[] { OfficeXmlNode.FromSdk(values) }));
 
         Assert.Equal(3, extracted.Count);
         Assert.Equal(4D, extracted[0]);

@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -100,25 +98,25 @@ namespace OfficeIMO.Word {
         }
 
         private static void CreateInPlaceTargetRedlineDocument(WordDocument sourceDocument, WordDocument targetDocument, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
-            using var snapshot = new MemoryStream();
-            using (WordPackageSnapshot.Clone(targetDocument._wordprocessingDocument, snapshot)) { }
-            snapshot.Position = 0;
-            using WordDocument document = WordDocument.LoadPackageSnapshot(snapshot, targetDocument._wordprocessingDocument);
-            WordTable.CopyGridNormalizationState(targetDocument._wordprocessingDocument, document._wordprocessingDocument);
+            using WordDocument document = WordPackageView.CloneForRedline(targetDocument);
+            // Source elements are copied into the SDK output with the table grid state an SDK load gives them.
+            sourceDocument.OpenSdkPackage("Document comparison: in-place redline");
+            WordPackageView source = WordPackageView.For(sourceDocument);
+            WordPackageView target = WordPackageView.For(document);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
-                sourceDocument._wordprocessingDocument,
-                document._wordprocessingDocument,
+                source,
+                target,
                 result,
                 options,
                 out IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
                 out IReadOnlyList<RedlineParagraphEntry> targetParagraphs);
             ApplyRunFindings(sourceParagraphs, targetParagraphs, result, options, rewrittenParagraphs);
-            ApplyContentControlFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
-            ApplyImageFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyContentControlFindings(source, target, result, options);
+            ApplyImageFindings(source, target, result, options);
 
-            ApplyTableCellFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
-            ApplyTableRowFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
-            ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyTableCellFindings(source, target, result, options);
+            ApplyTableRowFindings(source, target, result, options);
+            ApplyTableFindings(source, target, result, options);
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
             document.Save(outputPath,
@@ -129,67 +127,56 @@ namespace OfficeIMO.Word {
             return !string.IsNullOrEmpty(finding.SourceText) || !string.IsNullOrEmpty(finding.TargetText);
         }
 
-        private static void RewriteParagraphWithTrackedText(Paragraph paragraph, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties && !ShouldPreserveParagraphRedlineChild(child)).ToList()) {
+        private static void RewriteParagraphWithTrackedText(OfficeXmlNode paragraph, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            foreach (OfficeXmlNode child in paragraph.Children().ToList().Where(child => !child.Is(W, "pPr") && !ShouldPreserveParagraphRedlineChild(child)).ToList()) {
                 child.Remove();
             }
 
-            OpenXmlElement? insertionPoint = paragraph.ChildElements.FirstOrDefault(child => child is not ParagraphProperties);
+            OfficeXmlNode insertionPoint = paragraph.Children().ToList().FirstOrDefault(child => !child.Is(W, "pPr"));
             if (!string.IsNullOrEmpty(sourceText)) {
-                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateDeletedRun(sourceText!, options));
+                paragraph.InsertBefore(CreateDeletedRun(paragraph, sourceText!, options), insertionPoint);
             }
 
             if (!string.IsNullOrEmpty(targetText)) {
-                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateInsertedRun(targetText!, options));
+                paragraph.InsertBefore(CreateInsertedRun(paragraph, targetText!, options), insertionPoint);
             }
         }
 
-        private static bool ShouldPreserveParagraphRedlineChild(OpenXmlElement child) {
-            if (child.Descendants<Text>().Any() || child.Descendants<DeletedText>().Any()) {
+        private static bool ShouldPreserveParagraphRedlineChild(OfficeXmlNode child) {
+            if (HasDescendant(child, W, "t") || HasDescendant(child, W, "delText")) {
                 return false;
             }
 
-            if (child is not Run run) {
+            if (!child.Is(W, "r")) {
                 return true;
             }
 
-            return run.ChildElements.Any(runChild => runChild is not RunProperties && runChild is not Text);
+            return child.Children().ToList().Any(runChild => !runChild.Is(W, "rPr") && !runChild.Is(W, "t"));
         }
 
-        private static void InsertParagraphRedlineRun(Paragraph paragraph, OpenXmlElement? insertionPoint, OpenXmlElement run) {
-            if (insertionPoint != null) {
-                paragraph.InsertBefore(run, insertionPoint);
-                return;
-            }
-
-            paragraph.Append(run);
-        }
-
-        private static void ApplyRunFinding(Paragraph paragraph, int runIndex, WordComparisonFinding finding, WordComparisonRedlineOptions options) {
-            List<Run> runs = paragraph.Descendants<Run>()
-                .Where(run => run.Ancestors<Paragraph>().FirstOrDefault() == paragraph)
-                .ToList();
+        private static void ApplyRunFinding(OfficeXmlNode paragraph, int runIndex, WordComparisonFinding finding, WordComparisonRedlineOptions options) {
+            List<OfficeXmlNode> runs = GetDirectParagraphRuns(paragraph);
             if (runs.Count == 0) {
                 RewriteParagraphWithTrackedText(paragraph, finding.SourceText, finding.TargetText, options);
                 return;
             }
 
             int boundedRunIndex = Math.Max(0, Math.Min(runIndex, runs.Count - 1));
-            Run targetRun = runs[boundedRunIndex];
-            OpenXmlElement parent = targetRun.Parent ?? paragraph;
+            OfficeXmlNode targetRun = runs[boundedRunIndex];
+            OfficeXmlNode parent = targetRun.Parent.IsNone ? paragraph : targetRun.Parent;
             bool insertTrailingDeletion = finding.ChangeKind == WordComparisonChangeKind.Deleted && runIndex >= runs.Count;
 
             if (finding.ChangeKind != WordComparisonChangeKind.Inserted && !string.IsNullOrEmpty(finding.SourceText)) {
-                OpenXmlElement deletedRun = CreateDeletedRun(finding.SourceText!, options);
+                OfficeXmlNode deletedRun = CreateDeletedRun(parent, finding.SourceText!, options);
                 if (insertTrailingDeletion) {
-                    parent.InsertAfter(deletedRun, targetRun);
+                    targetRun.InsertAfterSelf(deletedRun);
                 } else {
                     parent.InsertBefore(deletedRun, targetRun);
                 }
             }
 
             if (finding.ChangeKind != WordComparisonChangeKind.Deleted && !string.IsNullOrEmpty(finding.TargetText)) {
-                parent.InsertBefore(CreateInsertedRun(finding.TargetText!, options), targetRun);
+                parent.InsertBefore(CreateInsertedRun(parent, finding.TargetText!, options), targetRun);
             }
 
             if (finding.ChangeKind != WordComparisonChangeKind.Deleted) {
@@ -197,7 +184,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void ApplyTableCellFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyTableCellFindings(WordPackageView sourceDocument, WordPackageView targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
             List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
             HashSet<string> nestedTableParentCellKeys = GetNestedTableParentCellKeys(sourceTables, targetTables, result, options);
@@ -216,14 +203,14 @@ namespace OfficeIMO.Word {
                 switch (finding.ChangeKind) {
                     case WordComparisonChangeKind.Modified:
                     case WordComparisonChangeKind.Inserted:
-                        Table table = targetTables[tableIndex].Table;
-                        List<TableRow> rows = table.Elements<TableRow>().ToList();
+                        OfficeXmlNode table = targetTables[tableIndex].Table;
+                        List<OfficeXmlNode> rows = ChildrenW(table, "tr");
                         if (rowIndex >= rows.Count) {
                             continue;
                         }
 
-                        TableRow row = rows[rowIndex];
-                        List<TableCell> cells = row.Elements<TableCell>().ToList();
+                        OfficeXmlNode row = rows[rowIndex];
+                        List<OfficeXmlNode> cells = ChildrenW(row, "tc");
                         string cellKey = CreateTableCellKey(tableIndex, rowIndex, cellIndex);
                         if (rewrittenCells.Contains(cellKey) || nestedTableParentCellKeys.Contains(cellKey)) {
                             continue;
@@ -244,21 +231,21 @@ namespace OfficeIMO.Word {
                                 break;
                             }
 
-                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
+                            List<OfficeXmlNode> sourceRows = ChildrenW(sourceTable.Table, "tr");
                             if (rowIndex < 0 || rowIndex >= sourceRows.Count) {
                                 break;
                             }
 
-                            List<TableRow> targetRows = targetTable.Table.Elements<TableRow>().ToList();
+                            List<OfficeXmlNode> targetRows = ChildrenW(targetTable.Table, "tr");
                             int targetRowIndex = FindTargetRowIndexForDeletedCell(sourceRows[rowIndex], targetRows, rowIndex);
                             if (targetRowIndex < 0 || targetRowIndex >= targetRows.Count) {
                                 break;
                             }
 
-                            TableRow targetRow = targetRows[targetRowIndex];
-                            List<TableCell> targetCells = targetRow.Elements<TableCell>().ToList();
+                            OfficeXmlNode targetRow = targetRows[targetRowIndex];
+                            List<OfficeXmlNode> targetCells = ChildrenW(targetRow, "tc");
                             int targetCellIndex = cellIndex;
-                            List<TableCell> sourceCells = sourceRows[rowIndex].Elements<TableCell>().ToList();
+                            List<OfficeXmlNode> sourceCells = ChildrenW(sourceRows[rowIndex], "tc");
                             if (cellIndex >= 0 && cellIndex < sourceCells.Count) {
                                 targetCellIndex = FindTargetGapByNeighborIdentity(sourceCells, targetCells, cellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
                             }
@@ -268,7 +255,7 @@ namespace OfficeIMO.Word {
                                 break;
                             }
 
-                            TableCell? sourceCell = cellIndex >= 0 && cellIndex < sourceCells.Count ? sourceCells[cellIndex] : null;
+                            OfficeXmlNode sourceCell = cellIndex >= 0 && cellIndex < sourceCells.Count ? sourceCells[cellIndex] : default;
                             InsertDeletedCell(targetRow, targetCells, targetCellIndex, sourceCell, finding.SourceText!, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
                             rewrittenCells.Add(deletedCellKey);
@@ -292,12 +279,12 @@ namespace OfficeIMO.Word {
             RedlineTableEntry? textMatch = sourceTables
                 .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
                 .Where(table => {
-                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    List<OfficeXmlNode> rows = ChildrenW(table.Table, "tr");
                     if (rowIndex < 0 || rowIndex >= rows.Count) {
                         return false;
                     }
 
-                    List<TableCell> cells = rows[rowIndex].Elements<TableCell>().ToList();
+                    List<OfficeXmlNode> cells = ChildrenW(rows[rowIndex], "tc");
                     return cellIndex >= 0 &&
                         cellIndex < cells.Count &&
                         string.Equals(GetOpenXmlCellText(cells[cellIndex]), sourceCellText ?? string.Empty, StringComparison.Ordinal);
@@ -308,7 +295,7 @@ namespace OfficeIMO.Word {
             return textMatch ?? ordinalMatch;
         }
 
-        private static int FindTargetRowIndexForDeletedCell(TableRow sourceRow, IReadOnlyList<TableRow> targetRows, int sourceRowIndex) {
+        private static int FindTargetRowIndexForDeletedCell(OfficeXmlNode sourceRow, IReadOnlyList<OfficeXmlNode> targetRows, int sourceRowIndex) {
             if (targetRows.Count == 0) {
                 return -1;
             }
@@ -351,7 +338,7 @@ namespace OfficeIMO.Word {
             return cellKeys;
         }
 
-        private static void ApplyTableRowFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyTableRowFindings(WordPackageView sourceDocument, WordPackageView targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
             List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
             var rewrittenRows = new HashSet<string>(StringComparer.Ordinal);
@@ -374,7 +361,7 @@ namespace OfficeIMO.Word {
                 switch (finding.ChangeKind) {
                     case WordComparisonChangeKind.Inserted:
                         if (tableIndex < targetTables.Count) {
-                            List<TableRow> targetRows = targetTables[tableIndex].Table.Elements<TableRow>().ToList();
+                            List<OfficeXmlNode> targetRows = ChildrenW(targetTables[tableIndex].Table, "tr");
                             if (rowIndex >= 0 && rowIndex < targetRows.Count) {
                                 RewriteRowWithTrackedText(targetRows[rowIndex], trackInserted: true, options);
                                 rewrittenRows.Add(rowKey);
@@ -389,9 +376,9 @@ namespace OfficeIMO.Word {
                                 break;
                             }
 
-                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
+                            List<OfficeXmlNode> sourceRows = ChildrenW(sourceTable.Table, "tr");
                             if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
-                                List<TableRow> targetRows = targetTables[tableIndex].Table.Elements<TableRow>().ToList();
+                                List<OfficeXmlNode> targetRows = ChildrenW(targetTables[tableIndex].Table, "tr");
                                 int targetRowIndex = FindTargetGapByNeighborIdentity(sourceRows, targetRows, rowIndex, GetOpenXmlRowText, GetOpenXmlRowText);
                                 InsertDeletedRow(targetTables[tableIndex].Table, sourceRows[rowIndex], targetRowIndex, options);
                                 rewrittenRows.Add(rowKey);
@@ -415,7 +402,7 @@ namespace OfficeIMO.Word {
             RedlineTableEntry? textMatch = sourceTables
                 .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
                 .Where(table => {
-                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    List<OfficeXmlNode> rows = ChildrenW(table.Table, "tr");
                     return rowIndex >= 0 &&
                         rowIndex < rows.Count &&
                         string.Equals(GetOpenXmlRowText(rows[rowIndex]), sourceRowText ?? string.Empty, StringComparison.Ordinal);
@@ -426,7 +413,7 @@ namespace OfficeIMO.Word {
             return textMatch ?? ordinalMatch;
         }
 
-        private static double GetRedlineTableSimilarity(Table sourceTable, Table targetTable) {
+        private static double GetRedlineTableSimilarity(OfficeXmlNode sourceTable, OfficeXmlNode targetTable) {
             return GetTextSimilarity(GetOpenXmlTableText(sourceTable), GetOpenXmlTableText(targetTable));
         }
 
@@ -487,42 +474,42 @@ namespace OfficeIMO.Word {
             return -1;
         }
 
-        private static string GetOpenXmlTableText(Table table) {
-            return string.Join(TableRowSeparator, table.Elements<TableRow>().Select(GetOpenXmlRowText).ToArray());
+        private static string GetOpenXmlTableText(OfficeXmlNode table) {
+            return string.Join(TableRowSeparator, ChildrenW(table, "tr").Select(GetOpenXmlRowText).ToArray());
         }
 
-        private static string GetOpenXmlRowText(TableRow row) {
-            return string.Join(" | ", row.Elements<TableCell>().Select(GetOpenXmlCellText).ToArray());
+        private static string GetOpenXmlRowText(OfficeXmlNode row) {
+            return string.Join(" | ", ChildrenW(row, "tc").Select(GetOpenXmlCellText).ToArray());
         }
 
-        private static List<RedlineTableEntry> GetRedlineTableEntries(WordprocessingDocument document) {
+        private static List<RedlineTableEntry> GetRedlineTableEntries(WordPackageView document) {
             var entries = new List<RedlineTableEntry>();
-            MainDocumentPart? mainPart = document.MainDocumentPart;
-            AddRedlineTableEntries(entries, BodyPartKey, mainPart?.Document?.Body, BodyPartOrderBase);
+            WordPartView? mainPart = document.Main;
+            AddRedlineTableEntries(entries, BodyPartKey, BodyOf(mainPart), BodyPartOrderBase);
 
             if (mainPart == null) {
                 return entries;
             }
 
             int headerIndex = 0;
-            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                AddRedlineTableEntries(entries, headerPartKey.Value, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+            foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                AddRedlineTableEntries(entries, headerPartKey.Value, HeaderRoot(headerPartKey.Key), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                 headerIndex++;
             }
 
             int footerIndex = 0;
-            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                AddRedlineTableEntries(entries, footerPartKey.Value, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+            foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                AddRedlineTableEntries(entries, footerPartKey.Value, FooterRoot(footerPartKey.Key), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                 footerIndex++;
             }
 
-            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                 string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 AddRedlineTableEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
             }
 
-            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                 string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 AddRedlineTableEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
@@ -531,24 +518,25 @@ namespace OfficeIMO.Word {
             return entries;
         }
 
-        private static void AddRedlineTableEntries(List<RedlineTableEntry> entries, string partKey, OpenXmlCompositeElement? container, int orderBase) {
-            if (container == null) {
+        private static void AddRedlineTableEntries(List<RedlineTableEntry> entries, string partKey, OfficeXmlNode container, int orderBase) {
+            if (container.IsNone) {
                 return;
             }
 
             int localIndex = 0;
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is Table table) {
-                    entries.Add(new RedlineTableEntry(partKey, container, table, localIndex));
+                if (ordered.Element.Is(W, "tbl")) {
+                    entries.Add(new RedlineTableEntry(partKey, container, ordered.Element, localIndex));
                     localIndex++;
                 }
             }
         }
 
-        private static void RewriteCellWithTrackedText(TableCell cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            TableCellProperties? properties = cell.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
-            cell.RemoveAllChildren();
-            if (properties != null) {
+        private static void RewriteCellWithTrackedText(OfficeXmlNode cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode properties = cell.Child(W, "tcPr");
+            properties = properties.IsNone ? default : properties.Clone();
+            RemoveAllChildren(cell);
+            if (!properties.IsNone) {
                 cell.Append(properties);
             }
 
@@ -557,25 +545,25 @@ namespace OfficeIMO.Word {
             RemoveEmptyWordColorAttributes(cell);
         }
 
-        private static void InsertDeletedCell(TableRow row, IReadOnlyList<TableCell> existingCells, int cellIndex, TableCell? sourceCell, string sourceText, WordComparisonRedlineOptions options) {
-            var deletedCell = new TableCell();
-            TableCellProperties? properties = sourceCell?.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
-            if (properties != null) {
-                deletedCell.Append(properties);
+        private static void InsertDeletedCell(OfficeXmlNode row, IReadOnlyList<OfficeXmlNode> existingCells, int cellIndex, OfficeXmlNode sourceCell, string sourceText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode deletedCell = row.CreateElement(W, "tc");
+            OfficeXmlNode properties = sourceCell.IsNone ? default : sourceCell.Child(W, "tcPr");
+            if (!properties.IsNone) {
+                deletedCell.Append(properties.Clone());
             }
 
             AppendCellTrackedParagraphs(deletedCell, sourceText, null, options);
             EnsureCellHasParagraph(deletedCell);
 
             if (cellIndex >= 0 && cellIndex < existingCells.Count) {
-                existingCells[cellIndex].InsertBeforeSelf(deletedCell);
+                existingCells[cellIndex].Parent.InsertBefore(deletedCell, existingCells[cellIndex]);
             } else {
                 row.Append(deletedCell);
             }
         }
 
-        private static void RewriteRowWithTrackedText(TableRow row, bool trackInserted, WordComparisonRedlineOptions options) {
-            foreach (TableCell cell in row.Elements<TableCell>()) {
+        private static void RewriteRowWithTrackedText(OfficeXmlNode row, bool trackInserted, WordComparisonRedlineOptions options) {
+            foreach (OfficeXmlNode cell in ChildrenW(row, "tc")) {
                 string cellText = GetOpenXmlCellText(cell);
                 if (trackInserted) {
                     RewriteCellWithTrackedText(cell, null, cellText, options);
@@ -585,33 +573,33 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void InsertDeletedRow(Table targetTable, TableRow sourceRow, int rowIndex, WordComparisonRedlineOptions options) {
-            var deletedRow = (TableRow)sourceRow.CloneNode(true);
-            WordTable.CopyGridNormalizationState(sourceRow, deletedRow);
+        private static void InsertDeletedRow(OfficeXmlNode targetTable, OfficeXmlNode sourceRow, int rowIndex, WordComparisonRedlineOptions options) {
+            OfficeXmlNode deletedRow = sourceRow.Clone();
+            WordPackageView.CopyGridNormalizationState(sourceRow, deletedRow);
             RewriteRowWithTrackedText(deletedRow, trackInserted: false, options);
 
-            List<TableRow> targetRows = targetTable.Elements<TableRow>().ToList();
+            List<OfficeXmlNode> targetRows = ChildrenW(targetTable, "tr");
             if (rowIndex >= 0 && rowIndex < targetRows.Count) {
-                targetRows[rowIndex].InsertBeforeSelf(deletedRow);
+                targetRows[rowIndex].Parent.InsertBefore(deletedRow, targetRows[rowIndex]);
             } else {
                 targetTable.Append(deletedRow);
             }
         }
 
-        private static void AppendCellTrackedParagraphs(TableCell cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+        private static void AppendCellTrackedParagraphs(OfficeXmlNode cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
             string[] sourceParagraphs = SplitCellParagraphText(sourceText);
             string[] targetParagraphs = SplitCellParagraphText(targetText);
             int paragraphCount = Math.Max(sourceParagraphs.Length, targetParagraphs.Length);
             for (int index = 0; index < paragraphCount; index++) {
                 string? sourceParagraph = index < sourceParagraphs.Length ? sourceParagraphs[index] : null;
                 string? targetParagraph = index < targetParagraphs.Length ? targetParagraphs[index] : null;
-                var paragraph = new Paragraph();
+                OfficeXmlNode paragraph = cell.CreateElement(W, "p");
                 if (!string.IsNullOrEmpty(sourceParagraph)) {
-                    paragraph.Append(CreateDeletedRun(sourceParagraph!, options));
+                    paragraph.Append(CreateDeletedRun(paragraph, sourceParagraph!, options));
                 }
 
                 if (!string.IsNullOrEmpty(targetParagraph)) {
-                    paragraph.Append(CreateInsertedRun(targetParagraph!, options));
+                    paragraph.Append(CreateInsertedRun(paragraph, targetParagraph!, options));
                 }
 
                 cell.Append(paragraph);
@@ -626,18 +614,23 @@ namespace OfficeIMO.Word {
             return text!.Split(new[] { CellParagraphSeparator }, StringSplitOptions.None);
         }
 
-        private static string GetOpenXmlCellText(TableCell cell) {
+        private static string GetOpenXmlCellText(OfficeXmlNode cell) {
             return string.Join(
                 CellParagraphSeparator,
-                cell.Descendants<Paragraph>()
-                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell))
-                    .Select(paragraph => paragraph.InnerText)
+                CellParagraphs(cell)
+                    .Select(InnerText)
                     .ToArray());
         }
 
-        private static void EnsureCellHasParagraph(TableCell cell) {
-            if (!cell.Elements<Paragraph>().Any()) {
-                cell.Append(new Paragraph());
+        private static void EnsureCellHasParagraph(OfficeXmlNode cell) {
+            if (cell.Child(W, "p").IsNone) {
+                cell.Append(cell.CreateElement(W, "p"));
+            }
+        }
+
+        private static void RemoveAllChildren(OfficeXmlNode element) {
+            foreach (OfficeXmlNode child in element.Children().ToList()) {
+                child.Remove();
             }
         }
 
@@ -693,7 +686,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineTableEntry {
-            internal RedlineTableEntry(string partKey, OpenXmlCompositeElement container, Table table, int localIndex) {
+            internal RedlineTableEntry(string partKey, OfficeXmlNode container, OfficeXmlNode table, int localIndex) {
                 PartKey = partKey;
                 Container = container;
                 Table = table;
@@ -702,37 +695,50 @@ namespace OfficeIMO.Word {
 
             internal string PartKey { get; }
 
-            internal OpenXmlCompositeElement Container { get; }
+            internal OfficeXmlNode Container { get; }
 
-            internal Table Table { get; }
+            internal OfficeXmlNode Table { get; }
 
             internal int LocalIndex { get; }
         }
 
-        private static InsertedRun CreateInsertedRun(string text, WordComparisonRedlineOptions options) {
-            var run = new Run();
-            run.RsidRunAddition = WordHeadersAndFooters.GenerateRsid();
-            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-            var inserted = new InsertedRun {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+        /// <summary>A <c>w:ins</c> holding a run with the text, made for <paramref name="context"/> to hold.</summary>
+        private static OfficeXmlNode CreateInsertedRun(OfficeXmlNode context, string text, WordComparisonRedlineOptions options) {
+            OfficeXmlNode inserted = context.CreateElement(W, "ins");
+            OfficeXmlNode run = inserted.CreateElement(W, "r");
+            run.SetAttribute(W, "rsidR", WordHeadersAndFooters.GenerateRsid());
+            run.Append(CreateTextElement(run, "t", text));
+            SetRevisionAttributes(inserted, options.Author, options.DateTime ?? DateTime.Now);
             inserted.Append(run);
             return inserted;
         }
 
-        private static DeletedRun CreateDeletedRun(string text, WordComparisonRedlineOptions options) {
-            var run = new Run();
-            run.RsidRunDeletion = WordHeadersAndFooters.GenerateRsid();
-            run.Append(new DeletedText(text) { Space = SpaceProcessingModeValues.Preserve });
-            var deleted = new DeletedRun {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+        /// <summary>A <c>w:del</c> holding a run with the deleted text, made for <paramref name="context"/> to hold.</summary>
+        private static OfficeXmlNode CreateDeletedRun(OfficeXmlNode context, string text, WordComparisonRedlineOptions options) {
+            OfficeXmlNode deleted = context.CreateElement(W, "del");
+            OfficeXmlNode run = deleted.CreateElement(W, "r");
+            run.SetAttribute(W, "rsidDel", WordHeadersAndFooters.GenerateRsid());
+            run.Append(CreateTextElement(run, "delText", text));
+            SetRevisionAttributes(deleted, options.Author, options.DateTime ?? DateTime.Now);
             deleted.Append(run);
             return deleted;
+        }
+
+        private static OfficeXmlNode CreateTextElement(OfficeXmlNode run, string localName, string text) {
+            OfficeXmlNode element = run.CreateElement(W, localName);
+            element.SetAttribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Xml, "space", "preserve");
+            element.SetInnerText(text);
+            return element;
+        }
+
+        /// <summary>Sets the author, date and a new revision id of a tracked change, as its typed members did.</summary>
+        private static void SetRevisionAttributes(OfficeXmlNode revision, string? author, DateTime date) {
+            if (author != null) {
+                revision.SetAttribute(W, "author", author);
+            }
+
+            revision.SetAttribute(W, "date", WordPackageView.FormatDateTime(date));
+            revision.SetAttribute(W, "id", WordHeadersAndFooters.GenerateRevisionId());
         }
 
         private static void AppendRedlineSummary(WordDocument document, WordComparisonResult result) {

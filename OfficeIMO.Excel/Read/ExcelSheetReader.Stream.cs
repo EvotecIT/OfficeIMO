@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -178,8 +178,8 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData is null) yield break;
+            var sheetData = WorksheetRoot.Child(SpreadsheetXml, "sheetData");
+            if (sheetData.IsNone) yield break;
 
             if (!RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
                 foreach (var chunk in ReadUnsortedRows(sheetData, r1, c1, r2, c2, decided, ct)) {
@@ -191,14 +191,14 @@ namespace OfficeIMO.Excel {
 
             if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel) {
                 int currentWindow = -1;
-                var sequentialRows = new List<Row>();
+                var sequentialRows = new List<ReaderRow>();
 
-                foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
+                foreach (var row in EnumerateRowsWithCoordinates(sheetData, ct)) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int rIdx = checked((int)row.RowIndex!.Value);
+                    int rIdx = row.Index;
                     if (rIdx < r1) continue;
                     if (rIdx > r2) break;
 
@@ -222,21 +222,21 @@ namespace OfficeIMO.Excel {
             int maxPendingChunks = dop;
             var pending = new Dictionary<int, Task<RangeChunk>>(maxPendingChunks);
             int activeWindow = -1;
-            List<Row> bufferRows = new();
+            List<ReaderRow> bufferRows = new();
 
-            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData, ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rIdx = checked((int)row.RowIndex!.Value);
+                int rIdx = row.Index;
                 if (rIdx < r1) continue;
                 if (rIdx > r2) break;
 
                 int window = GetWindowIndex(rIdx);
                 if (activeWindow >= 0 && window != activeWindow) {
                     ScheduleChunk(bufferRows, activeWindow, r1, c1, r2, c2);
-                    bufferRows = new List<Row>();
+                    bufferRows = new List<ReaderRow>();
 
                     while (pending.Count >= maxPendingChunks) {
                         yield return CompleteChunk(nextToYield++);
@@ -255,7 +255,7 @@ namespace OfficeIMO.Excel {
                 yield return CompleteChunk(nextToYield++);
             }
 
-            void ScheduleChunk(List<Row> rows, int windowIndex, int rr1, int cc1, int rr2, int cc2) {
+            void ScheduleChunk(List<ReaderRow> rows, int windowIndex, int rr1, int cc1, int rr2, int cc2) {
                 var snapshot = rows.ToArray();
                 int scheduledIndex = chunkIndex++;
                 pending.Add(scheduledIndex, Task.Run(() => ConvertChunk(snapshot, windowIndex, rr1, cc1, rr2, cc2, ct), ct));
@@ -274,7 +274,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            RangeChunk ConvertChunk(IReadOnlyList<Row> rows, int index, int rr1, int cc1, int rr2, int cc2, CancellationToken token) {
+            RangeChunk ConvertChunk(IReadOnlyList<ReaderRow> rows, int index, int rr1, int cc1, int rr2, int cc2, CancellationToken token) {
                 bool chunkCanCancel = token.CanBeCanceled;
                 if (chunkCanCancel) {
                     token.ThrowIfCancellationRequested();
@@ -295,13 +295,13 @@ namespace OfficeIMO.Excel {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int rowIndex = checked((int)rowEl.RowIndex!.Value);
+                    int rowIndex = rowEl.Index;
                     int rowOffset = rowIndex - startRow;
                     if ((uint)rowOffset >= (uint)height) continue;
 
                     int nextDomColumnIndex = 1;
-                    foreach (var cell in rowEl.Elements<Cell>()) {
-                        int c = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    foreach (var cell in rowEl.Cells()) {
+                        int c = cell.GetColumnIndex(ref nextDomColumnIndex);
                         if (c < cc1 || c > cc2) continue;
                         if (TryConvertCell(cell, out object? value)) {
                             outRows[rowOffset][c - cc1] = value ?? outRows[rowOffset][c - cc1];
@@ -342,22 +342,22 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            IEnumerable<RangeChunk> ReadBufferedRows(IEnumerable<Row> sourceRows, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExcelExecutionMode executionMode, CancellationToken token) {
+            IEnumerable<RangeChunk> ReadBufferedRows(IEnumerable<ReaderRow> sourceRows, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExcelExecutionMode executionMode, CancellationToken token) {
                 int windowCount = GetWindowIndex(rr2) + 1;
-                var windows = new List<Row>?[windowCount];
+                var windows = new List<ReaderRow>?[windowCount];
 
                 foreach (var row in sourceRows) {
                     if (canCancel) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int rowIndex = checked((int)row.RowIndex!.Value);
+                    int rowIndex = row.Index;
                     if (rowIndex < rr1) continue;
                     if (rowIndex > rr2) continue;
 
                     int window = GetWindowIndex(rowIndex);
                     if ((uint)window >= (uint)windows.Length) continue;
-                    windows[window] ??= new List<Row>();
+                    windows[window] ??= new List<ReaderRow>();
                     windows[window]!.Add(row);
                 }
 
@@ -382,7 +382,7 @@ namespace OfficeIMO.Excel {
                     if (rows == null) continue;
 
                     int scheduledIndex = bufferedScheduleIndex++;
-                    Row[] snapshot = rows.ToArray();
+                    ReaderRow[] snapshot = rows.ToArray();
                     int windowIndex = i;
                     bufferedPending.Add(scheduledIndex, Task.Run(() => ConvertChunk(snapshot, windowIndex, rr1, cc1, rr2, cc2, token), token));
 
@@ -409,20 +409,20 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            IEnumerable<RangeChunk> ReadUnsortedRows(SheetData data, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExcelExecutionMode executionMode, CancellationToken token) {
-                var windows = new SortedDictionary<int, List<Row>>();
-                foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
+            IEnumerable<RangeChunk> ReadUnsortedRows(OfficeXmlNode data, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExcelExecutionMode executionMode, CancellationToken token) {
+                var windows = new SortedDictionary<int, List<ReaderRow>>();
+                foreach (var row in EnumerateRowsWithCoordinates(data, token)) {
                     if (canCancel) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int rowIndex = checked((int)row.RowIndex!.Value);
+                    int rowIndex = row.Index;
                     if (rowIndex < rr1) continue;
                     if (rowIndex > rr2) continue;
 
                     int window = GetWindowIndex(rowIndex);
                     if (!windows.TryGetValue(window, out var windowRows)) {
-                        windowRows = new List<Row>();
+                        windowRows = new List<ReaderRow>();
                         windows[window] = windowRows;
                     }
 
@@ -444,7 +444,7 @@ namespace OfficeIMO.Excel {
 
                 foreach (var window in windows) {
                     int scheduledIndex = unsortedScheduleIndex++;
-                    Row[] snapshot = window.Value.ToArray();
+                    ReaderRow[] snapshot = window.Value.ToArray();
                     int windowIndex = window.Key;
                     unsortedPending.Add(scheduledIndex, Task.Run(() => ConvertChunk(snapshot, windowIndex, rr1, cc1, rr2, cc2, token), token));
 

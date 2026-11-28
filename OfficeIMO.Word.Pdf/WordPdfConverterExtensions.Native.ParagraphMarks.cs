@@ -1,4 +1,3 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -23,12 +22,7 @@ namespace OfficeIMO.Word.Pdf {
             // Resolve a detached view of the mark through the ordinary typography
             // owner. The first text run may be empty, hidden or differently styled;
             // it cannot supply the paragraph mark's font, size or emphasis.
-            var properties = new W.RunProperties();
-            W.ParagraphMarkRunProperties? mark = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties;
-            if (mark != null) {
-                foreach (var property in mark.ChildElements) properties.Append(property.CloneNode(true));
-            }
-            var markView = new WordParagraph(paragraph._document, paragraph._paragraph, new W.Run(properties));
+            WordParagraph markView = paragraph.ParagraphMarkRunView();
             PdfCore.PdfTextRun strut = CreateNativeCellTextRun(string.Empty, markView,
                 tableStyleDefaults, nativeDefaults, nativeFontMap);
             strut.IsLineBoxStrut = true;
