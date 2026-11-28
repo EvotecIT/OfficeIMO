@@ -139,6 +139,19 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         return output.ToArray();
     }
 
+    /// <summary>Opens the current content for incremental reads without inflating a stored member in advance.</summary>
+    internal Stream OpenPartContentStream(string partName, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        if (part.Tree is { IsChanged: true }) return new MemoryStream(ReadPartBytes(partName), writable: false);
+        if (part.Content != null) return new MemoryStream(part.Content, 0, part.ContentLength, writable: false);
+        if (part.FromSource) return _zip!.OpenMemberStream(part.Member, cancellationToken);
+        return new MemoryStream(ReadPartBytes(partName), writable: false);
+    }
+
+    /// <summary>The package spelling of this part name, or null when the part is absent.</summary>
+    internal string? GetPartName(string partName) => Find(partName)?.Name;
+
     /// <summary>Adds a part with binary content, such as an image.</summary>
     internal void CreateBinaryPart(string partName, string? contentType, byte[] content) {
         Part part = AddPart(partName, contentType);

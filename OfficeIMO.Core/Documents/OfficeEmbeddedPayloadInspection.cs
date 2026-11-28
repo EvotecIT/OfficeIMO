@@ -71,7 +71,7 @@ public sealed class OfficeEmbeddedPayloadInspection : IDisposable {
     }
 
     private void ReadPayload(int ordinal, Stream? output, HashAlgorithm? hash, CancellationToken token) {
-        _sources[ordinal].ExecuteRead(() => ReadPayloadCore(ordinal, output, hash, token));
+        _sources[ordinal].ExecuteRead(() => ReadPayloadCore(ordinal, output, hash, token), token);
     }
 
     private void ReadPayloadCore(int ordinal, Stream? output, HashAlgorithm? hash, CancellationToken token) {

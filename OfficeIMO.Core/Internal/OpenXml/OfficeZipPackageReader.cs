@@ -89,6 +89,55 @@ internal sealed class OfficeZipPackageReader : IDisposable {
         return true;
     }
 
+    /// <summary>Opens a member for incremental reads, so callers can enforce their own decoded-byte budget.</summary>
+    internal Stream OpenMemberStream(string name, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_entries.TryGetValue(name, out int index))
+            throw new InvalidDataException("The package has no member '" + name + "'.");
+        OfficeArchiveSafety.ZipCentralDirectoryRecord record = _records[index];
+        long payload = OfficeArchiveSafety.ValidateEntryPayload(_source, record);
+        Stream compressed = _buffer != null
+            ? new MemoryStream(_buffer, checked(_bufferOrigin + (int)payload), checked((int)record.CompressedSize), writable: false)
+            : new SeekableReadWindowStream(_source, payload, record.CompressedSize, preserveSourcePosition: true, cancellationToken);
+        return record.CompressionMethod == 0 ? compressed : new DecodedMemberStream(compressed, record.UncompressedSize);
+    }
+
+    // The packaging reader exposes at most the declared decoded size. Stop at that boundary without
+    // decompressing the rest of a member when a consumer reaches its own budget first.
+    private sealed class DecodedMemberStream(Stream compressed, long length) : Stream {
+        private readonly DeflateStream _decoder = new(compressed, CompressionMode.Decompress);
+        private long _remaining = length;
+
+        public override bool CanRead => _decoder.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ArgumentNullException.ThrowIfNull(buffer);
+            if (offset < 0 || count < 0 || offset > buffer.Length - count)
+                throw new ArgumentOutOfRangeException(nameof(count));
+            if (_remaining == 0) return 0;
+            int read = _decoder.Read(buffer, offset, (int)Math.Min(count, _remaining));
+            _remaining -= read;
+            return read;
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _decoder.Dispose();
+            base.Dispose(disposing);
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
     /// <summary>The name of the member at a central-directory position.</summary>
     internal string GetName(int index) => DecodeName(_records[index].NameBytes);
 

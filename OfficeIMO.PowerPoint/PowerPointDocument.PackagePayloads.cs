@@ -7,6 +7,9 @@ public sealed partial class PowerPointDocument {
     /// <summary>Gets inert embedded package, OLE and ActiveX descriptors from the loaded presentation.</summary>
     public IReadOnlyList<OfficeEmbeddedPayloadInfo> GetEmbeddedPayloads(bool includeSha256 = false) {
         ThrowIfDisposed();
+        if (GetPackagePayloads(default) is { } payloads) {
+            return payloads.Select(info => ReadPackagePayloadInfo(info, includeSha256)).ToArray();
+        }
         return OfficeOpenXmlPackagePayload.FindEmbeddedPayloads(OpenXmlDocument)
             .Select(handle => OfficeOpenXmlPackagePayload.CreateInfo(handle, includeSha256)).ToArray();
     }
