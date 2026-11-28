@@ -40,6 +40,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void Xlsb_DirectTabularSave_BoundsSharedStringMaterialization(bool openSdk, bool existingDestination) {
+            const int limit = 16 * 1024;
+            var options = new ExcelSaveOptions {
+                Format = ExcelFileFormat.Xlsb,
+                XlsbUseSharedStrings = true,
+                MaxInMemoryPackageBytes = limit,
+            };
+            string text = new string('A', 32_767);
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            for (int row = 1; row <= 192; row++) sheet.Cell(row, 1).SetValue(text);
+            if (openSdk) document.OpenDeferredSdk("Test the standard native tabular writer");
+
+            using var destination = new MemoryStream();
+            byte[] marker = existingDestination ? new byte[] { 1, 2, 3 } : Array.Empty<byte>();
+            destination.Write(marker, 0, marker.Length);
+
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.Save(destination, options));
+            Assert.True(OfficeIMO.Core.Internal.OfficeOutputLimit.Is(error));
+            Assert.Equal(marker, destination.ToArray());
+
+            options.MaxInMemoryPackageBytes = 256 * 1024;
+            document.Save(destination, options);
+            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            if (!openSdk) Assert.Empty(document.OpenXmlSdkFallbacks);
+            Assert.InRange(destination.Length, 1, limit - 1);
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(destination.ToArray()));
+            Assert.Equal(text, reloaded["Data"].Cell(192, 1).GetValue<string>());
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
