@@ -60,7 +60,7 @@ public sealed class ExcelXlsbDrawingTests {
                     string newTarget = name == "[Content_Types].xml" ? "/xl/worksheets/sheet2.xml" : "sheet2.xml";
                     string xml = reader.ReadToEnd();
                     Assert.Contains(oldTarget, xml, StringComparison.Ordinal);
-                    byte[] bytes = Encoding.UTF8.GetBytes(xml.Replace(oldTarget, newTarget, StringComparison.Ordinal));
+                    byte[] bytes = Encoding.UTF8.GetBytes(xml.Replace(oldTarget, newTarget));
                     replacement.Write(bytes, 0, bytes.Length);
                 } else {
                     part.CopyTo(replacement);
