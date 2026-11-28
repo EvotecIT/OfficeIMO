@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Runtime.Serialization;
 using System.Collections.Concurrent;
 using System.Xml;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -108,7 +107,7 @@ namespace OfficeIMO.Excel {
             bool sawHeader = false;
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -220,7 +219,7 @@ namespace OfficeIMO.Excel {
             int c2,
             int cols,
             CancellationToken ct) where T : new() {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();

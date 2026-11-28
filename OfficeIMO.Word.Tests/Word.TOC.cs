@@ -43,6 +43,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RetainedTableOfContentCanOpenSdkControlAfterDisposal() {
+            using WordDocument document = WordDocument.Create();
+            WordTableOfContent created = document.AddTableOfContent();
+            created.TextNoContent = "First message";
+            WordTableOfContent retained = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+            created.TextNoContent = "Final message";
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+            document.Dispose();
+
+            Assert.IsType<Body>(retained.SdtBlock.Parent);
+            Assert.Equal("Final message", retained.TextNoContent);
+        }
+
+        [Fact]
         public void Test_ReadingStoredTableOfContentLeavesFieldUpdatesDisabled() {
             byte[] bytes;
             using (WordDocument document = WordDocument.Create()) {

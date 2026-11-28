@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointEffectiveRunStyleResolver {
@@ -8,24 +6,22 @@ namespace OfficeIMO.PowerPoint {
         internal static double? ResolveCharacterSpacingPoints(PowerPointTextRun run,
             PowerPointParagraph paragraph, PowerPointTextBox textBox,
             IDictionary<int, int?>? inheritedSpacingByLevel = null) {
-            int? spacing = ResolveValue(ResolveDirectSources(run, paragraph, textBox.TextBody?.ListStyle,
-                includeParagraphMark: false), static source => source.Spacing?.Value);
+            int? spacing = ResolveValue(ResolveDirectSources(run, paragraph, TextBoxListStyle(textBox),
+                includeParagraphMark: false), static source => source.Int32Attribute("spc"));
             if (spacing.HasValue) return spacing.Value / 100D;
 
-            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            int level = ParagraphLevel(paragraph.Element.Child(Drawing, "pPr"));
             if (inheritedSpacingByLevel != null && inheritedSpacingByLevel.TryGetValue(level, out spacing))
                 return spacing.HasValue ? spacing.Value / 100D : (double?)null;
 
-            var sources = new List<A.TextCharacterPropertiesType>();
-            foreach (P.Shape inherited in EnumerateTextColorShapes(textBox).Skip(1))
+            var sources = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode inherited in EnumerateTextColorShapes(textBox).Skip(1))
                 AddPlaceholderDefaults(sources, inherited, level);
-            sources.AddRange(FindDefaultRunProperties(textBox.MasterTextStyle, level));
-            OpenXmlCompositeElement? presentationDefaults = textBox.SlidePart?.GetParentPresentationPart()?.Presentation?.DefaultTextStyle;
-            sources.AddRange(FindDefaultRunProperties(presentationDefaults, level));
-            spacing = ResolveValue(sources, static source => source.Spacing?.Value);
+            sources.AddRange(FindDefaultRunProperties(TextBoxMasterStyle(textBox), level));
+            sources.AddRange(FindDefaultRunProperties(PresentationTextDefaults(TextBoxSlide(textBox)), level));
+            spacing = ResolveValue(sources, static source => source.Int32Attribute("spc"));
             if (inheritedSpacingByLevel != null) inheritedSpacingByLevel[level] = spacing;
             return spacing.HasValue ? spacing.Value / 100D : (double?)null;
         }
-
     }
 }

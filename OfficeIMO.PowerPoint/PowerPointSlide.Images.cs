@@ -4,6 +4,16 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private string AddSdkBackgroundImagePart(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension) {
+            string uri = PowerPointPartFactory.GetIndexedPartUri(SlidePart.OpenXmlPackage, "ppt/media", "image",
+                extension, allowBaseWithoutIndex: false);
+            ImagePart part = PowerPointPartFactory.CreatePart<ImagePart>(SlidePart, imageType.ToPartTypeInfo().ContentType, uri);
+            if (image.CanSeek) image.Position = 0;
+            part.FeedData(image);
+            return SlidePart.GetIdOfPart(part);
+        }
+
+
         /// <summary>
         ///     Adds an image from the given file path.
         /// </summary>

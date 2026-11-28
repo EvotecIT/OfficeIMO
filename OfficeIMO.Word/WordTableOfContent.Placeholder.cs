@@ -40,11 +40,14 @@ namespace OfficeIMO.Word {
 
         private OfficeXmlNode GetPlaceholderPart() {
             const int W = TocNamespace;
-            if (_document.IsDisposed && SdtNode.SdkElement is { } live) {
-                return RetainedPlaceholders.TryGetValue(live, out var retained) ? retained.Part : default;
+            OfficeXmlNode control = SdtNode;
+            if (_document.IsDisposed && control.SdkElement is { } live) {
+                if (RetainedPlaceholders.TryGetValue(live, out var retained)) return retained.Part;
+                // SDK access can first occur after disposal, over the retained package copy.
+                if (_document.DisposedReadModel == null) return default;
             }
 
-            string? name = SdtNode.Child(W, "sdtPr").Child(W, "placeholder").Child(W, "docPart").Attribute(W, "val");
+            string? name = control.Child(W, "sdtPr").Child(W, "placeholder").Child(W, "docPart").Attribute(W, "val");
             if (name != null) {
                 foreach (OfficeXmlNode part in GetGlossaryRoot(create: false).Child(W, "docParts").Children(W, "docPart")) {
                     if (PlaceholderName(part) == name) return RetainPlaceholderPart(part);

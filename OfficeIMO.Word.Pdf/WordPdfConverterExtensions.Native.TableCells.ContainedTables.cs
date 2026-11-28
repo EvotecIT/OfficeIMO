@@ -1,9 +1,7 @@
-using DocumentFormat.OpenXml;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Admits only source profiles supported by the shared stable-width contained-flow owner.</summary>
@@ -11,18 +9,18 @@ public static partial class WordPdfConverterExtensions {
         NativeDocumentDefaults defaults, NativeFontMap fonts, int depth) {
         EnsureNativeTableDepth(depth);
         options?.CancellationToken.ThrowIfCancellationRequested();
-        W.Table source = table._table;
+        OfficeXmlNode source = table.Node();
         if (depth == 0 && NativeTableStoryHasVariableFrame(source)) return false;
-        if (source.GetFirstChild<W.TableProperties>()?.TablePositionProperties != null ||
-            source.Descendants<W.TextDirection>().Any(direction =>
-                direction.Val?.InnerText is { } directionValue && directionValue != "lrTb") ||
-            source.Descendants().Any(element => element is W.SdtBlock or W.SdtRun or W.SdtCell or W.SdtRow) ||
-            source.Descendants<W.FootnoteReference>().Any() || source.Descendants<W.EndnoteReference>().Any())
+        if (source.WChild("tblPr").WChild("tblpPr").Exists ||
+            source.DescendantElements(WordXml.W, "textDirection").Any(direction =>
+                direction.WVal() is { } directionValue && directionValue != "lrTb") ||
+            source.DescendantElements().Any(element => element.IsW("sdt")) ||
+            source.HasDescendant(WordXml.W, "footnoteReference") || source.HasDescendant(WordXml.W, "endnoteReference"))
             return false;
-        if (source.ChildElements.Any(child => child is not W.TableProperties and not W.TableGrid and not W.TableRow) ||
-            source.Elements<W.TableRow>().Any(row => row.ChildElements.Any(child => child is not W.TableRowProperties and not W.TableCell)) ||
-            source.Elements<W.TableRow>().SelectMany(row => row.Elements<W.TableCell>()).Any(cell =>
-                cell.ChildElements.Any(child => child is not W.TableCellProperties and not W.Paragraph and not W.Table)))
+        if (source.Elements().Any(child => !child.IsW("tblPr") && !child.IsW("tblGrid") && !child.IsW("tr")) ||
+            source.Elements(WordXml.W, "tr").Any(row => row.Elements().Any(child => !child.IsW("trPr") && !child.IsW("tc"))) ||
+            source.Elements(WordXml.W, "tr").SelectMany(row => row.Elements(WordXml.W, "tc")).Any(cell =>
+                cell.Elements().Any(child => !child.IsW("tcPr") && !child.IsW("p") && !child.IsW("tbl"))))
             return false;
 
         TableLayout layout = TableLayoutCache.GetLayout(table);
@@ -55,10 +53,11 @@ public static partial class WordPdfConverterExtensions {
     /// anchored object elsewhere in the same story can leave an active exclusion
     /// when this table is materialized, so decline that story before capturing blocks.
     /// </summary>
-    private static bool NativeTableStoryHasVariableFrame(W.Table table) {
-        OpenXmlElement story = table.Ancestors().FirstOrDefault(element =>
-            element is W.Body or W.Header or W.Footer or W.Footnote or W.Endnote) ?? table;
-        return story.Descendants<W.TablePositionProperties>().Any() || story.Descendants<DW.Anchor>().Any();
+    private static bool NativeTableStoryHasVariableFrame(OfficeXmlNode table) {
+        OfficeXmlNode story = table.Ancestors().FirstOrDefault(element =>
+            element.IsW("body") || element.IsW("hdr") || element.IsW("ftr") || element.IsW("footnote") || element.IsW("endnote"));
+        if (story.IsNone) story = table;
+        return story.HasDescendant(WordXml.W, "tblpPr") || story.HasDescendant(WordXml.Wp, "anchor");
     }
 
     /// <summary>
@@ -68,15 +67,15 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static void ApplyNativeContainedTablePercentageWidth(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
-        W.TableWidth? source = table._tableProperties?.TableWidth;
-        if (source == null || ResolveNativeTablePreferredWidthType(source) != W.TableWidthUnitValues.Pct ||
+        OfficeXmlNode source = table.PropertiesNode().WChild("tblW");
+        if (source.IsNone || ResolveNativeTablePreferredWidthType(source) != "pct" ||
             !GetNativeTablePreferredWidthPercent(source).HasValue) {
             // A valid absolute or automatic source width owns its normal sizing policy.
-            if (source != null && (ResolveNativeTablePreferredWidthType(source) == W.TableWidthUnitValues.Auto ||
+            if (source.Exists && (ResolveNativeTablePreferredWidthType(source) == "auto" ||
                 GetNativeTablePreferredWidth(source, null).HasValue)) return;
             source = defaults.PreferredWidth;
         }
-        if (source == null || ResolveNativeTablePreferredWidthType(source) != W.TableWidthUnitValues.Pct ||
+        if (source.IsNone || ResolveNativeTablePreferredWidthType(source) != "pct" ||
             GetNativeTablePreferredWidthPercent(source) is not { } fraction) return;
         var (leftBorder, rightBorder) = GetNativeTableOuterBorderInsets(layout, style);
         style.FrameWidthAdjustment = -leftBorder - rightBorder;

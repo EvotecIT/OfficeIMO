@@ -1,12 +1,6 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -390,7 +384,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static IEnumerable<string> EnumerateNativeParagraphOwnFontFamilies(WordParagraph paragraph) {
             foreach (string? familyName in EnumerateNativeLatinFontFamilies(
-                paragraph._document, GetNativeRunProperties(paragraph)?.GetFirstChild<W.RunFonts>()).Concat(new[] {
+                paragraph._document, GetNativeRunProperties(paragraph).WChild("rFonts")).Concat(new[] {
                 paragraph.FontFamilyEastAsia,
                 paragraph.FontFamilyComplexScript
             })) {

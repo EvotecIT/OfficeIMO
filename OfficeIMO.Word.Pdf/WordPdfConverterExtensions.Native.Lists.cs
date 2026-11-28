@@ -1,14 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static bool TryRenderNativeList(
             INativePdfFlow pdf,
@@ -19,7 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
-            IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+            IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations) {
             if (elements[index] is not WordParagraph firstParagraph ||
                 !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out global::OfficeIMO.OfficeAlignment align, out global::OfficeIMO.OfficeColor? color, out PdfCore.PdfListStyle? style)) {
                 return false;
@@ -79,7 +75,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
-            IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
+            IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations,
             out bool ordered,
             out int level,
             out int index,
@@ -170,7 +166,7 @@ namespace OfficeIMO.Word.Pdf {
             index = listIndex.Index;
             string[] bookmarks = GetNativeParagraphBookmarkNames(paragraph).ToArray();
             string? destination = bookmarks.FirstOrDefault();
-            if (string.IsNullOrEmpty(destination)) headingDestinations.TryGetValue(paragraph._paragraph, out destination);
+            if (string.IsNullOrEmpty(destination)) headingDestinations.TryGetValue(paragraph.Node(), out destination);
             item = new PdfCore.PdfListItem(richRuns, destination, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker) {
                 BookmarkAliases = bookmarks.Skip(1).ToArray()
             };
@@ -224,7 +220,7 @@ namespace OfficeIMO.Word.Pdf {
             double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
             NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);
             double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
-            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            OfficeXmlNode directSpacing = paragraph.Node().WChild("pPr").WChild("spacing");
             double markerFontSize = info.MarkerFontSize ?? fontSize;
             bool itemSpacingDeclared = false;
 
@@ -287,10 +283,10 @@ namespace OfficeIMO.Word.Pdf {
                 style.ItemSpacing = global::OfficeIMO.OfficeLength.Points(Math.Max(style.SpacingBefore.ToPoints(), (style.SpacingAfter?.ToPoints()) ?? 0D));
             }
 
-            style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
+            style.KeepTogether = paragraph.Node().WChild("pPr").WChild("keepLines").OnOff() ?? styleDefaults.KeepTogether ?? false;
             style.KeepTogetherOverflow = UsesModernNativeWordLayout(paragraph._document)
                 ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
-            style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
+            style.KeepWithNext = paragraph.Node().WChild("pPr").WChild("keepNext").OnOff() ?? styleDefaults.KeepWithNext ?? false;
             ApplyNativeListJustification(style, paragraph);
             return style;
         }
@@ -553,130 +549,131 @@ namespace OfficeIMO.Word.Pdf {
             return WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker);
         }
 
-        private static global::OfficeIMO.OfficeAlignment? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {
-            if (!value.HasValue) {
+        private static global::OfficeIMO.OfficeAlignment? MapNativeListMarkerAlign(string? value) {
+            if (value == null) {
                 return null;
             }
 
-            if (value.Value == W.LevelJustificationValues.Center) {
+            if (value == "center") {
                 return global::OfficeIMO.OfficeAlignment.Center;
             }
 
-            if (value.Value == W.LevelJustificationValues.Right) {
+            if (value == "right") {
                 return global::OfficeIMO.OfficeAlignment.Right;
             }
 
-            return value.Value == W.LevelJustificationValues.Left ? global::OfficeIMO.OfficeAlignment.Left : null;
+            return value == "left" ? global::OfficeIMO.OfficeAlignment.Left : null;
         }
 
         private static global::OfficeIMO.OfficeAlignment? MapNativeListMarkerAlign(WordListLevelAlignment? value) =>
-            MapNativeListMarkerAlign(value.ToOpenXml());
+            MapNativeListMarkerAlign(value?.ToOpenXmlToken());
 
         private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph, bool includeInlineContentControls = false) {
-            if (paragraph._paragraph == null) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
                 return new List<WordParagraph>();
             }
 
             var runs = new List<WordParagraph>();
-            var fieldVisibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
-            AddNativeVisibleRuns(runs, paragraph, paragraph._paragraph, null, fieldVisibility, includeInlineContentControls);
+            var fieldVisibility = WordConverterNodes.FieldVisibilityForParagraph(source);
+            AddNativeVisibleRuns(runs, paragraph, source, default, fieldVisibility, includeInlineContentControls);
 
             return runs;
         }
 
         private static void AddNativeVisibleRuns(List<WordParagraph> runs, WordParagraph paragraph,
-            DocumentFormat.OpenXml.OpenXmlCompositeElement container, W.Hyperlink? hyperlink,
+            OfficeXmlNode container, OfficeXmlNode hyperlink,
             WordComplexFieldRunVisibility fieldVisibility, bool includeInlineContentControls = false) {
             const int maxDepth = 128;
             const int maxElements = 1_000_000;
             int visited = 0;
-            var pending = new Stack<(IEnumerator<DocumentFormat.OpenXml.OpenXmlElement> Children, W.Hyperlink? Hyperlink, int Depth)>();
-            pending.Push((container.ChildElements.GetEnumerator(), hyperlink, 0));
-            try {
-                while (pending.Count > 0) {
-                    var frame = pending.Peek();
-                    if (!frame.Children.MoveNext()) {
-                        pending.Pop().Children.Dispose();
-                        continue;
-                    }
-                    if (++visited > maxElements)
-                        throw new InvalidDataException("Word visible run traversal exceeds the PDF export limit.");
-                    var element = frame.Children.Current;
-                    DocumentFormat.OpenXml.OpenXmlCompositeElement? nested = null;
-                    W.Hyperlink? nestedHyperlink = frame.Hyperlink;
-                    if (element is W.Run sourceRun) {
-                        W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
-                        W.Run markupRun = visibleRun == null ? sourceRun : ApplyNativeTrackedChangeMarkup(sourceRun);
-                        if (visibleRun != null && !ReferenceEquals(markupRun, sourceRun))
-                            AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, markupRun) {
-                                _hyperlink = frame.Hyperlink
-                            });
-                        else if (visibleRun != null)
-                            AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
-                                _hyperlink = frame.Hyperlink,
-                                _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
-                                _visibleRunSourceChildren = visibleSourceChildren
-                            });
-                    } else if (element is W.Hyperlink link) {
-                        nested = link;
-                        nestedHyperlink = link;
-                    } else if (element is W.SimpleField simpleField) {
-                        if (fieldVisibility.IsVisible)
-                            nested = simpleField;
-                        else
-                            fieldVisibility.ObserveDescendantRuns(simpleField);
-                    } else if (element is W.SdtRun sdtRun) {
-                        if (includeInlineContentControls && CanProjectNativeInlineContentControl(sdtRun)) {
-                            if (fieldVisibility.IsVisible) {
-                                if (GetNativeSdtText(sdtRun) == null && !IsNativeCheckBoxControl(sdtRun))
-                                    runs.Add(CreateNativeInlineControlFallbackRun(paragraph, sdtRun, frame.Hyperlink));
-                                else nested = sdtRun.SdtContentRun;
-                            } else fieldVisibility.ObserveDescendantRuns(sdtRun);
-                        } else if (!IsNativeSimpleTextContentControl(sdtRun)) {
-                            fieldVisibility.ObserveDescendantRuns(sdtRun);
-                        } else if (sdtRun.Descendants<W.FieldChar>().Any()) {
-                            nested = sdtRun.SdtContentRun;
-                        } else if (fieldVisibility.IsVisible) {
-                            if (TryGetNativeSdtRunPropertyValue(paragraph._document, sdtRun, out string? propertyValue)) {
-                                W.Run resolvedRun = CreateNativeResolvedSdtRun(sdtRun, propertyValue!);
-                                runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, resolvedRun) { _hyperlink = frame.Hyperlink });
-                            } else {
-                                nested = sdtRun.SdtContentRun;
-                            }
+            OfficeXmlNode paragraphNode = paragraph.Node();
+            var pending = new Stack<(OfficeXmlNode Next, OfficeXmlNode Hyperlink, int Depth)>();
+            pending.Push((container.FirstChild, hyperlink, 0));
+            while (pending.Count > 0) {
+                var frame = pending.Pop();
+                if (frame.Next.IsNone) continue;
+                pending.Push((frame.Next.NextSibling, frame.Hyperlink, frame.Depth));
+                if (++visited > maxElements)
+                    throw new InvalidDataException("Word visible run traversal exceeds the PDF export limit.");
+                OfficeXmlNode element = frame.Next;
+                OfficeXmlNode nested = default;
+                OfficeXmlNode nestedHyperlink = frame.Hyperlink;
+                if (element.IsW("r")) {
+                    OfficeXmlNode visibleRun = fieldVisibility.GetVisibleRunNode(element, out var visibleSourceChildren);
+                    OfficeXmlNode markupRun = visibleRun.IsNone ? element : ApplyNativeTrackedChangeMarkup(element);
+                    if (visibleRun.Exists && markupRun != element)
+                        AppendNativeVisibleRunContent(runs, paragraph._document.RunView(paragraphNode, markupRun, frame.Hyperlink));
+                    else if (visibleRun.Exists)
+                        AppendNativeVisibleRunContent(runs, paragraph._document.RunView(paragraphNode, element, frame.Hyperlink,
+                            visibleRun == element ? default : visibleRun, visibleSourceChildren));
+                } else if (element.IsW("hyperlink")) {
+                    nested = element;
+                    nestedHyperlink = element;
+                } else if (element.IsW("fldSimple")) {
+                    if (fieldVisibility.IsVisible)
+                        nested = element;
+                    else
+                        fieldVisibility.ObserveDescendantRuns(element);
+                } else if (element.IsW("sdt")) {
+                    OfficeXmlNode sdtRun = element;
+                    if (includeInlineContentControls && CanProjectNativeInlineContentControl(element)) {
+                        if (fieldVisibility.IsVisible) {
+                            if (GetNativeSdtText(sdtRun) == null && !IsNativeCheckBoxControl(sdtRun))
+                                runs.Add(CreateNativeInlineControlFallbackRun(paragraph, element, frame.Hyperlink));
+                            else nested = element.WChild("sdtContent");
+                        } else fieldVisibility.ObserveDescendantRuns(element);
+                    } else if (!IsNativeSimpleTextContentControl(sdtRun)) {
+                        fieldVisibility.ObserveDescendantRuns(element);
+                    } else if (element.HasDescendant(WordXml.W, "fldChar")) {
+                        nested = element.WChild("sdtContent");
+                    } else if (fieldVisibility.IsVisible) {
+                        if (TryGetNativeSdtRunPropertyValue(paragraph._document, element, out string? propertyValue)) {
+                            OfficeXmlNode resolvedRun = CreateNativeResolvedSdtRun(paragraphNode, element, propertyValue!);
+                            runs.Add(paragraph._document.RunView(paragraphNode, resolvedRun, frame.Hyperlink));
+                        } else {
+                            nested = element.WChild("sdtContent");
                         }
-                    } else if (element is W.CustomXmlRun customXml) {
-                        nested = customXml;
-                    } else if (GetNativeVisibleRevisionContainer(element) is { } revision) {
-                        nested = revision;
                     }
-                    if (nested == null) continue;
-                    if (frame.Depth >= maxDepth)
-                        throw new InvalidDataException("Word visible run nesting exceeds the PDF export limit.");
-                    pending.Push((nested.ChildElements.GetEnumerator(), nestedHyperlink, frame.Depth + 1));
+                } else if (element.IsW("customXml")) {
+                    nested = element;
+                } else if (GetNativeVisibleRevisionContainer(element) is { Exists: true } revision) {
+                    nested = revision;
                 }
-            } finally {
-                while (pending.Count > 0) pending.Pop().Children.Dispose();
+                if (nested.IsNone) continue;
+                if (frame.Depth >= maxDepth)
+                    throw new InvalidDataException("Word visible run nesting exceeds the PDF export limit.");
+                pending.Push((nested.FirstChild, nestedHyperlink, frame.Depth + 1));
             }
         }
 
-        private static bool TryGetNativeSdtRunPropertyValue(WordDocument document, W.SdtRun sdtRun, out string? value) {
-            if (sdtRun.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(sdtRun.SdtProperties)) {
+        private static bool TryGetNativeSdtRunPropertyValue(WordDocument document, OfficeXmlNode sdtRun, out string? value) {
+            OfficeXmlNode properties = sdtRun.WChild("sdtPr");
+            if (properties.IsNone || !IsNativePropertyBoundStructuredBlock(properties)) {
                 value = null;
                 return false;
             }
 
-            value = GetNativeBuiltInPropertyValue(document, sdtRun.SdtProperties);
+            value = GetNativeBuiltInPropertyValue(document, properties);
             return !string.IsNullOrWhiteSpace(value);
         }
 
-        private static W.Run CreateNativeResolvedSdtRun(W.SdtRun sdtRun, string value) {
-            W.Run? sourceRun = sdtRun.SdtContentRun?.Elements<W.Run>().FirstOrDefault();
-            var resolvedRun = new W.Run();
-            if (sourceRun?.RunProperties != null) {
-                resolvedRun.Append((W.RunProperties)sourceRun.RunProperties.CloneNode(true));
+        /// <summary>
+        /// A new run, made in <paramref name="context"/>'s part, that shows <paramref name="value"/> with the formatting
+        /// of the control's first cached run.
+        /// </summary>
+        private static OfficeXmlNode CreateNativeResolvedSdtRun(OfficeXmlNode context, OfficeXmlNode sdtRun, string value) {
+            OfficeXmlNode sourceRun = sdtRun.WChild("sdtContent").WChild("r");
+            OfficeXmlNode resolvedRun = context.CreateElement(WordXml.W, "r");
+            OfficeXmlNode sourceProperties = sourceRun.WChild("rPr");
+            if (sourceProperties.Exists) {
+                resolvedRun.Append(sourceProperties.Clone());
             }
 
-            resolvedRun.Append(new W.Text(value) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve });
+            OfficeXmlNode text = resolvedRun.CreateElement(WordXml.W, "t");
+            text.SetInnerText(value);
+            text.SetAttribute(WordXml.Xml, "space", "preserve");
+            resolvedRun.Append(text);
             return resolvedRun;
         }
 

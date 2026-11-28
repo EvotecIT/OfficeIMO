@@ -7,73 +7,6 @@ using System.Globalization;
 namespace OfficeIMO.Word;
 
 internal static partial class WordFieldUpdater {
-    private enum CoreFieldProperty {
-        Creator, Title, Subject, Keywords, Description, LastModifiedBy,
-        Created, Modified, LastPrinted, Revision, Category, Version
-    }
-
-    private static bool TryEvaluateCoreProperty(WordDocument document, CoreFieldProperty property,
-        WordFieldInventory.ParsedFieldInstruction parsed, out string? value, out WordFieldUpdateStatus status,
-        out string message) {
-        object? propertyValue = document._ownedModel is { } model
-            ? ReadOwnedCoreProperty(model, property)
-            : ReadSdkCoreProperty(document.Properties, property);
-        string success = $"Updated from built-in document property {property}.";
-        return IsCoreDate(property)
-            ? TrySetDate((DateTime?)propertyValue, parsed, success, out value, out status, out message)
-            : TrySetTextValue((string?)propertyValue, parsed, success, out value, out status, out message);
-    }
-
-    private static bool IsCoreDate(CoreFieldProperty property) =>
-        property is CoreFieldProperty.Created or CoreFieldProperty.Modified or CoreFieldProperty.LastPrinted;
-
-    private static object? ReadOwnedCoreProperty(WordPackageModel model, CoreFieldProperty property) {
-        const string relationship = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
-        const int Core = OfficeXmlNamespaces.CoreProperties;
-        const int Dublin = OfficeXmlNamespaces.DublinCore;
-        const int Terms = OfficeXmlNamespaces.DublinCoreTerms;
-        var (namespaceId, name) = property switch {
-            CoreFieldProperty.Creator => (Dublin, "creator"),
-            CoreFieldProperty.Title => (Dublin, "title"),
-            CoreFieldProperty.Subject => (Dublin, "subject"),
-            CoreFieldProperty.Keywords => (Core, "keywords"),
-            CoreFieldProperty.Description => (Dublin, "description"),
-            CoreFieldProperty.LastModifiedBy => (Core, "lastModifiedBy"),
-            CoreFieldProperty.Created => (Terms, "created"),
-            CoreFieldProperty.Modified => (Terms, "modified"),
-            CoreFieldProperty.LastPrinted => (Core, "lastPrinted"),
-            CoreFieldProperty.Revision => (Core, "revision"),
-            CoreFieldProperty.Category => (Core, "category"),
-            CoreFieldProperty.Version => (Core, "version"),
-            _ => throw new ArgumentOutOfRangeException(nameof(property))
-        };
-
-        OfficeXmlNode element = ReadPackagePropertyPart(model, relationship).Child(namespaceId, name);
-        if (element.IsNone) return null;
-        string value = element.InnerText;
-        if (!IsCoreDate(property)) return value;
-        // Package properties expose timestamps in the local time zone.
-        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)
-            ? date : (DateTime?)null;
-    }
-
-    private static object? ReadSdkCoreProperty(WordBuiltinDocumentProperties properties, CoreFieldProperty property) =>
-        property switch {
-            CoreFieldProperty.Creator => properties.Creator,
-            CoreFieldProperty.Title => properties.Title,
-            CoreFieldProperty.Subject => properties.Subject,
-            CoreFieldProperty.Keywords => properties.Keywords,
-            CoreFieldProperty.Description => properties.Description,
-            CoreFieldProperty.LastModifiedBy => properties.LastModifiedBy,
-            CoreFieldProperty.Created => properties.Created,
-            CoreFieldProperty.Modified => properties.Modified,
-            CoreFieldProperty.LastPrinted => properties.LastPrinted,
-            CoreFieldProperty.Revision => properties.Revision,
-            CoreFieldProperty.Category => properties.Category,
-            CoreFieldProperty.Version => properties.Version,
-            _ => throw new ArgumentOutOfRangeException(nameof(property))
-        };
-
     private static OfficeXmlNode ReadPackagePropertyPart(WordPackageModel model, string relationshipType) {
         if (!model.Package.PartExists("/_rels/.rels")) return default;
         OfficeXmlTree relationships = model.Package.GetRelationships(null);
@@ -108,7 +41,7 @@ internal static partial class WordFieldUpdater {
         string? name = parsed.Instructions.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name)) return false;
         OfficeXmlNode property = FindOwnedFieldCustomProperty(model, TrimQuotes(name!));
-        return property.Child(OfficeXmlNamespaces.DocPropsVTypes, "vector").Exists;
+        return FindOwnedCustomPropertyVariant(property).Is(OfficeXmlNamespaces.DocPropsVTypes, "vector");
     }
 
     private static OfficeXmlNode FindOwnedFieldCustomProperty(WordPackageModel model, string name) {
@@ -130,9 +63,8 @@ internal static partial class WordFieldUpdater {
 
         OfficeXmlNode property = FindOwnedFieldCustomProperty(model, name);
         if (property.Attribute("name") is not { } key) return default;
-        const int Variant = OfficeXmlNamespaces.DocPropsVTypes;
-        OfficeXmlNode value = property.FirstChild;
-        if (value.NamespaceId != Variant) return new KeyValuePair<string, object?>(key, null);
+        OfficeXmlNode value = FindOwnedCustomPropertyVariant(property);
+        if (value.IsNone) return new KeyValuePair<string, object?>(key, null);
         string text = value.InnerText;
         object? parsed = value.LocalName switch {
             "i4" => int.Parse(text),
@@ -145,6 +77,26 @@ internal static partial class WordFieldUpdater {
             _ => null
         };
         return new KeyValuePair<string, object?>(key, parsed);
+    }
+
+    private static readonly string[] CustomPropertyVariantOrder = {
+        "i4", "filetime", "r4", "lpwstr", "bool", "r8", "i8", "blob", "oblob", "vector", "empty", "date"
+    };
+
+    private static OfficeXmlNode FindOwnedCustomPropertyVariant(OfficeXmlNode property) {
+        // The default package reader exposes direct typed values beside ignorable children.
+        // Explicit compatibility processing already uses the SDK's processed package.
+        OfficeXmlNode value = default;
+        int priority = CustomPropertyVariantOrder.Length;
+        foreach (OfficeXmlNode child in property.Children()) {
+            if (child.NamespaceId != OfficeXmlNamespaces.DocPropsVTypes) continue;
+            int candidate = Array.IndexOf(CustomPropertyVariantOrder, child.LocalName);
+            if (candidate < 0 || candidate >= priority) continue;
+            if (candidate == 0) return child;
+            value = child;
+            priority = candidate;
+        }
+        return value;
     }
 
     private static KeyValuePair<string, string> ReadFieldVariable(WordDocument document, string variableName) {

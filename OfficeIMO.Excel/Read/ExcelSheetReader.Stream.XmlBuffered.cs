@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -7,7 +6,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class ExcelSheetReader {
         private IEnumerable<RangeChunk> ReadRangeStreamXmlFast(int r1, int c1, int r2, int c2, int chunkRows, CancellationToken ct, bool preserveDateSerial = false) {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
@@ -88,7 +87,7 @@ namespace OfficeIMO.Excel {
             int populatedWindows = 0;
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -190,7 +189,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();

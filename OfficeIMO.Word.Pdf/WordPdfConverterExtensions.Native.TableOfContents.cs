@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeTableOfContentsEntry {
             public NativeTableOfContentsEntry(string text, int level, string? destinationName) {
@@ -17,8 +17,8 @@ namespace OfficeIMO.Word.Pdf {
             public string? DestinationName { get; }
         }
 
-        private static Dictionary<W.Paragraph, string> BuildNativeHeadingDestinations(WordDocument document) {
-            var destinations = new Dictionary<W.Paragraph, string>();
+        private static Dictionary<OfficeXmlNode, string> BuildNativeHeadingDestinations(WordDocument document) {
+            var destinations = new Dictionary<OfficeXmlNode, string>();
             var used = new HashSet<string>(StringComparer.Ordinal);
             var nextSuffixByBaseName = new Dictionary<string, int>(StringComparer.Ordinal);
             int headingIndex = 0;
@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordSection section in document.Sections) {
                 foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
                     if (element is not WordParagraph paragraph ||
-                        paragraph._paragraph == null ||
+                        paragraph.Node().IsNone ||
                         GetNativeTableOfContentsHeadingLevel(paragraph) <= 0) {
                         continue;
                     }
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Pdf {
 
                     string? bookmarkName = GetNativeParagraphBookmarkNames(paragraph).FirstOrDefault();
                     string destinationName = bookmarkName ?? CreateNativeHeadingDestinationName(headingText, ++headingIndex, used, nextSuffixByBaseName);
-                    destinations[paragraph._paragraph] = destinationName;
+                    destinations[paragraph.Node()] = destinationName;
                     used.Add(destinationName);
                 }
             }
@@ -81,12 +81,12 @@ namespace OfficeIMO.Word.Pdf {
             return name;
         }
 
-        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations) {
             var entries = new List<NativeTableOfContentsEntry>();
             foreach (WordSection section in document.Sections) {
                 foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
-                    if (element is not WordParagraph paragraph || paragraph._paragraph == null ||
-                        !headingDestinations.TryGetValue(paragraph._paragraph, out string? destination)) continue;
+                    if (element is not WordParagraph paragraph || paragraph.Node().IsNone ||
+                        !headingDestinations.TryGetValue(paragraph.Node(), out string? destination)) continue;
                     string text = GetNativeParagraphDisplayText(paragraph);
                     if (!string.IsNullOrWhiteSpace(text))
                         entries.Add(new NativeTableOfContentsEntry(text, GetNativeTableOfContentsHeadingLevel(paragraph), destination));
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
         private static IEnumerable<WordElement> EnumerateNativeTableOfContentsElements(WordSection section) {
             foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
                 if (element is WordStructuredDocumentTag structuredDocumentTag) {
-                    foreach (WordElement structuredElement in CollapseNativeParagraphElements(GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock))) {
+                    foreach (WordElement structuredElement in CollapseNativeParagraphElements(GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlockNode()))) {
                         yield return structuredElement;
                     }
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string GetNativeParagraphDisplayText(WordParagraph paragraph) {
-            if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+            if (paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0) {
                 return AppendNativeTextWithEquation(paragraph.Text, paragraph);
             }
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
@@ -150,13 +150,9 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         private static (PdfCore.PdfParagraphStyle? Style, bool ContextualSpacing) CreateNativeTableOfContentsEntryStyle(WordDocument document, int level,
             NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
-            var entry = new W.Paragraph(
-                new W.ParagraphProperties(new W.ParagraphStyleId { Val = "TOC" + level.ToString(CultureInfo.InvariantCulture) }),
-                new W.Run(new W.Text("0")));
-            document.LocalizeBuiltInStyleReferences(entry);
-            string? styleId = entry.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            WordParagraph paragraph = document.CreateDetachedStyledParagraph("TOC" + level.ToString(CultureInfo.InvariantCulture), "0");
+            string? styleId = paragraph.Node().WChild("pPr").ChildVal("pStyle");
             if (styleId == null || !WordStyleCatalog.For(document).Contains(styleId)) return (null, false);
-            var paragraph = new WordParagraph(document, entry, entry.GetFirstChild<W.Run>()!);
             return (CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap), UsesNativeContextualSpacing(paragraph));
         }
 

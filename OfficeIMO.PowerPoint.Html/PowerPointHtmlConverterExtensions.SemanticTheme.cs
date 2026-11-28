@@ -14,7 +14,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append(OfficeHtmlText.EscapeAttribute(OfficeHtmlDocumentShell.GetThemeProperties(theme)))
             .Append("background-color:var(--officeimo-page-background);color:var(--officeimo-text);");
         if (!options.IncludeDefaultStyles) {
-            string? family = PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(slide.SlidePart);
+            string? family = PptCore.PowerPointEffectiveRunStyleResolver.ResolveLatinThemeFontName(slide.PartRef);
             if (!string.IsNullOrWhiteSpace(family))
                 body.Append("font-family:").Append(OfficeHtmlText.EscapeAttribute(OfficeHtmlText.CssFontFamily(family!))).Append(';');
         }

@@ -1,4 +1,3 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
@@ -7,7 +6,7 @@ public static partial class WordPdfConverterExtensions {
     /// Projects supported note blocks in source order through the same paragraph,
     /// table, inline-object and hidden-boundary owners used by ordinary Word flow.
     /// </summary>
-    private static void RenderNativeNoteParagraphs(INativePdfFlow flow, W.FootnoteEndnoteType source,
+    private static void RenderNativeNoteParagraphs(INativePdfFlow flow, OfficeXmlNode source,
         WordSection section, NativeNoteNumbering notes, WordPdfExportOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts, string? label) {
         defaults = CreateNativeNoteStoryDefaults(defaults, section, label);
@@ -17,7 +16,7 @@ public static partial class WordPdfConverterExtensions {
             .BuildNoteListMarkersForRendering(section._document, paragraphs, options?.CancellationToken ?? default);
         (int Level, string Marker)? GetMarker(WordParagraph paragraph) =>
             markers.Markers.TryGetValue(paragraph, out var marker) ? marker : null;
-        var destinations = new Dictionary<W.Paragraph, string>();
+        var destinations = new Dictionary<OfficeXmlNode, string>();
         double? contentWidth = (section.ColumnCount ?? 1) == 1
             ? GetNativeFootnoteSectionWidth(section, options) : null;
         int rejectedJoinUntil = -1;

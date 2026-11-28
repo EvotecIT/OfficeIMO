@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// True means the scan would return this extent for an unprefixed root; false means only that the
         /// bytes did not decide it, and the caller runs the scan. Comments, processing instructions, CDATA,
         /// DOCTYPE, a prefixed root, non-ASCII names, inner namespace subtleties, references the text proof
-        /// does not cover, and every cell the scan would send to the SDK route are left to the scan.
+        /// does not cover, and every cell the scan would send to the general projection are left to the scan.
         /// Large parts may walk their rows on helper threads under the read's execution policy.
         /// </summary>
         internal static bool TryMeasureCanonicalWorksheet(byte[] buffer, int length, ExcelExecutionPolicy execution,
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
                 while (true) {
                     int textEnd = IndexOfTagStart(position, end);
                     if (_depth == 0 && !IsWhitespace(position, textEnd)) return false;
-                    // The scan sends a whitespace-only value or text node to the SDK route.
+                    // The scan sends a whitespace-only value or text node to the general projection.
                     if (_checkValueText && textEnd > position && IsWhitespace(position, textEnd)) return false;
                     _checkValueText = false;
                     if (textEnd == end) return true;
@@ -243,8 +243,7 @@ namespace OfficeIMO.Excel {
                         if (r < 0) {
                             _currentRow = 0;
                         } else {
-                            if (!TryParseDigits(_valueStarts[r], _valueEnds[r], out _currentRow)
-                                || _currentRow <= 0 || _currentRow > ExcelA1.MaxRows) {
+                            if (!TryParseRowIndex(_valueStarts[r], _valueEnds[r], out _currentRow)) {
                                 return false;
                             }
                             if (_currentRow > _lastRow) _lastRow = _currentRow;
@@ -457,15 +456,18 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Digits only; the scan reads anything else (references, spaces, signs) as no row.</summary>
-            private bool TryParseDigits(int start, int end, out int value) {
+            private bool TryParseRowIndex(int start, int end, out int value) {
                 value = 0;
-                if (start == end) return false;
+                // The largest worksheet row has seven digits. Preserve leading zeros and bound the accumulator.
+                while (end - start > 7) {
+                    if (_buffer[start++] != (byte)'0') return false;
+                }
                 for (int index = start; index < end; index++) {
                     int digit = _buffer[index] - (byte)'0';
-                    if ((uint)digit > 9U || value > (int.MaxValue - digit) / 10) return false;
+                    if ((uint)digit > 9U) return false;
                     value = value * 10 + digit;
                 }
-                return true;
+                return value > 0 && value <= ExcelA1.MaxRows;
             }
 
             /// <summary>Letters then digits, the reference form the scan's fast parser reads in place.</summary>
@@ -476,13 +478,10 @@ namespace OfficeIMO.Excel {
                 for (; index < end; index++) {
                     int letter = (_buffer[index] | 0x20) - (byte)'a';
                     if ((uint)letter > 25U) break;
-                    if (column > ExcelA1.MaxColumns) return false;
                     column = column * 26 + letter + 1;
+                    if (column > ExcelA1.MaxColumns) return false;
                 }
-                return index > start
-                    && TryParseDigits(index, end, out row)
-                    && row > 0 && row <= ExcelA1.MaxRows
-                    && column > 0 && column <= ExcelA1.MaxColumns;
+                return index > start && TryParseRowIndex(index, end, out row);
             }
 
             private bool TrySkipDeclaration(int start, out int next) {
@@ -580,6 +579,7 @@ namespace OfficeIMO.Excel {
 
             private bool BytesEqual(int firstStart, int firstLength, int secondStart, int secondLength) {
                 if (firstLength != secondLength) return false;
+                if (firstLength == 1) return _buffer[firstStart] == _buffer[secondStart];
                 for (int index = 0; index < firstLength; index++) {
                     if (_buffer[firstStart + index] != _buffer[secondStart + index]) return false;
                 }

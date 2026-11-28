@@ -26,6 +26,21 @@ namespace OfficeIMO.Excel {
 #if NETSTANDARD2_0 || NETFRAMEWORK
             return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
+            if ((uint)(text.Length - 1) < 8) {
+                // An unsigned integer with at most eight digits is exactly representable as a double.
+                uint integer = 0;
+                int index = 0;
+                while (index < text.Length) {
+                    uint digit = (uint)(text[index] - '0');
+                    if (digit > 9) break;
+                    integer = integer * 10 + digit;
+                    index++;
+                }
+                if (index == text.Length) {
+                    value = integer;
+                    return true;
+                }
+            }
             return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #endif
         }

@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Pdf {
         public string Text { get; set; } = string.Empty;
         public bool IsEndnote { get; set; }
         public long ReferenceId { get; set; }
-        public DocumentFormat.OpenXml.Wordprocessing.FootnoteEndnoteType? Source { get; set; }
+        public OfficeXmlNode Source { get; set; }
     }
 }
 

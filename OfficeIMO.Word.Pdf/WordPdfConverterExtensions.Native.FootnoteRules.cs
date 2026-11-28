@@ -1,12 +1,10 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
-    private static PdfCore.PdfTextRun? CreateNativeFootnoteSeparatorRule(OpenXmlElement mark,
+    private static PdfCore.PdfTextRun? CreateNativeFootnoteSeparatorRule(OfficeXmlNode mark,
         WordParagraph run, NativeDocumentDefaults defaults, NativeFontMap? fonts,
         NativeTableRunStyleDefaults table, NativeNoteNumbering? notes) {
         // A separator keeps its source run's font metrics and strike band,
@@ -20,7 +18,7 @@ public static partial class WordPdfConverterExtensions {
         // Native's short special character has a two-inch advance (1200 pixels
         // at its 600-dpi layout device). Both marks clamp at the real remaining
         // line frame; the continuation mark has no short-rule maximum.
-        double? maximum = mark is W.SeparatorMark ? 2D * 72D : null;
+        double? maximum = mark.IsW("separator") ? 2D * 72D : null;
         var rule = new PdfCore.PdfInlineRule(global::OfficeIMO.OfficeLength.Points(band.Thickness), metricStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
             maximumWidth: ((maximum).HasValue ? global::OfficeIMO.OfficeLength.Points((maximum).Value) : (global::OfficeIMO.OfficeLength?)null), baselineOffset: global::OfficeIMO.OfficeLength.Points(band.Position - band.Thickness));
         if (metricStyle.Underline) {

@@ -192,6 +192,9 @@ namespace OfficeIMO.Tests {
             };
             Assert.All(parts, part => Assert.False(part.IsRootElementLoaded));
             Assert.Throws<InvalidDataException>(() => document["EmptyUnique"].Cell(1, 7).GetValue());
+            Assert.Throws<InvalidDataException>(() => document["EmptyUnique"].EnumerateCells().ToArray());
+            using var standalone = ExcelDocumentReader.Open(path);
+            Assert.Throws<InvalidDataException>(() => standalone.GetSheet("EmptyUnique").EnumerateCells().ToArray());
             Assert.All(parts, part => Assert.False(part.IsRootElementLoaded));
         }
 
