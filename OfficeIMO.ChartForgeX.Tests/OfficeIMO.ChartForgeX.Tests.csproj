@@ -24,6 +24,11 @@
     <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The delivery example runs on .NET only; its tests reopen the saved files it writes. -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <ProjectReference Include="..\OfficeIMO.ChartForgeX.Examples\OfficeIMO.ChartForgeX.Examples.csproj" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' != '' And Exists('$(ChartForgeXProjectPath)')">
     <ProjectReference Include="$(ChartForgeXProjectPath)" />
   </ItemGroup>

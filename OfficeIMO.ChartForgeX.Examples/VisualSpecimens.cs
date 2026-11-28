@@ -4,10 +4,11 @@ using global::ChartForgeX.Rendering;
 using global::ChartForgeX.Themes;
 using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;
+using global::ChartForgeX.VisualBlocks;
 
 namespace OfficeIMO.ChartForgeX.Examples;
 
-internal sealed record VisualSpecimen(string Name, VisualThemeMode Mode, VisualArtifact Artifact, bool EditableTopology) {
+internal sealed record VisualSpecimen(string Name, VisualThemeMode Mode, VisualArtifact Artifact, bool EditableDiagram) {
     public string ModeName => Mode.ToString().ToLowerInvariant();
     public string Caption => Artifact.Accessibility.Description ?? Artifact.Title;
     public OfficeVisualConversionResult Convert(double usableWidthPoints) => Artifact.ToOfficeVisual(
@@ -22,6 +23,8 @@ internal static class VisualSpecimens {
     public const double LogicalHeight = 360D;
 
     public static IReadOnlyList<VisualSpecimen> Create() {
+        const string topologyTitle = "Service delivery";
+        const string flowTitle = "Change approval";
         var result = new List<VisualSpecimen>();
         foreach (var mode in new[] { VisualThemeMode.Light, VisualThemeMode.Dark }) {
             var chart = Chart.Create()
@@ -45,11 +48,29 @@ internal static class VisualSpecimens {
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
             topology.Edges.Add(new TopologyEdge { Id = "persist", SourceNodeId = "worker", TargetNodeId = "ledger", Label = "Persist",
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
-            var topologyArtifact = topology.Prepare(Context(mode, "Service delivery", "Three editable services · prepared routes", false))
+            var topologyArtifact = topology.Prepare(Context(mode, topologyTitle, "Three editable services · prepared routes", false))
                 .ToArtifact("service-delivery");
-            topologyArtifact.Accessibility.WithTextAlternative("Service delivery",
+            topologyArtifact.Title = topologyTitle;
+            topologyArtifact.Accessibility.WithTextAlternative(topologyTitle,
                 "Gateway accepts requests into the Processing worker. The worker persists them in the Ledger store.", "en");
             result.Add(new VisualSpecimen("delivery-" + mode.ToString().ToLowerInvariant(), mode, topologyArtifact, true));
+
+            var flow = FlowArtifact.Create("change-approval").WithSize(LogicalWidth, LogicalHeight)
+                .AddLane("requester", "Requester").AddLane("operations", "Operations")
+                .AddStep("submit", "Submit change", FlowArtifactStepKind.Start, "requester")
+                .AddStep("review", "Review risk", FlowArtifactStepKind.Decision, "operations")
+                .AddStep("deploy", "Deploy", FlowArtifactStepKind.Process, "operations", VisualStatus.Positive)
+                .AddStep("revise", "Revise request", FlowArtifactStepKind.Manual, "requester", VisualStatus.Warning)
+                .AddConnector("submit", "review", "Request")
+                .AddConnector("review", "deploy", "Approved")
+                .AddConnector("review", "revise", "Rejected")
+                .AddConnector("revise", "review", "Resubmit");
+            var flowArtifact = flow.Prepare(Context(mode, flowTitle, "Two lanes · decision with a revision loop", false))
+                .ToArtifact("change-approval", VisualArtifactKind.Flow);
+            flowArtifact.Title = flowTitle;
+            flowArtifact.Accessibility.WithTextAlternative(flowTitle,
+                "The requester submits a change. Operations reviews the risk and either deploys it or returns it for revision; a revised request goes back to review.", "en");
+            result.Add(new VisualSpecimen("approval-" + mode.ToString().ToLowerInvariant(), mode, flowArtifact, true));
         }
         // Reuse the exact artifact after the dark variant to exercise document media identity independently of its Id.
         result.Add(result[0] with { Name = "capacity-light-repeat" });
