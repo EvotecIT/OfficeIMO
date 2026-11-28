@@ -65,6 +65,17 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         internal static string? BorderStyle(byte value) => value < BorderStyles.Length ? BorderStyles[value] : null;
 
+        internal static uint FillPatternCode(string? name) => (uint)Math.Max(0, Array.IndexOf(FillPatterns, name));
+
+        internal static byte BorderStyleCode(string? name) => (byte)Math.Max(0, Array.IndexOf(BorderStyles, name));
+
+        internal static byte HorizontalAlignmentCode(string? name) => (byte)Math.Max(0, Array.IndexOf(HorizontalAlignments, name));
+
+        internal static byte VerticalAlignmentCode(string? name) {
+            int index = Array.IndexOf(VerticalAlignments, name);
+            return index < 0 ? (byte)2 : (byte)index;
+        }
+
         /// <summary>Writes a font record as either a cell font or the font properties of an inline text run.</summary>
         internal static void WriteFont(OfficeXmlNode node, XlsbFont source, bool run) {
             if (source.Weight >= 700) Add(node, "b");

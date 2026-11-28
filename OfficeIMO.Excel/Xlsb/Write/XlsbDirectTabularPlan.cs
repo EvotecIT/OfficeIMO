@@ -48,6 +48,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 : TryCreateObjectRows(dateSystem, sheet, source, sharedStrings, cancellationToken, out plan);
         }
 
+        /// <summary>Captures scalar values already held by a new workbook's owned worksheet.</summary>
+        internal static bool TryCreateOwned(
+            ExcelDateSystem dateSystem,
+            ExcelDirectTabularSource source,
+            ExcelCellValueBuffer cells,
+            XlsbSharedStringTable? sharedStrings,
+            CancellationToken cancellationToken,
+            out XlsbDirectTabularPlan plan) =>
+            TryCreateBuffered(dateSystem, sheet: null, source, cells, sharedStrings, cancellationToken, out plan);
+
         private static bool TryCreateObjectRows(
             ExcelDateSystem dateSystem,
             ExcelSheet sheet,

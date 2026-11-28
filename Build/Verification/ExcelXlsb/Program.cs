@@ -18,6 +18,38 @@ foreach (string input in Directory.EnumerateFiles(corpus, "*.xlsb", SearchOption
 File.WriteAllText(Path.Combine(output, "results.json"), JsonSerializer.Serialize(results,
     new JsonSerializerOptions { WriteIndented = true }));
 
+var creations = new SortedDictionary<string, string>(StringComparer.Ordinal);
+Directory.CreateDirectory(Path.Combine(output, "generated"));
+foreach (bool sharedStrings in new[] { false, true }) {
+    using var plain = ExcelDocument.Create();
+    ExcelSheet sheet = plain.AddSheet("Data");
+    for (int row = 1; row <= 64; row++) {
+        sheet.Cell(row, 1).SetValue(row + 2.5D);
+        sheet.Cell(row, 2).SetValue("row " + row);
+        sheet.Cell(row, 3).SetValue((row & 1) == 0);
+    }
+    string name = sharedStrings ? "scalars-shared.xlsb" : "scalars-inline.xlsb";
+    string path = Path.Combine("generated", name);
+    File.WriteAllBytes(Path.Combine(output, path), plain.ToBytes(new ExcelSaveOptions {
+        Format = ExcelFileFormat.Xlsb,
+        XlsbUseSharedStrings = sharedStrings
+    }));
+    creations.Add(name, path.Replace(Path.DirectorySeparatorChar, '/'));
+}
+
+using (var styled = ExcelDocument.Create()) {
+    ExcelSheet sheet = styled.AddSheet("Styled");
+    var cell = sheet.Cell(1, 1);
+    cell.SetValue(1.25D);
+    cell.SetBold();
+    cell.SetItalic();
+    string path = Path.Combine("generated", "styled.xlsb");
+    File.WriteAllBytes(Path.Combine(output, path), styled.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+    creations.Add("styled.xlsb", path.Replace(Path.DirectorySeparatorChar, '/'));
+}
+File.WriteAllText(Path.Combine(output, "creations.json"), JsonSerializer.Serialize(creations,
+    new JsonSerializerOptions { WriteIndented = true }));
+
 static string? Export(byte[] bytes, string path, ExcelFileFormat format, bool edit = false) {
     try {
         using var source = new MemoryStream(bytes, writable: false);

@@ -40,14 +40,12 @@ public class XlsbMigrationBenchmarks {
     internal static byte[] CreateNativeWorkbook() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.Batch(target => {
-            int value = 0;
-            for (int row = 1; row <= Rows; row++) {
-                for (int column = 1; column <= Columns; column++) {
-                    target.Cell(row, column).SetValue(++value);
-                }
+        int value = 0;
+        for (int row = 1; row <= Rows; row++) {
+            for (int column = 1; column <= Columns; column++) {
+                sheet.Cell(row, column).SetValue(++value);
             }
-        });
+        }
         return document.ToBytes(Native);
     }
 

@@ -7,6 +7,73 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
+        [InlineData(false, null)]
+        [InlineData(true, null)]
+        [InlineData(true, 3L * 1024 * 1024 * 1024)]
+        public void Xlsb_NewTabularWorkbookWritesNativeBytesWithoutOpeningTheSdk(bool sharedStrings, long? packageLimit) {
+            var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = sharedStrings };
+            if (packageLimit.HasValue) options.MaxInMemoryPackageBytes = packageLimit.Value;
+            using ExcelDocument owned = CreateTabularWorkbook();
+            using ExcelDocument standard = CreateTabularWorkbook();
+            standard.OpenDeferredSdk("Test the standard native tabular writer");
+
+            byte[] actual = owned.ToBytes(options);
+            Assert.Empty(owned.OpenXmlSdkFallbacks);
+            Assert.Equal(standard.ToBytes(options), actual);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(actual));
+            ExcelSheet data = Assert.Single(reloaded.Sheets);
+            Assert.Equal(3.5D, data.Cell(1, 1).GetValue<double>());
+            Assert.Equal("row 64", data.Cell(64, 2).GetValue<string>());
+            Assert.True(data.Cell(64, 3).GetValue<bool>());
+
+            static ExcelDocument CreateTabularWorkbook() {
+                ExcelDocument document = ExcelDocument.Create();
+                ExcelSheet data = document.AddSheet("Data");
+                for (int row = 1; row <= 64; row++) {
+                    data.Cell(row, 1).SetValue(row + 2.5D);
+                    data.Cell(row, 2).SetValue("row " + row);
+                    data.Cell(row, 3).SetValue(row % 2 == 0);
+                }
+                return document;
+            }
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void Xlsb_DirectTabularSave_BoundsSharedStringMaterialization(bool openSdk, bool existingDestination) {
+            const int limit = 16 * 1024;
+            var options = new ExcelSaveOptions {
+                Format = ExcelFileFormat.Xlsb,
+                XlsbUseSharedStrings = true,
+                MaxInMemoryPackageBytes = limit,
+            };
+            string text = new string('A', 32_767);
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            for (int row = 1; row <= 192; row++) sheet.Cell(row, 1).SetValue(text);
+            if (openSdk) document.OpenDeferredSdk("Test the standard native tabular writer");
+
+            using var destination = new MemoryStream();
+            byte[] marker = existingDestination ? new byte[] { 1, 2, 3 } : Array.Empty<byte>();
+            destination.Write(marker, 0, marker.Length);
+
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.Save(destination, options));
+            Assert.True(OfficeIMO.Core.Internal.OfficeOutputLimit.Is(error));
+            Assert.Equal(marker, destination.ToArray());
+
+            options.MaxInMemoryPackageBytes = 256 * 1024;
+            document.Save(destination, options);
+            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            if (!openSdk) Assert.Empty(document.OpenXmlSdkFallbacks);
+            Assert.InRange(destination.Length, 1, limit - 1);
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(destination.ToArray()));
+            Assert.Equal(text, reloaded["Data"].Cell(192, 1).GetValue<string>());
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {

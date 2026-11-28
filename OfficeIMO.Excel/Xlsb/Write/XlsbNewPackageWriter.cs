@@ -74,7 +74,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             CancellationToken cancellationToken,
-            bool useSharedStrings = false) {
+            bool useSharedStrings = false,
+            long maximumSharedStringBytes = ExcelSaveOptions.DefaultMaxInMemoryPackageBytes) {
             ArgumentNullException.ThrowIfNull(document);
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(destination);
@@ -95,7 +96,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             if (!XlsbDirectTabularPlan.CanCapture(source)) {
                 return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
-                    sharedStrings, cancellationToken);
+                    sharedStrings, maximumSharedStringBytes, cancellationToken);
             }
 
             // Freeze a flat source as a compressed package before publishing to an
@@ -105,7 +106,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 && !cancellationToken.CanBeCanceled && document.Execution.OnTiming == null
                 && ExcelDocument.HasFlatTabularSnapshot(source.Rows)) {
                 return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
-                    sharedStrings, cancellationToken, pooledSnapshot: true);
+                    sharedStrings, maximumSharedStringBytes, cancellationToken, pooledSnapshot: true);
             }
 
             XlsbDirectTabularPlan? plan = null;
@@ -115,11 +116,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 // Validate temporal styles and shared strings before touching the destination.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
                 byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
-                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
                 WriteDirectTabularPackage(dateSystem, destination, source.SheetName, stylesPart,
-                    sharedStringsPart, document.WorkbookPartRoot.ThemePart, plan, cancellationToken);
+                    sharedStringsPart, CreateThemeWriter(document.WorkbookPartRoot.ThemePart), plan, cancellationToken);
                 if (destination.CanSeek) destination.SetLength(destination.Position);
                 return true;
             } finally {
@@ -134,6 +135,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             XlsbSharedStringTable? sharedStrings,
+            long maximumSharedStringBytes,
             CancellationToken cancellationToken,
             bool pooledSnapshot = false) {
             // Staging the compressed package preserves the read-once input contract
@@ -152,10 +154,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 // while emitting rows. Finalize every dependent part before publication.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
                 byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
-                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
                 cancellationToken.ThrowIfCancellationRequested();
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, source.SheetName,
-                    stylesPart != null, sharedStringsPart.HasValue, document.WorkbookPartRoot.ThemePart);
+                    stylesPart != null, sharedStringsPart.HasValue, CreateThemeWriter(document.WorkbookPartRoot.ThemePart));
                 if (stylesPart != null) archive.WriteEntry("xl/styles.bin", stylesPart, CompressionLevel.Fastest);
                 if (sharedStringsPart.HasValue) archive.WriteEntry("xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
             }
@@ -174,18 +176,30 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return true;
         }
 
+        /// <summary>Emits the same native tabular package from a captured owned worksheet.</summary>
+        internal static void WriteOwnedTabular(Stream destination, ExcelDateSystem dateSystem, string sheetName,
+            byte[] stylesPart, byte[] themePart, XlsbSharedStringTable? sharedStrings, XlsbDirectTabularPlan plan,
+            long maximumSharedStringBytes, CancellationToken cancellationToken) {
+            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, maximumSharedStringBytes);
+            WriteDirectTabularPackage(dateSystem, destination, sheetName, stylesPart, sharedStringsPart,
+                stream => stream.Write(themePart, 0, themePart.Length), plan, cancellationToken);
+        }
+
+        private static Action<Stream>? CreateThemeWriter(ThemePart? theme) =>
+            theme == null ? null : stream => theme.Theme!.Save(stream);
+
         private static void WriteDirectTabularPackage(
             ExcelDateSystem dateSystem,
             Stream destination,
             string sheetName,
             byte[]? stylesPart,
             ArraySegment<byte>? sharedStringsPart,
-            ThemePart? theme,
+            Action<Stream>? writeTheme,
             XlsbDirectTabularPlan plan,
             CancellationToken cancellationToken) {
             using (ExcelPackageArchive archive = ExcelPackageArchive.Create(destination, ReproducibleEntryTime.DateTime)) {
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, sheetName,
-                    stylesPart != null, sharedStringsPart.HasValue, theme);
+                    stylesPart != null, sharedStringsPart.HasValue, writeTheme);
                 using (Stream output = archive.OpenEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest)) {
                     XlsbWorksheetPartWriter.WriteDirectTabular(output, plan, cancellationToken);
                 }
@@ -200,16 +214,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string sheetName,
             bool hasStyles,
             bool hasSharedStrings,
-            ThemePart? theme) {
-            archive.WriteEntry("[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
+            Action<Stream>? writeTheme) {
+            archive.WriteEntry("[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: writeTheme != null), CompressionLevel.Fastest);
             archive.WriteEntry("_rels/.rels", RootRelationships, CompressionLevel.Fastest);
             archive.WriteEntry("xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
                 sheetName,
                 dateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
-            archive.WriteEntry("xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
-            if (theme == null) return;
+            archive.WriteEntry("xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: writeTheme != null), CompressionLevel.Fastest);
+            if (writeTheme == null) return;
             using Stream output = archive.OpenEntry("xl/theme/theme1.xml", CompressionLevel.Fastest);
-            theme.Theme!.Save(output);
+            writeTheme(output);
         }
 
         private static void WritePackage(

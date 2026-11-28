@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal sealed partial class XlsbDirectTabularPlan {
         private static bool TryCreateBuffered(
             ExcelDateSystem dateSystem,
-            ExcelSheet sheet,
+            ExcelSheet? sheet,
             ExcelDirectTabularSource source,
             ExcelCellValueBuffer cells,
             XlsbSharedStringTable? sharedStrings,
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// </summary>
         private bool TryCaptureBufferedCells(
             ExcelDateSystem dateSystem,
-            ExcelSheet sheet,
+            ExcelSheet? sheet,
             ExcelDirectTabularSource source,
             ExcelCellValueBuffer cells,
             XlsbSharedStringTable? sharedStrings,
@@ -53,7 +53,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                             CaptureText(slot, string.Empty, sharedStrings);
                             break;
                         case ExcelBufferedCellKind.Text:
-                            CaptureText(slot, (string)cell.Reference!, sharedStrings);
+                            string text = (string)cell.Reference!;
+                            if (sheet == null && (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)) return false;
+                            CaptureText(slot, text, sharedStrings);
                             break;
                         case ExcelBufferedCellKind.Number:
                             double number = cell.NumberValue;
@@ -67,6 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                             _payloads[slot] = unchecked((ulong)BitConverter.DoubleToInt64Bits((double)cell.Bits));
                             break;
                         case ExcelBufferedCellKind.DateTime:
+                            if (sheet == null) return false;
                             double serial = ExcelDateSystemConverter.ToSerial(cell.DateTimeValue, dateSystem);
                             dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
                             _kinds[slot] = DateKind;

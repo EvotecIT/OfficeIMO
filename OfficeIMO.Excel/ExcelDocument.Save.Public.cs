@@ -416,6 +416,14 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (format == ExcelFileFormat.Xlsb
+                && TryPrepareOwnedXlsbCreation(destination, options, CancellationToken.None, out ArraySegment<byte> native)) {
+                destination.Write(native.Array!, native.Offset, native.Count);
+                destination.Flush();
+                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
+                return;
+            }
+
             OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb, format == ExcelFileFormat.Xlsb);
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
@@ -579,6 +587,14 @@ namespace OfficeIMO.Excel {
 
             if (OfficeIMO.Core.Internal.OfficeRuntime.IsNetFramework && !destination.CanSeek) {
                 await SaveNonSeekableFrameworkDestinationAsync(destination, format, options, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (format == ExcelFileFormat.Xlsb
+                && TryPrepareOwnedXlsbCreation(destination, options, cancellationToken, out ArraySegment<byte> native)) {
+                await destination.WriteAsync(native.Array!, native.Offset, native.Count, cancellationToken).ConfigureAwait(false);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
                 return;
             }
 
