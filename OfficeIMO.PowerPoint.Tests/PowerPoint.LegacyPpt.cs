@@ -124,6 +124,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Preflight_CountsCharactersAgainstTheConfiguredPartLimit() {
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                // 100,000 characters: within the limit, but about 300,000 bytes in UTF-8.
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox(new string('\u65E5', 100_000));
+                pptx = created.ToBytes();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 200_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
 

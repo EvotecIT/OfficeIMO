@@ -110,8 +110,11 @@ public sealed partial class PowerPointDocument {
         } else if (SdkDocument.FileOpenAccess != FileAccess.ReadWrite) {
             // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
             // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
+            HashSet<string>? processed = LoadPartsForMarkupCompatibility(SdkDocument);
+            HashSet<string>? copied = processed == null ? _sdkEditedParts
+                : _sdkEditedParts == null ? processed : new HashSet<string>(processed.Concat(_sdkEditedParts), StringComparer.OrdinalIgnoreCase);
             using (var clone = (PresentationDocument)SdkDocument.Clone(package, true)) {
-                if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<OpenXmlPart>());
+                if (copied != null) CopyEditedParts(SdkDocument, clone, copied, new HashSet<OpenXmlPart>());
                 CopyPackageReferenceRelationships(SdkDocument, clone);
             }
         } else {
@@ -122,6 +125,7 @@ public sealed partial class PowerPointDocument {
             // on .NET Framework the packaging layer keeps core properties in memory, and the clone doesn't carry them.
             // The clone also leaves out the package's own external relationships, which the copy needs.
             PresentationDocument document = SdkDocument;
+            LoadPartsForMarkupCompatibility(document);
             CorePropertyValues properties = CorePropertyValues.Read(document);
             CoreFilePropertiesPart? corePart = document.CoreFilePropertiesPart;
             byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
@@ -204,6 +208,28 @@ public sealed partial class PowerPointDocument {
 
     private static bool SameDate(DateTime? left, DateTime? right) =>
         left.HasValue == right.HasValue && (!left.HasValue || left.Value.Ticks == right!.Value.Ticks && left.Value.Kind == right.Value.Kind);
+
+    // With markup compatibility processing, the SDK rewrites a part's markup when it loads the part. Loading every XML part
+    // before the copy makes the copy carry the markup a typed read sees, whether or not the part was read yet. Returns the
+    // names of the parts loaded, or null when the SDK doesn't process markup compatibility.
+    private static HashSet<string>? LoadPartsForMarkupCompatibility(PresentationDocument document) {
+        if (document.MarkupCompatibilityProcessSettings.ProcessMode == DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessMode.NoProcess) return null;
+        var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<OpenXmlPart>();
+        var pending = new Stack<OpenXmlPartContainer>();
+        pending.Push(document);
+        while (pending.Count > 0) {
+            foreach (IdPartPair pair in pending.Pop().Parts) {
+                OpenXmlPart part = pair.OpenXmlPart;
+                if (!seen.Add(part)) continue;
+                if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase) && part.RootElement != null) {
+                    loaded.Add(part.Uri.OriginalString);
+                }
+                pending.Push(part);
+            }
+        }
+        return loaded;
+    }
 
     // Writes the content of each edited part into the same part of the copy.
     private static void CopyEditedParts(DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer source, DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer target,

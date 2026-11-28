@@ -170,12 +170,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal OfficeXmlNode RootOf(string partName) {
             if (!IsXml(partName)) return default;
-            // The copy honours the document's part size limit, as reading the part through the document would.
-            if (_document != null && _document.IsOverPartLimit(_package, partName)) {
-                throw new InvalidDataException("The part '" + partName + "' exceeds the configured maximum part size.");
-            }
+            if (_document != null) EnsureWithinCharacterLimit(partName, _document.MaximumPartXmlCharacters);
             OfficeXmlTree tree = _package.GetXml(partName);
             return new OfficeXmlNode(tree, tree.Root);
+        }
+
+        // The copy honours the document's part size limit, counted in characters as reading the part through the document
+        // counts it: the stored length decides only when no character count could fit in it.
+        private void EnsureWithinCharacterLimit(string partName, long limit) {
+            if (!_package.TryGetStoredLength(partName, out long storedLength) || storedLength <= limit) return;
+            if (storedLength <= OfficeXmlPullReader.MaximumBytesFor(limit)) {
+                byte[] bytes = _package.ReadPartBytes(partName);
+                if (OfficeXmlPullReader.CountCharacters(bytes, bytes.Length) <= limit) return;
+            }
+            throw new InvalidDataException("The part '" + partName + "' exceeds the configured maximum of " + limit + " characters.");
         }
 
         internal string? ContentTypeOf(string partName) => _package.GetContentType(partName);
