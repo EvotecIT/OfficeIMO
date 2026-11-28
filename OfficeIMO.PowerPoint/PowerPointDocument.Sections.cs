@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeXmlNode newSection = CreateSection(sectionList, name, movedIds);
-            newSection = sectionList.InsertBefore(newSection, containing.NextNode);
+            newSection = sectionList.InsertBefore(newSection, containing.NextNode());
             return BuildSectionInfo(newSection, BuildSlideIndexMap(slideIds));
         }
 

@@ -22,8 +22,8 @@ namespace OfficeIMO.OpenXml.Internal {
     /// its SDK bridge folder.
     /// </summary>
     /// <remarks>
-    /// Element navigation skips comments and processing instructions, and text is read and written through
-    /// <see cref="InnerText"/>. Namespaces are the fixed ids of <see cref="OfficeXmlNamespaces"/>; a namespace
+    /// Children are elements only: text is read and written through <see cref="InnerText"/>, and comments and
+    /// processing instructions are skipped. Namespaces are the fixed ids of <see cref="OfficeXmlNamespaces"/>; a namespace
     /// outside them is named by its URI.
     /// </remarks>
     internal readonly struct OfficeXmlNode : IEquatable<OfficeXmlNode> {
@@ -117,10 +117,6 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        /// <summary>The following node, including non-element markup.</summary>
-        internal OfficeXmlNode NextNode => _tree != null ? new OfficeXmlNode(_tree, _tree.NextSiblingOf(_node))
-            : _sdk != null ? FromSdk(OfficeSdkXml.NextNode(_sdk)) : default;
-
         internal OfficeXmlNode PreviousSibling {
             get {
                 if (_tree != null) return new OfficeXmlNode(_tree, SkipToElement(_tree, _tree.PreviousSiblingOf(_node), forward: false));
@@ -159,19 +155,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (sibling.Is(namespaceId, localName)) return sibling;
             }
             return default;
-        }
-
-        /// <summary>Takes a snapshot of the child nodes exposed by the current representation. The SDK exposes intervening markup as nodes.</summary>
-        internal List<OfficeXmlNode> ChildNodes() {
-            var children = new List<OfficeXmlNode>();
-            if (_tree != null) {
-                for (int child = _tree.FirstChildOf(_node); child != OfficeXmlTree.NoNode; child = _tree.NextSiblingOf(child)) {
-                    children.Add(new OfficeXmlNode(_tree, child));
-                }
-            } else if (_sdk != null) {
-                OfficeSdkXml.CollectChildNodes(_sdk, children);
-            }
-            return children;
         }
 
         /// <summary>The child elements, in document order.</summary>
@@ -527,17 +510,6 @@ namespace OfficeIMO.OpenXml.Internal {
         internal void Remove() {
             if (_tree != null) _tree.Remove(_node);
             else if (_sdk != null) OfficeSdkXml.Remove(_sdk);
-        }
-
-        /// <summary>Removes the child nodes exposed by the current representation.</summary>
-        internal void RemoveAllChildren() {
-            if (_tree != null) {
-                for (int child = _tree.FirstChildOf(_node); child != OfficeXmlTree.NoNode; child = _tree.FirstChildOf(_node)) {
-                    _tree.Remove(child);
-                }
-            } else if (_sdk != null) {
-                OfficeSdkXml.RemoveAllChildren(_sdk);
-            }
         }
 
         /// <summary>Removes every child element with this name.</summary>

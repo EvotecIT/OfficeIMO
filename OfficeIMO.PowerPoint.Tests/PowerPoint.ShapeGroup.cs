@@ -2,7 +2,9 @@ using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -74,14 +76,71 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape first = slide.AddShape(OfficePresetShapeType.Rectangle, name: "First");
             PowerPointAutoShape second = slide.AddShape(OfficePresetShapeType.Rectangle, name: "Second");
             PowerPointGroupShape group = slide.GroupShapes([first, second]);
+            PowerPointShape heldChild = slide.GetGroupChildren(group)[1];
             Assert.False(presentation.IsSdkLoaded);
 
             _ = presentation.OpenXmlDocument;
             var children = slide.UngroupShape(group);
             first.Name = "Renamed first";
+            heldChild.Name = "Renamed second";
 
             Assert.Equal("Renamed first", children[0].Name);
-            Assert.Equal("Second", children[1].Name);
+            Assert.Equal("Renamed second", children[1].Name);
+            using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
+            Assert.Equal(new[] { "Renamed first", "Renamed second" },
+                Assert.Single(reopened.Slides).Shapes.Select(shape => shape.Name));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void UngroupRejectsGroupOwnedExtensionBranchesBeforeMovingAnyShape(bool openSdk) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape first = slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "First");
+                PowerPointAutoShape second = slide.AddRectangle(OfficeLength.Points(10), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Second");
+                slide.GroupShapes([first, second]);
+                slide.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Following");
+
+                var sdkSlide = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide;
+                ShapeTree tree = sdkSlide.CommonSlideData!.ShapeTree!;
+                var choice = new AlternateContentChoice(new ExtensionListWithModification()) { Requires = "p14" };
+                var wrapper = new AlternateContent(choice, new AlternateContentFallback(new ExtensionListWithModification()));
+                wrapper.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
+                tree.Elements<GroupShape>().Single().AppendChild(wrapper);
+                tree.AppendChild(new ExtensionListWithModification());
+                authored = presentation.ToBytes();
+            }
+
+            using var original = PresentationDocument.Open(new MemoryStream(authored, writable: false), false,
+                new OpenSettings {
+                    MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(
+                        MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2007)
+                });
+            Assert.Empty(new OpenXmlValidator().Validate(original.PresentationPart!.SlideParts.Single().Slide));
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            if (openSdk) _ = loaded.OpenXmlDocument;
+            var group = Assert.IsType<PowerPointGroupShape>(reopened.Shapes[0]);
+
+            Assert.Throws<InvalidOperationException>(() => reopened.UngroupShape(group));
+            Assert.Equal(openSdk, loaded.IsSdkLoaded);
+            Assert.Same(group, reopened.Shapes[0]);
+            Assert.Equal("Following", reopened.Shapes[1].Name);
+            Assert.Equal(new[] { "First", "Second" }, reopened.GetGroupChildren(group).Select(shape => shape.Name));
+            Assert.True(XNode.DeepEquals(ReadDrawingTree(authored), ReadDrawingTree(loaded.ToBytes())));
+        }
+
+        private static XElement ReadDrawingTree(byte[] package) {
+            using var zip = new ZipArchive(new MemoryStream(package, writable: false));
+            using Stream slide = zip.GetEntry("ppt/slides/slide1.xml")!.Open();
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            return XDocument.Load(slide).Descendants(p + "spTree").Single();
         }
 
         [Fact]

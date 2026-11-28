@@ -55,11 +55,15 @@ namespace OfficeIMO.PowerPoint {
             }
             long relationshipCursor = useBatchRelationshipIds ? 1 : _slideRelationshipSearchStart;
             string pathPrefix = slides.Main.Substring(0, slides.Main.LastIndexOf('/') + 1) + "slides/slide";
+            // The SDK starts with the slide parts present when it opens the package.
+            int batchPartSequence = useBatchRelationshipIds ? package.CountParts(SlideContentType, includeDeleted: false) : 0;
             var added = new List<PowerPointSlide>(count);
             try {
                 for (int index = 0; index < count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    string partName = NextPartName(package, SlideContentType, pathPrefix, ".xml");
+                    string partName = useBatchRelationshipIds
+                        ? NextFreePartName(package, pathPrefix, ".xml", ref batchPartSequence)
+                        : NextPartName(package, SlideContentType, pathPrefix, ".xml");
                     string partRelationships = OfficeOpcPartNames.GetRelationshipsPartName(partName);
                     if (package.PartExists(partRelationships)) {
                         throw new InvalidDataException("The package already has relationships for the new slide '" + partName + "'.");
@@ -73,8 +77,8 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     string relationship = ReserveSlideRelationshipId(used, ref relationshipCursor);
-                    string layoutTarget = OfficeOpcPartNames.GetRelativeTarget(partName, layout);
-                    string slideTarget = OfficeOpcPartNames.GetRelativeTarget(slides.Main, partName);
+                    string layoutTarget = useBatchRelationshipIds ? layout : OfficeOpcPartNames.GetRelativeTarget(partName, layout);
+                    string slideTarget = useBatchRelationshipIds ? partName : OfficeOpcPartNames.GetRelativeTarget(slides.Main, partName);
                     bool createdSlide = false;
                     bool linkedSlide = false;
                     int entry = OfficeXmlTree.NoNode;
@@ -225,12 +229,17 @@ namespace OfficeIMO.PowerPoint {
         private string NextPartName(OfficeOpcEditablePackage package, string contentType, string prefix, string extension) {
             _packagePartSequence ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             if (!_packagePartSequence.TryGetValue(contentType, out int sequence)) sequence = package.CountParts(contentType);
+            string name = NextFreePartName(package, prefix, extension, ref sequence);
+            _packagePartSequence[contentType] = sequence;
+            return name;
+        }
+
+        private static string NextFreePartName(OfficeOpcEditablePackage package, string prefix, string extension, ref int sequence) {
             string name;
             do {
                 sequence++;
                 name = prefix + sequence.ToString(CultureInfo.InvariantCulture) + extension;
             } while (package.PartExists(name));
-            _packagePartSequence[contentType] = sequence;
             return name;
         }
 
