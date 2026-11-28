@@ -35,9 +35,13 @@ internal static class RootReadmeFormatMapProjection {
 
     internal static string Create(string readmePath, FormatMapModel model) {
         string raw = File.ReadAllText(readmePath);
-        string updated = Replace(Normalize(raw), Normalize(Render(model)));
-        // Keep the README's own line endings, so regeneration only touches the block.
-        return raw.Contains("\r\n", StringComparison.Ordinal) ? updated.Replace("\n", "\r\n") : updated;
+        string block = Normalize(Render(model)).TrimEnd('\n');
+        Replace(Normalize(raw), block); // validates the markers
+        // Splice the block into the original text, so every line outside it keeps its own line ending.
+        int start = raw.IndexOf(StartMarker, StringComparison.Ordinal);
+        int end = raw.IndexOf(EndMarker, start, StringComparison.Ordinal) + EndMarker.Length;
+        bool crlf = end < raw.Length && raw[end] == '\r';
+        return raw.Substring(0, start) + (crlf ? block.Replace("\n", "\r\n") : block) + raw.Substring(end);
     }
 
     internal static string Render(FormatMapModel model) {

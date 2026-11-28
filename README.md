@@ -91,7 +91,7 @@ Word, Excel and PowerPoint share one shape: `{Format}Document.Create`, `Load` an
 ## Formats
 
 <!-- officeimo-format-map:start -->
-94 formats and 338 conversion routes. Every route runs from .NET; 68 run from the `officeimo` CLI, 68 in Studio, 92 from PSWriteOffice and 14 in the browser tools on officeimo.com.
+95 formats and 342 conversion routes. Every route runs from .NET; 72 run from the `officeimo` CLI, 72 in Studio, 92 from PSWriteOffice and 14 in the browser tools on officeimo.com.
 
 | Family | Formats | Routes from |
 | --- | --- | ---: |
@@ -102,7 +102,7 @@ Word, Excel and PowerPoint share one shape: `{Format}Document.Create`, `Load` an
 | Diagrams | Visio, ODG/FODG, Binary Visio, Binary Visio stencil, Binary Visio template, VSDX, VSSX, VSTX | 18 |
 | Project and Publisher | Project, Publisher | 11 |
 | Images | PNG, SVG, JPEG, TIFF, WebP, HEIC | 1 |
-| Notes and books | OneNote, EPUB, Comic book ZIP, Comic book 7z, FictionBook 2, Mobipocket and Kindle, Book project, Compiled HTML Help | 34 |
+| Notes and books | OneNote, EPUB, Comic book ZIP, Comic book 7z, Comic book RAR 5 (stored), FictionBook 2, Mobipocket and Kindle, Book project, Compiled HTML Help | 38 |
 | Notebooks | Jupyter Notebook, Notebook source | 6 |
 | Email | Email, EML, MSG, OFT, TNEF | 18 |
 | Bibliography | BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, EndNote XML | 30 |
