@@ -9,6 +9,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointChart(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointChart(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         private OfficeTheme ColorTheme => PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide);
 
         /// <summary>

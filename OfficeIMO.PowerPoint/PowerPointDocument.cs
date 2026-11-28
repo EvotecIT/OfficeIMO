@@ -196,7 +196,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlideSize SlideSize {
             get {
                 ThrowIfDisposed();
-                return _slideSize ??= _sdkDocument == null && _sdkDeferred ? new PowerPointSlideSize(this) : new PowerPointSlideSize(SdkPresentationPart);
+                return _slideSize ??= new PowerPointSlideSize(this);
             }
         }
 

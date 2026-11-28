@@ -1,5 +1,7 @@
 using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -98,17 +100,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool InheritsGeometry(PowerPointShape shape) =>
-            shape.Element is DocumentFormat.OpenXml.Presentation.Shape element &&
-            element.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape != null &&
-            element.ShapeProperties?.Transform2D == null;
+            shape.XmlElement.Is(OfficeXmlNamespaces.PresentationML, "sp")
+            && shape.HasPlaceholderShape
+            && shape.XmlElement.Child(OfficeXmlNamespaces.PresentationML, "spPr")
+                .Child(OfficeXmlNamespaces.DrawingML, "xfrm").IsNone;
 
         private static bool IsLineGeometry(PowerPointShape shape) {
-            if (shape.Element is DocumentFormat.OpenXml.Presentation.ConnectionShape) return true;
-            DocumentFormat.OpenXml.Drawing.PresetGeometry? geometry = shape.Element
-                .Descendants<DocumentFormat.OpenXml.Drawing.PresetGeometry>().FirstOrDefault();
-            DocumentFormat.OpenXml.Drawing.ShapeTypeValues? preset = geometry?.Preset?.Value;
-            return preset == DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Line ||
-                   preset == DocumentFormat.OpenXml.Drawing.ShapeTypeValues.StraightConnector1;
+            OfficeXmlNode element = shape.XmlElement;
+            if (element.Is(OfficeXmlNamespaces.PresentationML, "cxnSp")) return true;
+            OfficeXmlNode geometry = element.Child(OfficeXmlNamespaces.PresentationML, "spPr")
+                .Child(OfficeXmlNamespaces.DrawingML, "prstGeom");
+            if (geometry.IsNone && element.Is(OfficeXmlNamespaces.PresentationML, "grpSp")) {
+                geometry = element.ContentDescendants(OfficeXmlNamespaces.DrawingML, "prstGeom").FirstOrDefault();
+            }
+            return geometry.Attribute("prst") is "line" or "straightConnector1";
         }
 
         private static void InspectBounds(PowerPointShape shape, int shapeIndex, int slideIndex,
@@ -203,13 +208,13 @@ namespace OfficeIMO.PowerPoint {
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                     if (!string.IsNullOrWhiteSpace(runs[runIndex].FontFamily)) {
                         return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                            runs[runIndex].FontFamily, runs[runIndex].OwnerPart) ?? "Aptos";
+                            runs[runIndex].FontFamily, runs[runIndex].OwnerPartRef) ?? "Aptos";
                     }
                 }
             }
 
             return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontFamily,
-                textBox.RelationshipOwnerPart) ?? "Aptos";
+                textBox.OwnerPartRef) ?? "Aptos";
         }
 
         private static void InspectPicture(PowerPointImage picture, int shapeIndex, int slideIndex,
