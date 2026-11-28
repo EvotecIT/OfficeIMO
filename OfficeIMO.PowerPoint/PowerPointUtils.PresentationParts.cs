@@ -5,10 +5,42 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 using D = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
+        internal static string? Attribute(this OfficeXmlNode element, string namespaceUri, string localName) {
+            if (element.Tree is { } tree) return tree.GetAttribute(element.Node, tree.Namespaces.GetId(namespaceUri), localName);
+            foreach (OfficeXmlAttribute attribute in element.Attributes()) {
+                if (attribute.NamespaceUri == namespaceUri && attribute.LocalName == localName) return attribute.Value;
+            }
+            return null;
+        }
+
+        internal static string? LookupNamespace(this OfficeXmlNode element, string prefix) {
+            if (element.Tree is { } tree) {
+                string name = prefix.Length == 0 ? "xmlns" : prefix;
+                for (int node = element.Node; node != OfficeXmlTree.NoNode; node = tree.ParentOf(node)) {
+                    if (tree.GetAttribute(node, OfficeXmlNamespaces.Xmlns, name) is { } uri) return uri;
+                }
+                return null;
+            }
+            return (element.SdkElement as OpenXmlElement)?.LookupNamespace(prefix);
+        }
+
+        internal static void SetAttribute(this OfficeXmlNode element, string namespaceUri, string localName, string? value, string prefix) {
+            if (element.Tree is { } tree) {
+                element.SetAttribute(tree.Namespaces.GetId(namespaceUri), localName, value);
+            } else if (element.SdkElement is OpenXmlElement sdk) {
+                if (value != null) sdk.SetAttribute(new OpenXmlAttribute(prefix, localName, namespaceUri, value));
+                else if (sdk.HasAttributes) sdk.RemoveAttribute(localName, namespaceUri);
+            } else {
+                throw new InvalidOperationException("There is no element to set the attribute on.");
+            }
+        }
+
         // Thumbnail extracted from Assets/PowerPointTemplates/PowerPointBlank.pptx (docProps/thumbnail.jpeg)
         private static readonly byte[] ThumbnailBytes = Convert.FromBase64String(
             "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUEBAUEBQUFBQUEBQUFBQUEBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQT/wAARCAAkAA4DAREAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAYHAgUEAwIBCf/EADgQAAECAwQJBgUEAwAAAAAAAAECAwAEBRESBiExBxNBUWFxFCIyobHBFBZCksEVM1NiY//EABsBAQEAAwEBAQAAAAAAAAAAAAABAgMEAQUG/8QALREBAAIBBAECBQMEAwAAAAAAAAECAxEEEiExQQUTIlFhcZGh0fAUI0JSsf/aAAwDAQACEQMRAD8A9P8A0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARvbLcm6goc0JdU5pUW4RjjdM9i9Wxj6WutKLa9c7WJXu1L05PwnHA/0eFX3c/B/5UX5xvV+zY+q2cL6ZrGdOHFjT3yL1clOVruomDfaYy6USsvXxP6c8g3k3kDWK6byPXF0jHGU0kqdZSk0nFJJySgAAAAAAAAAAAAAAAAAAABK/pv3iQvqVps2fwXyrGnUsPW9jHTV6hBZ6wqn6UdZacK3WN+S2z87zuzp/8AflmWzNtZ0rJQ1pqSikopSnVKUqk1SlKSgAAbcRLRqy5F06ys3xcrKzJSmkoxVFLKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKU//Z");
@@ -81,8 +113,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static Ap.Properties EnsureApplicationProperties(PresentationDocument presentationDocument) {
-            ExtendedFilePropertiesPart extendedPart = presentationDocument.ExtendedFilePropertiesPart ?? presentationDocument.AddExtendedFilePropertiesPart();
-            Ap.Properties properties = extendedPart.Properties ??= new Ap.Properties();
+            Ap.Properties properties = GetSdkApplicationProperties(presentationDocument);
             properties.TotalTime ??= new Ap.TotalTime() { Text = "0" };
             properties.Application ??= new Ap.Application() { Text = "Microsoft Office PowerPoint" };
             properties.PresentationFormat ??= new Ap.PresentationFormat() { Text = "Widescreen" };
@@ -90,6 +121,93 @@ namespace OfficeIMO.PowerPoint {
             properties.Notes ??= new Ap.Notes() { Text = "0" };
             properties.HiddenSlides ??= new Ap.HiddenSlides() { Text = "0" };
             return properties;
+        }
+
+        internal static string? ReadSdkBuiltinProperty(PowerPointDocument document, string name) {
+            var properties = document.SdkDocument.PackageProperties;
+            return name switch {
+                "creator" => properties.Creator,
+                "title" => properties.Title,
+                "description" => properties.Description,
+                "category" => properties.Category,
+                "keywords" => properties.Keywords,
+                "subject" => properties.Subject,
+                "revision" => properties.Revision,
+                "lastModifiedBy" => properties.LastModifiedBy,
+                "version" => properties.Version,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+        }
+
+        internal static void WriteSdkBuiltinProperty(PowerPointDocument document, string name, string? value) {
+            var properties = document.SdkDocument.PackageProperties;
+            switch (name) {
+                case "creator": properties.Creator = value; break;
+                case "title": properties.Title = value; break;
+                case "description": properties.Description = value; break;
+                case "category": properties.Category = value; break;
+                case "keywords": properties.Keywords = value; break;
+                case "subject": properties.Subject = value; break;
+                case "revision": properties.Revision = value; break;
+                case "lastModifiedBy": properties.LastModifiedBy = value; break;
+                case "version": properties.Version = value; break;
+                default: throw new ArgumentOutOfRangeException(nameof(name));
+            }
+        }
+
+        internal static DateTime? ReadSdkBuiltinDateProperty(PowerPointDocument document, string name) {
+            var properties = document.SdkDocument.PackageProperties;
+            return name switch {
+                "created" => properties.Created,
+                "modified" => properties.Modified,
+                "lastPrinted" => properties.LastPrinted,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+        }
+
+        internal static void WriteSdkBuiltinDateProperty(PowerPointDocument document, string name, DateTime? value) {
+            var properties = document.SdkDocument.PackageProperties;
+            switch (name) {
+                case "created": properties.Created = value; break;
+                case "modified": properties.Modified = value; break;
+                case "lastPrinted": properties.LastPrinted = value; break;
+                default: throw new ArgumentOutOfRangeException(nameof(name));
+            }
+        }
+
+        private static Ap.Properties GetSdkApplicationProperties(PresentationDocument document) {
+            ExtendedFilePropertiesPart part = document.ExtendedFilePropertiesPart ?? document.AddExtendedFilePropertiesPart();
+            return part.Properties ??= new Ap.Properties();
+        }
+
+        internal static string ReadSdkApplicationProperty(PowerPointDocument document, string name) {
+            Ap.Properties properties = GetSdkApplicationProperties(document.SdkDocument);
+            return (name switch {
+                "Application" => properties.Application?.Text,
+                "AppVersion" => properties.ApplicationVersion?.Text,
+                "Company" => properties.Company?.Text,
+                "Manager" => properties.Manager?.Text,
+                "PresentationFormat" => properties.PresentationFormat?.Text,
+                "TotalTime" => properties.TotalTime?.Text,
+                "Slides" => properties.Slides?.Text,
+                "Notes" => properties.Notes?.Text,
+                "HiddenSlides" => properties.HiddenSlides?.Text,
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            }) ?? string.Empty;
+        }
+
+        internal static void WriteSdkApplicationProperty(PowerPointDocument document, string name, string? value) {
+            Ap.Properties properties = GetSdkApplicationProperties(document.SdkDocument);
+            OpenXmlLeafTextElement property = name switch {
+                "Application" => properties.Application ??= new Ap.Application(),
+                "AppVersion" => properties.ApplicationVersion ??= new Ap.ApplicationVersion(),
+                "Company" => properties.Company ??= new Ap.Company(),
+                "Manager" => properties.Manager ??= new Ap.Manager(),
+                "PresentationFormat" => properties.PresentationFormat ??= new Ap.PresentationFormat(),
+                "TotalTime" => properties.TotalTime ??= new Ap.TotalTime(),
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+            property.Text = value ?? string.Empty;
         }
 
         private static void InitializeDocumentProperties(PresentationDocument presentationDocument) {

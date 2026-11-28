@@ -1,6 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -31,9 +31,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointConnectorGeometry.GetSite(to, toSite, nameof(toSite));
 
             PowerPointConnectionShape connector = AddConnectorShape();
-            var drawing = (NonVisualConnectorShapeDrawingProperties)connector.ConnectorDrawingProperties;
-            drawing.StartConnection = new A.StartConnection { Id = from.Id!.Value, Index = (uint)fromSite };
-            drawing.EndConnection = new A.EndConnection { Id = to.Id!.Value, Index = (uint)toSite };
+            connector.GlueEnds(from.Id!.Value, fromSite, to.Id!.Value, toSite);
             _hasGluedConnectors = true;
             connector.RouteGlued(kind);
             return connector;
@@ -43,13 +41,13 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointConnectionShape AddConnector(OfficeLength startX, OfficeLength startY, OfficeLength endX,
             OfficeLength endY, PowerPointConnectorKind kind) {
             PowerPointConnectionShape connector = AddConnectorShape();
-            PowerPointConnectorGeometry.Route((ConnectionShape)connector.Element, kind, startX.ToEmus(), startY.ToEmus(),
+            PowerPointConnectorGeometry.Route(connector, kind, startX.ToEmus(), startY.ToEmus(),
                 endX.ToEmus(), endY.ToEmus(), null, null);
             return connector;
         }
 
         internal PowerPointShape? FindTopLevelShape(uint id) =>
-            ShapeList.FirstOrDefault(shape => shape.Id == id && shape.Element.Parent is ShapeTree);
+            ShapeList.FirstOrDefault(shape => shape.Id == id && shape.XmlElement.Parent.Is(OfficeXmlNamespaces.PresentationML, "spTree"));
 
         internal void RerouteConnectorsAttachedTo(PowerPointShape shape) {
             // Read through the element handle, so a slide without glued connectors stays off the SDK.
@@ -63,7 +61,9 @@ namespace OfficeIMO.PowerPoint {
 
         private bool HasGluedConnectors() {
             OfficeXmlNode tree = PartRef.Root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree");
-            foreach (OfficeXmlNode properties in tree.Descendants(OfficeXmlNamespaces.PresentationML, "cNvCxnSpPr")) {
+            // A grouped connector can become active again after ungrouping.
+            foreach (OfficeXmlNode properties in tree.ContentDescendants(OfficeXmlNamespaces.PresentationML, "cNvCxnSpPr")) {
+                if (!properties.Parent.Is(OfficeXmlNamespaces.PresentationML, "nvCxnSpPr")) continue;
                 if (!properties.Child(OfficeXmlNamespaces.DrawingML, "stCxn").IsNone || !properties.Child(OfficeXmlNamespaces.DrawingML, "endCxn").IsNone) return true;
             }
             return false;
@@ -71,25 +71,55 @@ namespace OfficeIMO.PowerPoint {
 
         private void ValidateGlueTarget(PowerPointShape shape, string parameterName) {
             ArgumentNullException.ThrowIfNull(shape, parameterName);
-            if (!ReferenceEquals(shape.OwnerSlide, this) || shape.Element.Parent is not ShapeTree || shape.Id == null) {
+            if (!ReferenceEquals(shape.OwnerSlide, this) || !shape.XmlElement.Parent.Is(OfficeXmlNamespaces.PresentationML, "spTree") || shape.Id == null) {
                 throw new ArgumentException("Connectors glue to top-level shapes on the same slide.", parameterName);
             }
         }
 
-        private PowerPointConnectionShape AddConnectorShape() {
-            var connection = new ConnectionShape(
-                new NonVisualConnectionShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = GenerateUniqueName("Connector") },
-                    new NonVisualConnectorShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 0L, Cy = 0L }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.StraightConnector1 },
-                    new A.Outline(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Text1 })) { Width = 12700 }));
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.Append(connection);
-            return TrackShape(new PowerPointConnectionShape(connection, SlidePart));
+        private PowerPointConnectionShape AddConnectorShape() =>
+            AppendConnectionShape(OfficePresetShapeType.StraightConnector1.ToOpenXmlToken(), 0L, 0L, 0L, 0L, standardOutline: true);
+
+        // Used by the binary PowerPoint reader while it still supplies a typed geometry token.
+        internal PowerPointConnectionShape AddConnectionShape(A.ShapeTypeValues shapeType, long left,
+            long top, long width, long height) =>
+            AppendConnectionShape(((DocumentFormat.OpenXml.IEnumValue)shapeType).Value, left, top, width, height, standardOutline: false);
+
+        private PowerPointConnectionShape AppendConnectionShape(string preset, long left, long top, long width, long height, bool standardOutline) {
+            const int p = OfficeXmlNamespaces.PresentationML, a = OfficeXmlNamespaces.DrawingML;
+            uint id = AllocateShapeId();
+            string name = GenerateUniqueName("Connector");
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode tree = EnsureCommonSlideData(part).GetOrAddChild(p, "spTree", PCommonSlideDataView.Order);
+            OfficeXmlNode connector = tree.CreateElement(p, "cxnSp");
+            OfficeXmlNode nonVisual = connector.Append(connector.CreateElement(p, "nvCxnSpPr"));
+            OfficeXmlNode drawing = nonVisual.Append(nonVisual.CreateElement(p, "cNvPr"));
+            drawing.SetUInt32Attribute("id", id);
+            drawing.SetAttribute("name", name);
+            nonVisual.Append(nonVisual.CreateElement(p, "cNvCxnSpPr"));
+            nonVisual.Append(nonVisual.CreateElement(p, "nvPr"));
+
+            var properties = new AShapePropertiesView(connector.Append(connector.CreateElement(p, "spPr")));
+            ATransform2DView transform = properties.GetOrAddXfrm();
+            APoint2DView offset = transform.GetOrAddOff();
+            offset.Element.SetInt64Attribute("x", left);
+            offset.Element.SetInt64Attribute("y", top);
+            APositiveSize2DView extent = transform.GetOrAddExt();
+            extent.Cx = width;
+            extent.Cy = height;
+
+            APresetGeometry2DView geometry = properties.GetOrAddPrstGeom();
+            geometry.Prst = preset;
+            geometry.GetOrAddAvLst();
+            if (standardOutline) {
+                OfficeXmlNode outline = properties.Element.Append(properties.Element.CreateElement(a, "ln"));
+                outline.SetInt32Attribute("w", 12700);
+                OfficeXmlNode fill = outline.Append(outline.CreateElement(a, "solidFill"));
+                fill.Append(fill.CreateElement(a, "schemeClr")).SetAttribute("val", "tx1");
+            }
+
+            connector = tree.InsertBefore(connector, FindTerminalPresentationExtension(tree));
+            part.MarkEdited();
+            return TrackShape((PowerPointConnectionShape)WrapSlideShape(connector, part)!);
         }
     }
 }

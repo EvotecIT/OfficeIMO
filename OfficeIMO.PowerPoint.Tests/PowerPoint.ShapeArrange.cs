@@ -1,7 +1,11 @@
+using System.Text;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
 using Shape = DocumentFormat.OpenXml.Presentation.Shape;
 using Xunit;
@@ -17,6 +21,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
 
+                OfficeXmlTree tree = slide.PartRef.Root.Tree!;
+                int version = tree.Version;
+                Assert.Throws<OverflowException>(() => slide.DuplicateShape(original, offsetY: OfficeLength.Emus(long.MaxValue)));
+                Assert.Equal(version, tree.Version);
+
                 PowerPointShape duplicate = slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(600));
 
                 Assert.Equal(2, slide.Shapes.Count);
@@ -25,6 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(original.Left.ToEmus() + 500, duplicate.Left.ToEmus());
                 Assert.Equal(original.Top.ToEmus() + 600, duplicate.Top.ToEmus());
                 Assert.NotEqual(original.Name, duplicate.Name);
+                Assert.False(presentation.IsSdkLoaded);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -89,6 +99,54 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(savedSlide));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ShapeAuthoringAndDuplicationPreserveTheTerminalExtensionAndItsOpaqueShape(bool wrapExtension) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Real shape");
+                ShapeTree tree = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+                    .Slide.CommonSlideData!.ShapeTree!;
+                var opaque = (Shape)tree.Elements<Shape>().Single().CloneNode(true);
+                opaque.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name = "Not a drawing child";
+                var extension = new ExtensionListWithModification(new DocumentFormat.OpenXml.Presentation.Extension(opaque) {
+                    Uri = "{FA23B9B3-9482-4D05-A265-D23ED5F02EEE}"
+                });
+                if (wrapExtension) {
+                    var choice = new AlternateContentChoice(extension.CloneNode(true)) { Requires = "p14" };
+                    var wrapper = new AlternateContent(choice, new AlternateContentFallback(extension));
+                    wrapper.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
+                    tree.AppendChild(wrapper);
+                } else {
+                    tree.AppendChild(extension);
+                }
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            PowerPointShape original = Assert.Single(reopened.Shapes);
+            PowerPointShape duplicate = reopened.DuplicateShape(original);
+            reopened.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(0),
+                OfficeLength.Points(10), OfficeLength.Points(10), "Added shape");
+            PowerPointTextBox text = reopened.AddTextBox("Added text");
+            reopened.AddConnector(OfficeLength.Points(0), OfficeLength.Points(0),
+                OfficeLength.Points(50), OfficeLength.Points(50), PowerPointConnectorKind.Straight);
+            Assert.False(loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            ShapeTree treeAfter = saved.PresentationPart!.SlideParts.Single().Slide.CommonSlideData!.ShapeTree!;
+            Assert.Equal(new[] { original.Name, duplicate.Name, "Added shape", text.Name }, treeAfter.Elements<Shape>()
+                .Select(shape => shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value));
+            Assert.Single(treeAfter.Elements<ConnectionShape>());
+            OpenXmlElement tail = treeAfter.LastChild!;
+            Assert.Equal(wrapExtension ? "AlternateContent" : "extLst", tail.LocalName);
+            Assert.Contains("Not a drawing child", tail.OuterXml, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void DuplicateGroupShape_AssignsUniqueNonVisualMetadata() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
@@ -116,6 +174,87 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void DuplicateGroupKeepsMatchingShapeMarkupInsideExtensions() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            slide.AddShape(OfficePresetShapeType.Rectangle);
+            slide.AddShape(OfficePresetShapeType.Ellipse);
+            slide.GroupShapes(slide.Shapes);
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace ignored = "urn:officeimo:test:shape-copy";
+            using var input = new MemoryStream(source.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true);
+            const string slidePart = "/ppt/slides/slide1.xml";
+            XDocument slideMarkup = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(slidePart)));
+            slideMarkup.Descendants(p + "grpSp").Single().Add(new XElement(p + "extLst",
+                new XElement(p + "ext", new XAttribute("uri", "{543D527F-FF81-4FD8-AC94-5833C766C5B9}"),
+                    new XElement(ignored + "value", new XElement(p + "sp", new XElement(p + "nvSpPr",
+                        new XElement(p + "cNvPr", new XAttribute("id", 2), new XAttribute("name", "Preserved extension"))))))));
+            byte[] xml = Encoding.UTF8.GetBytes(slideMarkup.ToString(SaveOptions.DisableFormatting));
+            package.ReplacePart(slidePart, xml, xml.Length);
+            using var edited = new MemoryStream();
+            package.Save(edited);
+            edited.Position = 0;
+
+            using var document = PowerPointDocument.Load(edited);
+            PowerPointSlide loaded = document.Slides.Single();
+            PowerPointGroupShape original = Assert.IsType<PowerPointGroupShape>(Assert.Single(loaded.Shapes));
+            var duplicate = Assert.IsType<PowerPointGroupShape>(loaded.DuplicateShape(original, OfficeLength.Emus(10)));
+            byte[] saved = document.ToBytes();
+
+            Assert.NotEqual(original.Id, duplicate.Id);
+            Assert.False(document.IsSdkLoaded);
+            using OfficeOpcEditablePackage result = OfficeOpcEditablePackage.Open(new MemoryStream(saved));
+            XDocument savedSlide = XDocument.Parse(Encoding.UTF8.GetString(result.ReadPartBytes(slidePart)));
+            XElement[] preserved = savedSlide.Descendants(ignored + "value").Select(element => element.Descendants(p + "cNvPr").Single()).ToArray();
+            Assert.Equal(2, preserved.Length);
+            Assert.All(preserved, element => {
+                Assert.Equal("2", (string?)element.Attribute("id"));
+                Assert.Equal("Preserved extension", (string?)element.Attribute("name"));
+            });
+        }
+
+        [Fact]
+        public void DuplicateAfterUngroupKeepsCompatibilityBindingsWhenSaved() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            slide.AddShape(OfficePresetShapeType.Rectangle, name: "Carried");
+            slide.AddShape(OfficePresetShapeType.Ellipse);
+            slide.GroupShapes(slide.Shapes);
+
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            XNamespace feature = "urn:officeimo:test:carried-copy";
+            using var input = new MemoryStream(source.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true);
+            const string slidePart = "/ppt/slides/slide1.xml";
+            XDocument markup = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(slidePart)));
+            XElement group = markup.Descendants(p + "grpSp").Single();
+            group.SetAttributeValue(XNamespace.Xmlns + "feature", feature.NamespaceName);
+            group.Elements(p + "sp").First().Add(new XElement(mc + "AlternateContent",
+                new XElement(mc + "Choice", new XAttribute("Requires", "feature"), new XElement(p + "extLst")),
+                new XElement(mc + "Fallback")));
+            byte[] xml = Encoding.UTF8.GetBytes(markup.ToString(SaveOptions.DisableFormatting));
+            package.ReplacePart(slidePart, xml, xml.Length);
+            using var edited = new MemoryStream();
+            package.Save(edited);
+            edited.Position = 0;
+
+            using var document = PowerPointDocument.Load(edited);
+            PowerPointSlide loaded = document.Slides.Single();
+            loaded.UngroupShape(Assert.IsType<PowerPointGroupShape>(Assert.Single(loaded.Shapes)));
+            loaded.DuplicateShape(loaded.GetShapeByName("Carried")!);
+            byte[] saved = document.ToBytes();
+
+            Assert.False(document.IsSdkLoaded);
+            using OfficeOpcEditablePackage result = OfficeOpcEditablePackage.Open(new MemoryStream(saved));
+            XDocument after = XDocument.Parse(Encoding.UTF8.GetString(result.ReadPartBytes(slidePart)));
+            XElement[] choices = after.Descendants(mc + "Choice").ToArray();
+            Assert.Equal(2, choices.Length);
+            Assert.All(choices, choice => Assert.Equal(feature, choice.GetNamespaceOfPrefix("feature")));
         }
 
         [Fact]

@@ -1,4 +1,7 @@
+using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -20,8 +23,13 @@ public sealed class PowerPointViewLengthsAndCompositionReturns {
         Assert.Equal(2, rows.Count);
         Assert.Throws<ArgumentOutOfRangeException>(() => document.SetGridSpacing(OfficeLength.Points(7), OfficeLength.Emus(long.MaxValue)));
         Assert.Equal(OfficeLength.Emus(12345), document.GridSpacingX);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetGuides(new[] {
+            guide, new PowerPointGuideInfo(PowerPointGuideOrientation.Horizontal, OfficeLength.Emus(long.MaxValue))
+        }));
+        Assert.Equal(1 + columns.Count + rows.Count, document.GetGuides().Count);
         using var output = new MemoryStream();
         document.Save(output);
+        Assert.False(document.IsSdkLoaded);
         output.Position = 0;
         using (var package = PresentationDocument.Open(output, false)) {
             var view = package.PresentationPart!.ViewPropertiesPart!.ViewProperties!;
@@ -33,6 +41,132 @@ public sealed class PowerPointViewLengthsAndCompositionReturns {
         Assert.Equal(document.GridSpacingY, loaded.GridSpacingY);
         Assert.Equal(guide.Position, loaded.GetGuides()[0].Position);
         Assert.Equal(1 + columns.Count + rows.Count, loaded.GetGuides().Count);
+        Assert.False(loaded.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void ViewPropertiesIgnoreSettingsInsideExtensions() {
+        using var source = PowerPointDocument.Create();
+        source.AddSlide();
+        source.SetGridSpacing(OfficeLength.Emus(321), OfficeLength.Emus(654));
+        using var input = new MemoryStream(source.ToBytes());
+        using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true);
+        const string viewPart = "/ppt/viewProps.xml";
+        XDocument view = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(viewPart)));
+        XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+        XNamespace unknown = "urn:officeimo:test:unselected-view";
+        XElement root = view.Root!;
+        root.AddFirst(new XElement(p + "extLst", new XElement(p + "ext", new XAttribute("uri", "{F1A55DE2-61FD-492C-8EAD-BF0717977356}"),
+            new XElement(unknown + "settings", new XElement(p + "gridSpacing", new XAttribute("cx", 999)),
+                new XElement(p + "slideViewPr", new XElement(p + "cSldViewPr", new XAttribute("snapToGrid", true)))))));
+        byte[] xml = Encoding.UTF8.GetBytes(view.ToString(SaveOptions.DisableFormatting));
+        package.ReplacePart(viewPart, xml, xml.Length);
+        using var deck = new MemoryStream();
+        package.Save(deck);
+        deck.Position = 0;
+        using var loaded = PowerPointDocument.Load(deck);
+
+        Assert.Equal(OfficeLength.Emus(321), loaded.GridSpacingX);
+        Assert.False(loaded.SnapToGrid);
+        Assert.False(loaded.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void ViewSettingsCreateTheMissingViewPartWithoutOpeningTheSdk() {
+        using var source = PowerPointDocument.Create();
+        source.AddSlide();
+        byte[] bytes = source.ToBytes();
+        using var input = new MemoryStream();
+        input.Write(bytes, 0, bytes.Length);
+        input.Position = 0;
+        using (PresentationDocument original = PresentationDocument.Open(input, true)) {
+            var presentation = original.PresentationPart!;
+            presentation.DeletePart(presentation.ViewPropertiesPart!);
+        }
+
+        input.Position = 0;
+        using var document = PowerPointDocument.Load(input);
+        document.SnapToGrid = true;
+        document.SetGridSpacing(OfficeLength.Emus(444), OfficeLength.Emus(666));
+        document.AddGuide(PowerPointGuideOrientation.Vertical, OfficeLength.Emus(-222));
+        byte[] saved = document.ToBytes();
+
+        Assert.False(document.IsSdkLoaded);
+        using PresentationDocument native = PresentationDocument.Open(new MemoryStream(saved), false);
+        var view = native.PresentationPart!.ViewPropertiesPart!.ViewProperties!;
+        Assert.Equal(444L, view.GridSpacing!.Cx!.Value);
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved));
+        Assert.True(reopened.SnapToGrid);
+        Assert.Equal(OfficeLength.Emus(-222), Assert.Single(reopened.GetGuides()).Position);
+    }
+
+    [Fact]
+    public void InvalidGuidePositionKeepsTheSdkParseOutcome() {
+        using var source = PowerPointDocument.Create();
+        source.AddSlide();
+        source.AddGuide(PowerPointGuideOrientation.Horizontal, OfficeLength.Emus(222));
+        byte[] damaged = RewriteViewPackage(source.ToBytes(), package => {
+            const int p = OfficeXmlNamespaces.PresentationML;
+            OfficeXmlTree view = package.GetXml("/ppt/viewProps.xml");
+            int slide = view.FindChild(view.Root, p, "slideViewPr");
+            int common = view.FindChild(slide, p, "cSldViewPr");
+            int guides = view.FindChild(common, p, "guideLst");
+            int guide = view.FindChild(guides, p, "guide");
+            view.SetAttribute(guide, OfficeXmlNamespaces.None, "pos", "bogus");
+        });
+
+        using var document = PowerPointDocument.Load(new MemoryStream(damaged));
+        using PresentationDocument sdk = PresentationDocument.Open(new MemoryStream(damaged), false);
+        var view = sdk.PresentationPart!.ViewPropertiesPart!.ViewProperties!;
+        var guide = Assert.Single(view.Descendants<DocumentFormat.OpenXml.Presentation.Guide>());
+
+        Assert.Throws<FormatException>(() => _ = guide.Position!.Value);
+        Assert.Throws<FormatException>(() => document.GetGuides());
+        Assert.False(document.IsSdkLoaded);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidViewRelationshipKeepsTheSdkOutcome(bool wrongContentType) {
+        using var source = PowerPointDocument.Create();
+        source.AddSlide();
+        const string viewPart = "/ppt/viewProps.xml";
+        byte[] damaged = RewriteViewPackage(source.ToBytes(), package => {
+            if (!wrongContentType) {
+                package.DeletePart(viewPart);
+                return;
+            }
+            OfficeXmlTree types = package.ContentTypes;
+            for (int entry = types.FindChild(types.Root, OfficeXmlNamespaces.ContentTypes, "Override"); entry != OfficeXmlTree.NoNode;
+                entry = types.FindNextSibling(entry, OfficeXmlNamespaces.ContentTypes, "Override")) {
+                if (types.GetAttribute(entry, OfficeXmlNamespaces.None, "PartName") != viewPart) continue;
+                types.SetAttribute(entry, OfficeXmlNamespaces.None, "ContentType", "application/xml");
+                return;
+            }
+            throw new InvalidOperationException("The test package has no view content type.");
+        });
+
+        Exception? expected = Record.Exception(() => {
+            using PresentationDocument sdk = PresentationDocument.Open(new MemoryStream(damaged), false);
+            _ = sdk.PresentationPart!.ViewPropertiesPart!.ViewProperties;
+        });
+        Exception? actual = Record.Exception(() => {
+            using var document = PowerPointDocument.Load(new MemoryStream(damaged));
+            document.GetGuides();
+        });
+
+        Assert.NotNull(expected);
+        Assert.Equal(expected.GetType(), actual?.GetType());
+    }
+
+    private static byte[] RewriteViewPackage(byte[] input, Action<OfficeOpcEditablePackage> edit) {
+        using var source = new MemoryStream(input, writable: false);
+        using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(source, leaveOpen: true);
+        edit(package);
+        using var output = new MemoryStream();
+        package.Save(output);
+        return output.ToArray();
     }
 
     [Fact]

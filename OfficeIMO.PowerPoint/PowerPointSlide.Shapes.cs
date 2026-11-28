@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -12,56 +13,54 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
-            A.ShapeTypeValues openXmlShapeType = shapeType.ToOpenXml();
-            if (TryAddPackageShape(shapeType, ((DocumentFormat.OpenXml.IEnumValue)openXmlShapeType).Value, nativeLeft, nativeTop, nativeWidth, nativeHeight, name) is { } added) {
+            string preset = shapeType.ToOpenXmlToken();
+            if (TryAddPackageShape(shapeType, preset, nativeLeft, nativeTop, nativeWidth, nativeHeight, name) is { } added) {
                 return added;
             }
+
+            const int presentation = OfficeXmlNamespaces.PresentationML;
+            uint id = AllocateShapeId();
             string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
-
-            ShapeProperties shapeProperties = new(
-                new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
-                new A.PresetGeometry(new A.AdjustValueList()) { Preset = openXmlShapeType }
-            );
-
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode tree = EnsureCommonSlideData(part).GetOrAddChild(presentation, "spTree", PCommonSlideDataView.Order);
+            OfficeXmlNode shape = CreatePresetShapeMarkup(tree, preset, shapeName, id, nativeLeft, nativeTop, nativeWidth, nativeHeight);
             if (shapeType == OfficePresetShapeType.Line) {
-                shapeProperties.Append(new A.NoFill());
+                OfficeXmlNode properties = shape.Child(presentation, "spPr");
+                properties.Append(properties.CreateElement(OfficeXmlNamespaces.DrawingML, "noFill"));
             }
 
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = shapeName },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                shapeProperties
-            );
-
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            PowerPointAutoShape autoShape = TrackShape(new PowerPointAutoShape(shape));
-            return autoShape;
+            shape = tree.InsertBefore(shape, FindTerminalPresentationExtension(tree));
+            part.MarkEdited();
+            return TrackShape((PowerPointAutoShape)WrapSlideShape(shape, part)!);
         }
 
-        internal PowerPointConnectionShape AddConnectionShape(A.ShapeTypeValues shapeType, long left,
-            long top, long width, long height) {
-            ShapeProperties shapeProperties = new(
-                new A.Transform2D(new A.Offset { X = left, Y = top },
-                    new A.Extents { Cx = width, Cy = height }),
-                new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType });
-            var connection = new ConnectionShape(
-                new NonVisualConnectionShapeProperties(
-                    new NonVisualDrawingProperties {
-                        Id = AllocateShapeId(),
-                        Name = GenerateUniqueName("Connector")
-                    },
-                    new NonVisualConnectorShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                shapeProperties);
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.Append(connection);
-            return TrackShape(new PowerPointConnectionShape(connection));
+        private static OfficeXmlNode CreatePresetShapeMarkup(OfficeXmlNode tree, string preset, string name, uint id,
+            long left, long top, long width, long height, bool isTextBox = false, bool isTitle = false) {
+            const int presentation = OfficeXmlNamespaces.PresentationML;
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            OfficeXmlNode shape = tree.CreateElement(presentation, "sp");
+            OfficeXmlNode nonVisual = shape.Append(shape.CreateElement(presentation, "nvSpPr"));
+            OfficeXmlNode drawingProperties = nonVisual.Append(nonVisual.CreateElement(presentation, "cNvPr"));
+            drawingProperties.SetUInt32Attribute("id", id);
+            drawingProperties.SetAttribute("name", name);
+            OfficeXmlNode shapeDrawing = nonVisual.Append(nonVisual.CreateElement(presentation, "cNvSpPr"));
+            if (isTextBox) shapeDrawing.SetBooleanAttribute("txBox", true);
+            shapeDrawing.Append(shapeDrawing.CreateElement(drawing, "spLocks")).SetBooleanAttribute("noGrp", true);
+            OfficeXmlNode application = nonVisual.Append(nonVisual.CreateElement(presentation, "nvPr"));
+            if (isTitle) application.Append(application.CreateElement(presentation, "ph")).SetAttribute("type", "title");
+
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(presentation, "spPr"));
+            OfficeXmlNode transform = properties.Append(properties.CreateElement(drawing, "xfrm"));
+            OfficeXmlNode offset = transform.Append(transform.CreateElement(drawing, "off"));
+            offset.SetInt64Attribute("x", left);
+            offset.SetInt64Attribute("y", top);
+            OfficeXmlNode extents = transform.Append(transform.CreateElement(drawing, "ext"));
+            extents.SetInt64Attribute("cx", width);
+            extents.SetInt64Attribute("cy", height);
+            OfficeXmlNode geometry = properties.Append(properties.CreateElement(drawing, "prstGeom"));
+            geometry.SetAttribute("prst", preset);
+            geometry.Append(geometry.CreateElement(drawing, "avLst"));
+            return shape;
         }
 
         /// <summary>

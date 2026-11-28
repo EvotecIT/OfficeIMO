@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 
 /// <summary>
 /// Moving and resizing shapes on slides without glued connectors writes the same slides without the SDK as through it,
-/// and doesn't open it; a glued connector still follows its shape.
+/// and doesn't open it; glued connectors follow their shapes on the owned package.
 /// </summary>
 public class PowerPointGeometryWithoutSdkTests {
     [Fact]
@@ -45,6 +45,7 @@ public class PowerPointGeometryWithoutSdkTests {
             PowerPointShape from = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(40));
             PowerPointShape to = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeLength.Points(300), OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(40));
             slide.AddConnector(from, to, PowerPointConnectorKind.Straight);
+            Assert.False(presentation.IsSdkLoaded);
             source = presentation.ToBytes();
         }
 
@@ -54,6 +55,68 @@ public class PowerPointGeometryWithoutSdkTests {
         loaded.Slides[0].Shapes.OfType<PowerPointAutoShape>().Last().Top = OfficeLength.Points(200);
 
         Assert.NotEqual(before, connector.Height);
+        Assert.False(loaded.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void UngroupedConnectorsResumeFollowingTheirEndpoints() {
+        using var original = PowerPointDocument.Create();
+        PowerPointSlide slide = original.AddSlide();
+        PowerPointAutoShape from = slide.AddRectangle(OfficeLength.Points(30), OfficeLength.Points(35),
+            OfficeLength.Points(80), OfficeLength.Points(40), "From");
+        PowerPointAutoShape to = slide.AddRectangle(OfficeLength.Points(280), OfficeLength.Points(35),
+            OfficeLength.Points(80), OfficeLength.Points(40), "To");
+        PowerPointConnectionShape connector = slide.AddConnector(from, to, PowerPointConnectorKind.Straight);
+        slide.GroupShapes(new PowerPointShape[] { from, to, connector });
+        slide.AddShape(OfficePresetShapeType.Ellipse, name: "Unrelated");
+
+        using var reopened = PowerPointDocument.Load(new MemoryStream(original.ToBytes()));
+        PowerPointSlide loaded = reopened.Slides.Single();
+        loaded.GetShapeByName("Unrelated")!.Top = OfficeLength.Points(90);
+        loaded.UngroupShape(loaded.Shapes.OfType<PowerPointGroupShape>().Single());
+        PowerPointConnectionShape ungrouped = loaded.Shapes.OfType<PowerPointConnectionShape>().Single();
+        OfficeLength before = ungrouped.Height;
+
+        loaded.GetShapeByName("To")!.Top = OfficeLength.Points(200);
+
+        Assert.NotEqual(before, ungrouped.Height);
+        Assert.False(reopened.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void ConnectorEndpointsIgnoreMatchingElementsInExtensions() {
+        using var source = PowerPointDocument.Create();
+        PowerPointSlide slide = source.AddSlide();
+        PowerPointAutoShape target = slide.AddShape(OfficePresetShapeType.Rectangle);
+        slide.AddConnector(OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(60),
+            PowerPointConnectorKind.Straight);
+        using var original = new ZipArchive(new MemoryStream(source.ToBytes()), ZipArchiveMode.Read);
+        using var output = new MemoryStream();
+        XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+        XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        using (var fixture = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in original.Entries) {
+                using Stream input = entry.Open();
+                using Stream result = fixture.CreateEntry(entry.FullName).Open();
+                if (entry.FullName != "ppt/slides/slide1.xml") {
+                    input.CopyTo(result);
+                    continue;
+                }
+                XDocument markup = XDocument.Load(input);
+                markup.Descendants(p + "cNvCxnSpPr").Single().Add(
+                    new XElement(a + "extLst", new XElement(a + "ext", new XAttribute("uri", "{AC22EBDA-C2BB-4607-B18D-AD8AA0088DB5}"),
+                        new XElement(a + "stCxn", new XAttribute("id", target.Id!.Value), new XAttribute("idx", 0)))));
+                markup.Save(result);
+            }
+        }
+
+        output.Position = 0;
+        using var loaded = PowerPointDocument.Load(output);
+        PowerPointConnectionShape connector = loaded.Slides.Single().Shapes.OfType<PowerPointConnectionShape>().Single();
+
+        Assert.Null(connector.StartShape);
+        Assert.Null(connector.StartSite);
+        Assert.False(loaded.IsSdkLoaded);
     }
 
     private static void Edit(PowerPointDocument presentation) {

@@ -1,4 +1,6 @@
+using System.Text;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -40,6 +42,64 @@ namespace OfficeIMO.Tests {
             using PresentationDocument package =
                 PresentationDocument.Open(stream, false);
             Assert.Empty(package.DataParts);
+        }
+
+        [Fact]
+        public void ClearingTransitionSoundKeepsAudioSharedThroughAnotherPartSpelling() {
+            byte[] wave = CreateWave();
+            using PowerPointDocument original = PowerPointDocument.Create();
+            PowerPointSlide first = original.AddSlide();
+            PowerPointSlide second = original.AddSlide();
+            using var sound = new MemoryStream(wave, writable: false);
+            first.SetTransitionSound(sound, "Shared");
+            second.SetTransitionSound(sound, "Shared");
+
+            using var source = new MemoryStream(original.ToBytes(), writable: false);
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(source, leaveOpen: true);
+            OfficeXmlTree relationships = package.GetRelationships(second.PartRef.Name);
+            for (int relationship = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                relationship != OfficeXmlTree.NoNode;
+                relationship = relationships.FindNextSibling(relationship, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (relationships.GetAttribute(relationship, OfficeXmlNamespaces.None, "Type") ==
+                    OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "audio") {
+                    relationships.SetAttribute(relationship, OfficeXmlNamespaces.None, "Target", "/MEDIA/mediadatawav");
+                    break;
+                }
+            }
+
+            using var edited = new MemoryStream();
+            package.Save(edited);
+            edited.Position = 0;
+            using PowerPointDocument presentation = PowerPointDocument.Load(edited);
+            Assert.Equal(wave, presentation.Slides[1].GetTransitionSoundBytes());
+
+            presentation.Slides[0].ClearTransitionSound();
+
+            Assert.Null(presentation.Slides[0].GetTransitionSoundBytes());
+            Assert.Equal(wave, presentation.Slides[1].GetTransitionSoundBytes());
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        [Fact]
+        public void SettingTransitionSoundOnAnInvalidSlideLeavesTheAudioUnread() {
+            using PowerPointDocument original = PowerPointDocument.Create();
+            PowerPointSlide slide = original.AddSlide();
+            using var source = new MemoryStream(original.ToBytes(), writable: false);
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(source, leaveOpen: true);
+            byte[] invalid = Encoding.UTF8.GetBytes(
+                "<p:unrelated xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"/>");
+            package.ReplacePart(slide.PartRef.Name, invalid, invalid.Length);
+
+            using var edited = new MemoryStream();
+            package.Save(edited);
+            edited.Position = 0;
+            using PowerPointDocument presentation = PowerPointDocument.Load(edited);
+            using var sound = new MemoryStream(CreateWave(), writable: false) { Position = 4 };
+
+            Assert.Throws<InvalidDataException>(() => presentation.Slides[0].SetTransitionSound(sound, "Rejected"));
+
+            Assert.Equal(4L, sound.Position);
+            Assert.False(presentation.Slides[0].HasTransitionSound);
         }
 
         [Fact]

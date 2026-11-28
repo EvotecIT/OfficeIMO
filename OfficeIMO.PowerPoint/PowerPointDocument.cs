@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether the Open XML SDK package has been opened for this presentation.</summary>
         internal bool IsSdkLoaded => _sdkDocument != null;
 
-        private PresentationDocument SdkDocument => EnsureSdk();
+        internal PresentationDocument SdkDocument => EnsureSdk();
 
         // The package's document type: from the SDK once it is open, otherwise from the main part's content type.
         private PresentationDocumentType? _loadedDocumentType;
@@ -67,7 +67,11 @@ namespace OfficeIMO.PowerPoint {
         private PresentationDocument EnsureSdk() {
             if (_sdkDocument != null) return _sdkDocument;
             if (_disposed) throw new ObjectDisposedException(nameof(PowerPointDocument));
-            if (_sdkDeferred) return OpenDeferredSdk();
+            if (_sdkDeferred) {
+                PresentationDocument document = OpenDeferredSdk();
+                RestoreAssignmentsAfterOpeningSdk();
+                return document;
+            }
             throw new InvalidOperationException("The presentation has no Open XML package to open.");
         }
 
@@ -174,12 +178,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Built-in package properties for the presentation.
         /// </summary>
-        public PowerPointBuiltinDocumentProperties Properties => _properties ??= new PowerPointBuiltinDocumentProperties(SdkDocument);
+        public PowerPointBuiltinDocumentProperties Properties => _properties ??= new PowerPointBuiltinDocumentProperties(this);
 
         /// <summary>
         ///     Extended application properties for the presentation.
         /// </summary>
-        public PowerPointApplicationProperties ApplicationProperties => _applicationProperties ??= new PowerPointApplicationProperties(SdkDocument);
+        public PowerPointApplicationProperties ApplicationProperties => _applicationProperties ??= new PowerPointApplicationProperties(this);
 
         /// <summary>
         ///     Slide size information for the presentation.

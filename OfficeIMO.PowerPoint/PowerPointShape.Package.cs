@@ -91,8 +91,9 @@ namespace OfficeIMO.PowerPoint {
         /// The shape's <c>p:cNvPr</c>; with <paramref name="create"/> the non-visual properties are added as the model adds
         /// them when they are missing. None for an element that has no non-visual properties.
         /// </summary>
-        internal OfficeXmlNode NonVisualDrawingElement(bool create) {
-            OfficeXmlNode element = XmlElement;
+        internal OfficeXmlNode NonVisualDrawingElement(bool create) => NonVisualDrawingElement(XmlElement, create);
+
+        internal static OfficeXmlNode NonVisualDrawingElement(OfficeXmlNode element, bool create) {
             if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || NonVisualContainer(element.LocalName) is not { } containerName) return default;
             OfficeXmlNode container = element.Child(OfficeXmlNamespaces.PresentationML, containerName);
             if (container.IsNone) {

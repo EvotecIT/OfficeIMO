@@ -1,29 +1,37 @@
-using System.Reflection;
-using System.Runtime.ExceptionServices;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
+using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        private const int ViewPml = OfficeXmlNamespaces.PresentationML;
+        private const string ViewRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "viewProps";
+        private const string ViewContentType = "application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml";
+        private static class ViewChildOrder {
+            internal static readonly OfficeXmlChildOrder Root = new(
+                new[] { ViewPml, ViewPml, ViewPml, ViewPml, ViewPml, ViewPml, ViewPml, ViewPml },
+                new[] { "normalViewPr", "slideViewPr", "outlineViewPr", "notesTextViewPr", "sorterViewPr", "notesViewPr", "gridSpacing", "extLst" });
+            internal static readonly OfficeXmlChildOrder Slide = new(
+                new[] { ViewPml, ViewPml }, new[] { "cSldViewPr", "extLst" });
+            internal static readonly OfficeXmlChildOrder Common = new(
+                new[] { ViewPml, ViewPml, ViewPml }, new[] { "cViewPr", "guideLst", "extLst" });
+        }
+
         /// <summary>
         ///     Gets or sets whether slide view snapping uses the grid.
         /// </summary>
         public bool SnapToGrid {
             get {
                 ThrowIfDisposed();
-                CommonSlideViewProperties? common = GetCommonSlideViewProperties();
-                return common?.SnapToGrid?.Value == true;
+                string? value = CommonView(ViewPart.Root).Attribute("snapToGrid");
+                return value != null && XmlConvert.ToBoolean(value);
             }
             set {
                 ThrowIfDisposed();
-                CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
-                common.SnapToGrid = value;
+                PowerPointPartRef part = EnsureViewPart();
+                EnsureCommonView(part.Root).SetBooleanAttribute("snapToGrid", value);
+                part.MarkEdited();
             }
         }
 
@@ -33,12 +41,14 @@ namespace OfficeIMO.PowerPoint {
         public OfficeLength GridSpacingX {
             get {
                 ThrowIfDisposed();
-                return OfficeLength.Emus(GetGridSpacing()?.Cx?.Value ?? 0L);
+                return ReadGridSpacing("cx");
             }
             set {
                 ThrowIfDisposed();
-                GridSpacing spacing = EnsureGridSpacing();
-                spacing.Cx = EnsureInt32(value.ToEmus(), nameof(GridSpacingX));
+                int native = EnsureInt32(value.ToEmus(), nameof(GridSpacingX));
+                PowerPointPartRef part = EnsureViewPart();
+                part.Root.GetOrAddChild(ViewPml, "gridSpacing", ViewChildOrder.Root).SetInt32Attribute("cx", native);
+                part.MarkEdited();
             }
         }
 
@@ -48,12 +58,14 @@ namespace OfficeIMO.PowerPoint {
         public OfficeLength GridSpacingY {
             get {
                 ThrowIfDisposed();
-                return OfficeLength.Emus(GetGridSpacing()?.Cy?.Value ?? 0L);
+                return ReadGridSpacing("cy");
             }
             set {
                 ThrowIfDisposed();
-                GridSpacing spacing = EnsureGridSpacing();
-                spacing.Cy = EnsureInt32(value.ToEmus(), nameof(GridSpacingY));
+                int native = EnsureInt32(value.ToEmus(), nameof(GridSpacingY));
+                PowerPointPartRef part = EnsureViewPart();
+                part.Root.GetOrAddChild(ViewPml, "gridSpacing", ViewChildOrder.Root).SetInt32Attribute("cy", native);
+                part.MarkEdited();
             }
         }
 
@@ -62,10 +74,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetGridSpacing(OfficeLength horizontal, OfficeLength vertical) {
             ThrowIfDisposed();
-            _ = EnsureInt32(horizontal.ToEmus(), nameof(horizontal));
-            _ = EnsureInt32(vertical.ToEmus(), nameof(vertical));
-            GridSpacingX = horizontal;
-            GridSpacingY = vertical;
+            int x = EnsureInt32(horizontal.ToEmus(), nameof(horizontal));
+            int y = EnsureInt32(vertical.ToEmus(), nameof(vertical));
+            PowerPointPartRef part = EnsureViewPart();
+            OfficeXmlNode spacing = part.Root.GetOrAddChild(ViewPml, "gridSpacing", ViewChildOrder.Root);
+            spacing.SetInt32Attribute("cx", x);
+            spacing.SetInt32Attribute("cy", y);
+            part.MarkEdited();
         }
 
 
@@ -76,19 +91,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointGuideInfo> GetGuides() {
             ThrowIfDisposed();
-            CommonSlideViewProperties? common = GetCommonSlideViewProperties();
-            GuideList? guideList = common?.GuideList;
-            if (guideList == null) {
-                return Array.Empty<PowerPointGuideInfo>();
-            }
-
-            List<PowerPointGuideInfo> guides = new();
-            foreach (Guide guide in guideList.Elements<Guide>()) {
-                DirectionValues? direction = guide.Orientation?.Value;
-                PowerPointGuideOrientation orientation = direction == DirectionValues.Vertical
-                    ? PowerPointGuideOrientation.Vertical
-                    : PowerPointGuideOrientation.Horizontal;
-                guides.Add(new PowerPointGuideInfo(orientation, OfficeLength.Emus(guide.Position?.Value ?? 0)));
+            var guides = new List<PowerPointGuideInfo>();
+            OfficeXmlNode list = CommonView(ViewPart.Root).Child(ViewPml, "guideLst");
+            foreach (OfficeXmlNode guide in list.Children(ViewPml, "guide")) {
+                PowerPointGuideOrientation orientation = guide.Attribute("orient") switch {
+                    "vert" => PowerPointGuideOrientation.Vertical,
+                    "horz" or null => PowerPointGuideOrientation.Horizontal,
+                    _ => throw new FormatException("The guide orientation is invalid.")
+                };
+                string? position = guide.Attribute("pos");
+                guides.Add(new PowerPointGuideInfo(orientation, OfficeLength.Emus(position == null ? 0 : XmlConvert.ToInt32(position))));
             }
 
             return guides;
@@ -99,8 +111,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ClearGuides() {
             ThrowIfDisposed();
-            CommonSlideViewProperties? common = GetCommonSlideViewProperties();
-            common?.GuideList?.RemoveAllChildren<Guide>();
+            PowerPointPartRef part = ViewPart;
+            OfficeXmlNode list = CommonView(part.Root).Child(ViewPml, "guideLst");
+            if (list.IsNone) return;
+            list.RemoveChildren(ViewPml, "guide");
+            part.MarkEdited();
         }
 
         /// <summary>
@@ -109,14 +124,15 @@ namespace OfficeIMO.PowerPoint {
         public void SetGuides(IEnumerable<PowerPointGuideInfo> guides) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(guides);
+            var validated = guides.Select(guide => (guide.Orientation,
+                Position: EnsureInt32(guide.Position.ToEmus(), nameof(guide.Position)))).ToArray();
 
-            CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
-            GuideList guideList = common.GuideList ??= new GuideList();
-            guideList.RemoveAllChildren<Guide>();
+            PowerPointPartRef part = EnsureViewPart();
+            OfficeXmlNode list = EnsureCommonView(part.Root).GetOrAddChild(ViewPml, "guideLst", ViewChildOrder.Common);
+            list.RemoveChildren(ViewPml, "guide");
+            part.MarkEdited();
 
-            foreach (PowerPointGuideInfo guide in guides) {
-                guideList.Append(CreateGuide(guide));
-            }
+            foreach ((PowerPointGuideOrientation orientation, int position) in validated) AppendGuide(list, orientation, position);
         }
 
         /// <summary>
@@ -124,10 +140,12 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointGuideInfo AddGuide(PowerPointGuideOrientation orientation, OfficeLength position) {
             ThrowIfDisposed();
-            CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
-            GuideList guideList = common.GuideList ??= new GuideList();
+            int nativePosition = EnsureInt32(position.ToEmus(), nameof(PowerPointGuideInfo.Position));
+            PowerPointPartRef part = EnsureViewPart();
+            OfficeXmlNode list = EnsureCommonView(part.Root).GetOrAddChild(ViewPml, "guideLst", ViewChildOrder.Common);
             var guide = new PowerPointGuideInfo(orientation, position);
-            guideList.Append(CreateGuide(guide));
+            AppendGuide(list, orientation, nativePosition);
+            part.MarkEdited();
             return guide;
         }
 
@@ -194,14 +212,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
 
-        private static Guide CreateGuide(PowerPointGuideInfo guide) {
-            DirectionValues orientation = guide.Orientation == PowerPointGuideOrientation.Vertical
-                ? DirectionValues.Vertical
-                : DirectionValues.Horizontal;
-            return new Guide {
-                Orientation = orientation,
-                Position = EnsureInt32(guide.Position.ToEmus(), nameof(guide.Position))
-            };
+        private static void AppendGuide(OfficeXmlNode list, PowerPointGuideOrientation orientation, int position) {
+            OfficeXmlNode element = list.Append(list.CreateElement(ViewPml, "guide"));
+            element.SetAttribute("orient", orientation == PowerPointGuideOrientation.Vertical ? "vert" : "horz");
+            element.SetInt32Attribute("pos", position);
         }
 
         private static int EnsureInt32(long value, string paramName) {
@@ -212,38 +226,53 @@ namespace OfficeIMO.PowerPoint {
             return (int)value;
         }
 
-        private ViewProperties EnsureViewProperties() {
-            ViewPropertiesPart viewPart = SdkPresentationPart.ViewPropertiesPart
-                ?? SdkPresentationPart.AddNewPart<ViewPropertiesPart>();
-            viewPart.ViewProperties ??= new ViewProperties();
-            return viewPart.ViewProperties;
+        private PowerPointPartRef ViewPart {
+            get {
+                PowerPointPartRef presentation = PresentationPartRef;
+                PowerPointPartRef view = presentation.RelatedPart(ViewRelationshipType);
+                if (presentation.IsSdk || ReadablePackage is not { } package) return view;
+                bool supported = view.IsNone
+                    ? !HasRelationshipOfType(package, presentation.Name, ViewRelationshipType)
+                    : string.Equals(package.GetContentType(view.Name), ViewContentType, StringComparison.OrdinalIgnoreCase)
+                        && view.Root.Is(ViewPml, "viewPr");
+                if (supported) return view.Current;
+                OpenSdkForPackageCompatibility();
+                return PresentationPartRef.RelatedPart(ViewRelationshipType);
+            }
         }
 
-        private GridSpacing? GetGridSpacing() {
-            return SdkPresentationPart.ViewPropertiesPart?.ViewProperties?.GridSpacing;
+        private PowerPointPartRef EnsureViewPart() {
+            PowerPointPartRef existing = ViewPart;
+            if (existing.Root.Exists) return existing.Current;
+
+            PowerPointPartRef presentation = PresentationPartRef;
+            if (!presentation.IsSdk && EditablePackage is { } package && existing.IsNone) {
+                string path = UniquePartName(package, ViewContentType,
+                    presentation.Name.Substring(0, presentation.Name.LastIndexOf('/') + 1) + "viewProps.xml");
+                package.CreateXmlPart(path, ViewContentType, ViewPml, "viewPr", 16);
+                try {
+                    package.AddRelationship(presentation.Name, ViewRelationshipType, path, id: NewRelationshipId());
+                } catch {
+                    package.DeletePart(path);
+                    throw;
+                }
+                InvalidatePackageRelationships();
+                MarkPackageEdited();
+                return PowerPointPartRef.Package(this, path);
+            }
+
+            return EnsureSdkViewPart();
         }
 
-        private GridSpacing EnsureGridSpacing() {
-            ViewProperties viewProperties = EnsureViewProperties();
-            GridSpacing spacing = viewProperties.GridSpacing ??= new GridSpacing();
-            return spacing;
+        private OfficeLength ReadGridSpacing(string name) {
+            string? value = ViewPart.Root.Child(ViewPml, "gridSpacing").Attribute(name);
+            return OfficeLength.Emus(value == null ? 0L : XmlConvert.ToInt64(value));
         }
 
-        private CommonSlideViewProperties? GetCommonSlideViewProperties() {
-            return SdkPresentationPart.ViewPropertiesPart?
-                .ViewProperties?
-                .GetFirstChild<SlideViewProperties>()?
-                .GetFirstChild<CommonSlideViewProperties>();
-        }
+        private static OfficeXmlNode CommonView(OfficeXmlNode root) =>
+            root.Child(ViewPml, "slideViewPr").Child(ViewPml, "cSldViewPr");
 
-        private CommonSlideViewProperties EnsureCommonSlideViewProperties() {
-            ViewProperties viewProperties = EnsureViewProperties();
-            SlideViewProperties slideView = viewProperties.GetFirstChild<SlideViewProperties>()
-                ?? viewProperties.AppendChild(new SlideViewProperties());
-            CommonSlideViewProperties common = slideView.GetFirstChild<CommonSlideViewProperties>()
-                ?? slideView.AppendChild(new CommonSlideViewProperties());
-            return common;
-        }
-
+        private static OfficeXmlNode EnsureCommonView(OfficeXmlNode root) =>
+            root.GetOrAddChild(ViewPml, "slideViewPr", ViewChildOrder.Root).GetOrAddChild(ViewPml, "cSldViewPr", ViewChildOrder.Slide);
     }
 }

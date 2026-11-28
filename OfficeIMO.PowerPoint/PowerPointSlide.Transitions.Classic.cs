@@ -1,109 +1,108 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
-        private static PowerPointSlideTransition? GetClassicTransition(Transition transition) {
-            FadeTransition? fade = transition.GetFirstChild<FadeTransition>();
-            if (fade != null) {
-                return fade.ThroughBlack?.Value == true
+        private static PowerPointSlideTransition? GetClassicTransition(OfficeXmlNode transition) {
+            OfficeXmlNode fade = transition.Child(TransitionPresentationNamespace, "fade");
+            if (fade.Exists) {
+                return fade.BooleanAttribute("thruBlk") == true
                     ? PowerPointSlideTransition.FadeThroughBlack
                     : PowerPointSlideTransition.Fade;
             }
 
-            WipeTransition? wipe = transition.GetFirstChild<WipeTransition>();
-            if (wipe != null) {
-                TransitionSlideDirectionValues? direction = wipe.Direction?.Value;
-                if (direction == TransitionSlideDirectionValues.Up) return PowerPointSlideTransition.WipeUp;
-                if (direction == TransitionSlideDirectionValues.Right) return PowerPointSlideTransition.WipeRight;
-                if (direction == TransitionSlideDirectionValues.Down) return PowerPointSlideTransition.WipeDown;
+            OfficeXmlNode wipe = transition.Child(TransitionPresentationNamespace, "wipe");
+            if (wipe.Exists) {
+                string? direction = wipe.Attribute("dir");
+                if (direction == "u") return PowerPointSlideTransition.WipeUp;
+                if (direction == "r") return PowerPointSlideTransition.WipeRight;
+                if (direction == "d") return PowerPointSlideTransition.WipeDown;
                 return PowerPointSlideTransition.Wipe;
             }
 
-            BlindsTransition? blinds = transition.GetFirstChild<BlindsTransition>();
-            if (blinds != null) {
-                return blinds.Direction?.Value == DirectionValues.Vertical
+            OfficeXmlNode blinds = transition.Child(TransitionPresentationNamespace, "blinds");
+            if (blinds.Exists) {
+                return blinds.Attribute("dir") == "vert"
                     ? PowerPointSlideTransition.BlindsVertical
                     : PowerPointSlideTransition.BlindsHorizontal;
             }
 
-            CheckerTransition? checker = transition.GetFirstChild<CheckerTransition>();
-            if (checker != null) {
-                return checker.Direction?.Value == DirectionValues.Vertical
+            OfficeXmlNode checker = transition.Child(TransitionPresentationNamespace, "checker");
+            if (checker.Exists) {
+                return checker.Attribute("dir") == "vert"
                     ? PowerPointSlideTransition.CheckerVertical
                     : PowerPointSlideTransition.CheckerHorizontal;
             }
 
-            CombTransition? comb = transition.GetFirstChild<CombTransition>();
-            if (comb != null) {
-                return comb.Direction?.Value == DirectionValues.Vertical
+            OfficeXmlNode comb = transition.Child(TransitionPresentationNamespace, "comb");
+            if (comb.Exists) {
+                return comb.Attribute("dir") == "vert"
                     ? PowerPointSlideTransition.CombVertical
                     : PowerPointSlideTransition.CombHorizontal;
             }
 
-            CoverTransition? cover = transition.GetFirstChild<CoverTransition>();
-            if (cover != null) {
-                return MapEightDirection(cover.Direction?.Value,
+            OfficeXmlNode cover = transition.Child(TransitionPresentationNamespace, "cover");
+            if (cover.Exists) {
+                return MapEightDirection(cover.Attribute("dir"),
                     PowerPointSlideTransition.CoverLeft, PowerPointSlideTransition.CoverUp,
                     PowerPointSlideTransition.CoverRight, PowerPointSlideTransition.CoverDown,
                     PowerPointSlideTransition.CoverLeftUp, PowerPointSlideTransition.CoverRightUp,
                     PowerPointSlideTransition.CoverLeftDown, PowerPointSlideTransition.CoverRightDown);
             }
 
-            PullTransition? pull = transition.GetFirstChild<PullTransition>();
-            if (pull != null) {
-                return MapEightDirection(pull.Direction?.Value,
+            OfficeXmlNode pull = transition.Child(TransitionPresentationNamespace, "pull");
+            if (pull.Exists) {
+                return MapEightDirection(pull.Attribute("dir"),
                     PowerPointSlideTransition.UncoverLeft, PowerPointSlideTransition.UncoverUp,
                     PowerPointSlideTransition.UncoverRight, PowerPointSlideTransition.UncoverDown,
                     PowerPointSlideTransition.UncoverLeftUp, PowerPointSlideTransition.UncoverRightUp,
                     PowerPointSlideTransition.UncoverLeftDown, PowerPointSlideTransition.UncoverRightDown);
             }
 
-            RandomBarTransition? randomBars =
-                transition.GetFirstChild<RandomBarTransition>();
-            if (randomBars != null) {
-                return randomBars.Direction?.Value == DirectionValues.Vertical
+            OfficeXmlNode randomBars =
+                transition.Child(TransitionPresentationNamespace, "randomBar");
+            if (randomBars.Exists) {
+                return randomBars.Attribute("dir") == "vert"
                     ? PowerPointSlideTransition.RandomBarsVertical
                     : PowerPointSlideTransition.RandomBarsHorizontal;
             }
 
-            StripsTransition? strips = transition.GetFirstChild<StripsTransition>();
-            if (strips != null) {
-                TransitionCornerDirectionValues? direction = strips.Direction?.Value;
-                if (direction == TransitionCornerDirectionValues.RightUp) return PowerPointSlideTransition.StripsRightUp;
-                if (direction == TransitionCornerDirectionValues.LeftDown) return PowerPointSlideTransition.StripsLeftDown;
-                if (direction == TransitionCornerDirectionValues.RightDown) return PowerPointSlideTransition.StripsRightDown;
+            OfficeXmlNode strips = transition.Child(TransitionPresentationNamespace, "strips");
+            if (strips.Exists) {
+                string? direction = strips.Attribute("dir");
+                if (direction == "ru") return PowerPointSlideTransition.StripsRightUp;
+                if (direction == "ld") return PowerPointSlideTransition.StripsLeftDown;
+                if (direction == "rd") return PowerPointSlideTransition.StripsRightDown;
                 return PowerPointSlideTransition.StripsLeftUp;
             }
 
-            PushTransition? push = transition.GetFirstChild<PushTransition>();
-            if (push != null) {
-                TransitionSlideDirectionValues? direction = push.Direction?.Value;
-                if (direction == TransitionSlideDirectionValues.Up) return PowerPointSlideTransition.PushUp;
-                if (direction == TransitionSlideDirectionValues.Down) return PowerPointSlideTransition.PushDown;
-                if (direction == TransitionSlideDirectionValues.Right) return PowerPointSlideTransition.PushRight;
+            OfficeXmlNode push = transition.Child(TransitionPresentationNamespace, "push");
+            if (push.Exists) {
+                string? direction = push.Attribute("dir");
+                if (direction == "u") return PowerPointSlideTransition.PushUp;
+                if (direction == "d") return PowerPointSlideTransition.PushDown;
+                if (direction == "r") return PowerPointSlideTransition.PushRight;
                 return PowerPointSlideTransition.PushLeft;
             }
 
-            ZoomTransition? zoom = transition.GetFirstChild<ZoomTransition>();
-            if (zoom != null) {
-                return zoom.Direction?.Value == TransitionInOutDirectionValues.In
+            OfficeXmlNode zoom = transition.Child(TransitionPresentationNamespace, "zoom");
+            if (zoom.Exists) {
+                return zoom.Attribute("dir") == "in"
                     ? PowerPointSlideTransition.BoxIn
                     : PowerPointSlideTransition.BoxOut;
             }
 
-            SplitTransition? split = transition.GetFirstChild<SplitTransition>();
-            if (split != null) {
-                bool vertical = split.Orientation?.Value == DirectionValues.Vertical;
-                bool inward = split.Direction?.Value == TransitionInOutDirectionValues.In;
+            OfficeXmlNode split = transition.Child(TransitionPresentationNamespace, "split");
+            if (split.Exists) {
+                bool vertical = split.Attribute("orient") == "vert";
+                bool inward = split.Attribute("dir") == "in";
                 return vertical
                     ? inward ? PowerPointSlideTransition.SplitVerticalIn : PowerPointSlideTransition.SplitVerticalOut
                     : inward ? PowerPointSlideTransition.SplitHorizontalIn : PowerPointSlideTransition.SplitHorizontalOut;
             }
 
-            WheelTransition? wheel = transition.GetFirstChild<WheelTransition>();
-            if (wheel != null) {
-                return wheel.Spokes?.Value switch {
+            OfficeXmlNode wheel = transition.Child(TransitionPresentationNamespace, "wheel");
+            if (wheel.Exists) {
+                return wheel.UInt32Attribute("spokes") switch {
                     1 => PowerPointSlideTransition.WheelOneSpoke,
                     2 => PowerPointSlideTransition.WheelTwoSpokes,
                     3 => PowerPointSlideTransition.WheelThreeSpokes,
@@ -113,31 +112,31 @@ namespace OfficeIMO.PowerPoint {
                 };
             }
 
-            if (transition.GetFirstChild<RandomTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "random").Exists) {
                 return PowerPointSlideTransition.Random;
             }
-            if (transition.GetFirstChild<DissolveTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "dissolve").Exists) {
                 return PowerPointSlideTransition.Dissolve;
             }
-            if (transition.GetFirstChild<DiamondTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "diamond").Exists) {
                 return PowerPointSlideTransition.Diamond;
             }
-            if (transition.GetFirstChild<PlusTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "plus").Exists) {
                 return PowerPointSlideTransition.Plus;
             }
-            if (transition.GetFirstChild<WedgeTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "wedge").Exists) {
                 return PowerPointSlideTransition.Wedge;
             }
-            if (transition.GetFirstChild<NewsflashTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "newsflash").Exists) {
                 return PowerPointSlideTransition.Newsflash;
             }
-            if (transition.GetFirstChild<CircleTransition>() != null) {
+            if (transition.Child(TransitionPresentationNamespace, "circle").Exists) {
                 return PowerPointSlideTransition.Circle;
             }
 
-            CutTransition? cut = transition.GetFirstChild<CutTransition>();
-            if (cut != null) {
-                return cut.ThroughBlack?.Value == true
+            OfficeXmlNode cut = transition.Child(TransitionPresentationNamespace, "cut");
+            if (cut.Exists) {
+                return cut.BooleanAttribute("thruBlk") == true
                     ? PowerPointSlideTransition.CutThroughBlack
                     : PowerPointSlideTransition.Cut;
             }
@@ -159,89 +158,80 @@ namespace OfficeIMO.PowerPoint {
                 _ => left
             };
 
-        private static OpenXmlElement? CreateClassicTransition(
+        private static OfficeXmlNode CreateClassicTransition(OfficeXmlNode parent,
             PowerPointSlideTransition transition) => transition switch {
-                PowerPointSlideTransition.Fade => new FadeTransition { ThroughBlack = false },
-                PowerPointSlideTransition.FadeThroughBlack => new FadeTransition { ThroughBlack = true },
-                PowerPointSlideTransition.Wipe => CreateWipe(TransitionSlideDirectionValues.Left),
-                PowerPointSlideTransition.WipeUp => CreateWipe(TransitionSlideDirectionValues.Up),
-                PowerPointSlideTransition.WipeRight => CreateWipe(TransitionSlideDirectionValues.Right),
-                PowerPointSlideTransition.WipeDown => CreateWipe(TransitionSlideDirectionValues.Down),
-                PowerPointSlideTransition.BlindsVertical => new BlindsTransition { Direction = DirectionValues.Vertical },
-                PowerPointSlideTransition.BlindsHorizontal => new BlindsTransition { Direction = DirectionValues.Horizontal },
-                PowerPointSlideTransition.CheckerHorizontal => new CheckerTransition { Direction = DirectionValues.Horizontal },
-                PowerPointSlideTransition.CheckerVertical => new CheckerTransition { Direction = DirectionValues.Vertical },
-                PowerPointSlideTransition.CombHorizontal => new CombTransition { Direction = DirectionValues.Horizontal },
-                PowerPointSlideTransition.CombVertical => new CombTransition { Direction = DirectionValues.Vertical },
-                PowerPointSlideTransition.CoverLeft => CreateCover("l"),
-                PowerPointSlideTransition.CoverUp => CreateCover("u"),
-                PowerPointSlideTransition.CoverRight => CreateCover("r"),
-                PowerPointSlideTransition.CoverDown => CreateCover("d"),
-                PowerPointSlideTransition.CoverLeftUp => CreateCover("lu"),
-                PowerPointSlideTransition.CoverRightUp => CreateCover("ru"),
-                PowerPointSlideTransition.CoverLeftDown => CreateCover("ld"),
-                PowerPointSlideTransition.CoverRightDown => CreateCover("rd"),
-                PowerPointSlideTransition.UncoverLeft => CreatePull("l"),
-                PowerPointSlideTransition.UncoverUp => CreatePull("u"),
-                PowerPointSlideTransition.UncoverRight => CreatePull("r"),
-                PowerPointSlideTransition.UncoverDown => CreatePull("d"),
-                PowerPointSlideTransition.UncoverLeftUp => CreatePull("lu"),
-                PowerPointSlideTransition.UncoverRightUp => CreatePull("ru"),
-                PowerPointSlideTransition.UncoverLeftDown => CreatePull("ld"),
-                PowerPointSlideTransition.UncoverRightDown => CreatePull("rd"),
-                PowerPointSlideTransition.RandomBarsHorizontal => new RandomBarTransition { Direction = DirectionValues.Horizontal },
-                PowerPointSlideTransition.RandomBarsVertical => new RandomBarTransition { Direction = DirectionValues.Vertical },
-                PowerPointSlideTransition.StripsLeftUp => CreateStrips(TransitionCornerDirectionValues.LeftUp),
-                PowerPointSlideTransition.StripsRightUp => CreateStrips(TransitionCornerDirectionValues.RightUp),
-                PowerPointSlideTransition.StripsLeftDown => CreateStrips(TransitionCornerDirectionValues.LeftDown),
-                PowerPointSlideTransition.StripsRightDown => CreateStrips(TransitionCornerDirectionValues.RightDown),
-                PowerPointSlideTransition.PushLeft => CreatePush(TransitionSlideDirectionValues.Left),
-                PowerPointSlideTransition.PushUp => CreatePush(TransitionSlideDirectionValues.Up),
-                PowerPointSlideTransition.PushRight => CreatePush(TransitionSlideDirectionValues.Right),
-                PowerPointSlideTransition.PushDown => CreatePush(TransitionSlideDirectionValues.Down),
-                PowerPointSlideTransition.BoxOut => new ZoomTransition { Direction = TransitionInOutDirectionValues.Out },
-                PowerPointSlideTransition.BoxIn => new ZoomTransition { Direction = TransitionInOutDirectionValues.In },
-                PowerPointSlideTransition.SplitHorizontalOut => CreateSplit(DirectionValues.Horizontal, TransitionInOutDirectionValues.Out),
-                PowerPointSlideTransition.SplitHorizontalIn => CreateSplit(DirectionValues.Horizontal, TransitionInOutDirectionValues.In),
-                PowerPointSlideTransition.SplitVerticalOut => CreateSplit(DirectionValues.Vertical, TransitionInOutDirectionValues.Out),
-                PowerPointSlideTransition.SplitVerticalIn => CreateSplit(DirectionValues.Vertical, TransitionInOutDirectionValues.In),
-                PowerPointSlideTransition.Random => new RandomTransition(),
-                PowerPointSlideTransition.Dissolve => new DissolveTransition(),
-                PowerPointSlideTransition.Diamond => new DiamondTransition(),
-                PowerPointSlideTransition.Plus => new PlusTransition(),
-                PowerPointSlideTransition.Wedge => new WedgeTransition(),
-                PowerPointSlideTransition.Newsflash => new NewsflashTransition(),
-                PowerPointSlideTransition.WheelOneSpoke => new WheelTransition { Spokes = 1U },
-                PowerPointSlideTransition.WheelTwoSpokes => new WheelTransition { Spokes = 2U },
-                PowerPointSlideTransition.WheelThreeSpokes => new WheelTransition { Spokes = 3U },
-                PowerPointSlideTransition.WheelFourSpokes => new WheelTransition { Spokes = 4U },
-                PowerPointSlideTransition.WheelEightSpokes => new WheelTransition { Spokes = 8U },
-                PowerPointSlideTransition.Circle => new CircleTransition(),
-                PowerPointSlideTransition.Cut => new CutTransition { ThroughBlack = false },
-                PowerPointSlideTransition.CutThroughBlack => new CutTransition { ThroughBlack = true },
-                _ => null
+                PowerPointSlideTransition.Fade => CreateClassicTransitionPattern(parent, "fade", "thruBlk", "0"),
+                PowerPointSlideTransition.FadeThroughBlack => CreateClassicTransitionPattern(parent, "fade", "thruBlk", "1"),
+                PowerPointSlideTransition.Wipe => CreateClassicTransitionPattern(parent, "wipe", "dir", "l"),
+                PowerPointSlideTransition.WipeUp => CreateClassicTransitionPattern(parent, "wipe", "dir", "u"),
+                PowerPointSlideTransition.WipeRight => CreateClassicTransitionPattern(parent, "wipe", "dir", "r"),
+                PowerPointSlideTransition.WipeDown => CreateClassicTransitionPattern(parent, "wipe", "dir", "d"),
+                PowerPointSlideTransition.BlindsVertical => CreateClassicTransitionPattern(parent, "blinds", "dir", "vert"),
+                PowerPointSlideTransition.BlindsHorizontal => CreateClassicTransitionPattern(parent, "blinds", "dir", "horz"),
+                PowerPointSlideTransition.CheckerHorizontal => CreateClassicTransitionPattern(parent, "checker", "dir", "horz"),
+                PowerPointSlideTransition.CheckerVertical => CreateClassicTransitionPattern(parent, "checker", "dir", "vert"),
+                PowerPointSlideTransition.CombHorizontal => CreateClassicTransitionPattern(parent, "comb", "dir", "horz"),
+                PowerPointSlideTransition.CombVertical => CreateClassicTransitionPattern(parent, "comb", "dir", "vert"),
+                PowerPointSlideTransition.CoverLeft => CreateClassicTransitionPattern(parent, "cover", "dir", "l"),
+                PowerPointSlideTransition.CoverUp => CreateClassicTransitionPattern(parent, "cover", "dir", "u"),
+                PowerPointSlideTransition.CoverRight => CreateClassicTransitionPattern(parent, "cover", "dir", "r"),
+                PowerPointSlideTransition.CoverDown => CreateClassicTransitionPattern(parent, "cover", "dir", "d"),
+                PowerPointSlideTransition.CoverLeftUp => CreateClassicTransitionPattern(parent, "cover", "dir", "lu"),
+                PowerPointSlideTransition.CoverRightUp => CreateClassicTransitionPattern(parent, "cover", "dir", "ru"),
+                PowerPointSlideTransition.CoverLeftDown => CreateClassicTransitionPattern(parent, "cover", "dir", "ld"),
+                PowerPointSlideTransition.CoverRightDown => CreateClassicTransitionPattern(parent, "cover", "dir", "rd"),
+                PowerPointSlideTransition.UncoverLeft => CreateClassicTransitionPattern(parent, "pull", "dir", "l"),
+                PowerPointSlideTransition.UncoverUp => CreateClassicTransitionPattern(parent, "pull", "dir", "u"),
+                PowerPointSlideTransition.UncoverRight => CreateClassicTransitionPattern(parent, "pull", "dir", "r"),
+                PowerPointSlideTransition.UncoverDown => CreateClassicTransitionPattern(parent, "pull", "dir", "d"),
+                PowerPointSlideTransition.UncoverLeftUp => CreateClassicTransitionPattern(parent, "pull", "dir", "lu"),
+                PowerPointSlideTransition.UncoverRightUp => CreateClassicTransitionPattern(parent, "pull", "dir", "ru"),
+                PowerPointSlideTransition.UncoverLeftDown => CreateClassicTransitionPattern(parent, "pull", "dir", "ld"),
+                PowerPointSlideTransition.UncoverRightDown => CreateClassicTransitionPattern(parent, "pull", "dir", "rd"),
+                PowerPointSlideTransition.RandomBarsHorizontal => CreateClassicTransitionPattern(parent, "randomBar", "dir", "horz"),
+                PowerPointSlideTransition.RandomBarsVertical => CreateClassicTransitionPattern(parent, "randomBar", "dir", "vert"),
+                PowerPointSlideTransition.StripsLeftUp => CreateClassicTransitionPattern(parent, "strips", "dir", "lu"),
+                PowerPointSlideTransition.StripsRightUp => CreateClassicTransitionPattern(parent, "strips", "dir", "ru"),
+                PowerPointSlideTransition.StripsLeftDown => CreateClassicTransitionPattern(parent, "strips", "dir", "ld"),
+                PowerPointSlideTransition.StripsRightDown => CreateClassicTransitionPattern(parent, "strips", "dir", "rd"),
+                PowerPointSlideTransition.PushLeft => CreateClassicTransitionPattern(parent, "push", "dir", "l"),
+                PowerPointSlideTransition.PushUp => CreateClassicTransitionPattern(parent, "push", "dir", "u"),
+                PowerPointSlideTransition.PushRight => CreateClassicTransitionPattern(parent, "push", "dir", "r"),
+                PowerPointSlideTransition.PushDown => CreateClassicTransitionPattern(parent, "push", "dir", "d"),
+                PowerPointSlideTransition.BoxOut => CreateClassicTransitionPattern(parent, "zoom", "dir", "out"),
+                PowerPointSlideTransition.BoxIn => CreateClassicTransitionPattern(parent, "zoom", "dir", "in"),
+                PowerPointSlideTransition.SplitHorizontalOut => CreateClassicSplit(parent, "horz", "out"),
+                PowerPointSlideTransition.SplitHorizontalIn => CreateClassicSplit(parent, "horz", "in"),
+                PowerPointSlideTransition.SplitVerticalOut => CreateClassicSplit(parent, "vert", "out"),
+                PowerPointSlideTransition.SplitVerticalIn => CreateClassicSplit(parent, "vert", "in"),
+                PowerPointSlideTransition.Random => CreateClassicTransitionPattern(parent, "random"),
+                PowerPointSlideTransition.Dissolve => CreateClassicTransitionPattern(parent, "dissolve"),
+                PowerPointSlideTransition.Diamond => CreateClassicTransitionPattern(parent, "diamond"),
+                PowerPointSlideTransition.Plus => CreateClassicTransitionPattern(parent, "plus"),
+                PowerPointSlideTransition.Wedge => CreateClassicTransitionPattern(parent, "wedge"),
+                PowerPointSlideTransition.Newsflash => CreateClassicTransitionPattern(parent, "newsflash"),
+                PowerPointSlideTransition.WheelOneSpoke => CreateClassicTransitionPattern(parent, "wheel", "spokes", "1"),
+                PowerPointSlideTransition.WheelTwoSpokes => CreateClassicTransitionPattern(parent, "wheel", "spokes", "2"),
+                PowerPointSlideTransition.WheelThreeSpokes => CreateClassicTransitionPattern(parent, "wheel", "spokes", "3"),
+                PowerPointSlideTransition.WheelFourSpokes => CreateClassicTransitionPattern(parent, "wheel", "spokes", "4"),
+                PowerPointSlideTransition.WheelEightSpokes => CreateClassicTransitionPattern(parent, "wheel", "spokes", "8"),
+                PowerPointSlideTransition.Circle => CreateClassicTransitionPattern(parent, "circle"),
+                PowerPointSlideTransition.Cut => CreateClassicTransitionPattern(parent, "cut", "thruBlk", "0"),
+                PowerPointSlideTransition.CutThroughBlack => CreateClassicTransitionPattern(parent, "cut", "thruBlk", "1"),
+                _ => default
             };
 
-        private static WipeTransition CreateWipe(
-            TransitionSlideDirectionValues direction) =>
-            new() { Direction = direction };
+        private static OfficeXmlNode CreateClassicTransitionPattern(OfficeXmlNode parent, string name,
+            string? attributeName = null, string? attributeValue = null) {
+            OfficeXmlNode transition = parent.CreateElement(TransitionPresentationNamespace, name);
+            if (attributeName != null) transition.SetAttribute(attributeName, attributeValue);
+            return transition;
+        }
 
-        private static PushTransition CreatePush(
-            TransitionSlideDirectionValues direction) =>
-            new() { Direction = direction };
-
-        private static CoverTransition CreateCover(string direction) =>
-            new() { Direction = direction };
-
-        private static PullTransition CreatePull(string direction) =>
-            new() { Direction = direction };
-
-        private static StripsTransition CreateStrips(
-            TransitionCornerDirectionValues direction) =>
-            new() { Direction = direction };
-
-        private static SplitTransition CreateSplit(DirectionValues orientation,
-            TransitionInOutDirectionValues direction) =>
-            new() { Orientation = orientation, Direction = direction };
+        private static OfficeXmlNode CreateClassicSplit(OfficeXmlNode parent, string orientation, string direction) {
+            OfficeXmlNode transition = CreateClassicTransitionPattern(parent, "split", "orient", orientation);
+            transition.SetAttribute("dir", direction);
+            return transition;
+        }
     }
 }

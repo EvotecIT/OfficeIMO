@@ -11,6 +11,12 @@ using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        private OpenXml.PowerPointPartRef EnsureSdkViewPart() {
+            ViewPropertiesPart part = SdkPresentationPart.ViewPropertiesPart ?? SdkPresentationPart.AddNewPart<ViewPropertiesPart>();
+            part.ViewProperties ??= new ViewProperties();
+            return OpenXml.PowerPointPartRef.FromSdk(part);
+        }
+
         private const int MaxPartCloneDepth = 128;
 
         private void InitializeDefaultParts() {

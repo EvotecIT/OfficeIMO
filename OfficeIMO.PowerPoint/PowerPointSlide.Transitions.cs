@@ -1,462 +1,241 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
-        /// <summary>
-        ///     Transition applied when moving to this slide.
-        /// </summary>
-        public PowerPointSlideTransition Transition {
-            get {
-                Transition? t = GetTransitionElement();
-                return t == null ? PowerPointSlideTransition.None
-                    : GetTransitionValue(t);
-            }
-            set {
-                PowerPointSlideTransitionSpeed? speed = TransitionSpeed;
-                double? durationSeconds = TransitionDurationSeconds;
-                bool? advanceOnClick = TransitionAdvanceOnClick;
-                double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
-                SoundAction? soundAction = GetTransitionElement()?
-                    .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
-                string[] soundRelationshipIds =
-                    GetTransitionSoundRelationshipIds();
+        private const int TransitionPresentationNamespace = OfficeXmlNamespaces.PresentationML;
+        private const int TransitionCompatibilityNamespace = OfficeXmlNamespaces.MarkupCompatibility;
+        private const string PowerPoint2012Namespace = "http://schemas.microsoft.com/office/powerpoint/2012/main";
 
-                RemoveTransitionMarkup();
-                if (value == PowerPointSlideTransition.None) {
-                    RemoveUnusedTransitionSounds(soundRelationshipIds);
-                    return;
-                }
+        /// <summary>Transition applied when moving to this slide.</summary>
+        public PowerPointSlideTransition Transition {
+            get => GetOwnedTransitionValue(GetTransitionNode());
+            set {
+                PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+                OfficeXmlNode root = part.Root;
+                OfficeXmlNode previous = GetTransitionNode(root);
+                PowerPointSlideTransitionSpeed? speed = ReadTransitionSpeed(previous);
+                double? duration = ReadTransitionSeconds(previous.Attribute(P14Namespace, "dur"));
+                bool? advanceOnClick = previous.BooleanAttribute("advClick");
+                double? advanceAfter = ReadTransitionSeconds(previous.Attribute("advTm"));
+                OfficeXmlNode sound = previous.Child(TransitionPresentationNamespace, "sndAc").Clone();
+                string[] soundIds = GetTransitionSoundRelationshipIds();
+
+                root.Child(TransitionPresentationNamespace, "transition").Remove();
+                GetTransitionAlternate(root).Remove();
 
                 if (value == PowerPointSlideTransition.Morph) {
-                    SetMorphTransition();
-                    foreach (Transition morphTransition in
-                             GetTransitionElements()) {
-                        if (soundAction != null) {
-                            morphTransition.Append(soundAction.CloneNode(true));
-                        }
-                        ApplyTransitionSettings(morphTransition, speed,
-                            durationSeconds, advanceOnClick,
-                            advanceAfterSeconds);
-                    }
-                    RemoveUnusedTransitionSounds(soundRelationshipIds);
-                    return;
+                    WriteMorphTransition(root);
+                } else if (value != PowerPointSlideTransition.None) {
+                    OfficeXmlNode transition = root.GetOrAddChild(TransitionPresentationNamespace, "transition", PSlideView.Order);
+                    OfficeXmlNode effect = CreateClassicTransition(transition, value);
+                    if (effect.IsNone) effect = CreatePowerPoint2010Transition(transition, value);
+                    if (effect.Exists) transition.Append(effect);
                 }
 
-                Transition transition = new();
-                OpenXmlElement? classicTransition = CreateClassicTransition(value);
-                if (classicTransition != null) {
-                    transition.Append(classicTransition);
-                } else {
-                    switch (value) {
-                        case PowerPointSlideTransition.Flash:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.FlashTransition());
-                            break;
-                        case PowerPointSlideTransition.WarpIn:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
-                            break;
-                        case PowerPointSlideTransition.WarpOut:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
-                            break;
-                        case PowerPointSlideTransition.Prism:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.PrismTransition { IsContent = true });
-                            break;
-                        case PowerPointSlideTransition.FerrisLeft:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
-                            break;
-                        case PowerPointSlideTransition.FerrisRight:
-                            transition.AddNamespaceDeclaration("p14", P14Namespace);
-                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
-                            break;
-                    }
+                foreach (OfficeXmlNode transition in GetTransitionNodes(root)) {
+                    if (sound.Exists) transition.Append(sound.Clone());
+                    WriteTransitionSpeed(transition, speed);
+                    WriteTransitionDuration(transition, duration);
+                    transition.SetBooleanAttribute("advClick", advanceOnClick);
+                    transition.SetAttribute("advTm", ToMillisecondsString(advanceAfter));
                 }
 
-                SlideRoot.Transition = transition;
-                if (soundAction != null) transition.Append(soundAction);
-                ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
-                RemoveUnusedTransitionSounds(soundRelationshipIds);
+                part.MarkEdited();
+                RemoveUnusedTransitionSounds(soundIds);
             }
         }
 
-        internal static PowerPointSlideTransition GetTransitionValue(
-            Transition transition) {
-            ArgumentNullException.ThrowIfNull(transition);
+        private static PowerPointSlideTransition GetOwnedTransitionValue(OfficeXmlNode transition) {
+            if (transition.IsNone) return PowerPointSlideTransition.None;
+            if (GetClassicTransition(transition) is { } classic) return classic;
+            if (transition.Child(P14Namespace, "flash").Exists) return PowerPointSlideTransition.Flash;
 
-            PowerPointSlideTransition? classicTransition = GetClassicTransition(
-                transition);
-            if (classicTransition.HasValue) {
-                return classicTransition.Value;
-            }
+            OfficeXmlNode warp = transition.Child(P14Namespace, "warp");
+            if (warp.Exists) return warp.Attribute("dir") == "out" ? PowerPointSlideTransition.WarpOut : PowerPointSlideTransition.WarpIn;
+            if (transition.Child(P14Namespace, "prism").Exists) return PowerPointSlideTransition.Prism;
 
-            if (transition.GetFirstChild<P14.FlashTransition>() != null) {
-                return PowerPointSlideTransition.Flash;
-            }
+            OfficeXmlNode ferris = transition.Child(P14Namespace, "ferris");
+            if (ferris.Exists) return ferris.Attribute("dir") == "r" ? PowerPointSlideTransition.FerrisRight : PowerPointSlideTransition.FerrisLeft;
+            if (transition.Child(P159Namespace, "morph").Exists) return PowerPointSlideTransition.Morph;
 
-            P14.WarpTransition? warp = transition
-                .GetFirstChild<P14.WarpTransition>();
-            if (warp != null) {
-                return warp.Direction?.Value == TransitionInOutDirectionValues.Out
-                    ? PowerPointSlideTransition.WarpOut
-                    : PowerPointSlideTransition.WarpIn;
-            }
-
-            if (transition.GetFirstChild<P14.PrismTransition>() != null) {
-                return PowerPointSlideTransition.Prism;
-            }
-
-            P14.FerrisTransition? ferris = transition
-                .GetFirstChild<P14.FerrisTransition>();
-            if (ferris != null) {
-                return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
-                    ? PowerPointSlideTransition.FerrisRight
-                    : PowerPointSlideTransition.FerrisLeft;
-            }
-
-            if (HasMorphTransition(transition)) {
-                return PowerPointSlideTransition.Morph;
-            }
-
-            return PowerPointSlideTransition.None;
+            return string.Equals(transition.Child(PowerPoint2012Namespace, "prstTrans").Attribute("prst"), "morph", StringComparison.OrdinalIgnoreCase)
+                ? PowerPointSlideTransition.Morph : PowerPointSlideTransition.None;
         }
 
-        private void RemoveUnusedTransitionSounds(
-            IEnumerable<string> relationshipIds) {
-            foreach (string relationshipId in relationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
-                    relationshipId);
-            }
+        private static OfficeXmlNode CreatePowerPoint2010Transition(OfficeXmlNode transition, PowerPointSlideTransition value) {
+            (string? name, string? attribute, string? attributeValue) = value switch {
+                PowerPointSlideTransition.Flash => ("flash", null, null),
+                PowerPointSlideTransition.WarpIn => ("warp", "dir", "in"),
+                PowerPointSlideTransition.WarpOut => ("warp", "dir", "out"),
+                PowerPointSlideTransition.Prism => ("prism", "isContent", "1"),
+                PowerPointSlideTransition.FerrisLeft => ("ferris", "dir", "l"),
+                PowerPointSlideTransition.FerrisRight => ("ferris", "dir", "r"),
+                _ => default
+            };
+            if (name == null) return default;
+            transition.DeclareNamespace("p14", P14Namespace);
+            OfficeXmlNode effect = transition.CreateElement(P14Namespace, name, "p14");
+            if (attribute != null) effect.SetAttribute(attribute, attributeValue);
+            return effect;
         }
 
-        /// <summary>
-        ///     Gets or sets the optional transition playback speed.
-        /// </summary>
+        /// <summary>Gets or sets the optional transition playback speed.</summary>
         public PowerPointSlideTransitionSpeed? TransitionSpeed {
-            get {
-                Transition? transition = GetTransitionElement();
-                if (transition?.Speed?.Value == null) {
-                    return null;
-                }
-
-                var speedValue = transition.Speed.Value;
-                if (speedValue == TransitionSpeedValues.Slow) {
-                    return PowerPointSlideTransitionSpeed.Slow;
-                }
-
-                if (speedValue == TransitionSpeedValues.Fast) {
-                    return PowerPointSlideTransitionSpeed.Fast;
-                }
-
-                return PowerPointSlideTransitionSpeed.Medium;
-            }
+            get => ReadTransitionSpeed(GetTransitionNode());
             set {
-                foreach (Transition transition in GetTransitionElements()) {
-                    transition.Speed = value switch {
-                        PowerPointSlideTransitionSpeed.Slow =>
-                            TransitionSpeedValues.Slow,
-                        PowerPointSlideTransitionSpeed.Fast =>
-                            TransitionSpeedValues.Fast,
-                        PowerPointSlideTransitionSpeed.Medium =>
-                            TransitionSpeedValues.Medium,
-                        _ => null
-                    };
+                PowerPointPartRef part = PartRef;
+                foreach (OfficeXmlNode transition in GetTransitionNodes(part.Root)) {
+                    WriteTransitionSpeed(transition, value);
+                    part.MarkEdited();
                 }
             }
         }
 
-        /// <summary>
-        ///     Gets or sets the optional transition duration in seconds.
-        /// </summary>
+        /// <summary>Gets or sets the optional transition duration in seconds.</summary>
         public double? TransitionDurationSeconds {
-            get {
-                uint? milliseconds = ParseTransitionMilliseconds(GetTransitionElement()?.Duration?.Value);
-                if (milliseconds == null) {
-                    return null;
-                }
-
-                return milliseconds.Value / 1000.0;
-            }
+            get => ReadTransitionSeconds(GetTransitionNode().Attribute(P14Namespace, "dur"));
             set {
-                foreach (Transition transition in GetTransitionElements()) {
-                    if (value.HasValue) {
-                        EnsureTransitionCompatibilityNamespace(transition,
-                            "p14", P14Namespace);
-                        transition.Duration = ToMillisecondsString(value);
-                    } else {
-                        RemoveTransitionAttribute(transition, "dur",
-                            P14Namespace);
-                    }
+                PowerPointPartRef part = PartRef;
+                foreach (OfficeXmlNode transition in GetTransitionNodes(part.Root)) {
+                    WriteTransitionDuration(transition, value);
+                    part.MarkEdited();
                 }
             }
         }
 
-        /// <summary>
-        ///     Gets or sets whether clicking advances the slide.
-        /// </summary>
+        /// <summary>Gets or sets whether clicking advances the slide.</summary>
         public bool? TransitionAdvanceOnClick {
-            get {
-                return GetTransitionElement()?.AdvanceOnClick?.Value;
-            }
+            get => GetTransitionNode().BooleanAttribute("advClick");
             set {
-                foreach (Transition transition in GetTransitionElements()) {
-                    if (value.HasValue) {
-                        transition.AdvanceOnClick = value;
-                    } else {
-                        RemoveTransitionAttribute(transition, "advClick",
-                            string.Empty);
-                    }
+                PowerPointPartRef part = PartRef;
+                foreach (OfficeXmlNode transition in GetTransitionNodes(part.Root)) {
+                    transition.SetBooleanAttribute("advClick", value);
+                    part.MarkEdited();
                 }
             }
         }
 
-        /// <summary>
-        ///     Gets or sets the optional automatic-advance time in seconds.
-        /// </summary>
+        /// <summary>Gets or sets the optional automatic-advance time in seconds.</summary>
         public double? TransitionAdvanceAfterSeconds {
-            get {
-                uint? milliseconds = ParseTransitionMilliseconds(GetTransitionElement()?.AdvanceAfterTime?.Value);
-                if (milliseconds == null) {
-                    return null;
-                }
-
-                return milliseconds.Value / 1000.0;
-            }
+            get => ReadTransitionSeconds(GetTransitionNode().Attribute("advTm"));
             set {
-                foreach (Transition transition in GetTransitionElements()) {
-                    if (value.HasValue) {
-                        transition.AdvanceAfterTime =
-                            ToMillisecondsString(value);
-                    } else {
-                        RemoveTransitionAttribute(transition, "advTm",
-                            string.Empty);
-                    }
+                PowerPointPartRef part = PartRef;
+                foreach (OfficeXmlNode transition in GetTransitionNodes(part.Root)) {
+                    transition.SetAttribute("advTm", ToMillisecondsString(value));
+                    part.MarkEdited();
                 }
             }
         }
 
-        private static bool HasMorphTransition(Transition transition) {
-            return transition.ChildElements.Any(element =>
-                (element.LocalName == "morph" && element.NamespaceUri == P159Namespace) ||
-                (element.LocalName == "prstTrans" &&
-                 element.NamespaceUri == "http://schemas.microsoft.com/office/powerpoint/2012/main" &&
-                 string.Equals(element.GetAttribute("prst", string.Empty).Value, "morph", StringComparison.OrdinalIgnoreCase)));
-        }
+        private static PowerPointSlideTransitionSpeed? ReadTransitionSpeed(OfficeXmlNode node) => node.Attribute("spd") switch {
+            "slow" => PowerPointSlideTransitionSpeed.Slow,
+            "fast" => PowerPointSlideTransitionSpeed.Fast,
+            "med" => PowerPointSlideTransitionSpeed.Medium,
+            _ => null
+        };
 
-        private static OpenXmlUnknownElement CreateMorphTransition() {
-            OpenXmlUnknownElement morph = new OpenXmlUnknownElement("p159", "morph", P159Namespace);
-            morph.AddNamespaceDeclaration("p159", P159Namespace);
-            morph.SetAttribute(new OpenXmlAttribute("option", string.Empty, "byObject"));
-            return morph;
-        }
+        private static void WriteTransitionSpeed(OfficeXmlNode node, PowerPointSlideTransitionSpeed? speed) =>
+            node.SetAttribute("spd", speed switch {
+                PowerPointSlideTransitionSpeed.Slow => "slow",
+                PowerPointSlideTransitionSpeed.Fast => "fast",
+                PowerPointSlideTransitionSpeed.Medium => "med",
+                _ => null
+            });
 
-        private static uint? ToMilliseconds(double? seconds) {
-            if (!seconds.HasValue) {
-                return null;
-            }
-
-            if (seconds.Value < 0) {
-                return 0;
-            }
-
-            return (uint)Math.Round(seconds.Value * 1000.0, MidpointRounding.AwayFromZero);
-        }
+        private static double? ReadTransitionSeconds(string? value) => uint.TryParse(value, out uint milliseconds)
+            ? milliseconds / 1000.0 : null;
 
         private static string? ToMillisecondsString(double? seconds) {
-            uint? milliseconds = ToMilliseconds(seconds);
-            return milliseconds?.ToString();
+            if (!seconds.HasValue) return null;
+            uint milliseconds = seconds.Value < 0 ? 0 : (uint)Math.Round(seconds.Value * 1000.0, MidpointRounding.AwayFromZero);
+            return milliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static uint? ParseTransitionMilliseconds(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                return null;
+        private static void WriteTransitionDuration(OfficeXmlNode transition, double? seconds) {
+            if (seconds.HasValue) {
+                EnsureTransitionNamespace(transition, "p14", P14Namespace);
+                OfficeXmlNode slide = transition.AncestorOrSelf(TransitionPresentationNamespace, "sld");
+                if (slide.Exists) MarkNamespaceIgnorable(slide, "p14", P14Namespace);
             }
-
-            return uint.TryParse(value, out uint parsed)
-                ? parsed
-                : null;
+            transition.SetAttribute(P14Namespace, "dur", ToMillisecondsString(seconds), "p14");
         }
 
-        private static void ApplyTransitionSettings(Transition? transition, PowerPointSlideTransitionSpeed? speed, double? durationSeconds, bool? advanceOnClick, double? advanceAfterSeconds) {
-            if (transition == null) {
-                return;
+        private OfficeXmlNode GetTransitionNode() => GetTransitionNode(PartRef.Root);
+
+        private static OfficeXmlNode GetTransitionNode(OfficeXmlNode root) {
+            OfficeXmlNode direct = root.Child(TransitionPresentationNamespace, "transition");
+            if (direct.Exists) return direct;
+            foreach (OfficeXmlNode branch in GetAlternateTransitionNodes(GetTransitionAlternate(root))) {
+                if (branch.Exists) return branch;
             }
+            return default;
+        }
 
-            transition.Speed = speed switch {
-                PowerPointSlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
-                PowerPointSlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
-                PowerPointSlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
-                _ => null
-            };
-
-            if (durationSeconds.HasValue) {
-                EnsureTransitionCompatibilityNamespace(transition, "p14", P14Namespace);
-                transition.Duration = ToMillisecondsString(durationSeconds);
-            } else {
-                RemoveTransitionAttribute(transition, "dur", P14Namespace);
+        private static IEnumerable<OfficeXmlNode> GetTransitionNodes(OfficeXmlNode root) {
+            OfficeXmlNode direct = root.Child(TransitionPresentationNamespace, "transition");
+            if (direct.Exists) {
+                yield return direct;
+                yield break;
             }
-
-            if (advanceOnClick.HasValue) {
-                transition.AdvanceOnClick = advanceOnClick;
-            } else {
-                RemoveTransitionAttribute(transition, "advClick", string.Empty);
-            }
-
-            if (advanceAfterSeconds.HasValue) {
-                transition.AdvanceAfterTime = ToMillisecondsString(advanceAfterSeconds);
-            } else {
-                RemoveTransitionAttribute(transition, "advTm", string.Empty);
+            foreach (OfficeXmlNode branch in GetAlternateTransitionNodes(GetTransitionAlternate(root))) {
+                if (branch.Exists) yield return branch;
             }
         }
 
-        private static void EnsureTransitionCompatibilityNamespace(Transition transition, string prefix, string uri) {
-            if (!string.Equals(transition.LookupNamespace(prefix), uri, StringComparison.Ordinal)) {
-                transition.AddNamespaceDeclaration(prefix, uri);
+        private static OfficeXmlNode GetTransitionAlternate(OfficeXmlNode root) {
+            foreach (OfficeXmlNode alternate in root.Children(TransitionCompatibilityNamespace, "AlternateContent")) {
+                if (GetAlternateTransitionNodes(alternate).Any(branch => branch.Exists)) return alternate;
             }
-
-            Slide? slide = transition.Ancestors<Slide>().FirstOrDefault();
-            if (slide == null) {
-                return;
-            }
-
-            if (!string.Equals(slide.LookupNamespace("mc"), MarkupCompatibilityNamespace, StringComparison.Ordinal)) {
-                slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
-            }
-
-            if (!string.Equals(slide.LookupNamespace(prefix), uri, StringComparison.Ordinal)) {
-                slide.AddNamespaceDeclaration(prefix, uri);
-            }
-
-            slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, prefix);
+            return default;
         }
 
-        private static void RemoveTransitionAttribute(Transition transition, string localName, string namespaceUri) {
-            bool hasAttribute = transition.GetAttributes()
-                .Any(attribute =>
-                    string.Equals(attribute.LocalName, localName, StringComparison.Ordinal) &&
-                    string.Equals(attribute.NamespaceUri, namespaceUri, StringComparison.Ordinal));
-
-            if (hasAttribute) {
-                transition.RemoveAttribute(localName, namespaceUri);
+        private static IEnumerable<OfficeXmlNode> GetAlternateTransitionNodes(OfficeXmlNode alternate) {
+            foreach (OfficeXmlNode choice in alternate.Children(TransitionCompatibilityNamespace, "Choice")) {
+                yield return choice.Child(TransitionPresentationNamespace, "transition");
             }
+            OfficeXmlNode fallback = alternate.Child(TransitionCompatibilityNamespace, "Fallback");
+            if (fallback.Exists) yield return fallback.Child(TransitionPresentationNamespace, "transition");
         }
 
-        internal Transition? GetTransitionElement() {
-            return GetTransitionElements().FirstOrDefault();
+        private static void WriteMorphTransition(OfficeXmlNode slide) {
+            MarkNamespaceIgnorable(slide, "p159", P159Namespace);
+            OfficeXmlNode alternate = slide.CreateElement(TransitionCompatibilityNamespace, "AlternateContent");
+            OfficeXmlNode choice = alternate.Append(alternate.CreateElement(TransitionCompatibilityNamespace, "Choice"));
+            choice.SetAttribute("Requires", "p159");
+            // A detached compatibility branch has no slide type information in the SDK.
+            OfficeXmlNode transition = choice.Append(slide.CreateElement(TransitionPresentationNamespace, "transition"));
+            transition.DeclareNamespace("p159", P159Namespace);
+            OfficeXmlNode morph = transition.Append(transition.CreateElement(P159Namespace, "morph", "p159"));
+            morph.DeclareNamespace("p159", P159Namespace);
+            morph.SetAttribute("option", "byObject");
+
+            OfficeXmlNode fallback = alternate.Append(alternate.CreateElement(TransitionCompatibilityNamespace, "Fallback"));
+            OfficeXmlNode alternative = fallback.Append(slide.CreateElement(TransitionPresentationNamespace, "transition"));
+            alternative.Append(alternative.CreateElement(TransitionPresentationNamespace, "fade"));
+
+            OfficeXmlNode before = slide.Child(TransitionPresentationNamespace, "timing");
+            if (before.IsNone) before = slide.Child(TransitionPresentationNamespace, "extLst");
+            if (before.IsNone) {
+                OfficeXmlNode after = slide.Child(TransitionPresentationNamespace, "clrMapOvr");
+                if (after.IsNone) after = slide.Child(TransitionPresentationNamespace, "cSld");
+                before = after.NextNode();
+            }
+            slide.InsertBefore(alternate, before);
         }
 
-        internal IReadOnlyList<Transition> GetTransitionElements() {
-            return GetTransitionBranches()
-                .Where(candidate => candidate != null)
-                .Cast<Transition>()
-                .ToArray();
+        private static void EnsureTransitionNamespace(OfficeXmlNode node, string prefix, string uri) {
+            if (!string.Equals(node.LookupNamespace(prefix), uri, StringComparison.Ordinal)) node.DeclareNamespace(prefix, uri);
         }
 
-        internal IReadOnlyList<Transition?> GetTransitionBranches() {
-            if (SlideRoot.Transition is Transition transition) {
-                return new Transition?[] { transition };
-            }
-            AlternateContent? alternateContent = GetTransitionAlternateContent();
-            if (alternateContent == null) {
-                return Array.Empty<Transition?>();
-            }
-            List<Transition?> branches = alternateContent
-                .Elements<AlternateContentChoice>()
-                .Select(choice => choice.GetFirstChild<Transition>())
-                .ToList();
-            AlternateContentFallback? fallback = alternateContent
-                .GetFirstChild<AlternateContentFallback>();
-            if (fallback != null) {
-                branches.Add(fallback.GetFirstChild<Transition>());
-            }
-            return branches;
-        }
-
-        private AlternateContent? GetTransitionAlternateContent() {
-            return SlideRoot.Elements<AlternateContent>()
-                .FirstOrDefault(content =>
-                    content.Elements<AlternateContentChoice>().Any(choice => choice.GetFirstChild<Transition>() != null) ||
-                    content.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>() != null);
-        }
-
-        private void RemoveTransitionMarkup() {
-            SlideRoot.Transition = null;
-            GetTransitionAlternateContent()?.Remove();
-        }
-
-        private void SetMorphTransition() {
-            Slide slide = SlideRoot;
-            if (!string.Equals(slide.LookupNamespace("mc"),
-                    MarkupCompatibilityNamespace, StringComparison.Ordinal)) {
-                slide.AddNamespaceDeclaration("mc",
-                    MarkupCompatibilityNamespace);
-            }
-            if (!string.Equals(slide.LookupNamespace("p159"),
-                    P159Namespace, StringComparison.Ordinal)) {
-                slide.AddNamespaceDeclaration("p159", P159Namespace);
-            }
-            slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, "p159");
-
-            Transition morphTransition = new();
-            morphTransition.AddNamespaceDeclaration("p159", P159Namespace);
-            morphTransition.Append(CreateMorphTransition());
-
-            AlternateContentChoice choice = new() { Requires = "p159" };
-            choice.Append(morphTransition);
-
-            AlternateContentFallback fallback = new();
-            fallback.Append(new Transition(new FadeTransition()));
-
-            AlternateContent alternateContent = new();
-            alternateContent.Append(choice);
-            alternateContent.Append(fallback);
-
-            InsertTransitionAlternateContent(alternateContent);
-        }
-
-        private void InsertTransitionAlternateContent(AlternateContent alternateContent) {
-            Slide slide = SlideRoot;
-            OpenXmlElement? insertBefore = slide.GetFirstChild<Timing>();
-            insertBefore ??= slide.GetFirstChild<ExtensionListWithModification>();
-            if (insertBefore != null) {
-                slide.InsertBefore(alternateContent, insertBefore);
-                return;
-            }
-
-            if (slide.ColorMapOverride != null) {
-                slide.InsertAfter(alternateContent, slide.ColorMapOverride);
-                return;
-            }
-
-            if (slide.CommonSlideData != null) {
-                slide.InsertAfter(alternateContent, slide.CommonSlideData);
-                return;
-            }
-
-            slide.Append(alternateContent);
-        }
-
-        private static MarkupCompatibilityAttributes MergeIgnorableNamespace(
-            MarkupCompatibilityAttributes? existingAttributes,
-            string namespacePrefix) {
-            List<string> prefixes = (existingAttributes?.Ignorable?.Value ?? string.Empty)
-                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToList();
-
-            if (!prefixes.Contains(namespacePrefix, StringComparer.Ordinal)) {
-                prefixes.Add(namespacePrefix);
-            }
-
-            return new MarkupCompatibilityAttributes {
-                Ignorable = string.Join(" ", prefixes)
-            };
+        private static void MarkNamespaceIgnorable(OfficeXmlNode slide, string prefix, string uri) {
+            EnsureTransitionNamespace(slide, "mc", MarkupCompatibilityNamespace);
+            EnsureTransitionNamespace(slide, prefix, uri);
+            List<string> ignorable = (slide.Attribute(TransitionCompatibilityNamespace, "Ignorable") ?? string.Empty)
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (!ignorable.Contains(prefix, StringComparer.Ordinal)) ignorable.Add(prefix);
+            slide.SetAttribute(TransitionCompatibilityNamespace, "Ignorable", string.Join(" ", ignorable));
         }
     }
 }

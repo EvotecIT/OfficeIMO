@@ -7,29 +7,7 @@ namespace OfficeIMO.PowerPoint {
         internal static string Add(OpenXmlPart ownerPart, Stream audio,
             string contentType, string extension) {
             ArgumentNullException.ThrowIfNull(ownerPart);
-            ArgumentNullException.ThrowIfNull(audio);
-            if (!audio.CanRead) {
-                throw new ArgumentException("Audio stream must be readable.",
-                    nameof(audio));
-            }
-            if (string.IsNullOrWhiteSpace(contentType)) {
-                throw new ArgumentException("An audio content type is required.",
-                    nameof(contentType));
-            }
-            string normalizedContentType = contentType.Trim().ToLowerInvariant();
-            if (normalizedContentType != "audio/wav"
-                && normalizedContentType != "audio/x-wav"
-                && normalizedContentType != "audio/aiff"
-                && normalizedContentType != "audio/x-aiff") {
-                throw new NotSupportedException(
-                    "Transition, action, and animation sounds require embedded WAV or AIFF audio.");
-            }
-            string normalizedExtension = extension?.Trim().TrimStart('.')
-                ?? string.Empty;
-            if (normalizedExtension.Length == 0) {
-                throw new ArgumentException("An audio file extension is required.",
-                    nameof(extension));
-            }
+            string normalizedExtension = ValidateSource(audio, contentType, extension);
             if (ownerPart.OpenXmlPackage is not PresentationDocument document) {
                 throw new InvalidOperationException(
                     "The owning part is not attached to a presentation document.");
@@ -57,6 +35,33 @@ namespace OfficeIMO.PowerPoint {
                 }
                 throw;
             }
+        }
+
+        internal static string ValidateSource(Stream audio, string contentType, string extension) {
+            ArgumentNullException.ThrowIfNull(audio);
+            if (!audio.CanRead) {
+                throw new ArgumentException("Audio stream must be readable.",
+                    nameof(audio));
+            }
+            if (string.IsNullOrWhiteSpace(contentType)) {
+                throw new ArgumentException("An audio content type is required.",
+                    nameof(contentType));
+            }
+            string normalizedContentType = contentType.Trim().ToLowerInvariant();
+            if (normalizedContentType != "audio/wav"
+                && normalizedContentType != "audio/x-wav"
+                && normalizedContentType != "audio/aiff"
+                && normalizedContentType != "audio/x-aiff") {
+                throw new NotSupportedException(
+                    "Transition, action, and animation sounds require embedded WAV or AIFF audio.");
+            }
+            string normalizedExtension = extension?.Trim().TrimStart('.')
+                ?? string.Empty;
+            if (normalizedExtension.Length == 0) {
+                throw new ArgumentException("An audio file extension is required.",
+                    nameof(extension));
+            }
+            return normalizedExtension;
         }
 
         internal static MediaDataPart? Find(OpenXmlPart ownerPart,
