@@ -11,7 +11,10 @@ namespace OfficeIMO.Excel {
                 try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
             }
 
-            Locking.ExecuteWrite(lck, () => applied = TryApplyPlainCellsByAppendingRowsCore(source, ct));
+            Locking.ExecuteWrite(lck, () => {
+                MaterializeConcurrentPendingDirectCellValues(ct);
+                applied = TryApplyPlainCellsByAppendingRowsCore(source, ct);
+            });
             return applied;
         }
 
