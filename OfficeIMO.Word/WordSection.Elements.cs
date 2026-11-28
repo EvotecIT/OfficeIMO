@@ -142,6 +142,7 @@ public partial class WordSection {
         WordSection preceding = sections[sections.Count - 1];
         OfficeXmlNode final = preceding.EditSectionNode();
         OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
+        MoveFinalSectionToEnd(body, final);
         OfficeXmlNode paragraph = body.CreateElement(SectionNamespace, "p");
         OfficeXmlNode properties = paragraph.Append(paragraph.CreateElement(SectionNamespace, "pPr"));
         OfficeXmlNode boundary = properties.Append(properties.CreateElement(SectionNamespace, "sectPr"));
@@ -163,18 +164,23 @@ public partial class WordSection {
         OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
         OfficeXmlNode boundary = FindOwnedBodyBoundary(body);
         if (boundary.IsNone) return null;
-        if (boundary.Is(SectionNamespace, "sectPr") && body.LastChild != boundary) {
-            boundary.Remove();
-            body.Append(boundary);
-        }
+        if (boundary.Is(SectionNamespace, "sectPr")) MoveFinalSectionToEnd(body, boundary);
         WordParagraph result = WordOwnedParagraphs.AddParagraph(_document, model, newRun, boundary.Node);
         result.Parent = this;
         return result;
     }
 
+    private static void MoveFinalSectionToEnd(OfficeXmlNode body, OfficeXmlNode final) {
+        if (body.LastChild == final) return;
+        final.Remove();
+        body.Append(final);
+    }
+
     private bool TryReadOwnedSectionParagraphs(out List<WordParagraph> paragraphs) {
         paragraphs = null!;
-        if (_document._ownedModel is not { } model || _ownedSectionNode.IsNone) return false;
+        if (_ownedSectionNode.IsNone) return false;
+        WordPackageModel? model = _document._ownedModel ?? _document.DisposedReadModel;
+        if (model == null) return false;
         List<WordSection> sections = _document.Sections;
         int ordinal = sections.IndexOf(this);
         if (ordinal < 0) return false;

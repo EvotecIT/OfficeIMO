@@ -293,7 +293,7 @@ namespace OfficeIMO.Word {
         internal WordList? _list;
         internal List<Run>? _runs;
         internal Hyperlink? _hyperlink;
-        internal SimpleField? _simpleField;
+
         private BookmarkStart? _bookmarkStartValue;
 
         internal BookmarkStart? _bookmarkStart {

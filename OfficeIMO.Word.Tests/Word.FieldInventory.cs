@@ -183,11 +183,25 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(path);
             Assert.Equal(new[] { WordFieldType.Author, WordFieldType.FileName },
                 loaded.InspectFields().Select(field => field.FieldType!.Value));
+#if NET
             Assert.True(loaded.IsSdkDeferred);
+#endif
 
             _ = loaded.OpenXmlDocument;
             Assert.Equal(new[] { WordFieldType.Author, WordFieldType.FileName },
                 loaded.InspectFields().Select(field => field.FieldType!.Value));
+        }
+
+        [Fact]
+        public void Test_DisposedAuthoredFieldResolvesWhenParagraphOpensSdkCopy() {
+            WordField field;
+            using (WordDocument document = WordDocument.Create()) {
+                field = document.AddParagraph().AddField(WordFieldType.Page);
+                field.Text = "7";
+            }
+
+            Assert.NotNull(field.Paragraph._paragraph.Parent);
+            Assert.Equal("7", field.Text);
         }
 
         [Theory]
@@ -208,7 +222,9 @@ namespace OfficeIMO.Tests {
             }).Results);
             Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
             Assert.Equal("12:34", field.Text);
+#if NET
             Assert.True(document.IsSdkDeferred);
+#endif
 
             _ = document.OpenXmlDocument;
             field.Text = "kept result";

@@ -196,6 +196,7 @@ namespace OfficeIMO.Word {
                 BindOwnedSections();
                 BindOwnedRunningStories(model);
                 WordParagraph.BindPageNumberFormatting(model.Document, _ownedNodeElements);
+                if (!IsDisposed && model.BodyHasFieldsOrContentControls) WordTableOfContent.RetainPlaceholdersAtSdkHandoff(this);
             }
             if (disposeModel) model.Dispose();
         }

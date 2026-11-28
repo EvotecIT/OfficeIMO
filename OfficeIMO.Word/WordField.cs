@@ -346,18 +346,19 @@ namespace OfficeIMO.Word {
             if (_document._ownedModel is { } model && _document.OwnsWordTree(model, tree)) return model;
 
             WordPackageModel? copy = _document.DisposedReadModel;
-            OfficeXmlTree? copyTree = copy == null || _document._ownedNodeElements != null
-                ? null : _document.GetDisposedWordTree(copy, tree);
+            object?[]? elements = _document.FindSdkWordNodeMap(tree);
+            OfficeXmlTree? copyTree = copy == null || elements != null ? null : _document.GetDisposedWordTree(copy, tree);
             if (copyTree != null) {
                 if (!ReferenceEquals(copyTree, tree)) {
                     _paragraph = CopyOf(_paragraph);
                     _simpleField = CopyOf(_simpleField);
                     for (int index = 0; index < _runs.Count; index++) _runs[index] = CopyOf(_runs[index]);
                 }
-                return copy;
+                elements = _document.FindSdkWordNodeMap(copyTree);
+                if (elements == null) return copy;
             }
 
-            if (_document.FindSdkWordNodeMap(tree) is not { } elements) {
+            if (elements is not { } resolved) {
                 throw new InvalidOperationException("The field is no longer part of the document.");
             }
             _paragraph = SdkNode(_paragraph);
@@ -368,8 +369,8 @@ namespace OfficeIMO.Word {
             OfficeXmlNode CopyOf(OfficeXmlNode node) => node.IsNone
                 ? default : new OfficeXmlNode(copyTree!, _document.DisposedCopyNode(tree, node.Node));
 
-            OfficeXmlNode SdkNode(OfficeXmlNode node) => node.Node >= 0 && node.Node < elements.Length
-                ? OfficeXmlNode.FromSdk(elements[node.Node]) : default;
+            OfficeXmlNode SdkNode(OfficeXmlNode node) => node.Node >= 0 && node.Node < resolved.Length
+                ? OfficeXmlNode.FromSdk(resolved[node.Node]) : default;
         }
 
         internal void SetAuthoringParagraph(WordParagraph paragraph) => _authoringParagraph = paragraph;

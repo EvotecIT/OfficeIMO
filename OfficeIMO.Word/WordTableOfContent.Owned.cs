@@ -59,7 +59,7 @@ public partial class WordTableOfContent {
         if (!model.BodyHasFieldsOrContentControls) return true;
         OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
         foreach (OfficeXmlNode block in WordFieldInventory.EnumerateFieldContent(body)) {
-            if (block.Is(TocNamespace, "sdt") && IsTocGallery(block))
+            if (block.Is(TocNamespace, "sdt") && IsTocGallery(block) && IsBlockTocControl(block))
                 tables.Add(new WordTableOfContent(document, block));
         }
 
@@ -71,6 +71,16 @@ public partial class WordTableOfContent {
         block.Child(TocNamespace, "sdtPr").Child(TocNamespace, "docPartObj")
             .Child(TocNamespace, "docPartGallery").Attribute(TocNamespace, "val") == "Table of Contents";
 
+    private static bool IsBlockTocControl(OfficeXmlNode control) {
+        const int W = TocNamespace;
+        for (OfficeXmlNode parent = control.Parent; parent.Exists; parent = parent.Parent) {
+            if (parent.NamespaceId != W) continue;
+            if (parent.LocalName is "p" or "tbl" or "tr") return false;
+            if (parent.LocalName is "body" or "tc" or "txbxContent") return true;
+        }
+        return false;
+    }
+
     private OfficeXmlNode GetOwnedGlossaryRoot(WordPackageModel model, bool create) {
         const string relationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "glossaryDocument";
         string? name = WordOwnedSave.RelatedParts(model, relationshipType).FirstOrDefault();
@@ -79,13 +89,13 @@ public partial class WordTableOfContent {
             tree = model.Package.GetXml(name);
         } else {
             if (!create || _document.IsDisposed) return default;
-            const string partName = "/word/glossary/document.xml";
             const string contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.glossary+xml";
-            if (model.Package.PartExists(partName))
-                throw new InvalidDataException("The package contains an unlinked glossary document.");
+            string partName = "/word/glossary/document.xml";
+            for (int index = 2; model.Package.PartExists(partName); index++)
+                partName = "/word/glossary/document" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xml";
             _ = model.Package.GetRelationships(model.MainPartName);
             tree = model.Package.CreateXmlPart(partName, contentType, TocNamespace, "glossaryDocument");
-            model.Package.AddRelationship(model.MainPartName, relationshipType, "glossary/document.xml",
+            model.Package.AddRelationship(model.MainPartName, relationshipType, partName.Substring("/word/".Length),
                 id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
             model.MarkChanged();
         }

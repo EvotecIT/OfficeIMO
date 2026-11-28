@@ -122,8 +122,10 @@ namespace OfficeIMO.Word {
         }
 
         private static IEnumerable<string> EnumerateIndexInstructions(Paragraph paragraph) {
-            foreach (SimpleField simpleField in paragraph.Descendants<SimpleField>()) {
-                string instruction = simpleField.Instruction?.Value ?? string.Empty;
+            OfficeXmlNode source = OfficeXmlNode.FromSdk(paragraph);
+            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(source)) {
+                if (!field.Is(TocNamespace, "fldSimple")) continue;
+                string instruction = field.Attribute(TocNamespace, "instr") ?? string.Empty;
                 if (IsIndexEntryInstruction(instruction)) {
                     yield return instruction;
                 }
@@ -140,8 +142,9 @@ namespace OfficeIMO.Word {
                 yield break;
             }
 
-            foreach (FieldCode fieldCode in paragraph.Descendants<FieldCode>()) {
-                string instruction = fieldCode.Text ?? string.Empty;
+            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(source)) {
+                if (!field.Is(TocNamespace, "instrText")) continue;
+                string instruction = field.InnerText;
                 if (IsIndexEntryInstruction(instruction)) {
                     yield return instruction;
                 }

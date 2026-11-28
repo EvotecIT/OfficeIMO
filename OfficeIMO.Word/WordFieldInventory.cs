@@ -181,6 +181,9 @@ namespace OfficeIMO.Word {
         // branch, and extension lists are opaque even when they contain WordprocessingML.
         internal static IEnumerable<OfficeXmlNode> EnumerateFieldContent(OfficeXmlNode root, bool reserveInactiveCompatibilityIds = false) {
             const int Mc = OfficeXmlNamespaces.MarkupCompatibility;
+            if (root.LocalName == "extLst") yield break;
+            if (!reserveInactiveCompatibilityIds && root.Is(Mc, "AlternateContent"))
+                root = WordAlternateContentResolver.SelectBranch(root);
             OfficeXmlNode node = root.FirstChild;
             while (node.Exists) {
                 OfficeXmlNode next = default;

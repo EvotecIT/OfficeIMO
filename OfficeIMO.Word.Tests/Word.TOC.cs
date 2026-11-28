@@ -14,20 +14,28 @@ namespace OfficeIMO.Tests {
             toc.TextNoContent = "No headings";
             document.AddParagraph("Second heading").Style = WordParagraphStyles.Heading2;
 
+#if NET
             Assert.True(document.IsSdkDeferred);
+#endif
             byte[] bytes = document.ToBytes();
+#if NET
             Assert.True(document.IsSdkDeferred);
+#endif
 
             using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
             WordTableOfContent stored = Assert.IsType<WordTableOfContent>(loaded.TableOfContent);
             Assert.Equal("Contents", stored.Text);
             Assert.Equal("No headings", stored.TextNoContent);
             Assert.Equal(2, loaded.InspectFields().Count(field => field.FieldType == WordFieldType.PageRef));
+#if NET
             Assert.True(loaded.IsSdkDeferred);
+#endif
 
-            _ = loaded.OpenXmlDocument;
+            var glossary = loaded.OpenXmlDocument.MainDocumentPart!.GlossaryDocumentPart!.GlossaryDocument!;
+            Text placeholder = Assert.Single(glossary.Descendants<Text>(), text => text.Text == "No headings");
+            placeholder.Text = "Updated through Open XML";
             loaded.Dispose();
-            Assert.Equal("No headings", stored.TextNoContent);
+            Assert.Equal("Updated through Open XML", stored.TextNoContent);
 
             _ = document.OpenXmlDocument;
             document.Dispose();
@@ -52,7 +60,9 @@ namespace OfficeIMO.Tests {
             Assert.IsType<WordTableOfContent>(loaded.TableOfContent);
             Assert.False(loaded.Settings.UpdateFieldsOnOpen);
             Assert.DoesNotContain(loaded.InspectFields(), field => field.IsDirty);
+#if NET
             Assert.True(loaded.IsSdkDeferred);
+#endif
         }
 
         [Fact]

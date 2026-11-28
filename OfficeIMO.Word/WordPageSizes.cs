@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
         private static readonly WordPageSize[] Presets = global::OfficeIMO.Internal.EnumCompat.GetValues<WordPageSize>();
         private readonly WordSection _section;
 
-        private OfficeXmlNode SizeNode => _section.SectionNode.Child(W, "pgSz");
+        private OfficeXmlNode SizeNode => WordSection.FindSectionChild(_section.SectionNode, "pgSz");
 
         /// <summary>Gets or sets the preset paper size for the section.</summary>
         public WordPageSize? PageSize {
@@ -122,11 +122,16 @@ namespace OfficeIMO.Word {
             set {
                 WordPageSizeDefinition? preset = value.HasValue ? GetDefinition(value.Value) : null;
                 OfficeXmlNode section = _section.EditSectionNode();
-                OfficeXmlNode previous = section.Child(W, "pgSz");
+                OfficeXmlNode previous = WordSection.FindSectionChild(section, "pgSz");
                 OfficePageOrientation orientation = ReadOrientation(previous);
+                if (preset == null) {
+                    if (previous.Exists) previous.Remove();
+                    return;
+                }
+                OfficeXmlNode pageSize = previous.Exists
+                    ? previous.Parent.InsertBefore(section.CreateElement(W, "pgSz"), previous)
+                    : WordSection.AddSectionChild(section, "pgSz");
                 if (previous.Exists) previous.Remove();
-                if (preset == null) return;
-                OfficeXmlNode pageSize = WordSection.AddSectionChild(section, "pgSz");
                 WritePreset(pageSize, preset);
                 if (orientation == OfficePageOrientation.Landscape) ApplyOrientation(pageSize, orientation);
             }
@@ -197,7 +202,7 @@ namespace OfficeIMO.Word {
             set {
                 _ = value.ToOpenXmlToken();
                 OfficeXmlNode section = _section.EditSectionNode();
-                OfficeXmlNode size = section.Child(W, "pgSz");
+                OfficeXmlNode size = WordSection.FindSectionChild(section, "pgSz");
                 if (size.IsNone) {
                     size = WordSection.AddSectionChild(section, "pgSz");
                     WritePreset(size, A4);

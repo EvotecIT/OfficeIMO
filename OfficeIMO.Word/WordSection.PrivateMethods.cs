@@ -993,6 +993,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
             if (TryReadOwnedSectionParagraphs(out List<WordParagraph> owned)) return owned;
+            EnsureSdkSection();
             int targetSection = GetSectionOrdinal();
             var body = _document._document?.Body;
             if (body == null) {

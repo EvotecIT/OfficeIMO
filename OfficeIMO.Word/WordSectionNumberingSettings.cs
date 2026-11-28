@@ -42,10 +42,10 @@ namespace OfficeIMO.Word {
 
         internal OfficeXmlNode Edit() => _section.EnsureSectionChild(_localName);
 
-        internal string? Get(string childName) => _section.SectionNode.Child(Ns, _localName).Child(Ns, childName).Attribute(Ns, "val");
+        internal string? Get(string childName) => WordSection.FindSectionChild(_section.SectionNode, _localName).Child(Ns, childName).Attribute(Ns, "val");
 
         internal void Set(string name, string? token) {
-            OfficeXmlNode node = token != null ? Edit() : _section.EditSectionNode().Child(Ns, _localName);
+            OfficeXmlNode node = token != null ? Edit() : WordSection.FindSectionChild(_section.EditSectionNode(), _localName);
             Set(node, name, token);
         }
 

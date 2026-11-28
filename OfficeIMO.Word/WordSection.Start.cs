@@ -10,14 +10,12 @@ public partial class WordSection {
     /// An omitted section type uses <see cref="WordSectionBreakType.NextPage"/>.
     /// </summary>
     public WordSectionBreakType BreakType {
-        get => WordSectionBreakTypeExtensions.FromOpenXmlToken(SectionNode.Child(SectionNamespace, "type").Attribute(SectionNamespace, "val"));
+        get => WordSectionBreakTypeExtensions.FromOpenXmlToken(FindSectionChild(SectionNode, "type").Attribute(SectionNamespace, "val"));
         set => SetBreakType(value.ToOpenXmlToken());
     }
 
     private void SetBreakType(string token) {
-        OfficeXmlNode section = EditSectionNode();
-        section.RemoveChildren(SectionNamespace, "type");
-        AddSectionChild(section, "type").SetAttribute(SectionNamespace, "val", token);
+        EnsureSectionChild("type").SetAttribute(SectionNamespace, "val", token);
     }
 
     /// <summary>Resolves an authored numbering restart after Word's odd/even section-start constraint.</summary>

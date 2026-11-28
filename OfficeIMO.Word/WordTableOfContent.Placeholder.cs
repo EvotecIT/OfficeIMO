@@ -27,6 +27,17 @@ namespace OfficeIMO.Word {
             return string.Empty;
         }
 
+        internal static void RetainPlaceholdersAtSdkHandoff(WordDocument document) {
+            const int W = TocNamespace;
+            OfficeXmlNode body = WordFieldInventory.BodyNode(document);
+            foreach (OfficeXmlNode control in WordFieldInventory.EnumerateFieldContent(body)) {
+                if (control.Is(W, "sdt") && IsTocGallery(control) &&
+                    control.Child(W, "sdtPr").Child(W, "placeholder").Exists) {
+                    _ = WrapSdkControl(document, control);
+                }
+            }
+        }
+
         private OfficeXmlNode GetPlaceholderPart() {
             const int W = TocNamespace;
             if (_document.IsDisposed && SdtNode.SdkElement is { } live) {

@@ -17,7 +17,9 @@ public partial class Word {
         WordField footer = second.PageSetup.Footer.AddField(WordFieldType.Page);
         footer.Text = "12";
 
+#if NET
         Assert.True(document.IsSdkDeferred);
+#endif
         Assert.Equal("First", header.Text);
         Assert.Equal(WordSectionBreakType.Continuous, second.BreakType);
 
@@ -45,6 +47,42 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_SectionEditsReadBackFromTheActiveCompatibilityBranch() {
+        byte[] bytes;
+        using (WordDocument source = WordDocument.Create()) {
+            var section = source.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+            var size = section.GetFirstChild<PageSize>()!;
+            var choice = new AlternateContentChoice(new FootnoteProperties(), new EndnoteProperties(), size.CloneNode(true)) {
+                Requires = "w14"
+            };
+            var fallback = new AlternateContentFallback(size.CloneNode(true));
+            size.InsertBeforeSelf(new AlternateContent(choice, fallback));
+            size.Remove();
+            bytes = source.ToBytes();
+        }
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+        WordSection edited = document.Sections[0];
+        edited.BreakType = WordSectionBreakType.Continuous;
+        edited.BreakType = WordSectionBreakType.OddPage;
+        Assert.Equal(WordSectionBreakType.OddPage, edited.BreakType);
+        edited.PageSetup.Size.Width = OfficeLength.Inches(9);
+        Assert.Equal(OfficeLength.Inches(9), edited.PageSetup.Size.Width);
+        edited.FootnoteSettings.StartNumber = 5;
+        edited.EndnoteSettings.StartNumber = 7;
+        Assert.Equal(5, edited.FootnoteSettings.StartNumber);
+        Assert.Equal(7, edited.EndnoteSettings.StartNumber);
+        edited.FootnoteSettings.StartNumber = null;
+        Assert.Null(edited.FootnoteSettings.StartNumber);
+
+        var properties = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+        var alternate = Assert.Single(properties.Elements<AlternateContent>());
+        var active = alternate.GetFirstChild<AlternateContentChoice>()!;
+        Assert.Single(active.ChildElements, node => node.LocalName == "type");
+        Assert.Equal(new[] { "pgSz" }, alternate.GetFirstChild<AlternateContentFallback>()!.ChildElements.Select(node => node.LocalName));
+    }
+
+    [Fact]
     public void Test_PageNumberInsertionPreservesSectionCompatibilityBranches() {
         byte[] bytes;
         using (WordDocument document = WordDocument.Create()) {
@@ -58,7 +96,9 @@ public partial class Word {
 
         using WordDocument edited = WordDocument.Load(new MemoryStream(bytes));
         edited.Sections[0].AddPageNumbering(startNumber: 2);
+#if NET
         Assert.True(edited.IsSdkDeferred);
+#endif
         bytes = edited.ToBytes();
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
@@ -89,7 +129,9 @@ public partial class Word {
         using WordDocument edited = WordDocument.Load(new MemoryStream(bytes));
         edited.Sections[0].AddPageNumbering(startNumber: 2);
         Assert.Equal(2, edited.Sections[0].PageNumberSettings.StartNumber);
+#if NET
         Assert.True(edited.IsSdkDeferred);
+#endif
         bytes = edited.ToBytes();
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));

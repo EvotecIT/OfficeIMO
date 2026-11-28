@@ -6,6 +6,16 @@ namespace OfficeIMO.Word;
 
 public partial class WordParagraph {
     private WordField? _authoredField;
+    private SimpleField? _simpleFieldValue;
+
+    // Internal SDK callers that format the result run can explicitly resolve the field.
+    internal SimpleField? _simpleField {
+        get {
+            if (_ownedTree != null && _authoredField?.CurrentNodes().SimpleField.Exists == true) ResolveOwnedToSdk();
+            return _simpleFieldValue;
+        }
+        set => _simpleFieldValue = value;
+    }
 
     internal static WordParagraph CreateOwnedField(WordDocument document, OfficeXmlNode paragraph,
         OfficeXmlNode simple, List<OfficeXmlNode>? runs) {
