@@ -346,13 +346,17 @@ internal sealed partial class OfficeXmlTree {
     /// its transitional id), local name and value.
     /// </summary>
     internal void GetAttributeAt(int node, int index, out int namespaceId, out string localName, out string value) {
-        ref Node record = ref _nodes[node];
-        if ((uint)index >= (uint)record.AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
-        ref Attr attribute = ref _attrs[record.AttrFirst + index];
-        ref readonly OfficeXmlName name = ref Namespaces.GetName(attribute.Name);
+        value = GetAttributeAt(node, index, out OfficeXmlName name);
         namespaceId = name.NamespaceId;
         localName = name.LocalName;
-        value = AttributeValue(ref attribute);
+    }
+
+    /// <summary>The value of an element's attribute by position, with its full name, prefix included.</summary>
+    internal string GetAttributeAt(int node, int index, out OfficeXmlName name) {
+        if ((uint)index >= (uint)_nodes[node].AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + index];
+        name = Namespaces.GetName(attribute.Name);
+        return AttributeValue(ref attribute);
     }
 
     /// <summary>

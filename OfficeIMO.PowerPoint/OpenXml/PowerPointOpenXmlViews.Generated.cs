@@ -2554,3 +2554,133 @@ internal readonly partial struct PNotesMasterIdListEntryView {
         set => Element.SetAttribute(OfficeXmlNamespaces.Relationships, "id", value);
     }
 }
+
+/// <summary>View over an element of schema type <c>CT_OfficeStyleSheet</c>.</summary>
+internal readonly partial struct AOfficeStyleSheetView {
+    internal AOfficeStyleSheetView(OfficeXmlNode element) => Element = element;
+
+    internal AOfficeStyleSheetView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "themeElements", "objectDefaults", "extraClrSchemeLst", "custClrLst", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
+
+    internal string? Name {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "name");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "name", value);
+    }
+
+    internal ABaseStylesView? ThemeElements {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "themeElements");
+            return child.IsNone ? null : new ABaseStylesView(child);
+        }
+    }
+
+    internal ABaseStylesView GetOrAddThemeElements() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "themeElements", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_BaseStyles</c>.</summary>
+internal readonly partial struct ABaseStylesView {
+    internal ABaseStylesView(OfficeXmlNode element) => Element = element;
+
+    internal ABaseStylesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "clrScheme", "fontScheme", "fmtScheme", "extLst" }, new int[] { 0, 1, 2, 3 });
+
+    internal AColorSchemeView? ClrScheme {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "clrScheme");
+            return child.IsNone ? null : new AColorSchemeView(child);
+        }
+    }
+
+    internal AColorSchemeView GetOrAddClrScheme() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "clrScheme", Order));
+
+    internal AFontSchemeView? FontScheme {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "fontScheme");
+            return child.IsNone ? null : new AFontSchemeView(child);
+        }
+    }
+
+    internal AFontSchemeView GetOrAddFontScheme() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "fontScheme", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_ColorScheme</c>.</summary>
+internal readonly partial struct AColorSchemeView {
+    internal AColorSchemeView(OfficeXmlNode element) => Element = element;
+
+    internal AColorSchemeView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 });
+
+    internal string? Name {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "name");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "name", value);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_FontScheme</c>.</summary>
+internal readonly partial struct AFontSchemeView {
+    internal AFontSchemeView(OfficeXmlNode element) => Element = element;
+
+    internal AFontSchemeView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "majorFont", "minorFont", "extLst" }, new int[] { 0, 1, 2 });
+
+    internal string? Name {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "name");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "name", value);
+    }
+
+    internal AFontCollectionView? MajorFont {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "majorFont");
+            return child.IsNone ? null : new AFontCollectionView(child);
+        }
+    }
+
+    internal AFontCollectionView GetOrAddMajorFont() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "majorFont", Order));
+
+    internal AFontCollectionView? MinorFont {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "minorFont");
+            return child.IsNone ? null : new AFontCollectionView(child);
+        }
+    }
+
+    internal AFontCollectionView GetOrAddMinorFont() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "minorFont", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_FontCollection</c>.</summary>
+internal readonly partial struct AFontCollectionView {
+    internal AFontCollectionView(OfficeXmlNode element) => Element = element;
+
+    internal AFontCollectionView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "latin", "ea", "cs", "font", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
+}
