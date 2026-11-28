@@ -346,6 +346,25 @@ public sealed class ZstandardArchiveTests {
         Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
     }
 
+    [Theory]
+    // Cancellation arrives with the last byte of a raw block header, or with the magic number of a skippable frame.
+    [InlineData(false, 9)]
+    [InlineData(true, 4)]
+    public void CancellationBeforeABlockOrSkippableFrameChargesNoWork(bool skippable, long cancelAt) {
+        var frame = new List<byte>(skippable
+            ? new byte[] { 0x50, 0x2A, 0x4D, 0x18, 0x00, 0x00, 0x00, 0x00 }
+            : new byte[] { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x01, 0x20, 0x00 });
+        if (!skippable) frame.AddRange(Enumerable.Repeat((byte)0x41, 1024));
+        var budget = new ArchiveOperationBudget();
+        using var cancellation = new CancellationTokenSource();
+        var source = new TrickleStream(frame.ToArray(), cancelAt, cancellation);
+
+        Assert.ThrowsAny<OperationCanceledException>(() => ZstandardArchive.Decompress(source, new MemoryStream(),
+            new ArchiveReadOptions { OperationBudget = budget }, cancellation.Token));
+
+        Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
+    }
+
     [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>

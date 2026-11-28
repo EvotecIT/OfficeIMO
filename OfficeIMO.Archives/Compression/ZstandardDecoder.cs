@@ -126,7 +126,7 @@ internal sealed class ZstandardDecoder {
 
     private void SkipFrame(long frameOffset) {
         // Passing over a skippable frame costs no output, so each one is charged like an empty block.
-        _settings.Budget.Charge(0, 4096);
+        Charge(0, 4096);
         ReadExact(_small, 0, 4, frameOffset + 4, "the skippable frame size");
         long size = ReadUInt32(_small, 0);
         long available = _source.Length - _source.Position;
@@ -210,7 +210,7 @@ internal sealed class ZstandardDecoder {
             // Work is charged before the block is decoded, so a block that fails part way still counts. A compressed
             // block is charged its largest possible output, since its real output is known only after decoding.
             int input = type == 1 ? 1 : size;
-            _settings.Budget.Charge(0, Math.Max(4096, (long)input + (type == 2 ? _blockMaximum : size)));
+            Charge(0, Math.Max(4096, (long)input + (type == 2 ? _blockMaximum : size)));
             // Raw and RLE blocks know their output size; only a compressed block needs room for the block maximum.
             EnsureRoom(type == 2 ? _blockMaximum : size);
             int start = _position;
@@ -261,7 +261,7 @@ internal sealed class ZstandardDecoder {
             content.Length + history + Math.Max(2L * MaxBlockSize, (content.Length + history) / 2));
         // Every frame starts from a fresh copy of the dictionary, so the copy is decode work like any block. It is
         // charged before the history is allocated, so a refused frame allocates nothing.
-        if (content.Length > 0) _settings.Budget.Charge(0, content.Length);
+        if (content.Length > 0) Charge(0, content.Length);
         int initial = (int)Math.Min(_capacity, content.Length + 2L * MaxBlockSize);
         if (_history.Length < initial) _history = new byte[initial];
         Buffer.BlockCopy(content, 0, _history, 0, content.Length);
@@ -293,17 +293,24 @@ internal sealed class ZstandardDecoder {
         if (_history.Length < _capacity) {
             long grown = Math.Min(_capacity, Math.Max(2L * _history.Length, (long)_position + needed));
             // Growing copies the whole buffer, so the copy is charged as work first. Doubling keeps the copies below the output.
-            _settings.Budget.Charge(0, _history.Length);
+            Charge(0, _history.Length);
             Array.Resize(ref _history, (int)grown);
             if (_history.Length - _position >= needed) return;
         }
         int keep = (int)Math.Min(_position, _window);
-        _settings.Budget.Charge(0, keep);
+        Charge(0, keep);
         Buffer.BlockCopy(_history, _position - keep, _history, 0, keep);
         _position = keep;
         // Only a frame that outgrows its declared content can run out of history capacity.
         if (_history.Length - _position < needed)
             throw Corrupt(_blockOffset, $"no more than the declared {_contentSize} bytes of frame content");
+    }
+
+    /// <summary>Charges work and output, observing cancellation first, so a cancelled decode never spends budget or
+    /// reports a limit in place of the cancellation.</summary>
+    private void Charge(long expanded, long work) {
+        _settings.CancellationToken.ThrowIfCancellationRequested();
+        _settings.Budget.Charge(expanded, work);
     }
 
     private void Publish(int start) {
@@ -314,7 +321,7 @@ internal sealed class ZstandardDecoder {
             throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
         if (_contentSize >= 0 && produced > _contentSize - _frameProduced)
             throw Corrupt(_blockOffset, $"no more than the declared {_contentSize} bytes of frame content");
-        _settings.Budget.Charge(produced, 0);
+        Charge(produced, 0);
         _settings.Select?.Invoke(produced);
         if (produced > 0) {
             _destination.Write(_history, start, produced);
