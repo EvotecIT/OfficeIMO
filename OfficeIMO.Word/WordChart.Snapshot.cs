@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
                 if (part != null && !OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(part, chart, out visibility, out _)) return false;
                 // At most one series past the readers' limit, so an oversized group is rejected without reading it all.
                 var series = new List<OfficeXmlNode>();
-                foreach (OfficeXmlNode item in group.Children(NsC, "ser")) {
+                foreach (OfficeXmlNode item in GroupSeries(group)) {
                     series.Add(item);
                     if (series.Count > MaxCachedChartPoints) break;
                 }

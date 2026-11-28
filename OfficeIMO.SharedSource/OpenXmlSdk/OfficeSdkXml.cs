@@ -100,8 +100,6 @@ namespace OfficeIMO.OpenXml.Internal {
         // been there; the rest go through the list.
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Element, string LocalName, string Uri), bool> AttributesSeenMissing = new();
 
-        internal static string? LookupNamespace(object element, string prefix) => E(element).LookupNamespace(prefix);
-
         internal static string? GetAttribute(object element, int namespaceId, string localName) {
             OpenXmlElement value = E(element);
             if (!value.HasAttributes) return null;

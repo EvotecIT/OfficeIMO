@@ -125,7 +125,7 @@ public partial class WordChart {
         foreach (OfficeXmlNode bar in plot.Children(NsC, "barChart")) {
             if (!IsGrouping(bar, "stacked")) continue;
             var sums = new Dictionary<uint, double>();
-            foreach (OfficeXmlNode series in bar.Children(NsC, "ser")) {
+            foreach (OfficeXmlNode series in GroupSeries(bar)) {
                 foreach (OfficeXmlNode point in CachedNumbers(series.Child(NsC, "val"))) {
                     uint index = point.UIntAttr("idx") ?? 0U;
                     sums[index] = (sums.TryGetValue(index, out double sum) ? sum : 0D) + ReadCountPoint(point);

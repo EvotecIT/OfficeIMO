@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// The relationship id of the chart a drawing shows: the <c>c:chart</c> at
         /// wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart of the drawing's own frame. An <c>mc:AlternateContent</c>
-        /// at any step contributes the branch a first-edition consumer selects. A chart anywhere else, such as in vendor
+        /// at any step contributes the branch Word selects. A chart anywhere else, such as in vendor
         /// or extension markup, is not.
         /// </summary>
         private static string? ChartReferenceId(OfficeXmlNode drawing) {
@@ -66,46 +66,56 @@ namespace OfficeIMO.Word {
 
         /// <summary>The drawing's wp:inline or wp:anchor frame, looking through <c>mc:AlternateContent</c>; or none.</summary>
         private static OfficeXmlNode DrawingFrame(OfficeXmlNode drawing) {
-            for (OfficeXmlNode child = drawing.IsNone ? default : drawing.FirstChild; !child.IsNone; child = child.NextSibling) {
+            foreach (OfficeXmlNode child in SelectedChildren(drawing)) {
                 if (child.Is(NsWp, "inline") || child.Is(NsWp, "anchor")) return child;
-                if (!child.Is(NsMc, "AlternateContent")) continue;
-                OfficeXmlNode frame = DrawingFrame(SelectedBranch(child));
-                if (!frame.IsNone) return frame;
             }
             return default;
         }
 
         /// <summary>The first child with this name, looking through <c>mc:AlternateContent</c>; or none.</summary>
         private static OfficeXmlNode SelectedChild(OfficeXmlNode parent, int namespaceId, string localName) {
-            for (OfficeXmlNode child = parent.IsNone ? default : parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+            foreach (OfficeXmlNode child in SelectedChildren(parent)) {
                 if (child.Is(namespaceId, localName)) return child;
-                if (!child.Is(NsMc, "AlternateContent")) continue;
-                OfficeXmlNode found = SelectedChild(SelectedBranch(child), namespaceId, localName);
-                if (!found.IsNone) return found;
             }
             return default;
         }
 
         /// <summary>
-        /// The branch of an <c>mc:AlternateContent</c> a first-edition consumer selects: the first <c>mc:Choice</c> whose
-        /// <c>Requires</c> namespaces are all ECMA-376 namespaces, otherwise the <c>mc:Fallback</c>; or none.
+        /// The element's children in document order, each <c>mc:AlternateContent</c> replaced by the children of the
+        /// branch Word selects.
         /// </summary>
-        private static OfficeXmlNode SelectedBranch(OfficeXmlNode alternate) {
-            for (OfficeXmlNode branch = alternate.FirstChild; !branch.IsNone; branch = branch.NextSibling) {
-                if (branch.Is(NsMc, "Choice") && RequirementsUnderstood(branch)) return branch;
-                if (branch.Is(NsMc, "Fallback")) return branch;
+        private static IEnumerable<OfficeXmlNode> SelectedChildren(OfficeXmlNode parent) {
+            for (OfficeXmlNode child = parent.IsNone ? default : parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (!child.Is(NsMc, "AlternateContent")) {
+                    yield return child;
+                    continue;
+                }
+                foreach (OfficeXmlNode selected in SelectedChildren(WordAlternateContentResolver.SelectBranch(child))) yield return selected;
             }
-            return default;
         }
 
-        private static bool RequirementsUnderstood(OfficeXmlNode choice) {
-            string? requires = choice.Attribute(OfficeXmlNamespaces.None, "Requires");
-            if (string.IsNullOrWhiteSpace(requires)) return false;
-            foreach (string prefix in requires!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
-                string? uri = choice.LookupNamespaceUri(prefix);
-                if (uri == null || !OfficeXmlNamespaces.TryGetKnownId(uri, out _)) return false;
+        /// <summary>The plot area's chart groups, such as <c>c:barChart</c>, including those in a selected compatibility branch.</summary>
+        private static IEnumerable<OfficeXmlNode> ChartGroups(OfficeXmlNode plot) {
+            foreach (OfficeXmlNode child in SelectedChildren(plot)) {
+                if (IsChartGroup(child)) yield return child;
             }
-            return true;
+        }
+
+        /// <summary>A chart group's <c>c:ser</c> children, including those in a selected compatibility branch.</summary>
+        private static IEnumerable<OfficeXmlNode> GroupSeries(OfficeXmlNode group) {
+            foreach (OfficeXmlNode child in SelectedChildren(group)) {
+                if (child.Is(NsC, "ser")) yield return child;
+            }
+        }
+
+        /// <summary>
+        /// The element an element belongs to, above any <c>mc:AlternateContent</c> branch it sits in: the chart group of
+        /// a series, or the plot area of a chart group.
+        /// </summary>
+        private static OfficeXmlNode ContentParent(OfficeXmlNode element) {
+            OfficeXmlNode parent = element.Parent;
+            while (parent.Is(NsMc, "Choice") || parent.Is(NsMc, "Fallback") || parent.Is(NsMc, "AlternateContent")) parent = parent.Parent;
+            return parent;
         }
 
         /// <summary>
@@ -136,9 +146,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>The plotted series: the <c>c:ser</c> children of the plot area's chart groups, in document order.</summary>
         private static IEnumerable<OfficeXmlNode> PlottedSeries(OfficeXmlNode plot) {
-            for (OfficeXmlNode group = plot.IsNone ? default : plot.FirstChild; !group.IsNone; group = group.NextSibling) {
-                if (!IsChartGroup(group)) continue;
-                foreach (OfficeXmlNode series in group.Children(NsC, "ser")) yield return series;
+            foreach (OfficeXmlNode group in ChartGroups(plot)) {
+                foreach (OfficeXmlNode series in GroupSeries(group)) yield return series;
             }
         }
 

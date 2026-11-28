@@ -65,9 +65,8 @@ namespace OfficeIMO.Word {
         /// such as in vendor elements, is not an index.
         /// </summary>
         private static IEnumerable<OfficeXmlNode> PlotIndexes(OfficeXmlNode plotArea) {
-            for (OfficeXmlNode group = plotArea.FirstChild; !group.IsNone; group = group.NextSibling) {
-                if (group.NamespaceId != NsC || !IsChartGroup(group)) continue;
-                for (OfficeXmlNode child = group.FirstChild; !child.IsNone; child = child.NextSibling) {
+            foreach (OfficeXmlNode group in ChartGroups(plotArea)) {
+                foreach (OfficeXmlNode child in SelectedChildren(group)) {
                     if (child.Is(NsC, "ser")) {
                         for (OfficeXmlNode item = child.FirstChild; !item.IsNone; item = item.NextSibling) {
                             if (item.Is(NsC, "idx")) yield return item;
@@ -435,10 +434,11 @@ namespace OfficeIMO.Word {
             literal.Append(NewPoint(literal, index, text));
 
         /// <summary>A detached <c>c:pt</c> with its index and <c>c:v</c> text, made for <paramref name="literal"/>.</summary>
-        private static OfficeXmlNode NewPoint(OfficeXmlNode literal, uint index, string text) {
+        private static OfficeXmlNode NewPoint(OfficeXmlNode literal, uint index, string? text) {
             OfficeXmlNode point = NewC(literal, "pt");
             point.SetAttribute("idx", OfficeChartXml.Text(index));
-            AddText(point, NsC, "v", text);
+            // A missing label is written as a blank one, as the category setters do.
+            AddText(point, NsC, "v", text ?? string.Empty);
             return point;
         }
 

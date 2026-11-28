@@ -292,20 +292,6 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        /// <summary>The namespace URI <paramref name="prefix"/> is bound to where the element sits, or null when it is unbound.</summary>
-        internal string? LookupNamespaceUri(string prefix) {
-            if (_sdk != null) return OfficeSdkXml.LookupNamespace(_sdk, prefix);
-            for (OfficeXmlNode node = this; node._tree != null; node = node.Parent) {
-                int count = node._tree.AttributeCountOf(node._node);
-                for (int index = 0; index < count; index++) {
-                    string value = node._tree.GetAttributeAt(node._node, index, out OfficeXmlName name);
-                    if (name.NamespaceId == OfficeXmlNamespaces.Xmlns && name.Prefix == "xmlns" &&
-                        string.Equals(name.LocalName, prefix, StringComparison.Ordinal)) return value;
-                }
-            }
-            return null;
-        }
-
         /// <summary>Declares <paramref name="prefix"/> for <paramref name="namespaceUri"/> on the element.</summary>
         internal void DeclareNamespace(string prefix, string namespaceUri) {
             if (_tree != null) _tree.DeclareNamespace(_node, prefix, namespaceUri);

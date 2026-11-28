@@ -30,10 +30,10 @@ public partial class WordChart {
 
     internal OfficeSeries ReadAttachedSeries(OfficeXmlNode element) {
         RequireChartAttachment(element);
-        OfficeXmlNode group = element.Parent;
+        OfficeXmlNode group = ContentParent(element);
         if (group.IsNone || !OfficeOpenXmlChartSeriesReader.TryReadKind(group, out var kind))
             throw new NotSupportedException("This native series cannot be inspected.");
-        OfficeXmlNode plot = group.Parent;
+        OfficeXmlNode plot = ContentParent(group);
         if (!plot.Is(NsC, "plotArea")) throw new NotSupportedException("The native series has no plot area.");
         var axisGroup = OfficeOpenXmlChartAxisGroups.Read(plot, group);
         OfficeXmlNode scheme = ThemeColorScheme;

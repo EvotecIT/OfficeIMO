@@ -94,16 +94,13 @@ namespace OfficeIMO.Word {
             // Series are children of the chart groups, which are children of the plot area.
             OfficeXmlNode plot = PlotAreaOf(chart);
             if (plot.IsNone) yield break;
-            for (OfficeXmlNode group = plot.FirstChild; !group.IsNone; group = group.NextSibling) {
-                if (group.IsExtensionMarkup()) continue;
-                for (OfficeXmlNode series = group.FirstChild; !series.IsNone; series = series.NextSibling) {
-                    if (series.Is(NsC, "ser") && IsSupportedSeriesElement(series)) yield return series;
-                }
+            foreach (OfficeXmlNode group in ChartGroups(plot)) {
+                if (!IsSupportedSeriesGroup(group)) continue;
+                foreach (OfficeXmlNode series in GroupSeries(group)) yield return series;
             }
         }
 
-        private static bool IsSupportedSeriesElement(OfficeXmlNode series) {
-            OfficeXmlNode group = series.Parent;
+        private static bool IsSupportedSeriesGroup(OfficeXmlNode group) {
             return group.NamespaceId == NsC && group.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or
                 "stockChart" or "areaChart" or "area3DChart" or "radarChart" or "pieChart" or "pie3DChart" or "doughnutChart" or
                 "ofPieChart" or "scatterChart";

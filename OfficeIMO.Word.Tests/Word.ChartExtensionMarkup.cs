@@ -15,6 +15,7 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
     private const string ExtensionUri = "{8B2E5C61-3F0A-4D7E-9C1B-2A6F4E8D0C35}";
     private const string ChartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
     private const string McNs = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+    private const string Wp14Ns = "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing";
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "officeimo-chart-ext-" + Guid.NewGuid().ToString("N"));
 
     public WordChartExtensionMarkupTests() => Directory.CreateDirectory(_directory);
@@ -133,7 +134,7 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
     public void ChartFrameInsideAlternateContentIsTheDrawnChart() {
         string path = CreateBarChart("alternate-content.docx");
         RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<wp:(inline|anchor)\\b.*?</wp:\\2>)",
-            "<mc:AlternateContent xmlns:mc=\"" + McNs + "\"><mc:Choice Requires=\"wp\">$1</mc:Choice></mc:AlternateContent>",
+            "<mc:AlternateContent xmlns:mc=\"" + McNs + "\"><mc:Choice Requires=\"wp14\" xmlns:wp14=\"" + Wp14Ns + "\">$1</mc:Choice></mc:AlternateContent>",
             RegexOptions.Singleline, TimeSpan.FromSeconds(5)));
 
         using (var document = WordDocument.Load(path)) {
@@ -157,7 +158,7 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
     public void ChartReferenceInsideAlternateContentIsTheDrawnChart() {
         string path = CreateBarChart("alternate-reference.docx");
         RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<c:chart\\b[^>]*/>)",
-            "<mc:AlternateContent xmlns:mc=\"" + McNs + "\"><mc:Choice Requires=\"c\" xmlns:c=\"" + ChartNs + "\">$1</mc:Choice></mc:AlternateContent>",
+            "<mc:AlternateContent xmlns:mc=\"" + McNs + "\"><mc:Choice Requires=\"wp14\" xmlns:wp14=\"" + Wp14Ns + "\">$1</mc:Choice></mc:AlternateContent>",
             RegexOptions.None, TimeSpan.FromSeconds(5)));
 
         using var document = WordDocument.Load(path);
@@ -168,13 +169,13 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
 
     [Theory]
     [InlineData("v", "rIdMissing", "{0}")]
-    [InlineData("c", "{0}", "rIdMissing")]
-    public void AlternateContentUsesTheChoiceAFirstEditionConsumerSelects(string requires, string choiceId, string fallbackId) {
+    [InlineData("wp14", "{0}", "rIdMissing")]
+    public void AlternateContentUsesTheBranchWordSelects(string requires, string choiceId, string fallbackId) {
         string path = CreateBarChart("alternate-" + requires + ".docx");
         RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "<c:chart\\b([^>]*?)(\\w+):id=\"([^\"]+)\"([^>]*)/>", match => {
             string Reference(string id) => "<c:chart" + match.Groups[1].Value + match.Groups[2].Value + ":id=\"" +
                 string.Format(System.Globalization.CultureInfo.InvariantCulture, id, match.Groups[3].Value) + "\"" + match.Groups[4].Value + "/>";
-            return "<mc:AlternateContent xmlns:mc=\"" + McNs + "\" xmlns:v=\"urn:example:vendor\" xmlns:c=\"" + ChartNs + "\"><mc:Choice Requires=\"" + requires + "\">" + Reference(choiceId) +
+            return "<mc:AlternateContent xmlns:mc=\"" + McNs + "\" xmlns:v=\"urn:example:vendor\" xmlns:wp14=\"" + Wp14Ns + "\"><mc:Choice Requires=\"" + requires + "\">" + Reference(choiceId) +
                 "</mc:Choice><mc:Fallback>" + Reference(fallbackId) + "</mc:Fallback></mc:AlternateContent>";
         }, RegexOptions.None, TimeSpan.FromSeconds(5)));
 
@@ -182,6 +183,43 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
         WordChart chart = Assert.Single(document.AllCharts);
         Assert.Equal("Sales", chart.Title);
         Assert.True(chart.TrySetSeriesName(0, "Edited"));
+    }
+
+    [Fact]
+    public void SeriesInTheSelectedCompatibilityBranchAreEditedAndCounted() {
+        string path = CreateBarChart("alternate-series.docx");
+        RewriteChartPart(path, xml => Regex.Replace(xml, "(<c:ser>.*?</c:ser>)", "<mc:AlternateContent xmlns:mc=\"" + McNs + "\" xmlns:v=\"urn:example:vendor\">" +
+            "<mc:Choice Requires=\"v\"><c:ser><c:idx val=\"0\" /><c:order val=\"0\" /><c:tx><c:v>Choice</c:v></c:tx></c:ser></mc:Choice>" +
+            "<mc:Fallback>$1</mc:Fallback></mc:AlternateContent>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)));
+
+        using (var document = WordDocument.Load(path)) {
+            WordChart chart = Assert.Single(document.AllCharts);
+            Assert.True(chart.TrySetSeriesName(0, "Edited"));
+            chart.AddBar("Added", new[] { 3, 4 }, OfficeColor.Black);
+            document.Save();
+        }
+
+        string xml = Assert.Single(ReadChartParts(path));
+        string choice = Regex.Match(xml, "<mc:Choice.*?</mc:Choice>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        string fallback = Regex.Match(xml, "<mc:Fallback>.*?</mc:Fallback>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Contains("<c:v>Choice</c:v>", choice, StringComparison.Ordinal);
+        Assert.Contains("<c:v>Edited</c:v>", fallback, StringComparison.Ordinal);
+        Match added = Regex.Match(xml, "<c:ser><c:idx val=\"(\\d+)\"(?:(?!</c:ser>).)*<c:v>Added</c:v>", RegexOptions.Singleline, TimeSpan.FromSeconds(5));
+        Assert.True(added.Success);
+        Assert.NotEqual("0", added.Groups[1].Value);
+    }
+
+    [Fact]
+    public void MissingPieLabelsAreSavedAsBlankCategories() {
+        string path = Path.Combine(_directory, "blank-label.docx");
+        using (var document = WordDocument.Create(path)) {
+            document.AddChart("Share").AddPie(null!, 1).AddPie("B", 2);
+            document.Save();
+        }
+
+        string categories = Regex.Match(Assert.Single(ReadChartParts(path)), "<c:cat>.*?</c:cat>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Matches("<c:pt idx=\"0\"><c:v\\s*(/>|></c:v>)", categories);
+        Assert.Contains("<c:v>B</c:v>", categories, StringComparison.Ordinal);
     }
 
     [Fact]

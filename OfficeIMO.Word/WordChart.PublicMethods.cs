@@ -306,7 +306,7 @@ namespace OfficeIMO.Word {
             if (plot.IsNone) return series;
             foreach (string group in ColorableGroups) {
                 foreach (OfficeXmlNode chartGroup in plot.Children(NsC, group)) {
-                    foreach (OfficeXmlNode item in chartGroup.Children(NsC, "ser")) series.Add(item);
+                    foreach (OfficeXmlNode item in GroupSeries(chartGroup)) series.Add(item);
                 }
             }
             return series;
@@ -331,7 +331,7 @@ namespace OfficeIMO.Word {
             OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             OfficeXmlNode properties = series.Child(NsC, "spPr");
             if (properties.IsNone) properties = OfficeChartXml.SetOrdered(series, NewC(series, "spPr"), SeriesOrderOf(series));
-            OfficeXmlNode group = series.Parent;
+            OfficeXmlNode group = ContentParent(series);
             OfficeXmlNode radarStyle = group.LocalName == "radarChart" ? group.Child(NsC, "radarStyle") : default;
             bool line = group.LocalName == "lineChart" || group.LocalName == "scatterChart" ||
                 group.LocalName == "radarChart" && (radarStyle.IsNone || radarStyle.Val() != "filled");
@@ -345,7 +345,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>The schema order of a series, from the chart group that holds it.</summary>
-        private static OfficeXmlChildOrder SeriesOrderOf(OfficeXmlNode series) => series.Parent.LocalName switch {
+        private static OfficeXmlChildOrder SeriesOrderOf(OfficeXmlNode series) => ContentParent(series).LocalName switch {
             "lineChart" or "line3DChart" or "stockChart" => CLineSerView.Order,
             "scatterChart" => CScatterSerView.Order,
             "radarChart" => CRadarSerView.Order,

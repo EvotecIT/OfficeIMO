@@ -172,12 +172,9 @@ namespace OfficeIMO.Word {
         private List<string> ReadSavedCategories() {
             // The first series in the plot area's chart groups that has categories.
             OfficeXmlNode plot = PlotAreaOf(_chart);
-            for (OfficeXmlNode group = plot.IsNone ? default : plot.FirstChild; !group.IsNone; group = group.NextSibling) {
-                if (group.NamespaceId != NsC || !IsChartGroup(group)) continue;
-                foreach (OfficeXmlNode series in group.Children(NsC, "ser")) {
-                    OfficeXmlNode categories = series.Child(NsC, "cat");
-                    if (!categories.IsNone) return ReadCachedStrings(categories).ToList();
-                }
+            foreach (OfficeXmlNode series in PlottedSeries(plot)) {
+                OfficeXmlNode categories = series.Child(NsC, "cat");
+                if (!categories.IsNone) return ReadCachedStrings(categories).ToList();
             }
             return new List<string>();
         }
