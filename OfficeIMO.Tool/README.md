@@ -720,6 +720,12 @@ dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- help
 dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- convert report.docx report.pdf
 ```
 
+To build the per-platform NuGet packages locally, pack with the property the release sets:
+
+```powershell
+dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj -c Release -p:PowerForgePackaging=true
+```
+
 The CLI remains a thin surface over the owning OfficeIMO packages; reusable conversion and extraction behavior belongs in those packages rather than in command handlers.
 
 ### Selected PDF comparison reports
