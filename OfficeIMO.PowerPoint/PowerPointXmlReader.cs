@@ -17,8 +17,12 @@ internal static class PowerPointXmlReader {
         return XDocument.Load(reader, options);
     }
 
-    internal static void ValidatePackagePartXml(Stream stream) {
+    internal static void ValidatePackagePartXml(Stream stream, string? rootName = null, string? rootNamespace = null) {
         using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
+        if (rootName != null && (reader.MoveToContent() != XmlNodeType.Element ||
+            reader.LocalName != rootName || reader.NamespaceURI != rootNamespace)) {
+            throw new InvalidDataException("Unexpected package part XML root.");
+        }
         while (reader.Read()) { }
     }
 

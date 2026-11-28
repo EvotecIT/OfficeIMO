@@ -428,6 +428,25 @@ internal sealed partial class OfficeXmlTree {
     internal string? GetAttribute(int node, int namespaceId, string localName) =>
         TryGetAttribute(node, namespaceId, localName, out string value) ? value : null;
 
+    /// <summary>Returns the only matching attribute and the id of its exact namespace URI.</summary>
+    internal string? GetUniqueAttribute(int node, int namespaceId, string localName, out int uriId) {
+        uriId = OfficeXmlNamespaces.None;
+        int found = -1;
+        int first = _nodes[node].AttrFirst;
+        int end = first + _nodes[node].AttrCount;
+        for (int index = first; index < end; index++) {
+            ref readonly OfficeXmlName name = ref Namespaces.GetName(_attrs[index].Name);
+            if (name.NamespaceId != namespaceId || !string.Equals(name.LocalName, localName, StringComparison.Ordinal)) continue;
+            if (found >= 0) {
+                uriId = OfficeXmlNamespaces.None;
+                return null;
+            }
+            found = index;
+            uriId = name.UriId;
+        }
+        return found < 0 ? null : AttributeValue(ref _attrs[found]);
+    }
+
     /// <summary>Sets an attribute, keeping its position when it exists and appending it otherwise.</summary>
     internal void SetAttribute(int node, int namespaceId, string localName, string value) {
         ArgumentNullException.ThrowIfNull(value);

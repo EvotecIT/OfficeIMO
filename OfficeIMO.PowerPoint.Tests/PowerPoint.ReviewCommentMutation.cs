@@ -1058,6 +1058,181 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingSlideWithClassicCommentsReconcilesAuthorsAndIgnoresExtensionDecoys() {
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            const string prefix = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix;
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide first = original.AddSlide();
+            PowerPointSlide second = original.AddSlide();
+            original.AddSlide();
+            var reviewer = new PowerPointCommentAuthor("Reviewer");
+            original.AddClassicComment(first, reviewer, "Earlier");
+            original.AddClassicComment(second, reviewer, "Later");
+            original.AddClassicComment(second, new PowerPointCommentAuthor("Departing"), "Only on second slide");
+
+            byte[] source = original.ToBytes();
+            using var input = OfficeOpcPackage.Open(new MemoryStream(source, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string[] slides = input.GetRelationships(main).Where(edge => edge.Type == OfficeOpcPackage.SlideRelationshipType)
+                .Select(edge => edge.TargetPartName!).ToArray();
+            string keptComments = input.GetRelatedPartName(slides[0], prefix + "comments")!;
+            string removedComments = input.GetRelatedPartName(slides[1], prefix + "comments")!;
+            string authorPart = input.GetRelatedPartName(main, prefix + "commentAuthors")!;
+            using var package = OfficeOpcEditablePackage.Open(new MemoryStream(source, writable: false));
+            OfficeXmlTree comments = package.GetXml(keptComments);
+            int extensions = PowerPointDocument.Append(comments, comments.Root, ns, "extLst");
+            int extension = PowerPointDocument.Append(comments, extensions, ns, "ext");
+            comments.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "{7619916C-B54F-4B96-819D-EE7601FD81B5}");
+            int decoy = PowerPointDocument.Append(comments, extension, ns, "cm");
+            comments.SetAttribute(decoy, OfficeXmlNamespaces.None, "authorId", "0");
+            comments.SetAttribute(decoy, OfficeXmlNamespaces.None, "idx", "999");
+            using var changed = new MemoryStream();
+            package.Save(changed);
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(changed.ToArray(), writable: false));
+            PowerPointClassicComment held = Assert.Single(actual.GetClassicComments(actual.Slides[0]));
+            PowerPointClassicComment leaving = actual.GetClassicComments(actual.Slides[1])[0];
+            actual.RemoveSlide(1);
+            Assert.False(actual.IsSdkLoaded);
+            Assert.Throws<InvalidOperationException>(() => leaving.Index);
+            Assert.Equal("Earlier", held.Text);
+            Assert.Equal(2, actual.Slides.Count);
+
+            using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(actual.ToBytes(), writable: false));
+            Assert.False(actual.IsSdkLoaded);
+            Assert.False(saved.PartExists(removedComments));
+            OfficeXmlTree authors = saved.GetXml(authorPart);
+            int retained = authors.FindChild(authors.Root, ns, "cmAuthor");
+            Assert.Equal("Reviewer", authors.GetAttribute(retained, OfficeXmlNamespaces.None, "name"));
+            Assert.Equal("1", authors.GetAttribute(retained, OfficeXmlNamespaces.None, "lastIdx"));
+            Assert.Equal(OfficeXmlTree.NoNode, authors.FindNextSibling(retained, ns, "cmAuthor"));
+            OfficeXmlTree survivingComments = saved.GetXml(keptComments);
+            Assert.NotEqual(OfficeXmlTree.NoNode, survivingComments.FindChild(survivingComments.Root, ns, "extLst"));
+        }
+
+        [Fact]
+        public void RemovingTheOnlyClassicallyCommentedSlideRemovesItsAuthorPart() {
+            using var original = PowerPointDocument.Create();
+            original.AddSlide();
+            original.AddClassicComment(original.AddSlide(), new PowerPointCommentAuthor("Reviewer"), "Only review");
+            byte[] bytes = original.ToBytes();
+            using var input = OfficeOpcPackage.Open(new MemoryStream(bytes, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string authors = input.GetRelatedPartName(main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "commentAuthors")!;
+            using var actual = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+            actual.RemoveSlide(1);
+            Assert.Single(actual.Slides);
+
+            using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(actual.ToBytes(), writable: false));
+            Assert.False(actual.IsSdkLoaded);
+            Assert.False(saved.PartExists(authors));
+        }
+
+        [Theory]
+        [InlineData("escaped shared image owner")]
+        [InlineData("escaped removed slide")]
+        [InlineData("mixed slide list namespace")]
+        [InlineData("uncommented strict slide before a commented transitional slide")]
+        [InlineData("dual slide relationship namespaces")]
+        [InlineData("malformed surviving slide")]
+        [InlineData("wrong root on surviving slide")]
+        public void RemovingACommentedSlideKeepsSdkBehaviorForUnusualSlideInventories(string problem) {
+            const int p = OfficeXmlNamespaces.PresentationML;
+            const int relationships = OfficeXmlNamespaces.PackageRelationships;
+            const int none = OfficeXmlNamespaces.None;
+            const string presentationNamespace = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            const string photo = "/ppt/media/shared-review.png";
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide first = original.AddSlide();
+            PowerPointSlide second = original.AddSlide();
+            bool mixedNamespace = problem is "mixed slide list namespace" or "uncommented strict slide before a commented transitional slide";
+            if (problem != "uncommented strict slide before a commented transitional slide") {
+                original.AddClassicComment(first, new PowerPointCommentAuthor("First"), "First review");
+            }
+            if (mixedNamespace) {
+                original.AddClassicComment(second, new PowerPointCommentAuthor("Second"), "Second review");
+            }
+            byte[] bytes = original.ToBytes();
+            using var input = OfficeOpcPackage.Open(new MemoryStream(bytes, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            OfficeOpcRelationship[] links = input.GetRelationships(main).Where(edge => edge.Type == OfficeOpcPackage.SlideRelationshipType).ToArray();
+            string firstPart = links[0].TargetPartName!;
+            string secondPart = links[1].TargetPartName!;
+            using var package = OfficeOpcEditablePackage.Open(new MemoryStream(bytes, writable: false));
+
+            if (mixedNamespace) {
+                OfficeXmlTree presentation = package.GetXml(main);
+                int list = presentation.FindChild(presentation.Root, p, "sldIdLst");
+                int entry = presentation.FindChild(list, p, "sldId");
+                int strict = presentation.CreateElement("http://purl.oclc.org/ooxml/presentationml/main", "sldId", "strict");
+                presentation.SetAttribute(strict, none, "id", presentation.GetAttribute(entry, none, "id"));
+                presentation.SetAttribute(strict, OfficeXmlNamespaces.Relationships, "id", links[0].Id);
+                presentation.InsertBefore(list, strict, entry);
+                presentation.Remove(entry);
+            } else if (problem == "dual slide relationship namespaces") {
+                using var stream = new MemoryStream(package.ReadPartBytes(main), writable: false);
+                XElement presentation = XElement.Load(stream);
+                XNamespace pml = presentationNamespace;
+                XNamespace strict = "http://purl.oclc.org/ooxml/officeDocument/relationships";
+                XElement entry = presentation.Element(pml + "sldIdLst")!.Elements(pml + "sldId").First();
+                entry.Add(new XAttribute(XNamespace.Xmlns + "strict", strict.NamespaceName));
+                entry.Add(new XAttribute(strict + "id", links[1].Id));
+                byte[] changedXml = Encoding.UTF8.GetBytes(presentation.ToString(SaveOptions.DisableFormatting));
+                package.ReplacePart(main, changedXml, changedXml.Length);
+            } else if (problem is "malformed surviving slide" or "wrong root on surviving slide") {
+                string xml = problem == "malformed surviving slide"
+                    ? "<p:sld xmlns:p=\"" + presentationNamespace + "\"><p:cSld>"
+                    : "<p:notes xmlns:p=\"" + presentationNamespace + "\"/>";
+                byte[] malformed = Encoding.UTF8.GetBytes(xml);
+                package.ReplacePart(secondPart, malformed, malformed.Length);
+            } else {
+                const string imageType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "image";
+                const string aliased = "/ppt/slides/slide%2520alias.xml";
+                int renamed = problem == "escaped removed slide" ? 0 : 1;
+                string originalPart = links[renamed].TargetPartName!;
+                byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlNUAAAAASUVORK5CYII=");
+                package.CreateBinaryPart(photo, "image/png", image);
+                package.AddRelationship(firstPart, imageType, "../media/shared-review.png", id: "rIdSharedReviewImage");
+                package.AddRelationship(secondPart, imageType, "../media/shared-review.png", id: "rIdSharedReviewImage");
+
+                string originalRelationships = OfficeOpcPartNames.GetRelationshipsPartName(originalPart);
+                string aliasRelationships = OfficeOpcPartNames.GetRelationshipsPartName(aliased);
+                package.CreateBinaryPart(aliased, package.GetContentType(originalPart), package.ReadPartBytes(originalPart));
+                package.CreateBinaryPart(aliasRelationships, OfficeOpcEditablePackage.RelationshipContentType, package.ReadPartBytes(originalRelationships));
+                package.DeletePart(originalPart);
+                package.DeletePart(originalRelationships);
+                OfficeXmlTree mainRelationships = package.GetRelationships(main);
+                for (int node = mainRelationships.FindChild(mainRelationships.Root, relationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                     node = mainRelationships.FindNextSibling(node, relationships, "Relationship")) {
+                    if (mainRelationships.GetAttribute(node, none, "Id") != links[renamed].Id) continue;
+                    mainRelationships.SetAttribute(node, none, "Target", "slides/slide%2520alias.xml");
+                    break;
+                }
+            }
+
+            using var changed = new MemoryStream();
+            package.Save(changed);
+            byte[] source = changed.ToArray();
+            using var reference = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            Exception? expected = Record.Exception(() => {
+                _ = reference.OpenXmlDocument;
+                reference.RemoveSlide(0);
+            });
+            using var actual = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            Assert.False(actual.IsSdkLoaded);
+            Exception? error = Record.Exception(() => actual.RemoveSlide(0));
+            Assert.Equal(expected?.GetType(), error?.GetType());
+            if (expected != null) return;
+
+            Assert.True(actual.IsSdkLoaded);
+            Assert.Equal(reference.Slides.Count, actual.Slides.Count);
+            if (problem is "escaped shared image owner" or "escaped removed slide") {
+                using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(actual.ToBytes(), writable: false));
+                Assert.True(saved.PartExists(photo));
+            }
+        }
+
+        [Fact]
         public void RemovingCommentedSlideReconcilesClassicAndModernAuthors() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide removed = presentation.AddSlide();

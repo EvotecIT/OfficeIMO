@@ -73,6 +73,8 @@ namespace OfficeIMO.PowerPoint {
                 _references[part] = (owner, id, _references.ContainsKey(part));
             }
 
+            internal bool HasReference(string part) => _references.ContainsKey(PartIdentity(part));
+
             internal bool CanDelete(ClassicCommentPartDeletion? deletion) =>
                 deletion == null || _references.TryGetValue(PartIdentity(deletion.Part), out var reference) &&
                 !reference.Shared && OfficeAsciiIgnoreCaseComparer.Instance.Equals(reference.Owner, deletion.Owner) &&

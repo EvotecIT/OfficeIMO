@@ -385,11 +385,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>
-        private void PackageSlidesChanged(string? removedPart = null) {
+        private void PackageSlidesChanged(string? removedPart = null, bool retainValidatedClassicCommentParts = false) {
             _packageSlideOrder = null;
             _packageSlideEntries = null;
             _packageSlideEntryIndex = null;
-            ResetClassicCommentAddValidation();
+            if (retainValidatedClassicCommentParts) _classicCommentGraph = null;
+            else ResetClassicCommentAddValidation();
             // A slide a caller still holds stops working on the package, so it can't reach a part that later takes its name.
             if (removedPart != null && _packageSlides != null && _packageSlides.TryGetValue(PartIdentity(removedPart), out PowerPointSlide? removed)) {
                 removed.RemovedFromPackage = true;

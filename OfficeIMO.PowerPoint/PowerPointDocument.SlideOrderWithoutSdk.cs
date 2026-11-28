@@ -32,11 +32,20 @@ namespace OfficeIMO.PowerPoint {
             }
 
             // Null when an entry's slide is missing, external or listed twice.
-            internal static PackageSlideList? Read(OfficeOpcEditablePackage package) {
+            internal static PackageSlideList? Read(OfficeOpcEditablePackage package, bool requireConsistentNamespaces = false) {
                 if (ReadPresentation(package) is not { } slides) return null;
                 if (slides.List == OfficeXmlTree.NoNode) return slides;
                 string main = slides.Main;
                 OfficeXmlTree presentation = slides.Presentation;
+                int presentationUri = requireConsistentNamespaces ? presentation.UriIdOf(presentation.Root) : 0;
+                if (requireConsistentNamespaces && (!presentation.IsElement(presentation.Root, OfficeXmlNamespaces.PresentationML, "presentation") ||
+                    presentation.UriIdOf(slides.List) != presentationUri)) return null;
+                const string strictRelationships = "http://purl.oclc.org/ooxml/officeDocument/relationships";
+                bool strict = requireConsistentNamespaces && OfficeXmlNamespaces.IsStrictUriId(presentationUri);
+                int transitionalRelationshipUri = requireConsistentNamespaces && !strict
+                    ? OfficeXmlNamespaces.TransitionalUriId(OfficeXmlNamespaces.Relationships)
+                    : 0;
+                string slideRelationshipType = strict ? strictRelationships + "/slide" : OfficeOpcPackage.SlideRelationshipType;
                 // The first relationship with an id is the one it resolves to, and an external one resolves to no part.
                 var targets = new Dictionary<string, string?>(StringComparer.Ordinal);
                 string mainRelationships = OfficeOpcPartNames.GetRelationshipsPartName(main);
@@ -46,14 +55,23 @@ namespace OfficeIMO.PowerPoint {
                          node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                         string? relationshipId = relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
                         if (relationshipId == null || targets.ContainsKey(relationshipId)) continue;
-                        targets.Add(relationshipId, string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)
+                        bool external = string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
+                        bool slideRelationship = !requireConsistentNamespaces || relationships.AttributeEquals(node, OfficeXmlNamespaces.None, "Type", slideRelationshipType);
+                        targets.Add(relationshipId, external || !slideRelationship
                             ? null : OfficeOpcPartNames.ResolveRelationshipTarget(mainRelationships, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target")));
                     }
                 }
                 var seen = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
                 for (int entry = presentation.FindChild(slides.List, OfficeXmlNamespaces.PresentationML, "sldId"); entry != OfficeXmlTree.NoNode;
                      entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "sldId")) {
-                    string? id = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id");
+                    if (requireConsistentNamespaces && presentation.UriIdOf(entry) != presentationUri) return null;
+                    string? id;
+                    if (requireConsistentNamespaces) {
+                        id = presentation.GetUniqueAttribute(entry, OfficeXmlNamespaces.Relationships, "id", out int uri);
+                        if (strict ? !OfficeXmlNamespaces.IsStrictUriId(uri) : uri != transitionalRelationshipUri) return null;
+                    } else {
+                        id = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id");
+                    }
                     string? slide = id != null && targets.TryGetValue(id, out string? target) ? target : null;
                     if (slide == null || !package.PartExists(slide) || !seen.Add(PartIdentity(slide))) return null;
                     slides.Entries.Add((entry, id!, slide));
@@ -110,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
         private bool TryRemoveSlideWithoutSdk(int index) {
             if (GetPackage(edit: true) is not { } package) return false;
             try {
-                PackageSlideList? slides = PackageSlideList.Read(package);
+                PackageSlideList? slides = PackageSlideList.Read(package, requireConsistentNamespaces: true);
                 if (slides == null || index < 0 || index >= slides.Entries.Count) return false;
                 OfficeXmlTree presentation = slides.Presentation;
                 (int entry, string relationship, string slide) = slides.Entries[index];
@@ -122,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
                 string presentationRelationships = OfficeOpcPartNames.GetRelationshipsPartName(slides.Main);
                 int presentationRelationship = FindRelationship(package.GetXml(presentationRelationships), relationship);
                 if (presentationRelationship == OfficeXmlTree.NoNode) return false;
-                string main = PartIdentity(slides.Main), slidePart = PartIdentity(slide);
+                string main = ReachablePartIdentity(slides.Main), slidePart = ReachablePartIdentity(slide);
                 HashSet<string> kept = Reachable(package, string.Empty, main, relationship);
                 List<InboundSlideLinkEdit>? inboundLinks = null;
                 if (kept.Contains(slidePart)) {
@@ -135,9 +153,12 @@ namespace OfficeIMO.PowerPoint {
                 foreach (string part in Reachable(package, slidePart, null, null)) {
                     if (!kept.Contains(part)) removed.Add(part);
                 }
+                bool hasClassicComments = false;
                 foreach (string part in removed) {
-                    if (!CanRemoveWithSlide(package, part, slidePart)) return false;
+                    if (!CanRemoveWithSlide(package, part, slidePart, ref hasClassicComments)) return false;
                 }
+                ClassicSlideCommentRemoval? classicComments = null;
+                if (hasClassicComments && !TryPlanPackageSlideClassicComments(package, slides, slide, removed, out classicComments)) return false;
                 if (!PowerPointTreeSections.TryPlan(presentation, package.Namespaces.GetId(PowerPointTreeSections.P14Namespace), ids, out PowerPointTreeSections.Plan? sections)) return false;
 
                 if (!TryPlanPackageSlideCustomShows(package, slides, relationship, out SlideCustomShowPruning? customShows)) return false;
@@ -157,11 +178,12 @@ namespace OfficeIMO.PowerPoint {
                     if (package.PartExists(partRelationships)) package.DeletePart(partRelationships);
                     package.DeletePart(part);
                 }
+                if (classicComments != null) ApplyPackageSlideClassicCommentRemoval(package, classicComments);
                 if (sections != null) PowerPointTreeSections.Apply(sections);
                 _deferredSlideCount = ids.Count;
                 // The model searches for new slide relationship ids from the start again after a removal.
                 _slideRelationshipSearchStart = 1;
-                PackageSlidesChanged(slide);
+                PackageSlidesChanged(slide, retainValidatedClassicCommentParts: hasClassicComments);
                 _pendingEdits = true;
                 return true;
             } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
@@ -169,8 +191,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // Comments update the presentation's comment authors, and media the model looks for elsewhere before deleting.
-        private static bool CanRemoveWithSlide(OfficeOpcEditablePackage package, string part, string slide) {
+        // Classic comment authors are reconciled before removing the slide. Other comments and linked media use the SDK cleanup.
+        private static bool CanRemoveWithSlide(OfficeOpcEditablePackage package, string part, string slide, ref bool hasClassicComments) {
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(part);
             if (!package.PartExists(relationshipsPart)) return true;
             OfficeXmlTree relationships = package.GetXml(relationshipsPart);
@@ -178,7 +200,10 @@ namespace OfficeIMO.PowerPoint {
                  node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                 string type = relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty;
                 if (EndsWith(type, "/media") || EndsWith(type, "/audio") || EndsWith(type, "/video")) return false;
-                if (EndsWith(type, "/comments") && OfficeAsciiIgnoreCaseComparer.Instance.Equals(part, slide)) return false;
+                if (EndsWith(type, "/comments") && OfficeAsciiIgnoreCaseComparer.Instance.Equals(part, slide)) {
+                    if (type != ClassicCommentsRelationship) return false;
+                    hasClassicComments = true;
+                }
             }
             return true;
         }
@@ -216,7 +241,7 @@ namespace OfficeIMO.PowerPoint {
                         string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart,
                             reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string value) ? value : null);
                         if (target == null || !package.PartExists(target)) continue;
-                        edges.Add((reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id) ? id : string.Empty, PartIdentity(target)));
+                        edges.Add((reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id) ? id : string.Empty, ReachablePartIdentity(target)));
                     }
                 }
             } else if (package.PartExists(relationshipsPart)) {
@@ -226,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
                     if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                     string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
                     if (target == null || !package.PartExists(target)) continue;
-                    edges.Add((relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id") ?? string.Empty, PartIdentity(target)));
+                    edges.Add((relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id") ?? string.Empty, ReachablePartIdentity(target)));
                 }
             }
             _pendingRelationships.Add(source, edges);
@@ -255,6 +280,14 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             return reached;
+        }
+
+        private static string ReachablePartIdentity(string partName) {
+            if (partName.IndexOf('%') < 0) return partName;
+            string identity = OfficeOpcPackage.GetPartIdentity(partName);
+            // A second lookup by this identity would decode an escaped percent again.
+            if (identity.IndexOf('%') >= 0) throw new InvalidDataException("The slide relationship target contains an escaped percent.");
+            return identity;
         }
 
         // Part names without percent-encoding are already their identity, which spares a copy per lookup.

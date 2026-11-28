@@ -14,6 +14,8 @@ namespace OfficeIMO.PowerPoint {
             _validatedClassicCommentParts = null;
             _classicCommentMutationLinks = null;
             _classicCommentGraph = null;
+            _validatedClassicCommentSlideXml = null;
+            _validatedClassicCommentSlideTrees = null;
         }
 
         private OfficeOpcEditablePackage? GetEditableClassicCommentPackage(PowerPointSlide slide) {

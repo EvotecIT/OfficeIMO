@@ -118,10 +118,10 @@ public class PowerPointSlideOrderWithoutSdkTests {
     }
 
     [Theory]
-    [InlineData("custom show", false)]
-    [InlineData("comment", true)]
-    [InlineData("link", false)]
-    public void SlideRemovalMatchesTheModelForRelatedContent(string variant, bool opensSdk) {
+    [InlineData("custom show")]
+    [InlineData("comment")]
+    [InlineData("link")]
+    public void SlideRemovalMatchesTheModelForRelatedContent(string variant) {
         byte[] source;
         using (var created = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
             if (variant == "custom show") created.AddCustomShow("Short", new[] { created.Slides[0], created.Slides[2] });
@@ -133,7 +133,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
         presentation.RemoveSlide(0);
 
-        Assert.Equal(opensSdk, presentation.IsSdkLoaded);
+        Assert.False(presentation.IsSdkLoaded);
         AssertNoDifferences(Differences(source, Edits[0]));
     }
 
