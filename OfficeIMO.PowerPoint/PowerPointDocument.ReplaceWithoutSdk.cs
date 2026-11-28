@@ -90,6 +90,9 @@ namespace OfficeIMO.PowerPoint {
             _pendingPackage?.Dispose();
             _pendingPackage = null;
             _pendingRelationships = null;
+            _classicCommentReadPackage = null;
+            _classicCommentAuthors = null;
+            ResetClassicCommentAddValidation();
             Stream? source = _pendingSource;
             _pendingSource = null;
             if (source != null && !ReferenceEquals(source, _packageStream)) source.Dispose();

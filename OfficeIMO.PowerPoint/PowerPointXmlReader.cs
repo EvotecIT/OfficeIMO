@@ -17,6 +17,11 @@ internal static class PowerPointXmlReader {
         return XDocument.Load(reader, options);
     }
 
+    internal static void ValidatePackagePartXml(Stream stream) {
+        using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
+        while (reader.Read()) { }
+    }
+
     internal static bool? ReadSlideShow(Stream stream, long maximumCharactersInPart) {
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,

@@ -1,5 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using P = DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
@@ -102,10 +104,12 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>Editable classic PowerPoint comment.</summary>
-    public sealed class PowerPointClassicComment {
+    public sealed partial class PowerPointClassicComment {
         private readonly PowerPointDocument _presentation;
         private readonly PowerPointSlide _slide;
-        private readonly P.Comment _comment;
+        private readonly P.Comment? _comment;
+        private readonly PowerPointClassicCommentListBinding? _ownedComments;
+        private readonly int _ownedIndex;
 
         internal PowerPointClassicComment(PowerPointDocument presentation,
             PowerPointSlide slide, P.Comment comment) {
@@ -114,60 +118,85 @@ namespace OfficeIMO.PowerPoint {
             _comment = comment;
         }
 
+        internal PowerPointClassicComment(PowerPointDocument presentation, PowerPointSlide slide, PowerPointClassicCommentListBinding comments,
+            int index) {
+            _presentation = presentation;
+            _slide = slide;
+            _ownedComments = comments;
+            _ownedIndex = index;
+        }
+
+        internal static OfficeXmlNode[] ReadSdkCommentsForBinding(PowerPointSlide slide, string partName) {
+            SlideCommentsPart? part = slide.SlidePart.SlideCommentsPart;
+            return part?.CommentList is { } list && string.Equals(part.Uri.OriginalString, partName, StringComparison.OrdinalIgnoreCase)
+                ? list.Elements<P.Comment>().Select(comment => OfficeXmlNode.FromSdk(comment)).ToArray()
+                : Array.Empty<OfficeXmlNode>();
+        }
+
         /// <summary>Per-author comment index stored by PowerPoint.</summary>
-        public uint Index => RequireAttached().Index?.Value ?? 0U;
+        public uint Index {
+            get => TryReadOwnedUInt("idx", out uint? index) ? index ?? 0U : RequireAttached().Index?.Value ?? 0U;
+        }
 
         /// <summary>Comment author.</summary>
-        public PowerPointCommentAuthor Author =>
-            _presentation.ResolveClassicCommentAuthor(RequireAttached().AuthorId?.Value);
+        public PowerPointCommentAuthor Author {
+            get {
+                if (TryReadOwnedUInt("authorId", out uint? id) &&
+                    _presentation.TryReadClassicCommentAuthor(id, out PowerPointCommentAuthor? author)) {
+                    return author!;
+                }
+                return _presentation.ResolveClassicCommentAuthor(RequireAttached().AuthorId?.Value);
+            }
+        }
 
         /// <summary>Visible review text.</summary>
         public string Text {
-            get => RequireAttached().Text?.Text ?? string.Empty;
+            get => ReadOwnedText() ?? RequireAttached().Text?.Text ?? string.Empty;
             set {
                 PowerPointDocument.ValidateClassicCommentText(
                     value, nameof(value));
-                RequireAttached().Text = new P.Text(value);
+                if (!TrySetOwnedText(value)) RequireAttached().Text = new P.Text(value);
             }
         }
 
         /// <summary>Required creation timestamp.</summary>
         public DateTime? Created {
-            get => RequireAttached().DateTime?.Value;
+            get => TryReadOwnedCreated(out DateTime? created) ? created : RequireAttached().DateTime?.Value;
             set {
                 if (!value.HasValue) {
                     throw new ArgumentNullException(nameof(value),
                         "Classic comments require a creation timestamp.");
                 }
-                RequireAttached().DateTime = value.Value;
+                if (!TrySetOwnedCreated(value.Value)) RequireAttached().DateTime = value.Value;
             }
         }
 
         /// <summary>Classic comment X position.</summary>
         public OfficeLength X {
-            get => PowerPointDocument.ClassicCommentPositionToLength(RequirePosition().X?.Value ?? 0L);
+            get => PowerPointDocument.ClassicCommentPositionToLength(ReadOwnedPosition("x") ?? RequirePosition().X?.Value ?? 0L);
             set {
                 long position = PowerPointDocument.LengthToClassicCommentPosition(value);
                 PowerPointDocument.ValidateClassicCommentPosition(
                     position, nameof(value));
-                RequirePosition().X = position;
+                if (!TrySetOwnedPosition("x", position)) RequirePosition().X = position;
             }
         }
 
         /// <summary>Classic comment Y position.</summary>
         public OfficeLength Y {
-            get => PowerPointDocument.ClassicCommentPositionToLength(RequirePosition().Y?.Value ?? 0L);
+            get => PowerPointDocument.ClassicCommentPositionToLength(ReadOwnedPosition("y") ?? RequirePosition().Y?.Value ?? 0L);
             set {
                 long position = PowerPointDocument.LengthToClassicCommentPosition(value);
                 PowerPointDocument.ValidateClassicCommentPosition(
                     position, nameof(value));
-                RequirePosition().Y = position;
+                if (!TrySetOwnedPosition("y", position)) RequirePosition().Y = position;
             }
         }
 
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
             ArgumentNullException.ThrowIfNull(author);
+            if (TryReassignOwnedComment(author)) return;
             P.Comment attached = RequireAttached();
             uint? previousAuthorId = attached.AuthorId?.Value;
             P.CommentAuthor target = _presentation.GetOrCreateClassicCommentAuthor(author);
@@ -180,9 +209,11 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Removes this comment from its slide.</summary>
         public void Remove() {
-            uint? authorId = RequireAttached().AuthorId?.Value;
+            if (TryRemoveOwnedComment()) return;
+            P.Comment comment = RequireAttached();
+            uint? authorId = comment.AuthorId?.Value;
             SlideCommentsPart? part = _slide.SlidePart.SlideCommentsPart;
-            _comment.Remove();
+            comment.Remove();
             if (part?.CommentList != null && !part.CommentList.Elements<P.Comment>().Any()) {
                 _slide.SlidePart.DeletePart(part);
             }
@@ -192,12 +223,13 @@ namespace OfficeIMO.PowerPoint {
         private P.Comment RequireAttached() {
             _presentation.ThrowIfDisposedForCommentApi();
             _presentation.EnsureAttachedCommentSlide(_slide);
-            if (_comment.Parent == null
+            P.Comment? comment = _comment ?? (_ownedComments?.SdkCommentAt(_ownedIndex).SdkElement as P.Comment);
+            if (comment == null || comment.Parent == null
                 || _slide.SlidePart.SlideCommentsPart?.CommentList?
-                    .Elements<P.Comment>().Contains(_comment) != true) {
+                    .Elements<P.Comment>().Contains(comment) != true) {
                 throw new InvalidOperationException("The classic comment is no longer attached to the presentation.");
             }
-            return _comment;
+            return comment;
         }
 
         private P.Position RequirePosition() {
@@ -485,6 +517,9 @@ namespace OfficeIMO.PowerPoint {
         private const int MaxModernCommentParagraphCount = 1024;
         /// <summary>Returns editable classic comments for a slide.</summary>
         public IReadOnlyList<PowerPointClassicComment> GetClassicComments(PowerPointSlide slide) {
+            ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(slide);
+            if (TryReadClassicComments(slide) is { } owned) return owned;
             EnsureCommentSlide(slide);
             return (IReadOnlyList<PowerPointClassicComment>)(slide.SlidePart.SlideCommentsPart?
                 .CommentList?.Elements<P.Comment>()
@@ -496,13 +531,15 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointClassicComment AddClassicComment(PowerPointSlide slide,
             PowerPointCommentAuthor author, string text, OfficeLength x = default, OfficeLength y = default,
             DateTime? created = null) {
-            EnsureCommentSlide(slide);
+            OfficeOpcEditablePackage? package = GetEditableClassicCommentPackage(slide);
+            if (package == null) EnsureCommentSlide(slide);
             ArgumentNullException.ThrowIfNull(author);
             ValidateClassicCommentText(text, nameof(text));
             long nativeX = LengthToClassicCommentPosition(x);
             long nativeY = LengthToClassicCommentPosition(y);
             ValidateClassicCommentPosition(nativeX, nameof(x));
             ValidateClassicCommentPosition(nativeY, nameof(y));
+            if (package != null && TryAddPackageClassicComment(package, slide, author, text, nativeX, nativeY, created) is { } owned) return owned;
             P.CommentAuthor commentAuthor = GetOrCreateClassicCommentAuthor(author);
             var comment = new P.Comment(
                 new P.Position { X = nativeX, Y = nativeY }, new P.Text(text)) {
@@ -599,17 +636,16 @@ namespace OfficeIMO.PowerPoint {
                 .Where(comment => comment.AuthorId?.Value == authorId)
                 .Where(comment => comment.Index?.Value != null)
                 .Select(comment => comment.Index!.Value));
-            const uint MaximumClassicCommentIndex = int.MaxValue;
-            uint firstCandidate = author.LastIndex?.Value >=
-                MaximumClassicCommentIndex
-                ? 0U
-                : (author.LastIndex?.Value ?? 0U) + 1U;
-            uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate,
-                "classic-comment", MaximumClassicCommentIndex);
-            author.LastIndex = usedIndexes.Count == 0
-                ? next
-                : Math.Max(usedIndexes.Max(), next);
+            (uint next, uint last) = FindClassicCommentIndexes(usedIndexes, author.LastIndex?.Value);
+            author.LastIndex = last;
             return next;
+        }
+
+        private static (uint Next, uint Last) FindClassicCommentIndexes(HashSet<uint> usedIndexes, uint? lastIndex) {
+            const uint maximum = int.MaxValue;
+            uint firstCandidate = lastIndex >= maximum ? 0U : (lastIndex ?? 0U) + 1U;
+            uint next = FindAvailableUInt32Id(usedIndexes, firstCandidate, "classic-comment", maximum);
+            return (next, usedIndexes.Count == 0 ? next : Math.Max(usedIndexes.Max(), next));
         }
 
         internal PowerPointCommentAuthor ResolveClassicCommentAuthor(uint? authorId) {
