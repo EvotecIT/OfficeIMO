@@ -14,6 +14,7 @@ public sealed class PowerPointCustomGeometryLengthTests {
             document.AddSlide().AddCustomGeometry(path, OfficeLength.Emus(-1), OfficeLength.Points(12.5),
                 OfficeLength.Emus(914401), OfficeLength.Centimeters(2.54));
             document.Save(bytes);
+            Assert.False(document.IsSdkLoaded);
         }
         bytes.Position = 0;
         using var loaded = PowerPointDocument.Load(bytes);

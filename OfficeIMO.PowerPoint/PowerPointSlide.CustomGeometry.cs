@@ -1,11 +1,12 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
 using static OfficeIMO.PowerPoint.PowerPointDrawingValueValidator;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private const int CustomGeometryDrawing = OfficeXmlNamespaces.DrawingML;
         private const long CustomGeometryCoordinateSize = 100000L;
         private const int MaximumCustomGeometryCommands = 20000;
         private const int MaximumEvenOddIntersectionSegments = 2048;
@@ -56,18 +57,13 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth,
                     nameof(geometry));
             }
-            A.CustomGeometry customGeometry = CreateCustomGeometry(
-                geometry, commands);
-
-            PowerPointAutoShape result = AddShape(
-                OfficePresetShapeType.Rectangle, left, top, width, height, name);
-            Shape shape = (Shape)result.Element;
-            ShapeProperties properties = shape.ShapeProperties
-                ?? throw new InvalidOperationException("The added shape has no shape properties.");
-            A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()
-                ?? throw new InvalidOperationException("The added shape has no transform.");
-            properties.RemoveAllChildren<A.PresetGeometry>();
-            properties.InsertAfter(customGeometry, transform);
+            OfficeXmlNode customGeometry = CreateCustomGeometry(PartRef.Root, geometry, commands);
+            PowerPointAutoShape result = AddShape(OfficePresetShapeType.Rectangle, left, top, width, height, name);
+            OfficeXmlNode properties = result.XmlElement.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+            OfficeXmlNode transform = properties.Child(CustomGeometryDrawing, "xfrm");
+            if (transform.IsNone) throw new InvalidOperationException("The added shape has no transform.");
+            properties.RemoveChildren(CustomGeometryDrawing, "prstGeom");
+            properties.InsertBefore(customGeometry, transform.NextNode);
             ApplyCustomGeometryStyle(result, properties, geometry);
             return result;
         }
@@ -189,40 +185,34 @@ namespace OfficeIMO.PowerPoint {
                 "Custom geometry accepts shared path or polygon descriptors.", nameof(geometry));
         }
 
-        private static A.CustomGeometry CreateCustomGeometry(OfficeShape geometry,
+        private static OfficeXmlNode CreateCustomGeometry(OfficeXmlNode owner, OfficeShape geometry,
             IReadOnlyList<OfficePathCommand> commands) {
-            var path = new A.Path {
-                Width = CustomGeometryCoordinateSize,
-                Height = CustomGeometryCoordinateSize
-            };
+            OfficeXmlNode custom = owner.CreateElement(CustomGeometryDrawing, "custGeom");
+            AppendGeometryChild(custom, "avLst");
+            OfficeXmlNode path = AppendGeometryChild(AppendGeometryChild(custom, "pathLst"), "path");
+            path.SetInt64Attribute("w", CustomGeometryCoordinateSize);
+            path.SetInt64Attribute("h", CustomGeometryCoordinateSize);
             foreach (OfficePathCommand command in commands) {
                 switch (command.Kind) {
                     case OfficePathCommandKind.MoveTo:
-                        path.Append(new A.MoveTo(CreateCustomGeometryPoint(
-                            command.Point, geometry.Width, geometry.Height)));
+                        AppendGeometryPoint(AppendGeometryChild(path, "moveTo"), command.Point, geometry);
                         break;
                     case OfficePathCommandKind.LineTo:
-                        path.Append(new A.LineTo(CreateCustomGeometryPoint(
-                            command.Point, geometry.Width, geometry.Height)));
+                        AppendGeometryPoint(AppendGeometryChild(path, "lnTo"), command.Point, geometry);
                         break;
                     case OfficePathCommandKind.QuadraticBezierTo:
-                        path.Append(new A.QuadraticBezierCurveTo(
-                            CreateCustomGeometryPoint(command.ControlPoint1,
-                                geometry.Width, geometry.Height),
-                            CreateCustomGeometryPoint(command.Point,
-                                geometry.Width, geometry.Height)));
+                        OfficeXmlNode quadratic = AppendGeometryChild(path, "quadBezTo");
+                        AppendGeometryPoint(quadratic, command.ControlPoint1, geometry);
+                        AppendGeometryPoint(quadratic, command.Point, geometry);
                         break;
                     case OfficePathCommandKind.CubicBezierTo:
-                        path.Append(new A.CubicBezierCurveTo(
-                            CreateCustomGeometryPoint(command.ControlPoint1,
-                                geometry.Width, geometry.Height),
-                            CreateCustomGeometryPoint(command.ControlPoint2,
-                                geometry.Width, geometry.Height),
-                            CreateCustomGeometryPoint(command.Point,
-                                geometry.Width, geometry.Height)));
+                        OfficeXmlNode cubic = AppendGeometryChild(path, "cubicBezTo");
+                        AppendGeometryPoint(cubic, command.ControlPoint1, geometry);
+                        AppendGeometryPoint(cubic, command.ControlPoint2, geometry);
+                        AppendGeometryPoint(cubic, command.Point, geometry);
                         break;
                     case OfficePathCommandKind.Close:
-                        path.Append(new A.CloseShapePath());
+                        AppendGeometryChild(path, "close");
                         break;
                     default:
                         throw new ArgumentException(
@@ -230,17 +220,16 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            return new A.CustomGeometry(
-                new A.AdjustValueList(),
-                new A.PathList(path));
+            return custom;
         }
 
-        private static A.Point CreateCustomGeometryPoint(OfficePoint point,
-            double sourceWidth, double sourceHeight) {
-            return new A.Point {
-                X = ScaleCustomGeometryCoordinate(point.X, sourceWidth),
-                Y = ScaleCustomGeometryCoordinate(point.Y, sourceHeight)
-            };
+        private static OfficeXmlNode AppendGeometryChild(OfficeXmlNode parent, string localName) =>
+            parent.Append(parent.CreateElement(CustomGeometryDrawing, localName));
+
+        private static void AppendGeometryPoint(OfficeXmlNode command, OfficePoint point, OfficeShape geometry) {
+            OfficeXmlNode element = AppendGeometryChild(command, "pt");
+            element.SetAttribute("x", ScaleCustomGeometryCoordinate(point.X, geometry.Width));
+            element.SetAttribute("y", ScaleCustomGeometryCoordinate(point.Y, geometry.Height));
         }
 
         private static string ScaleCustomGeometryCoordinate(double value, double sourceSize) {
@@ -259,104 +248,85 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyCustomGeometryStyle(PowerPointAutoShape result,
-            ShapeProperties properties, OfficeShape geometry) {
-            properties.RemoveAllChildren<A.SolidFill>();
-            properties.RemoveAllChildren<A.NoFill>();
+            OfficeXmlNode properties, OfficeShape geometry) {
+            properties.RemoveChildren(CustomGeometryDrawing, "solidFill");
+            properties.RemoveChildren(CustomGeometryDrawing, "noFill");
             if (geometry.FillColor is OfficeColor fill) {
                 result.FillColor = fill;
-                double fillOpacity = CombineOpacity(fill.A,
-                    geometry.FillOpacity);
-                if (fillOpacity < 1D) {
-                    result.SetFillOpacity(fillOpacity);
-                }
+                double fillOpacity = CombineOpacity(fill.A, geometry.FillOpacity);
+                if (fillOpacity < 1D) result.SetFillOpacity(fillOpacity);
             } else {
-                A.CustomGeometry customGeometry = properties.GetFirstChild<A.CustomGeometry>()
-                    ?? throw new InvalidOperationException("The added shape has no custom geometry.");
-                properties.InsertAfter(new A.NoFill(), customGeometry);
+                OfficeXmlNode custom = properties.Child(CustomGeometryDrawing, "custGeom");
+                if (custom.IsNone) throw new InvalidOperationException("The added shape has no custom geometry.");
+                properties.InsertBefore(properties.CreateElement(CustomGeometryDrawing, "noFill"), custom.NextNode);
             }
 
             result.OutlineColor = geometry.StrokeColor;
-            if (geometry.StrokeColor is OfficeColor stroke) {
-                result.OutlineWidth = OfficeLength.Emus(PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth, nameof(geometry.StrokeWidth)));
-                result.OutlineDash = MapCustomGeometryDash(
-                    geometry.StrokeDashStyle).ToOfficeEnum();
-                double combinedOpacity = CombineOpacity(stroke.A,
-                    geometry.StrokeOpacity);
-                if (combinedOpacity < 1D) {
-                    result.SetOutlineOpacity(combinedOpacity);
-                }
-                A.Outline outline = properties.GetFirstChild<A.Outline>()
-                    ?? throw new InvalidOperationException(
-                        "The added shape has no outline.");
-                ApplyCustomGeometryLineCapAndJoin(outline, geometry);
-                ApplyCustomGeometryLineMarkers(outline, geometry);
-            }
+            if (geometry.StrokeColor is not OfficeColor stroke) return;
+            result.OutlineWidth = OfficeLength.Emus(PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth, nameof(geometry.StrokeWidth)));
+            result.OutlineDash = MapCustomGeometryDash(geometry.StrokeDashStyle);
+            double combinedOpacity = CombineOpacity(stroke.A, geometry.StrokeOpacity);
+            if (combinedOpacity < 1D) result.SetOutlineOpacity(combinedOpacity);
+            // Theme resolution can rebind the shape to the SDK while applying its colors.
+            OfficeXmlNode outline = result.XmlElement.Child(OfficeXmlNamespaces.PresentationML, "spPr")
+                .Child(CustomGeometryDrawing, "ln");
+            if (outline.IsNone) throw new InvalidOperationException("The added shape has no outline.");
+            ApplyCustomGeometryLineCapAndJoin(outline, geometry);
+            ApplyCustomGeometryLineMarkers(outline, geometry);
+            result.OwnerPartRef.MarkEdited();
         }
 
-        private static A.PresetLineDashValues MapCustomGeometryDash(
-            OfficeStrokeDashStyle dashStyle) => dashStyle switch {
-                OfficeStrokeDashStyle.Dash => A.PresetLineDashValues.Dash,
-                OfficeStrokeDashStyle.Dot => A.PresetLineDashValues.Dot,
-                OfficeStrokeDashStyle.DashDot => A.PresetLineDashValues.DashDot,
-                OfficeStrokeDashStyle.DashDotDot =>
-                    A.PresetLineDashValues.LargeDashDotDot,
-                _ => A.PresetLineDashValues.Solid
-            };
+        private static PowerPointLineDashStyle MapCustomGeometryDash(OfficeStrokeDashStyle dashStyle) => dashStyle switch {
+            OfficeStrokeDashStyle.Dash => PowerPointLineDashStyle.Dash,
+            OfficeStrokeDashStyle.Dot => PowerPointLineDashStyle.Dot,
+            OfficeStrokeDashStyle.DashDot => PowerPointLineDashStyle.DashDot,
+            OfficeStrokeDashStyle.DashDotDot => PowerPointLineDashStyle.LargeDashDotDot,
+            _ => PowerPointLineDashStyle.Solid
+        };
 
-        private static void ApplyCustomGeometryLineCapAndJoin(
-            A.Outline outline, OfficeShape geometry) {
-            outline.CapType = geometry.StrokeLineCap switch {
-                OfficeStrokeLineCap.Round => A.LineCapValues.Round,
-                OfficeStrokeLineCap.Square => A.LineCapValues.Square,
-                OfficeStrokeLineCap.Butt => A.LineCapValues.Flat,
-                _ => (A.LineCapValues?)null
+        private static void ApplyCustomGeometryLineCapAndJoin(OfficeXmlNode outline, OfficeShape geometry) {
+            outline.SetAttribute("cap", geometry.StrokeLineCap switch {
+                OfficeStrokeLineCap.Round => "rnd",
+                OfficeStrokeLineCap.Square => "sq",
+                OfficeStrokeLineCap.Butt => "flat",
+                _ => null
+            });
+            outline.RemoveChildren(CustomGeometryDrawing, "round");
+            outline.RemoveChildren(CustomGeometryDrawing, "bevel");
+            outline.RemoveChildren(CustomGeometryDrawing, "miter");
+            string? join = geometry.StrokeLineJoin switch {
+                OfficeStrokeLineJoin.Round => "round",
+                OfficeStrokeLineJoin.Bevel => "bevel",
+                OfficeStrokeLineJoin.Miter => "miter",
+                _ => null
             };
-            outline.RemoveAllChildren<A.Round>();
-            outline.RemoveAllChildren<A.LineJoinBevel>();
-            outline.RemoveAllChildren<A.Miter>();
-            if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Round) {
-                outline.Append(new A.Round());
-            } else if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Bevel) {
-                outline.Append(new A.LineJoinBevel());
-            } else if (geometry.StrokeLineJoin == OfficeStrokeLineJoin.Miter) {
-                outline.Append(new A.Miter());
-            }
+            if (join != null) AppendGeometryChild(outline, join);
         }
 
-        private static void ApplyCustomGeometryLineMarkers(A.Outline outline,
-            OfficeShape geometry) {
-            outline.RemoveAllChildren<A.HeadEnd>();
-            outline.RemoveAllChildren<A.TailEnd>();
+        private static void ApplyCustomGeometryLineMarkers(OfficeXmlNode outline, OfficeShape geometry) {
+            outline.RemoveChildren(CustomGeometryDrawing, "headEnd");
+            outline.RemoveChildren(CustomGeometryDrawing, "tailEnd");
             if (geometry.StrokeStartMarker != null) {
-                outline.Append(CreateCustomGeometryLineEnd<A.HeadEnd>(
-                    geometry.StrokeStartMarker, geometry.StrokeWidth));
+                WriteCustomGeometryLineEnd(AppendGeometryChild(outline, "headEnd"), geometry.StrokeStartMarker, geometry.StrokeWidth);
             }
             if (geometry.StrokeEndMarker != null) {
-                outline.Append(CreateCustomGeometryLineEnd<A.TailEnd>(
-                    geometry.StrokeEndMarker, geometry.StrokeWidth));
+                WriteCustomGeometryLineEnd(AppendGeometryChild(outline, "tailEnd"), geometry.StrokeEndMarker, geometry.StrokeWidth);
             }
         }
 
-        private static T CreateCustomGeometryLineEnd<T>(OfficeLineMarker marker,
-            double strokeWidth) where T : A.LineEndPropertiesType, new() {
+        private static void WriteCustomGeometryLineEnd(OfficeXmlNode end, OfficeLineMarker marker, double strokeWidth) {
             double width = marker.Width / Math.Max(strokeWidth, 0.01D);
             double length = marker.Length / Math.Max(strokeWidth, 0.01D);
-            return new T {
-                Type = marker.Kind switch {
-                    OfficeLineMarkerKind.Triangle => A.LineEndValues.Triangle,
-                    OfficeLineMarkerKind.Stealth => A.LineEndValues.Stealth,
-                    OfficeLineMarkerKind.Diamond => A.LineEndValues.Diamond,
-                    OfficeLineMarkerKind.Oval => A.LineEndValues.Oval,
-                    OfficeLineMarkerKind.Arrow => A.LineEndValues.Arrow,
-                    _ => A.LineEndValues.None
-                },
-                Width = width < 3.75D ? A.LineEndWidthValues.Small
-                    : width > 5.25D ? A.LineEndWidthValues.Large
-                    : A.LineEndWidthValues.Medium,
-                Length = length < 5D ? A.LineEndLengthValues.Small
-                    : length > 7D ? A.LineEndLengthValues.Large
-                    : A.LineEndLengthValues.Medium
-            };
+            end.SetAttribute("type", marker.Kind switch {
+                OfficeLineMarkerKind.Triangle => "triangle",
+                OfficeLineMarkerKind.Stealth => "stealth",
+                OfficeLineMarkerKind.Diamond => "diamond",
+                OfficeLineMarkerKind.Oval => "oval",
+                OfficeLineMarkerKind.Arrow => "arrow",
+                _ => "none"
+            });
+            end.SetAttribute("w", width < 3.75D ? "sm" : width > 5.25D ? "lg" : "med");
+            end.SetAttribute("len", length < 5D ? "sm" : length > 7D ? "lg" : "med");
         }
 
         private static double CombineOpacity(byte colorAlpha,

@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -8,6 +8,9 @@ namespace OfficeIMO.PowerPoint {
     ///     points. Site order and angles follow the preset shape definitions in ECMA-376 Part 1, Annex D.
     /// </summary>
     internal static class PowerPointConnectorGeometry {
+        private const int Presentation = OfficeXmlNamespaces.PresentationML;
+        private const int Drawing = OfficeXmlNamespaces.DrawingML;
+
         private readonly struct LocalSite {
             internal LocalSite(double x, double y, int angle) {
                 X = x;
@@ -37,19 +40,19 @@ namespace OfficeIMO.PowerPoint {
             new(0.5D, 0D, 270), new(0.25D, 0.5D, 180), new(0D, 1D, 90), new(0.5D, 1D, 90), new(1D, 1D, 90), new(0.75D, 0.5D, 0)
         };
 
-        private static readonly Dictionary<A.ShapeTypeValues, LocalSite[]> PresetSites = new() {
-            [A.ShapeTypeValues.Rectangle] = BoxSites,
-            [A.ShapeTypeValues.RoundRectangle] = BoxSites,
-            [A.ShapeTypeValues.Diamond] = BoxSites,
-            [A.ShapeTypeValues.FlowChartProcess] = BoxSites,
-            [A.ShapeTypeValues.FlowChartAlternateProcess] = BoxSites,
-            [A.ShapeTypeValues.FlowChartDecision] = BoxSites,
-            [A.ShapeTypeValues.FlowChartPredefinedProcess] = BoxSites,
-            [A.ShapeTypeValues.FlowChartInternalStorage] = BoxSites,
-            [A.ShapeTypeValues.FlowChartTerminator] = BoxSites,
-            [A.ShapeTypeValues.Ellipse] = EllipseSites,
-            [A.ShapeTypeValues.FlowChartConnector] = EllipseSites,
-            [A.ShapeTypeValues.Triangle] = TriangleSites
+        private static readonly Dictionary<OfficePresetShapeType, LocalSite[]> PresetSites = new() {
+            [OfficePresetShapeType.Rectangle] = BoxSites,
+            [OfficePresetShapeType.RoundRectangle] = BoxSites,
+            [OfficePresetShapeType.Diamond] = BoxSites,
+            [OfficePresetShapeType.FlowChartProcess] = BoxSites,
+            [OfficePresetShapeType.FlowChartAlternateProcess] = BoxSites,
+            [OfficePresetShapeType.FlowChartDecision] = BoxSites,
+            [OfficePresetShapeType.FlowChartPredefinedProcess] = BoxSites,
+            [OfficePresetShapeType.FlowChartInternalStorage] = BoxSites,
+            [OfficePresetShapeType.FlowChartTerminator] = BoxSites,
+            [OfficePresetShapeType.Ellipse] = EllipseSites,
+            [OfficePresetShapeType.FlowChartConnector] = EllipseSites,
+            [OfficePresetShapeType.Triangle] = TriangleSites
         };
 
         /// <summary>Sites in slide coordinates (EMU), with shape flips and rotation applied.</summary>
@@ -62,15 +65,20 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            ShapeProperties? properties = GetShapeProperties(shape.Element);
+            OfficeXmlNode element = shape.XmlElement;
+            OfficeXmlNode properties = element.Is(Presentation, "sp") || element.Is(Presentation, "pic")
+                ? element.Child(Presentation, "spPr") : default;
+            OfficeXmlNode custom = properties.Child(Drawing, "custGeom");
             IReadOnlyList<LocalSite>? local = null;
-            A.CustomGeometry? custom = properties?.GetFirstChild<A.CustomGeometry>();
-            if (custom != null) {
+            if (custom.Exists) {
                 local = ReadCustomSites(custom, shape.Width.ToEmus(), shape.Height.ToEmus());
             } else {
-                A.ShapeTypeValues preset = properties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value
-                    ?? (shape.Element is Picture or GraphicFrame ? A.ShapeTypeValues.Rectangle : default);
-                if (properties?.GetFirstChild<A.PresetGeometry>() == null && shape.Element is not (Picture or GraphicFrame)) return false;
+                OfficeXmlNode geometry = properties.Child(Drawing, "prstGeom");
+                bool pictureOrFrame = element.Is(Presentation, "pic") || element.Is(Presentation, "graphicFrame");
+                if (geometry.IsNone && !pictureOrFrame) return false;
+                OfficePresetShapeType preset = pictureOrFrame ? OfficePresetShapeType.Rectangle : default;
+                if (geometry.Attribute("prst") is { } token &&
+                    !PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out preset)) return false;
                 if (PresetSites.TryGetValue(preset, out LocalSite[]? known)) local = known;
             }
 
@@ -152,14 +160,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Writes preset, transform and flips so the connector runs from start to end.</summary>
-        internal static void Route(ConnectionShape connector, PowerPointConnectorKind kind, long startX, long startY,
+        internal static void Route(PowerPointConnectionShape connector, PowerPointConnectorKind kind, long startX, long startY,
             long endX, long endY, double? startAngle, double? endAngle) {
             bool startVertical = startAngle.HasValue ? IsVertical(startAngle.Value) : Math.Abs(endY - startY) > Math.Abs(endX - startX);
             bool endVertical = endAngle.HasValue ? IsVertical(endAngle.Value) : startVertical;
-            A.ShapeTypeValues preset = kind switch {
-                PowerPointConnectorKind.Elbow => startVertical == endVertical ? A.ShapeTypeValues.BentConnector3 : A.ShapeTypeValues.BentConnector2,
-                PowerPointConnectorKind.Curved => startVertical == endVertical ? A.ShapeTypeValues.CurvedConnector3 : A.ShapeTypeValues.CurvedConnector2,
-                _ => A.ShapeTypeValues.StraightConnector1
+            OfficePresetShapeType preset = kind switch {
+                PowerPointConnectorKind.Elbow => startVertical == endVertical ? OfficePresetShapeType.BentConnector3 : OfficePresetShapeType.BentConnector2,
+                PowerPointConnectorKind.Curved => startVertical == endVertical ? OfficePresetShapeType.CurvedConnector3 : OfficePresetShapeType.CurvedConnector2,
+                _ => OfficePresetShapeType.StraightConnector1
             };
             // Bent and curved connectors start with a horizontal leg; a 90° rotation makes it vertical.
             bool rotate = kind != PowerPointConnectorKind.Straight && startVertical;
@@ -176,31 +184,41 @@ namespace OfficeIMO.PowerPoint {
                 flipV = endY < startY;
             }
 
-            ShapeProperties properties = connector.ShapeProperties ??= new ShapeProperties();
-            A.Transform2D transform = properties.Transform2D ??= new A.Transform2D();
-            transform.Offset = new A.Offset {
-                X = (long)Math.Round(centerX - cx / 2D),
-                Y = (long)Math.Round(centerY - cy / 2D)
-            };
-            transform.Extents = new A.Extents { Cx = cx, Cy = cy };
-            transform.Rotation = rotate ? 5400000 : null;
-            transform.HorizontalFlip = flipH ? true : null;
-            transform.VerticalFlip = flipV ? true : null;
+            OfficeXmlNode element = connector.XmlElement;
+            OfficeXmlNode propertyNode = element.Child(Presentation, "spPr");
+            if (propertyNode.IsNone) {
+                propertyNode = element.CreateElement(Presentation, "spPr");
+                OfficeXmlNode nonVisual = element.Child(Presentation, "nvCxnSpPr");
+                propertyNode = nonVisual.Exists ? nonVisual.InsertAfterSelf(propertyNode) : element.InsertBefore(propertyNode, element.FirstChild);
+            }
+            var properties = new AShapePropertiesView(propertyNode);
+            ATransform2DView transform = properties.GetOrAddXfrm();
+            transform.Element.RemoveChildren(Drawing, "off");
+            transform.Element.RemoveChildren(Drawing, "ext");
+            APoint2DView offset = transform.GetOrAddOff();
+            offset.Element.SetInt64Attribute("x", (long)Math.Round(centerX - cx / 2D));
+            offset.Element.SetInt64Attribute("y", (long)Math.Round(centerY - cy / 2D));
+            APositiveSize2DView extent = transform.GetOrAddExt();
+            extent.Cx = cx;
+            extent.Cy = cy;
+            transform.Rot = rotate ? 5400000 : null;
+            transform.FlipH = flipH ? true : null;
+            transform.FlipV = flipV ? true : null;
 
-            A.PresetGeometry geometry = properties.GetFirstChild<A.PresetGeometry>() ?? new A.PresetGeometry();
-            geometry.Preset = preset;
-            geometry.AdjustValueList ??= new A.AdjustValueList();
-            geometry.AdjustValueList.RemoveAllChildren();
-            if (geometry.Parent == null) properties.InsertAfter(geometry, transform);
+            APresetGeometry2DView geometry = properties.PrstGeom ?? new APresetGeometry2DView(
+                transform.Element.InsertAfterSelf(propertyNode.CreateElement(Drawing, "prstGeom")));
+            geometry.Prst = preset.ToOpenXmlToken();
+            geometry.GetOrAddAvLst().Element.RemoveAllChildren();
+            connector.OwnerPartRef.MarkEdited();
         }
 
-        internal static PowerPointConnectorKind? KindOf(A.ShapeTypeValues? preset) {
+        internal static PowerPointConnectorKind? KindOf(OfficePresetShapeType? preset) {
             if (preset == null) return null;
-            if (preset == A.ShapeTypeValues.StraightConnector1 || preset == A.ShapeTypeValues.Line) return PowerPointConnectorKind.Straight;
-            if (preset == A.ShapeTypeValues.BentConnector2 || preset == A.ShapeTypeValues.BentConnector3
-                || preset == A.ShapeTypeValues.BentConnector4 || preset == A.ShapeTypeValues.BentConnector5) return PowerPointConnectorKind.Elbow;
-            if (preset == A.ShapeTypeValues.CurvedConnector2 || preset == A.ShapeTypeValues.CurvedConnector3
-                || preset == A.ShapeTypeValues.CurvedConnector4 || preset == A.ShapeTypeValues.CurvedConnector5) return PowerPointConnectorKind.Curved;
+            if (preset == OfficePresetShapeType.StraightConnector1 || preset == OfficePresetShapeType.Line) return PowerPointConnectorKind.Straight;
+            if (preset == OfficePresetShapeType.BentConnector2 || preset == OfficePresetShapeType.BentConnector3
+                || preset == OfficePresetShapeType.BentConnector4 || preset == OfficePresetShapeType.BentConnector5) return PowerPointConnectorKind.Elbow;
+            if (preset == OfficePresetShapeType.CurvedConnector2 || preset == OfficePresetShapeType.CurvedConnector3
+                || preset == OfficePresetShapeType.CurvedConnector4 || preset == OfficePresetShapeType.CurvedConnector5) return PowerPointConnectorKind.Curved;
             return null;
         }
 
@@ -220,14 +238,15 @@ namespace OfficeIMO.PowerPoint {
             return normalized > 45D && normalized < 135D;
         }
 
-        private static List<LocalSite>? ReadCustomSites(A.CustomGeometry geometry, long width, long height) {
-            A.ConnectionSiteList? list = geometry.ConnectionSiteList;
-            if (list == null || width <= 0 || height <= 0) return null;
+        private static List<LocalSite>? ReadCustomSites(OfficeXmlNode geometry, long width, long height) {
+            OfficeXmlNode list = geometry.Child(Drawing, "cxnLst");
+            if (list.IsNone || width <= 0 || height <= 0) return null;
             var sites = new List<LocalSite>();
-            foreach (A.ConnectionSite site in list.Elements<A.ConnectionSite>()) {
+            foreach (OfficeXmlNode site in list.Children(Drawing, "cxn")) {
                 // Only literal coordinates can be resolved without evaluating the shape guide formulas.
-                if (!long.TryParse(site.Position?.X?.Value, out long x) || !long.TryParse(site.Position?.Y?.Value, out long y)
-                    || !int.TryParse(site.Angle?.Value, out int angle)) {
+                OfficeXmlNode position = site.Child(Drawing, "pos");
+                if (position.Int64Attribute("x") is not long x || position.Int64Attribute("y") is not long y ||
+                    site.Int32Attribute("ang") is not int angle) {
                     return null;
                 }
 
@@ -236,11 +255,5 @@ namespace OfficeIMO.PowerPoint {
 
             return sites;
         }
-
-        private static ShapeProperties? GetShapeProperties(OpenXmlElement element) => element switch {
-            Shape shape => shape.ShapeProperties,
-            Picture picture => picture.ShapeProperties,
-            _ => null
-        };
     }
 }

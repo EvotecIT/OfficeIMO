@@ -1,7 +1,8 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -17,28 +18,34 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointConnectionShape(ConnectionShape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
         }
 
-        private ConnectionShape Shape => (ConnectionShape)Element;
+        private const int Presentation = OfficeXmlNamespaces.PresentationML;
+        private const int Drawing = OfficeXmlNamespaces.DrawingML;
+
+        private OfficeXmlNode ShapeProperties => XmlElement.Child(Presentation, "spPr");
+        private string? PresetToken => ShapeProperties.Child(Drawing, "prstGeom").Attribute("prst");
 
         /// <summary>
         ///     Gets the preset geometry type of the connection shape.
         /// </summary>
-        public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
+        public OfficePresetShapeType? ShapeType =>
+            PresetToken is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out OfficePresetShapeType type)
+                ? type : null;
 
         /// <summary>Connector family (straight, elbow or curved), or <see langword="null" /> for other line geometry.</summary>
         public PowerPointConnectorKind? Kind =>
-            PowerPointConnectorGeometry.KindOf(Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value);
+            PowerPointConnectorGeometry.KindOf(ShapeType);
 
         /// <summary>Shape the connector starts at, when its start is glued.</summary>
         public PowerPointShape? StartShape => StartShapeId is uint id ? OwnerSlide?.FindTopLevelShape(id) : null;
 
         /// <summary>Connection site index the start is glued to.</summary>
-        public int? StartSite => (int?)ConnectorDrawingProperties.StartConnection?.Index?.Value;
+        public int? StartSite => (int?)ConnectionEndpoint("stCxn").UInt32Attribute("idx");
 
         /// <summary>Shape the connector ends at, when its end is glued.</summary>
         public PowerPointShape? EndShape => EndShapeId is uint id ? OwnerSlide?.FindTopLevelShape(id) : null;
 
         /// <summary>Connection site index the end is glued to.</summary>
-        public int? EndSite => (int?)ConnectorDrawingProperties.EndConnection?.Index?.Value;
+        public int? EndSite => (int?)ConnectionEndpoint("endCxn").UInt32Attribute("idx");
 
         /// <summary>
         ///     Recomputes the connector's path from its glued ends. Moving or resizing a glued shape through this API
@@ -49,16 +56,22 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        internal uint? StartShapeId => ConnectorDrawingProperties.StartConnection?.Id?.Value;
+        internal uint? StartShapeId => ConnectionEndpoint("stCxn").UInt32Attribute("id");
 
-        internal uint? EndShapeId => ConnectorDrawingProperties.EndConnection?.Id?.Value;
+        internal uint? EndShapeId => ConnectionEndpoint("endCxn").UInt32Attribute("id");
 
-        internal NonVisualConnectorShapeDrawingProperties ConnectorDrawingProperties {
-            get {
-                NonVisualConnectionShapeProperties properties = Shape.NonVisualConnectionShapeProperties
-                    ??= new NonVisualConnectionShapeProperties();
-                return properties.NonVisualConnectorShapeDrawingProperties ??= new NonVisualConnectorShapeDrawingProperties();
-            }
+        private OfficeXmlNode ConnectionEndpoint(string name) => XmlElement.Child(Presentation, "nvCxnSpPr")
+            .Child(Presentation, "cNvCxnSpPr").Child(Drawing, name);
+
+        internal void GlueEnds(uint start, int fromSite, uint end, int toSite) {
+            OfficeXmlNode drawing = XmlElement.Child(Presentation, "nvCxnSpPr").Child(Presentation, "cNvCxnSpPr");
+            OfficeXmlNode startNode = drawing.Append(drawing.CreateElement(Drawing, "stCxn"));
+            startNode.SetUInt32Attribute("id", start);
+            startNode.SetUInt32Attribute("idx", (uint)fromSite);
+            OfficeXmlNode endNode = drawing.Append(drawing.CreateElement(Drawing, "endCxn"));
+            endNode.SetUInt32Attribute("id", end);
+            endNode.SetUInt32Attribute("idx", (uint)toSite);
+            OwnerPartRef.MarkEdited();
         }
 
         internal void RouteGlued(PowerPointConnectorKind kind) => RouteGlued(kind, strict: true);
@@ -90,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 endAngle = site.Angle;
             }
 
-            PowerPointConnectorGeometry.Route(Shape, kind, startX, startY, endX, endY, startAngle, endAngle);
+            PowerPointConnectorGeometry.Route(this, kind, startX, startY, endX, endY, startAngle, endAngle);
         }
 
         private static bool TryResolveSite(PowerPointShape shape, int index, string parameterName, bool strict,
@@ -104,13 +117,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void GetEndPoints(out long startX, out long startY, out long endX, out long endY) {
-            A.Transform2D? transform = Shape.ShapeProperties?.Transform2D;
-            long x = transform?.Offset?.X?.Value ?? 0L, y = transform?.Offset?.Y?.Value ?? 0L;
-            long cx = transform?.Extents?.Cx?.Value ?? 0L, cy = transform?.Extents?.Cy?.Value ?? 0L;
-            bool rotated = Math.Abs((transform?.Rotation?.Value ?? 0) - 5400000) < 2;
+            var transform = new ATransform2DView(ShapeProperties.Child(Drawing, "xfrm"));
+            long x = transform.Off?.Element.Int64Attribute("x") ?? 0L, y = transform.Off?.Element.Int64Attribute("y") ?? 0L;
+            long cx = transform.Ext?.Cx ?? 0L, cy = transform.Ext?.Cy ?? 0L;
+            bool rotated = Math.Abs((transform.Rot ?? 0) - 5400000) < 2;
             double centerX = x + cx / 2D, centerY = y + cy / 2D;
-            double localX = (transform?.HorizontalFlip?.Value == true ? 1D : -1D) * cx / 2D;
-            double localY = (transform?.VerticalFlip?.Value == true ? 1D : -1D) * cy / 2D;
+            double localX = (transform.FlipH == true ? 1D : -1D) * cx / 2D;
+            double localY = (transform.FlipV == true ? 1D : -1D) * cy / 2D;
             // Local start corner, rotated by 90° when the connector is drawn rotated.
             double sx = rotated ? -localY : localX, sy = rotated ? localX : localY;
             startX = (long)Math.Round(centerX + sx);
