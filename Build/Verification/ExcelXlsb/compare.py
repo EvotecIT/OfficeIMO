@@ -340,8 +340,12 @@ def compare_packages(left, right, allow_markup_equivalence, allow_part_rename=Fa
         left_ids, left_relationships = stable_relationships(left_parts, {})
         right_ids, right_relationships = stable_relationships(right_parts, aliases)
         renamed = any(source != target for source, target in aliases.items())
-        if renamed and any(has_dangling_content_types(archive) for archive in (baseline, candidate)):
-            return "different", ["[Content_Types].xml has an override for a missing part"]
+        if renamed:
+            try:
+                if any(has_dangling_content_types(archive) for archive in (baseline, candidate)):
+                    return "different", ["[Content_Types].xml has an override for a missing part"]
+            except ET.ParseError as error:
+                return "different", [f"[Content_Types].xml is malformed: {error}"]
         changed = []
         for part in left_names:
             before = baseline.read(part)

@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
                 string formulaText = definedName.InnerText;
                 if (XlsbFutureFunctions.TryGetName(openXmlName, out string futureFunction)) {
-                    if (localSheetIndex != uint.MaxValue || comment != null
+                    if (localSheetIndex != uint.MaxValue || !string.IsNullOrEmpty(comment)
                         || !string.Equals(formulaText.Trim().TrimStart('='), XlsbFutureFunctions.NameFormulaText, StringComparison.Ordinal)) {
                         throw new NotSupportedException($"Native XLSB generation writes future-function name '{openXmlName}' only as a workbook-scoped {XlsbFutureFunctions.NameFormulaText} name without a comment.");
                     }

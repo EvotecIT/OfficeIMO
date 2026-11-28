@@ -56,6 +56,23 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
         Assert.Equal("14", weighted);
     }
 
+    [Fact]
+    public void Future_function_defined_names_survive_a_conversion_through_xlsx() {
+        byte[] native = SaveAsXlsb(CreateXlsx(document => {
+            ExcelSheet sheet = AddNumbers(document);
+            sheet.Cell(1, 2).SetFormula("STDEV.S(A1:A3)");
+        }));
+
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(native));
+        byte[] projected = loaded.ToBytes(ExcelFileFormat.Xlsx);
+        using ExcelDocument roundTripped = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(projected)));
+
+        Assert.Equal("_xlfn.STDEV.S(A1:A3)", roundTripped["Data"].GetFormulaText(1, 2));
+        DefinedName name = Assert.Single(roundTripped.WorkbookRoot.DefinedNames!.Elements<DefinedName>(),
+            item => item.Name?.Value == "_xlfn.STDEV.S");
+        Assert.Equal("#NAME?", name.Text);
+    }
+
     [Theory]
     [InlineData("SUM('Data'!$A$1:$A$3)")]
     [InlineData("'Data'!$A$1*2")]
