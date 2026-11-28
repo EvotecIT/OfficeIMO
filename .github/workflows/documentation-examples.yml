@@ -52,6 +52,10 @@ jobs:
             cd "$output"
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/QuickStart/QuickStart.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
             python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify_quickstart.py" .
+            for example in Visio Project Access OpenDocument IWork OneNote Epub CSV Rtf; do
+              dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/$example/$example.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
+            done
+            python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify_formats.py" .
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Word/Word.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Excel/Excel.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Pdf/Pdf.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
