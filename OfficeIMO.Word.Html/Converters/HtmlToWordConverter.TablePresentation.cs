@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -54,14 +54,14 @@ namespace OfficeIMO.Word.Html {
             return backdrop;
         }
 
-        private static void ClearSyntheticTableTrailingSpacing(Paragraph paragraph) {
+        private static void ClearSyntheticTableTrailingSpacing(OfficeXmlNode paragraph) {
             if (!HasOnlySyntheticZeroSpacing(paragraph)) {
                 return;
             }
 
-            SpacingBetweenLines? spacing =
-                paragraph.ParagraphProperties?.GetFirstChild<SpacingBetweenLines>();
-            spacing?.Remove();
+            OfficeXmlNode spacing =
+                paragraph.WChild("pPr").WChild("spacing");
+            if (spacing.Exists) spacing.Remove();
         }
     }
 }

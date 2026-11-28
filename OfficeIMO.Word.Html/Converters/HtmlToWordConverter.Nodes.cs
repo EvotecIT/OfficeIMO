@@ -5,15 +5,13 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -53,8 +51,7 @@ namespace OfficeIMO.Word.Html {
                                 paragraph.AddEquation(structuredOmml);
                             } else {
                                 string equationText = equationLabel ?? element.TextContent ?? string.Empty;
-                                var officeMath = new M.OfficeMath(new M.Run(new M.Text(equationText)));
-                                paragraph.AddEquation(officeMath.OuterXml);
+                                paragraph.AddEquation(CreatePlainEquationXml(equationText));
                             }
                             break;
                         }
@@ -492,7 +489,7 @@ namespace OfficeIMO.Word.Html {
                     case "u": {
                             var fmt = formatting;
                             fmt.Underline = true;
-                            fmt.UnderlineStyle ??= UnderlineValues.Single;
+                            fmt.UnderlineStyle ??= WordUnderlineStyle.Single;
                             ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -521,7 +518,7 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Underline = true;
-                            fmt.UnderlineStyle ??= UnderlineValues.Single;
+                            fmt.UnderlineStyle ??= WordUnderlineStyle.Single;
                             ApplySpanStyles(element, ref fmt);
                             var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
@@ -536,7 +533,7 @@ namespace OfficeIMO.Word.Html {
                     case "mark": {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
-                            fmt.Highlight = HighlightColorValues.Yellow;
+                            fmt.Highlight = WordHighlightColor.Yellow;
                             fmt.PreserveHighlightOverBackground = !string.IsNullOrEmpty(formatting.BackgroundColorHex);
                             ApplySpanStyles(element, ref fmt);
                             var runStart = CaptureTextRunStart(currentParagraph);
@@ -553,13 +550,13 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt)?.ToOfficeEnum());
+                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt));
                             ApplyFormatting(open, fmt, options);
                             open.SetCharacterStyleId("HtmlQuote");
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
-                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt)?.ToOfficeEnum());
+                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold ?? false, fmt.Italic ?? false, GetUnderlineValue(fmt));
                             ApplyFormatting(close, fmt, options);
                             close.SetCharacterStyleId("HtmlQuote");
                             break;
@@ -800,7 +797,7 @@ namespace OfficeIMO.Word.Html {
                                     var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
                                         listStack, fmtAnchor, cell, headerFooter, headingList);
                                     linkParaAnchor = inlineContent.Count > 0
-                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty, moveContent: true)
+                                        ? WordConverterNodes.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty, moveContent: true)
                                         : currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 } else {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
@@ -848,7 +845,7 @@ namespace OfficeIMO.Word.Html {
                                     var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
                                         listStack, fmtExternal, cell, headerFooter, headingList);
                                     linkPara = inlineContent.Count > 0
-                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty, moveContent: true)
+                                        ? WordConverterNodes.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty, moveContent: true)
                                         : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 } else {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
@@ -902,10 +899,10 @@ namespace OfficeIMO.Word.Html {
                             Func<int?>? resolveImageContainerWidthTwips = cell == null
                                 ? null
                                 : () => _tableCellContentWidths.TryGetValue(
-                                        cell._tableCell,
+                                        cell.Node(),
                                         out int? knownWidth)
                                     ? knownWidth
-                                    : WordTable.EstimateCellContentWidthInDxa(doc, cell._tableCell);
+                                    : WordConverterNodes.EstimateCellContentWidthInDxa(doc, cell.Node());
                             if (cell == null && headerFooter != null) {
                                 resolveImageContainerWidthTwips = () => Math.Max(1,
                                     (int)(section.PageSetup.Size.Width?.ToTwips() ?? WordPageSizes.A4.Width.ToTwips())
@@ -1026,7 +1023,7 @@ namespace OfficeIMO.Word.Html {
 
             var orientationValue = element.GetAttribute("data-page-orientation");
             if (TryParsePageOrientation(orientationValue, out var orientation)) {
-                section.PageSetup.Orientation = orientation.ToOfficeEnum();
+                section.PageSetup.Orientation = orientation;
             }
 
             if (TryGetUInt32Attribute(element, "data-page-width-twips", out var width)) {
@@ -1053,7 +1050,7 @@ namespace OfficeIMO.Word.Html {
             string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase) ||
             element.ClassList.Contains("word-section");
 
-        private static bool TryGetUInt32Attribute(IElement element, string name, out UInt32Value value) {
+        private static bool TryGetUInt32Attribute(IElement element, string name, out uint value) {
             value = 0U;
             if (!uint.TryParse(element.GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) {
                 return false;
@@ -1066,14 +1063,24 @@ namespace OfficeIMO.Word.Html {
         private static bool TryGetInt32Attribute(IElement element, string name, out int value) =>
             int.TryParse(element.GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
 
-        private static bool TryParsePageOrientation(string? value, out PageOrientationValues orientation) {
-            orientation = PageOrientationValues.Portrait;
+        private static bool TryParsePageOrientation(string? value, out OfficePageOrientation orientation) {
+            orientation = OfficePageOrientation.Portrait;
             if (string.Equals(value, "Landscape", StringComparison.OrdinalIgnoreCase)) {
-                orientation = PageOrientationValues.Landscape;
+                orientation = OfficePageOrientation.Landscape;
                 return true;
             }
 
             return string.Equals(value, "Portrait", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>The markup of an <c>m:oMath</c> holding one math run of plain <paramref name="text"/>.</summary>
+        private static string CreatePlainEquationXml(string text) {
+            OfficeXmlNode paragraph = WordConverterNodes.CreateDetachedParagraph();
+            OfficeXmlNode officeMath = paragraph.CreateElement(WordXml.M, "oMath");
+            OfficeXmlNode run = officeMath.Append(officeMath.CreateElement(WordXml.M, "r"));
+            OfficeXmlNode mathText = run.Append(run.CreateElement(WordXml.M, "t"));
+            mathText.SetInnerText(text);
+            return Encoding.UTF8.GetString(officeMath.OuterXml());
         }
     }
 }

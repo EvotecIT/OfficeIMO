@@ -1,7 +1,6 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text;
 
@@ -13,8 +12,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
+            OfficeXmlNode paragraphNode = currentParagraph.Node();
             foreach (RubyPair pair in pairs) {
-                currentParagraph._paragraph.AppendChild(CreateRubyContainer(pair, formatting, options));
+                paragraphNode.Append(CreateRubyContainer(pair, formatting, options));
             }
             if (approximated) {
                 AddDiagnostic(
@@ -27,16 +27,28 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static Run CreateRubyContainer(RubyPair pair, TextFormatting formatting, HtmlWordExportOptions options) =>
-            new(new Ruby(
-                new RubyProperties(
-                    new RubyAlign { Val = RubyAlignValues.Center },
-                    new PhoneticGuideTextFontSize { Val = "10" },
-                    new PhoneticGuideRaise { Val = 18 },
-                    new PhoneticGuideBaseTextSize { Val = "20" },
-                    new LanguageId { Val = string.IsNullOrWhiteSpace(formatting.Language) ? "en-US" : formatting.Language! }),
-                new RubyContent(CreateRubyRuns(pair.AnnotationElement, pair.RubyText, formatting, options)),
-                new RubyBase(CreateRubyRuns(pair.BaseElement, pair.BaseText, formatting, options))));
+        private static OfficeXmlNode CreateRubyContainer(RubyPair pair, TextFormatting formatting, HtmlWordExportOptions options) {
+            OfficeXmlNode container = WordConverterNodes.CreateDetachedRun();
+            OfficeXmlNode ruby = container.Append(container.CreateElement(WordXml.W, "ruby"));
+            OfficeXmlNode properties = ruby.Append(ruby.CreateElement(WordXml.W, "rubyPr"));
+            AppendValueElement(properties, "rubyAlign", "center");
+            AppendValueElement(properties, "hps", "10");
+            AppendValueElement(properties, "hpsRaise", "18");
+            AppendValueElement(properties, "hpsBaseText", "20");
+            AppendValueElement(properties, "lid", string.IsNullOrWhiteSpace(formatting.Language) ? "en-US" : formatting.Language!);
+            OfficeXmlNode content = ruby.Append(ruby.CreateElement(WordXml.W, "rt"));
+            foreach (OfficeXmlNode run in CreateRubyRuns(pair.AnnotationElement, pair.RubyText, formatting, options)) content.Append(run);
+            OfficeXmlNode rubyBase = ruby.Append(ruby.CreateElement(WordXml.W, "rubyBase"));
+            foreach (OfficeXmlNode run in CreateRubyRuns(pair.BaseElement, pair.BaseText, formatting, options)) rubyBase.Append(run);
+            return container;
+        }
+
+        /// <summary>Appends a <c>w:</c> element with a <c>w:val</c> to <paramref name="parent"/> and returns it.</summary>
+        private static OfficeXmlNode AppendValueElement(OfficeXmlNode parent, string localName, string value) {
+            OfficeXmlNode element = parent.Append(parent.CreateElement(WordXml.W, localName));
+            element.SetAttribute(WordXml.W, "val", value);
+            return element;
+        }
 
         private static bool TryExtractRubyPairs(IElement element, out List<RubyPair> pairs, out bool approximated) {
             pairs = new List<RubyPair>();
@@ -95,38 +107,38 @@ namespace OfficeIMO.Word.Html {
         private static string NormalizeRubyText(string text) =>
             string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
-        private static IEnumerable<Run> CreateRubyRuns(
+        private static IEnumerable<OfficeXmlNode> CreateRubyRuns(
             IElement? element,
             string fallbackText,
             TextFormatting formatting,
             HtmlWordExportOptions options) {
             var state = new RubyTextEmissionState();
             if (element == null) {
-                Run? fallback = CreateRubyTextRun(fallbackText, formatting, options, state);
-                if (fallback != null) yield return fallback;
+                OfficeXmlNode fallback = CreateRubyTextRun(fallbackText, formatting, options, state);
+                if (fallback.Exists) yield return fallback;
                 yield break;
             }
 
             TextFormatting rootFormatting = formatting;
             ApplySpanStyles(element, ref rootFormatting);
-            List<Run> runs = CreateRubyRuns(element.ChildNodes, rootFormatting, options, state).ToList();
+            List<OfficeXmlNode> runs = CreateRubyRuns(element.ChildNodes, rootFormatting, options, state).ToList();
             state.TrimTrailingCollapsibleWhitespace(runs);
             if (runs.Count == 0) {
-                Run? fallback = CreateRubyTextRun(fallbackText, rootFormatting, options, state);
-                if (fallback != null) runs.Add(fallback);
+                OfficeXmlNode fallback = CreateRubyTextRun(fallbackText, rootFormatting, options, state);
+                if (fallback.Exists) runs.Add(fallback);
             }
-            foreach (Run run in runs) yield return run;
+            foreach (OfficeXmlNode run in runs) yield return run;
         }
 
-        private static IEnumerable<Run> CreateRubyRuns(
+        private static IEnumerable<OfficeXmlNode> CreateRubyRuns(
             IEnumerable<INode> nodes,
             TextFormatting formatting,
             HtmlWordExportOptions options,
             RubyTextEmissionState state) {
             foreach (INode node in nodes) {
                 if (node is IText textNode) {
-                    Run? run = CreateRubyTextRun(textNode.Data, formatting, options, state);
-                    if (run != null) yield return run;
+                    OfficeXmlNode run = CreateRubyTextRun(textNode.Data, formatting, options, state);
+                    if (run.Exists) yield return run;
                     continue;
                 }
                 if (node is not IElement childElement || childElement.TagName.Equals("rp", StringComparison.OrdinalIgnoreCase)) {
@@ -136,18 +148,18 @@ namespace OfficeIMO.Word.Html {
                 TextFormatting childFormatting = formatting;
                 ApplyRubySemanticFormatting(childElement.TagName, ref childFormatting);
                 ApplySpanStyles(childElement, ref childFormatting);
-                foreach (Run childRun in CreateRubyRuns(childElement.ChildNodes, childFormatting, options, state)) {
+                foreach (OfficeXmlNode childRun in CreateRubyRuns(childElement.ChildNodes, childFormatting, options, state)) {
                     yield return childRun;
                 }
             }
         }
 
-        private static Run? CreateRubyTextRun(
+        private static OfficeXmlNode CreateRubyTextRun(
             string text,
             TextFormatting formatting,
             HtmlWordExportOptions options,
             RubyTextEmissionState state) {
-            if (text.Length == 0) return null;
+            if (text.Length == 0) return default;
 
             WhiteSpaceMode mode = formatting.WhiteSpace ?? WhiteSpaceMode.Normal;
             bool collapsible = mode is WhiteSpaceMode.Normal or WhiteSpaceMode.NoWrap;
@@ -159,15 +171,15 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             prepared = ApplyRubyTextTransform(prepared, formatting.Transform, state);
-            if (prepared.Length == 0) return null;
+            if (prepared.Length == 0) return default;
 
-            Run run = CreateRubyRun(prepared, formatting, options);
+            OfficeXmlNode run = CreateRubyRun(prepared, formatting, options);
             state.HasOutput = true;
             state.PreviousEndedWithCollapsibleWhitespace = collapsible &&
                 (prepared[prepared.Length - 1] == ' ' || prepared[prepared.Length - 1] == '\u00A0');
             state.LastCollapsibleText = state.PreviousEndedWithCollapsibleWhitespace
-                ? run.GetFirstChild<Text>()
-                : null;
+                ? run.WChild("t")
+                : default;
             return run;
         }
 
@@ -219,7 +231,7 @@ namespace OfficeIMO.Word.Html {
                 case "b": formatting.Bold = true; break;
                 case "em":
                 case "i": formatting.Italic = true; break;
-                case "u": formatting.Underline = true; formatting.UnderlineStyle ??= UnderlineValues.Single; break;
+                case "u": formatting.Underline = true; formatting.UnderlineStyle ??= WordUnderlineStyle.Single; break;
                 case "s":
                 case "del": formatting.Strike = true; break;
                 case "sup": formatting.Superscript = true; formatting.Subscript = false; break;
@@ -228,57 +240,62 @@ namespace OfficeIMO.Word.Html {
                 case "big": if (!formatting.FontSize.HasValue) formatting.FontSize = 18; break;
                 case "mark":
                     formatting.Marked = true;
-                    formatting.Highlight = HighlightColorValues.Yellow;
+                    formatting.Highlight = WordHighlightColor.Yellow;
                     break;
             }
         }
 
-        private static Run CreateRubyRun(string text, TextFormatting formatting, HtmlWordExportOptions options) {
-            var run = new Run();
-            var properties = CreateRubyRunProperties(formatting, options);
-            if (properties.HasChildren || properties.HasAttributes) {
-                run.AppendChild(properties);
+        private static OfficeXmlNode CreateRubyRun(string text, TextFormatting formatting, HtmlWordExportOptions options) {
+            OfficeXmlNode run = WordConverterNodes.CreateDetachedRun();
+            OfficeXmlNode properties = CreateRubyRunProperties(run, formatting, options);
+            if (properties.HasChildren() || properties.HasAttributes) {
+                run.Append(properties);
             }
-            run.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            run.Append(WordConverterNodes.CreateDetachedPreservedText(text));
             return run;
         }
 
-        private static RunProperties CreateRubyRunProperties(TextFormatting formatting, HtmlWordExportOptions options) {
-            var properties = new RunProperties();
-            if (formatting.Bold.HasValue) properties.Bold = new Bold { Val = formatting.Bold.Value };
-            if (formatting.Italic.HasValue) properties.Italic = new Italic { Val = formatting.Italic.Value };
-            if (formatting.Underline.HasValue) properties.Underline = new Underline { Val = formatting.Underline.Value
-                ? GetUnderlineValue(formatting) ?? UnderlineValues.Single : UnderlineValues.None };
-            if (formatting.Strike.HasValue) properties.Strike = new Strike { Val = formatting.Strike.Value };
-            if (formatting.DoubleStrike.HasValue) properties.DoubleStrike = new DoubleStrike { Val = formatting.DoubleStrike.Value };
-            if (formatting.Superscript) properties.AppendChild(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
-            if (formatting.Subscript) properties.AppendChild(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript });
-            if (!string.IsNullOrEmpty(formatting.ColorHex)) properties.AppendChild(new Color { Val = formatting.ColorHex!.TrimStart('#') });
-            if (formatting.Highlight.HasValue) properties.AppendChild(new Highlight { Val = formatting.Highlight.Value });
+        // Properties the SDK set through typed members go in schema order; the rest are appended in this order.
+        private static OfficeXmlNode CreateRubyRunProperties(OfficeXmlNode run, TextFormatting formatting, HtmlWordExportOptions options) {
+            OfficeXmlNode properties = run.CreateElement(WordXml.W, "rPr");
+            if (formatting.Bold.HasValue) WordXmlEdits.ReplaceChild(properties, "b", WRPrView.Order, OnOffToken(formatting.Bold.Value));
+            if (formatting.Italic.HasValue) WordXmlEdits.ReplaceChild(properties, "i", WRPrView.Order, OnOffToken(formatting.Italic.Value));
+            if (formatting.Underline.HasValue) WordXmlEdits.ReplaceChild(properties, "u", WRPrView.Order, UnderlineStyleToken(formatting.Underline.Value
+                ? GetUnderlineValue(formatting) ?? WordUnderlineStyle.Single : WordUnderlineStyle.None));
+            if (formatting.Strike.HasValue) WordXmlEdits.ReplaceChild(properties, "strike", WRPrView.Order, OnOffToken(formatting.Strike.Value));
+            if (formatting.DoubleStrike.HasValue) WordXmlEdits.ReplaceChild(properties, "dstrike", WRPrView.Order, OnOffToken(formatting.DoubleStrike.Value));
+            if (formatting.Superscript) AppendValueElement(properties, "vertAlign", "superscript");
+            if (formatting.Subscript) AppendValueElement(properties, "vertAlign", "subscript");
+            if (!string.IsNullOrEmpty(formatting.ColorHex)) AppendValueElement(properties, "color", formatting.ColorHex!.TrimStart('#'));
+            if (formatting.Highlight.HasValue) AppendValueElement(properties, "highlight", formatting.Highlight.Value.ToOpenXmlToken());
             if (!string.IsNullOrWhiteSpace(formatting.BackgroundColorHex)) {
                 if (options.TextBackgroundMode == WordHtmlTextBackgroundMode.ExactShading) {
-                    properties.AppendChild(new Shading {
-                        Val = ShadingPatternValues.Clear,
-                        Fill = formatting.BackgroundColorHex!.TrimStart('#').ToUpperInvariant()
-                    });
-                } else if (MapColorToHighlight(formatting.BackgroundColorHex, out _) is HighlightColorValues highlight) {
-                    properties.Highlight = new Highlight { Val = highlight };
+                    OfficeXmlNode shading = AppendValueElement(properties, "shd", "clear");
+                    shading.SetAttribute(WordXml.W, "fill", formatting.BackgroundColorHex!.TrimStart('#').ToUpperInvariant());
+                } else if (MapColorToHighlight(formatting.BackgroundColorHex, out _) is WordHighlightColor highlight) {
+                    WordXmlEdits.ReplaceChild(properties, "highlight", WRPrView.Order, highlight.ToOpenXmlToken());
                 }
             }
-            if (formatting.Marked) properties.AppendChild(new RunStyle { Val = HtmlSemanticStyleIds.MarkedText });
-            if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = ((int)Math.Round(formatting.FontSize.Value * 2d, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) });
-            if (formatting.Caps == WordCapsStyle.SmallCaps) properties.AppendChild(new SmallCaps());
-            if (formatting.Caps == WordCapsStyle.Caps) properties.AppendChild(new Caps());
-            if (formatting.LetterSpacing.HasValue) properties.AppendChild(new Spacing { Val = formatting.LetterSpacing.Value });
-            if (!string.IsNullOrWhiteSpace(formatting.Language)) properties.AppendChild(new Languages { Val = formatting.Language! });
+            if (formatting.Marked) AppendValueElement(properties, "rStyle", HtmlSemanticStyleIds.MarkedText);
+            if (formatting.FontSize.HasValue) AppendValueElement(properties, "sz", ((int)Math.Round(formatting.FontSize.Value * 2d, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture));
+            if (formatting.Caps == WordCapsStyle.SmallCaps) properties.Append(properties.CreateElement(WordXml.W, "smallCaps"));
+            if (formatting.Caps == WordCapsStyle.Caps) properties.Append(properties.CreateElement(WordXml.W, "caps"));
+            if (formatting.LetterSpacing.HasValue) AppendValueElement(properties, "spacing", formatting.LetterSpacing.Value.ToString(CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(formatting.Language)) AppendValueElement(properties, "lang", formatting.Language!);
 
             var font = ResolveFontFamily(formatting.FontFamily) ?? ResolveFontFamily(GetRunFontFamilyOption(options));
             if (!string.IsNullOrEmpty(font)) {
-                properties.AppendChild(new RunFonts { Ascii = font, HighAnsi = font, EastAsia = font, ComplexScript = font });
+                OfficeXmlNode fonts = properties.Append(properties.CreateElement(WordXml.W, "rFonts"));
+                fonts.SetAttribute(WordXml.W, "ascii", font);
+                fonts.SetAttribute(WordXml.W, "hAnsi", font);
+                fonts.SetAttribute(WordXml.W, "eastAsia", font);
+                fonts.SetAttribute(WordXml.W, "cs", font);
             }
 
             return properties;
         }
+
+        private static string OnOffToken(bool value) => value ? "true" : "false";
 
         private readonly struct RubyPair {
             internal RubyPair(IElement? baseElement, IElement? annotationElement, string baseText, string rubyText) {
@@ -298,18 +315,19 @@ namespace OfficeIMO.Word.Html {
             internal bool HasOutput { get; set; }
             internal bool PreviousEndedWithCollapsibleWhitespace { get; set; }
             internal bool PreviousEndedInsideWord { get; set; }
-            internal Text? LastCollapsibleText { get; set; }
+            internal OfficeXmlNode LastCollapsibleText { get; set; }
 
-            internal void TrimTrailingCollapsibleWhitespace(List<Run> runs) {
-                if (LastCollapsibleText == null) return;
+            internal void TrimTrailingCollapsibleWhitespace(List<OfficeXmlNode> runs) {
+                OfficeXmlNode text = LastCollapsibleText;
+                if (text.IsNone) return;
 
-                LastCollapsibleText.Text = LastCollapsibleText.Text.TrimEnd(' ', '\u00A0');
-                if (LastCollapsibleText.Text.Length == 0) {
-                    Run? emptyRun = runs.FirstOrDefault(run => ReferenceEquals(run.GetFirstChild<Text>(), LastCollapsibleText));
-                    if (emptyRun != null) runs.Remove(emptyRun);
+                text.SetInnerText(text.InnerText.TrimEnd(' ', '\u00A0'));
+                if (text.InnerText.Length == 0) {
+                    int emptyRun = runs.FindIndex(run => run.WChild("t") == text);
+                    if (emptyRun >= 0) runs.RemoveAt(emptyRun);
                 }
                 PreviousEndedWithCollapsibleWhitespace = false;
-                LastCollapsibleText = null;
+                LastCollapsibleText = default;
             }
         }
     }

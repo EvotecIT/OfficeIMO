@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {

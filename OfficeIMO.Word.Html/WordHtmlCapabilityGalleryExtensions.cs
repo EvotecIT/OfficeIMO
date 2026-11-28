@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Html;
 using OfficeIMO.Core.Internal;
 
@@ -94,8 +92,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void AppendOpenXmlValidationDiagnostics(ICollection<HtmlDiagnostic> diagnostics, MemoryStream packageStream) {
             packageStream.Position = 0;
-            using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
-            IReadOnlyList<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(package).ToList();
+            IReadOnlyList<OfficeOpenXmlValidationError> errors = WordConverterNodes.ValidatePackage(packageStream);
             if (errors.Count == 0) {
                 diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Word.Html",
@@ -105,13 +102,13 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            foreach (ValidationErrorInfo error in errors) {
+            foreach (OfficeOpenXmlValidationError error in errors) {
                 diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Word.Html",
                     "WordOpenXmlValidationError",
-                    error.Description ?? "Generated DOCX package failed OpenXML validation.",
+                    string.IsNullOrEmpty(error.Description) ? "Generated DOCX package failed OpenXML validation." : error.Description,
                     HtmlDiagnosticSeverity.Error,
-                    error.Path?.XPath,
+                    error.Path,
                     error.Id));
             }
         }

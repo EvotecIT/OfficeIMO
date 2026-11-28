@@ -1,7 +1,7 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text;
 
@@ -295,32 +295,32 @@ namespace OfficeIMO.Word.Html {
 
             if (ordered) {
                 var format = token switch {
-                    "a" => NumberFormatValues.LowerLetter,
-                    "A" => NumberFormatValues.UpperLetter,
-                    "i" => NumberFormatValues.LowerRoman,
-                    "I" => NumberFormatValues.UpperRoman,
-                    "decimal-leading-zero" => NumberFormatValues.DecimalZero,
-                    "lower-alpha" => NumberFormatValues.LowerLetter,
-                    "upper-alpha" => NumberFormatValues.UpperLetter,
-                    "lower-roman" => NumberFormatValues.LowerRoman,
-                    "upper-roman" => NumberFormatValues.UpperRoman,
-                    "lower-russian" => NumberFormatValues.RussianLower,
-                    "upper-russian" => NumberFormatValues.RussianUpper,
-                    "hebrew" => NumberFormatValues.Hebrew1,
-                    "hebrew-1" => NumberFormatValues.Hebrew1,
-                    "hebrew-2" => NumberFormatValues.Hebrew2,
-                    "arabic-alpha" => NumberFormatValues.ArabicAlpha,
-                    "arabic-abjad" => NumberFormatValues.ArabicAbjad,
-                    "hiragana" => NumberFormatValues.Aiueo,
-                    "hiragana-iroha" => NumberFormatValues.Iroha,
-                    "katakana" => NumberFormatValues.AiueoFullWidth,
-                    "katakana-iroha" => NumberFormatValues.IrohaFullWidth,
-                    "none" => NumberFormatValues.None,
-                    _ => NumberFormatValues.Decimal,
+                    "a" => WordNumberFormat.LowerLetter,
+                    "A" => WordNumberFormat.UpperLetter,
+                    "i" => WordNumberFormat.LowerRoman,
+                    "I" => WordNumberFormat.UpperRoman,
+                    "decimal-leading-zero" => WordNumberFormat.DecimalZero,
+                    "lower-alpha" => WordNumberFormat.LowerLetter,
+                    "upper-alpha" => WordNumberFormat.UpperLetter,
+                    "lower-roman" => WordNumberFormat.LowerRoman,
+                    "upper-roman" => WordNumberFormat.UpperRoman,
+                    "lower-russian" => WordNumberFormat.RussianLower,
+                    "upper-russian" => WordNumberFormat.RussianUpper,
+                    "hebrew" => WordNumberFormat.Hebrew1,
+                    "hebrew-1" => WordNumberFormat.Hebrew1,
+                    "hebrew-2" => WordNumberFormat.Hebrew2,
+                    "arabic-alpha" => WordNumberFormat.ArabicAlpha,
+                    "arabic-abjad" => WordNumberFormat.ArabicAbjad,
+                    "hiragana" => WordNumberFormat.Aiueo,
+                    "hiragana-iroha" => WordNumberFormat.Iroha,
+                    "katakana" => WordNumberFormat.AiueoFullWidth,
+                    "katakana-iroha" => WordNumberFormat.IrohaFullWidth,
+                    "none" => WordNumberFormat.None,
+                    _ => WordNumberFormat.Decimal,
                 };
 
-                level.NumberFormat = format.ToOfficeEnum();
-                if (format == NumberFormatValues.None) {
+                level.NumberFormat = format;
+                if (format == WordNumberFormat.None) {
                     level.LevelText = string.Empty;
                 }
                 return;
@@ -408,11 +408,11 @@ namespace OfficeIMO.Word.Html {
             WordSection section,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {
-            var parent = anchor._paragraph.Parent;
+            OfficeXmlNode parent = anchor.Node().Parent;
             if (cell == null && headerFooter == null &&
-                section.TryGetLastBlocks(out _, out Paragraph? lastParagraph)) {
+                section.TryGetLastBlockNodes(out _, out OfficeXmlNode lastParagraph)) {
                 // Every paragraph listed for a section is a direct child of the body.
-                if (parent is not Body || lastParagraph == null) {
+                if (!parent.IsW("body") || lastParagraph.IsNone) {
                     return anchor;
                 }
                 List<WordParagraph> projected = ProjectParagraph(section, lastParagraph);
@@ -424,7 +424,7 @@ namespace OfficeIMO.Word.Html {
             var paragraphs = GetParagraphsInScope(section, cell, headerFooter);
             for (int i = paragraphs.Count - 1; i >= 0; i--) {
                 var candidate = paragraphs[i];
-                if (ReferenceEquals(candidate._paragraph.Parent, parent)) {
+                if (candidate.Node().Parent == parent) {
                     return candidate;
                 }
             }
@@ -441,32 +441,31 @@ namespace OfficeIMO.Word.Html {
                 return GetLastParagraphInSameContainer(anchor, section, cell, headerFooter);
             }
 
-            var parent = anchor._paragraph.Parent;
-            if (parent == null) {
+            OfficeXmlNode anchorNode = anchor.Node();
+            OfficeXmlNode parent = anchorNode.Parent;
+            if (parent.IsNone) {
                 return null;
             }
 
-            var children = parent.ChildElements.ToList();
-            var anchorIndex = children.IndexOf(anchor._paragraph);
+            List<OfficeXmlNode> children = parent.Children().ToList();
+            var anchorIndex = children.IndexOf(anchorNode);
             if (anchorIndex < 0) {
                 return null;
             }
 
-            var table = children
+            OfficeXmlNode table = children
                 .Skip(anchorIndex + 1)
-                .OfType<Table>()
-                .LastOrDefault();
-            if (table == null) {
+                .LastOrDefault(child => child.IsW("tbl"));
+            if (table.IsNone) {
                 return null;
             }
 
-            var trailing = table.NextSibling<Paragraph>();
-            if (trailing == null) {
-                trailing = new Paragraph();
-                table.InsertAfterSelf(trailing);
+            OfficeXmlNode trailing = table.NextSiblingNamed(WordXml.W, "p");
+            if (trailing.IsNone) {
+                trailing = table.InsertAfterSelf(WordConverterNodes.CreateDetachedParagraph());
             }
 
-            return new WordParagraph(anchor._document, trailing);
+            return anchor._document.ParagraphView(trailing);
         }
 
         private static bool TryGetListItemValue(IHtmlListItemElement element, out int value) {

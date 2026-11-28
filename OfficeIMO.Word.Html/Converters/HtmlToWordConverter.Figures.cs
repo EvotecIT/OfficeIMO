@@ -47,18 +47,18 @@ namespace OfficeIMO.Word.Html {
                 List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
                 List<WordParagraph> generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
                 generatedParagraphs.RemoveAll(paragraph =>
-                    ReferenceEquals(paragraph._paragraph, captionParagraph._paragraph) ||
+                    paragraph.Node() == captionParagraph.Node() ||
                     IsGeneratedNestedTableTrailingAnchor(paragraph, generatedTables));
                 if (currentParagraph != null && contentBlocks > 0 &&
-                    !generatedParagraphs.Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph)) &&
+                    !generatedParagraphs.Any(paragraph => paragraph.Node() == currentParagraph.Node()) &&
                     IsParagraphInScope(section, cell, headerFooter, scopeMark, currentParagraph)) {
                     generatedParagraphs.Add(currentParagraph);
                 }
 
                 int materializedBlocks = generatedParagraphs
-                    .Select(paragraph => paragraph._paragraph)
+                    .Select(paragraph => paragraph.Node())
                     .Distinct()
-                    .Count() + generatedTables.Select(table => table._table).Distinct().Count();
+                    .Count() + generatedTables.Select(table => table.Node()).Distinct().Count();
                 if (materializedBlocks == 1) {
                     _figureSequence++;
                     string captionMarker = HtmlWordRoundTripMarkers.CreateFigureCaptionBookmark(

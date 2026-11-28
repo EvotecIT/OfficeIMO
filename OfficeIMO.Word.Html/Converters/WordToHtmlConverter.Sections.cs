@@ -1,5 +1,4 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
@@ -17,7 +16,7 @@ namespace OfficeIMO.Word.Html {
                 htmlDoc,
                 element,
                 "data-page-orientation",
-                FormatOrientation(section.PageSetup.Orientation.ToOpenXml()),
+                FormatOrientation(section.PageSetup.Orientation),
                 "SectionMetadata:orientation");
 
             var pageSize = section.PageSetup.Size.PageSize;
@@ -84,8 +83,8 @@ namespace OfficeIMO.Word.Html {
             return (twips / 15d).ToString("0.##", CultureInfo.InvariantCulture) + "px";
         }
 
-        private static string FormatOrientation(PageOrientationValues orientation) {
-            return orientation == PageOrientationValues.Landscape ? "Landscape" : "Portrait";
+        private static string FormatOrientation(OfficePageOrientation orientation) {
+            return orientation == OfficePageOrientation.Landscape ? "Landscape" : "Portrait";
         }
     }
 }

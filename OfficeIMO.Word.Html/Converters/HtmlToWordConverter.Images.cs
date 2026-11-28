@@ -1,11 +1,10 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Net.Http;
-using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -16,10 +15,10 @@ namespace OfficeIMO.Word.Html {
 
         private Dictionary<string, WordImage> GetStoryImageCache(
             WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordDocument document) {
-            OpenXmlElement story = paragraph != null ? paragraph.Location()
-                : (OpenXmlElement?)headerFooter?._header ?? (OpenXmlElement?)headerFooter?._footer
-                ?? document._wordprocessingDocument.MainDocumentPart?.Document
-                ?? throw new InvalidOperationException("The image has no document story.");
+            OfficeXmlNode story = paragraph != null ? paragraph.LocationNode()
+                : headerFooter?.Node() ?? default;
+            if (story.IsNone) story = document.DocumentNode();
+            if (story.IsNone) throw new InvalidOperationException("The image has no document story.");
             if (!_imageCache.TryGetValue(story, out Dictionary<string, WordImage>? cache)) {
                 cache = new Dictionary<string, WordImage>(StringComparer.OrdinalIgnoreCase);
                 _imageCache.Add(story, cache);
@@ -199,10 +198,15 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (horizontalAlignment != null) {
-                var hPos = image.horizontalPosition;
-                hPos?.GetFirstChild<Wp.PositionOffset>()?.Remove();
-                if (hPos != null) {
-                    hPos.HorizontalAlignment = new Wp.HorizontalAlignment() { Text = horizontalAlignment };
+                OfficeXmlNode hPos = image.HorizontalPositionNode();
+                OfficeXmlNode offset = hPos.Child(WordXml.Wp, "posOffset");
+                if (offset.Exists) offset.Remove();
+                if (hPos.Exists) {
+                    OfficeXmlNode align = hPos.CreateElement(WordXml.Wp, "align");
+                    align.SetInnerText(horizontalAlignment);
+                    OfficeXmlNode existing = hPos.Child(WordXml.Wp, "align");
+                    hPos.InsertBefore(align, existing);
+                    if (existing.Exists) existing.Remove();
                 }
             }
 

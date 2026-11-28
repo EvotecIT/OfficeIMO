@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -22,11 +21,11 @@ namespace OfficeIMO.Word.Html {
         /// style (or a style it is based on) defines it; otherwise null.
         /// </summary>
         private static TableFirstRowAppearance? ResolveTableFirstRowAppearance(WordTable table) {
-            if (table.Rows.Count < 2 || !IsTableFirstRowLookEnabled(table._table)) {
+            if (table.Rows.Count < 2 || !IsTableFirstRowLookEnabled(table.Node())) {
                 return null;
             }
 
-            string? styleId = table._table.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value;
+            string? styleId = table.Node().WChild("tblPr").WChild("tblStyle").WVal();
             if (string.IsNullOrWhiteSpace(styleId)) {
                 return null;
             }
@@ -35,9 +34,9 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            var conditionals = WordStyleCatalog.For(table.Document).EnumerateChain(styleId, StyleValues.Table)
-                .SelectMany(style => style.Elements<TableStyleProperties>())
-                .Where(properties => properties.Type?.Value == TableStyleOverrideValues.FirstRow)
+            var conditionals = WordStyleCatalog.For(table.Document).StyleChainNodes(styleId, "table")
+                .SelectMany(style => style.WElements("tblStylePr"))
+                .Where(properties => properties.WAttr("type") == "firstRow")
                 .ToList();
             if (conditionals.Count == 0) {
                 return null;
@@ -46,13 +45,13 @@ namespace OfficeIMO.Word.Html {
             var appearance = new TableFirstRowAppearance();
             bool? bold = null;
             bool colorSpecified = false;
-            foreach (TableStyleProperties conditional in conditionals) {
-                RunPropertiesBaseStyle? run = conditional.GetFirstChild<RunPropertiesBaseStyle>();
-                if (bold == null && run?.GetFirstChild<Bold>() is Bold boldElement) {
-                    bold = boldElement.Val == null || boldElement.Val.Value;
+            foreach (OfficeXmlNode conditional in conditionals) {
+                OfficeXmlNode run = conditional.WChild("rPr");
+                if (bold == null && run.WChild("b") is { Exists: true } boldElement) {
+                    bold = boldElement.IsOn();
                 }
-                if (!colorSpecified && run?.GetFirstChild<Color>() is { } color) {
-                    appearance.Color = NormalizeStyleColor(WordRunFormatting.ResolveColorHex(color, table.Document));
+                if (!colorSpecified && run.WChild("color") is { Exists: true } color) {
+                    appearance.Color = NormalizeStyleColor(WordConverterNodes.ResolveColorHex(color, table.Document));
                     colorSpecified = true;
                 }
             }
@@ -60,7 +59,7 @@ namespace OfficeIMO.Word.Html {
             return appearance;
         }
 
-        private static bool IsTableFirstRowLookEnabled(Table table) => WordTable.HasFirstRowFormatting(table);
+        private static bool IsTableFirstRowLookEnabled(OfficeXmlNode table) => WordConverterNodes.HasFirstRowFormatting(table);
 
         private static string? NormalizeStyleColor(string? value) {
             if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) {

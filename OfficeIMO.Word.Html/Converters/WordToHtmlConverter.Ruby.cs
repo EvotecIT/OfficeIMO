@@ -1,23 +1,24 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private static bool TryCreateRubyNode(IDocument htmlDoc, WordParagraph run, WordHtmlExportOptions options, out INode node) {
             node = htmlDoc.CreateTextNode(string.Empty);
-            var ruby = run._run?.Elements<Ruby>().FirstOrDefault();
-            if (ruby == null) {
+            OfficeXmlNode ruby = run.RunNode().ModelChild("ruby");
+            if (ruby.IsNone) {
                 return false;
             }
 
-            var baseText = ruby.RubyBase?.InnerText ?? string.Empty;
+            OfficeXmlNode rubyBase = ruby.ModelChild("rubyBase");
+            OfficeXmlNode rubyContent = ruby.ModelChild("rt");
+            var baseText = rubyBase.Text();
             if (string.IsNullOrEmpty(baseText)) {
                 return false;
             }
 
-            var rubyText = ruby.RubyContent?.InnerText ?? string.Empty;
+            var rubyText = rubyContent.Text();
             if (string.IsNullOrEmpty(rubyText)) {
                 node = htmlDoc.CreateTextNode(baseText);
                 return true;
@@ -25,11 +26,11 @@ namespace OfficeIMO.Word.Html {
 
             var rubyElement = CreateOutputElement(htmlDoc, "ruby");
             var baseElement = CreateOutputElement(htmlDoc, "rb");
-            AppendRubyRuns(htmlDoc, baseElement, ruby.RubyBase, options);
+            AppendRubyRuns(htmlDoc, baseElement, rubyBase, options);
             rubyElement.AppendChild(baseElement);
 
             var annotationElement = CreateOutputElement(htmlDoc, "rt");
-            AppendRubyRuns(htmlDoc, annotationElement, ruby.RubyContent, options);
+            AppendRubyRuns(htmlDoc, annotationElement, rubyContent, options);
             rubyElement.AppendChild(annotationElement);
 
             node = rubyElement;
@@ -39,29 +40,29 @@ namespace OfficeIMO.Word.Html {
         private static void AppendRubyRuns(
             IDocument htmlDoc,
             IElement target,
-            OpenXmlCompositeElement? source,
+            OfficeXmlNode source,
             WordHtmlExportOptions options) {
-            foreach (Run run in source?.Elements<Run>() ?? Enumerable.Empty<Run>()) {
+            foreach (OfficeXmlNode run in source.ModelChildren("r")) {
                 INode node = htmlDoc.CreateTextNode(run.InnerText);
-                RunProperties? properties = run.RunProperties;
-                if (properties == null) {
+                OfficeXmlNode properties = run.ModelChild("rPr");
+                if (properties.IsNone) {
                     target.AppendChild(node);
                     continue;
                 }
-                if (IsEnabled(properties.Bold)) node = WrapRubyNode(htmlDoc, "strong", node);
-                if (IsEnabled(properties.Italic)) node = WrapRubyNode(htmlDoc, "em", node);
-                if (IsEnabled(properties.DoubleStrike)) {
+                if (IsEnabled(properties.ModelChild("b"))) node = WrapRubyNode(htmlDoc, "strong", node);
+                if (IsEnabled(properties.ModelChild("i"))) node = WrapRubyNode(htmlDoc, "em", node);
+                if (IsEnabled(properties.ModelChild("dstrike"))) {
                     var span = CreateOutputElement(htmlDoc, "span");
                     SetOutputAttribute(htmlDoc, span, "style", "text-decoration-line:line-through;text-decoration-style:double", "RubyRunFormatting:double-strike");
                     SetOutputAttribute(htmlDoc, span, "data-officeimo-word-double-strike", "true", "RubyRunFormatting:double-strike-metadata");
                     span.AppendChild(node);
                     node = span;
-                } else if (IsEnabled(properties.Strike)) {
+                } else if (IsEnabled(properties.ModelChild("strike"))) {
                     node = WrapRubyNode(htmlDoc, "s", node);
                 }
-                UnderlineValues? underline = properties.Underline?.Val?.Value;
-                if (underline.HasValue && underline.Value != UnderlineValues.None) {
-                    WordUnderlineStyle wordUnderline = underline.Value.ToOfficeEnum();
+                string? underline = properties.ModelChild("u").WVal();
+                if (underline != null && underline != "none") {
+                    WordUnderlineStyle wordUnderline = ParseUnderlineToken(underline);
                     if (wordUnderline == WordUnderlineStyle.Single) {
                         node = WrapRubyNode(htmlDoc, "u", node);
                     } else {
@@ -76,34 +77,35 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
                 }
-                if (properties.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
+                string? verticalAlignment = properties.ModelChild("vertAlign").WVal();
+                if (verticalAlignment == "superscript") {
                     node = WrapRubyNode(htmlDoc, "sup", node);
-                } else if (properties.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
+                } else if (verticalAlignment == "subscript") {
                     node = WrapRubyNode(htmlDoc, "sub", node);
                 }
 
                 bool isMarked = string.Equals(
-                    properties.RunStyle?.Val?.Value,
+                    properties.ModelChild("rStyle").WVal(),
                     HtmlSemanticStyleIds.MarkedText,
                     StringComparison.Ordinal);
                 if (isMarked) node = WrapRubyNode(htmlDoc, "mark", node);
 
                 var styles = new List<string>();
-                string? color = NormalizeSixDigitHexColor(properties.Color?.Val?.Value);
+                string? color = NormalizeSixDigitHexColor(properties.ModelChild("color").WVal());
                 if (options.IncludeRunColorStyles && color != null) styles.Add($"color:#{color}");
-                if (int.TryParse(properties.FontSize?.Val?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints)) {
+                if (int.TryParse(properties.ModelChild("sz").WVal(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints)) {
                     styles.Add($"font-size:{(halfPoints / 2D).ToString("0.###", CultureInfo.InvariantCulture)}pt");
                 }
-                string? font = properties.RunFonts?.Ascii?.Value ?? properties.RunFonts?.HighAnsi?.Value;
+                string? font = properties.ModelChild("rFonts").WAttr("ascii") ?? properties.ModelChild("rFonts").WAttr("hAnsi");
                 if (options.IncludeFontStyles && !string.IsNullOrWhiteSpace(font)) styles.Add($"font-family:{FontFamilyCss(font!)}");
-                if (IsEnabled(properties.SmallCaps)) styles.Add("font-variant:small-caps");
-                if (IsEnabled(properties.Caps)) styles.Add("text-transform:uppercase");
-                if (properties.Spacing?.Val?.Value is int twentiethPoints) {
+                if (IsEnabled(properties.ModelChild("smallCaps"))) styles.Add("font-variant:small-caps");
+                if (IsEnabled(properties.ModelChild("caps"))) styles.Add("text-transform:uppercase");
+                if (properties.ModelChild("spacing").WInt32("val") is int twentiethPoints) {
                     styles.Add($"letter-spacing:{(twentiethPoints / 20D).ToString("0.###", CultureInfo.InvariantCulture)}pt");
                 }
                 if (options.IncludeRunHighlightStyles) {
-                    string? shading = NormalizeSixDigitHexColor(properties.Shading?.Fill?.Value);
-                    string? highlight = GetHighlightCss(properties.Highlight?.Val?.Value);
+                    string? shading = NormalizeSixDigitHexColor(properties.ModelChild("shd").WAttr("fill"));
+                    string? highlight = GetHighlightCss(properties.ModelChild("highlight").WVal());
                     if (!string.IsNullOrEmpty(highlight) && !(isMarked && highlight == "#ffff00")) {
                         styles.Add($"background-color:{highlight}");
                     } else if (shading != null) {
@@ -116,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                     span.AppendChild(node);
                     node = span;
                 }
-                string? language = properties.Languages?.Val?.Value;
+                string? language = properties.ModelChild("lang").WVal();
                 if (!string.IsNullOrWhiteSpace(language)) {
                     IElement span = CreateOutputElement(htmlDoc, "span");
                     SetOutputAttribute(span, "lang", language!, "RubyRun:language");
@@ -133,8 +135,18 @@ namespace OfficeIMO.Word.Html {
             return wrapper;
         }
 
-        private static bool IsEnabled(OnOffType? value) => value != null && value.Val?.Value != false;
+        private static bool IsEnabled(OfficeXmlNode value) => value.Exists && WordXml.ParseOnOff(value.WVal()) != false;
 
-        private static bool IsExplicitlyDisabled(OnOffType? value) => value != null && value.Val?.Value == false;
+        private static bool IsExplicitlyDisabled(OfficeXmlNode value) => value.Exists && WordXml.ParseOnOff(value.WVal()) == false;
+
+        private static WordUnderlineStyle ParseUnderlineToken(string token) =>
+            WordUnderlineStyleTokens.TryParse(token, out WordUnderlineStyle style)
+                ? style
+                : throw new ArgumentOutOfRangeException(nameof(token), token, "Unsupported Word underline value.");
+
+        private static WordVerticalTextPosition ParseVerticalPositionToken(string token) =>
+            WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordVerticalTextPosition position)
+                ? position
+                : throw new ArgumentOutOfRangeException(nameof(token), token, "Unsupported Word vertical position value.");
     }
 }

@@ -1,7 +1,6 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -51,8 +50,8 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            OpenXmlElement? contentRoot = (OpenXmlElement?)headerFooter._header ?? headerFooter._footer;
-            if (contentRoot != null) {
+            OfficeXmlNode contentRoot = headerFooter.Node();
+            if (contentRoot.Exists) {
                 ReserveOutputCharacters(
                     htmlDoc,
                     MeasureOutputContentCharacters(contentRoot, options.TrackedChangePolicy),
@@ -101,6 +100,6 @@ namespace OfficeIMO.Word.Html {
         private static bool IsRenderableHeaderFooterParagraph(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.Text) ||
             paragraph.IsListItem ||
-            paragraph.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
+            paragraph.GetRuns().Any(run => run.IsChart || HasExtendedChart(run.RunNode()) || run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
     }
 }

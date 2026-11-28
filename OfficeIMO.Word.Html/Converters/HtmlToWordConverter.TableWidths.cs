@@ -6,8 +6,8 @@ namespace OfficeIMO.Word.Html {
             // Use the conversion scope: list-item tables can already be inside an
             // SDT wrapper, which hides their cell or section from the native table.
             int available = cell != null
-                ? (_tableCellContentWidths.TryGetValue(cell._tableCell, out int? cached) ? cached :
-                    WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell)) ?? 1
+                ? (_tableCellContentWidths.TryGetValue(cell.Node(), out int? cached) ? cached :
+                    WordConverterNodes.EstimateCellContentWidthInDxa(document, cell.Node())) ?? 1
                 : Math.Max(1, (int)(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
                     - (int)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
             int desired = available;

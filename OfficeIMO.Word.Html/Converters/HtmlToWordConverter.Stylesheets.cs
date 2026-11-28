@@ -5,7 +5,6 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
