@@ -1,4 +1,4 @@
-Describe 'OfficeIMO and PSWriteOffice release configuration' -Skip:($PSVersionTable.PSVersion -lt [version]'7.4' -or -not (Get-Module -ListAvailable PSPublishModule | Where-Object Version -ge ([version]'3.0.196'))) {
+Describe 'OfficeIMO and PSWriteOffice release configuration' -Skip:($PSVersionTable.PSVersion -lt [version]'7.4' -or -not (Get-Module -ListAvailable PSPublishModule | Where-Object Version -ge ([version]'3.0.194'))) {
     It 'uses one package-derived version and ordered publication without enabling signing in Build mode' {
         $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
         $jsonPath = Join-Path $TestDrive 'coordinated.build.json'
