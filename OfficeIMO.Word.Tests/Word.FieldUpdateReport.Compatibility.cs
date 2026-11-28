@@ -149,6 +149,24 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_FieldCompatibility_TitleRejectsDuplicateCorePropertyRelationships() {
+            const string relationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
+            byte[] bytes = CreateCoreFieldFixture(false, "Valid title");
+            bytes = EditFieldFixturePart(bytes, name => name == "_rels/.rels", root => {
+                XElement existing = Assert.Single(root.Elements(), element => (string?)element.Attribute("Type") == relationshipType);
+                var duplicate = new XElement(existing);
+                duplicate.SetAttributeValue("Id", "rIdDuplicateCoreProperties");
+                root.Add(duplicate);
+            });
+
+            foreach (bool sdk in new[] { true, false }) {
+                using WordDocument document = LoadFieldCompatibilityFixture(bytes, sdk);
+                Assert.Throws<FileFormatException>(() => document.UpdateFieldsAndGetReport());
+                Assert.Equal("stale", Assert.Single(document.InspectFields()).ResultText);
+            }
+        }
+
         private static byte[] CreateCoreFieldFixture(bool date, string value, Action<XElement>? edit = null) {
             XNamespace ns = date ? "http://purl.org/dc/terms/" : "http://purl.org/dc/elements/1.1/";
             string property = date ? "created" : "title";
