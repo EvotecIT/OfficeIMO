@@ -397,6 +397,47 @@ public sealed partial class DbxStoreReaderTests {
         });
     }
 
+    [Fact]
+    public void KeepsAnIndexedMessageWholeWhenAFragmentStartsWithHeaderLikeText() {
+        byte[] database = CreateDatabase();
+        // A quoted header line happens to begin the second fragment; the chain itself is intact.
+        Encoding.ASCII.GetBytes("Subject: quoted\r\n").CopyTo(database, SecondFragment + 16);
+        byte[] expected = database.AsSpan(FirstFragment + 16, 512).ToArray()
+            .Concat(database.AsSpan(SecondFragment + 16, BinaryPrimitives.ReadInt32LittleEndian(database.AsSpan(SecondFragment + 8))).ToArray())
+            .ToArray();
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            Assert.Equal(2, report.Entries.Count);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, report.Entries[0].Status);
+            Assert.Equal(expected, File.ReadAllBytes(report.Entries[0].DestinationPath!));
+        });
+    }
+
+    [Fact]
+    public void MarksAChainThatEndsBeforeItsDeclaredSizeAsPartial() {
+        byte[] database = CreateDatabase();
+        int length = 512 + BinaryPrimitives.ReadInt32LittleEndian(database.AsSpan(SecondFragment + 8));
+        // Declare the message size on the first record, then end its chain after the first fragment.
+        UInt32(database, FirstRecord + 4, 12);
+        database[FirstRecord + 10] = 3;
+        UInt32(database, FirstRecord + 20, (length << 8) | 0x91);
+        UInt32(database, FirstFragment + 12, 0);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            EmailStoreSalvageEntry first = report.Entries[0];
+            Assert.Equal(EmailStoreSalvageStatus.Partial, first.Status);
+            Assert.Equal("EMAIL_STORE_DBX_SALVAGE_CHAIN_SHORT", first.DamageCode);
+            Assert.Equal(FirstFragment, first.DamageOffset);
+            Assert.Equal(512, first.RecoveredBytes);
+            Assert.Equal(length, first.DeclaredBytes);
+            Assert.False(report.IsComplete);
+        });
+    }
+
     internal static string CorpusRoot => Path.Combine(EmailTestRepository.FindRoot(), "OfficeIMO.Email.Tests", "Corpora");
 
     internal static string DamagedFixture(string name) => Path.Combine(CorpusRoot, "damaged-stores", name);

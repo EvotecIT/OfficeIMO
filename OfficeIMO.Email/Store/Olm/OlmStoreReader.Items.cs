@@ -215,9 +215,11 @@ internal sealed partial class OlmStoreReader {
     private void AddAttachments(EmailDocument document, XElement item, string containerName, string location) {
         XElement? container = Child(item, containerName);
         if (container == null) return;
-        // An attachment record with a blank path is still an attachment; it is kept so its missing content is reported.
+        // An attachment record with a blank or absent path is still an attachment; it is kept so its missing
+        // content is reported.
         foreach (XElement attachment in container.Descendants().Where(element => element.Attributes().Any(candidate =>
-                     string.Equals(candidate.Name.LocalName, "OPFAttachmentURL", StringComparison.OrdinalIgnoreCase)))) {
+                     string.Equals(candidate.Name.LocalName, "OPFAttachmentURL", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(candidate.Name.LocalName, "OPFAttachmentName", StringComparison.OrdinalIgnoreCase)))) {
             string? path = Attribute(attachment, "OPFAttachmentURL");
             string? name = Attribute(attachment, "OPFAttachmentName");
             string? type = Attribute(attachment, "OPFAttachmentContentType");

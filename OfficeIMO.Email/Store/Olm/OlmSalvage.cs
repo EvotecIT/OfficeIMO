@@ -20,6 +20,10 @@ internal sealed class OlmSalvage {
     private const uint Zip64EndOfCentralDirectorySignature = 0x06064b50;
     // Bounds what one entry path costs the folder catalog, which keeps every prefix of every path.
     private const int MaximumEntryPathLength = 4096;
+    // A UTF-8 name of MaximumEntryPathLength characters needs at most four bytes per character.
+    private const int MaximumEntryNameBytes = MaximumEntryPathLength * 4;
+    // Bounds the entry names held at once while the archive is cataloged.
+    private const long MaximumRetainedNameBytes = 128L * 1024 * 1024;
     private const int LocalHeaderLength = 30;
     private const int SearchBufferLength = 1 << 16;
     private const string ItemPrefix = "olm:item:";
@@ -45,6 +49,7 @@ internal sealed class OlmSalvage {
     private readonly HashSet<string> _admittedXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private bool _stoppedAtLimit;
     private bool _discoveryCompleted = true;
+    private long _retainedNameBytes;
 
     internal OlmSalvage(Stream source, string? sourceName, EmailStoreSalvageOptions options,
         EmailStoreSalvageWriter output, CancellationToken cancellationToken) {
@@ -80,7 +85,7 @@ internal sealed class OlmSalvage {
     }
 
     private List<ZipEntry>? ReadCentralDirectory() {
-        var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
+        var records = new BoundedDirectoryRecords(this);
         OfficeArchiveSafety.ZipCentralDirectoryScanResult scan;
         try {
             scan = OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(_source, _length,
@@ -97,24 +102,101 @@ internal sealed class OlmSalvage {
                 EmailStoreDiagnosticSeverity.Warning, null);
             return null;
         }
+        if (records.NamesExceeded) {
+            Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_LIMIT",
+                "The central directory's entry names exceed the recovery metadata bound; later entries were not recovered.",
+                EmailStoreDiagnosticSeverity.Warning, null);
+            _stoppedAtLimit = true;
+        }
         var entries = new List<ZipEntry>(records.Count);
         var header = new byte[LocalHeaderLength];
-        foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
+        foreach (DirectoryRecord record in records.Records) {
             _cancellationToken.ThrowIfCancellationRequested();
             // A directory that points at a missing or different local header cannot be trusted for any entry, so
             // every entry is recovered from its own local header instead.
             if (record.LocalHeaderOffset < 0 ||
                 ReadAvailable(record.LocalHeaderOffset, header, LocalHeaderLength) < LocalHeaderLength ||
-                UInt32(header, 0) != LocalHeaderSignature || UInt16(header, 26) != record.NameBytes.Length) {
+                UInt32(header, 0) != LocalHeaderSignature || !LocalNameMatches(record, UInt16(header, 26))) {
                 Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_INCONSISTENT",
                     "The central directory points at a missing or different local entry header. Entries are recovered from their local headers.",
                     EmailStoreDiagnosticSeverity.Warning, record.LocalHeaderOffset);
                 return null;
             }
-            entries.Add(new ZipEntry(DecodeName(record.NameBytes), record.Flags, record.CompressionMethod,
-                record.Crc32, record.CompressedSize, record.UncompressedSize, record.LocalHeaderOffset, dataOffset: null));
+            entries.Add(new ZipEntry(record.Name, record.Flags, record.CompressionMethod,
+                record.Crc32, record.CompressedSize, record.UncompressedSize, record.LocalHeaderOffset, dataOffset: null,
+                nameTooLong: record.NameTooLong));
         }
         return entries;
+    }
+
+    /// <summary>Whether the local header at a directory record's offset carries the same name.</summary>
+    private bool LocalNameMatches(DirectoryRecord record, int localNameLength) {
+        if (localNameLength != record.NameLength) return false;
+        if (record.NameTooLong) return true;
+        var local = new byte[localNameLength];
+        if (ReadAvailable(record.LocalHeaderOffset + LocalHeaderLength, local, localNameLength) < localNameLength) return false;
+        return local.AsSpan().SequenceEqual(record.NameBytes);
+    }
+
+    /// <summary>Keeps a bounded name for an entry, or only a preview when the name is too long to recover.</summary>
+    private bool TryRetainName(int length, out bool tooLong) {
+        tooLong = length > MaximumEntryNameBytes;
+        long retained = tooLong ? 0 : length;
+        if (_retainedNameBytes + retained > MaximumRetainedNameBytes) return false;
+        _retainedNameBytes += retained;
+        return true;
+    }
+
+    private readonly struct DirectoryRecord {
+        internal DirectoryRecord(OfficeArchiveSafety.ZipCentralDirectoryRecord record, bool tooLong) {
+            NameTooLong = tooLong;
+            NameLength = record.NameBytes.Length;
+            NameBytes = tooLong ? Array.Empty<byte>() : record.NameBytes;
+            Name = tooLong ? DecodeName(record.NameBytes.AsSpan(0, 64).ToArray()) : DecodeName(record.NameBytes);
+            Flags = record.Flags;
+            CompressionMethod = record.CompressionMethod;
+            Crc32 = record.Crc32;
+            CompressedSize = record.CompressedSize;
+            UncompressedSize = record.UncompressedSize;
+            LocalHeaderOffset = record.LocalHeaderOffset;
+        }
+
+        internal bool NameTooLong { get; }
+        internal int NameLength { get; }
+        internal byte[] NameBytes { get; }
+        internal string Name { get; }
+        internal ushort Flags { get; }
+        internal ushort CompressionMethod { get; }
+        internal uint Crc32 { get; }
+        internal long CompressedSize { get; }
+        internal long UncompressedSize { get; }
+        internal long LocalHeaderOffset { get; }
+    }
+
+    /// <summary>Receives directory records from the shared scanner and keeps only bounded names.</summary>
+    private sealed class BoundedDirectoryRecords : ICollection<OfficeArchiveSafety.ZipCentralDirectoryRecord> {
+        private readonly OlmSalvage _owner;
+        internal BoundedDirectoryRecords(OlmSalvage owner) => _owner = owner;
+        internal List<DirectoryRecord> Records { get; } = new List<DirectoryRecord>();
+        internal bool NamesExceeded { get; private set; }
+        public int Count => Records.Count;
+        public bool IsReadOnly => false;
+
+        public void Add(OfficeArchiveSafety.ZipCentralDirectoryRecord item) {
+            if (NamesExceeded) return;
+            if (!_owner.TryRetainName(item.NameBytes.Length, out bool tooLong)) {
+                NamesExceeded = true;
+                return;
+            }
+            Records.Add(new DirectoryRecord(item, tooLong));
+        }
+
+        public void Clear() => Records.Clear();
+        public bool Contains(OfficeArchiveSafety.ZipCentralDirectoryRecord item) => throw new NotSupportedException();
+        public void CopyTo(OfficeArchiveSafety.ZipCentralDirectoryRecord[] array, int arrayIndex) => throw new NotSupportedException();
+        public bool Remove(OfficeArchiveSafety.ZipCentralDirectoryRecord item) => throw new NotSupportedException();
+        public IEnumerator<OfficeArchiveSafety.ZipCentralDirectoryRecord> GetEnumerator() => throw new NotSupportedException();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private List<ZipEntry> ScanLocalHeaders() {
@@ -166,8 +248,16 @@ internal sealed class OlmSalvage {
                 _discoveryCompleted = false;
                 break;
             }
-            var nameBytes = new byte[nameLength];
-            ReadAvailable(position + LocalHeaderLength, nameBytes, nameLength);
+            if (!TryRetainName(nameLength, out bool nameTooLong)) {
+                _stoppedAtLimit = true;
+                Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_LIMIT",
+                    "The archive's entry names exceed the recovery metadata bound; later entries were not recovered.",
+                    EmailStoreDiagnosticSeverity.Warning, position);
+                position = _length + 1;
+                break;
+            }
+            var nameBytes = new byte[nameTooLong ? 64 : nameLength];
+            ReadAvailable(position + LocalHeaderLength, nameBytes, nameBytes.Length);
             var extra = new byte[extraLength];
             ReadAvailable(position + LocalHeaderLength + nameLength, extra, extraLength);
             string name = DecodeName(nameBytes);
@@ -181,7 +271,7 @@ internal sealed class OlmSalvage {
                 if (!EndsAtRecord(next, flags)) {
                     // A damaged size would skip or run past the entries that follow; this entry fails verification
                     // and scanning resumes at the next local header after its data starts.
-                    entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset));
+                    entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset, nameTooLong));
                     Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_SPAN_INVALID",
                         "The entry's recorded size does not end at another ZIP record; scanning continues at the next local entry header.",
                         EmailStoreDiagnosticSeverity.Warning, position, name);
@@ -201,7 +291,7 @@ internal sealed class OlmSalvage {
                 next = descriptorEnd;
             } else {
                 // Without sizes or a descriptor the entry runs to the end of the file; it cannot be verified.
-                entries.Add(new ZipEntry(name, flags, method, crc, _length - dataOffset, -1, position, dataOffset));
+                entries.Add(new ZipEntry(name, flags, method, crc, _length - dataOffset, -1, position, dataOffset, nameTooLong));
                 long resume = FindSignature(dataOffset, LocalHeaderSignature);
                 if (resume < 0) {
                     position = _length + 1;
@@ -210,7 +300,7 @@ internal sealed class OlmSalvage {
                 position = resume;
                 continue;
             }
-            entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset));
+            entries.Add(new ZipEntry(name, flags, method, crc, compressed, expanded, position, dataOffset, nameTooLong));
             if (next <= position) {
                 position = _length + 1;
                 break;
@@ -256,6 +346,12 @@ internal sealed class OlmSalvage {
 
     private void CopyEntry(ZipEntry entry, ZipArchive archive) {
         string location = entry.Name;
+        if (entry.NameTooLong) {
+            _stoppedAtLimit = true;
+            Add("EMAIL_STORE_OLM_SALVAGE_PATH_LIMIT", "An entry whose path is longer than recovery allows was not recovered.",
+                EmailStoreDiagnosticSeverity.Error, entry.LocalHeaderOffset, location + "...");
+            return;
+        }
         if (!OlmStoreReader.TryNormalizeArchivePath(entry.Name, out string normalized)) {
             Add("EMAIL_STORE_OLM_UNSAFE_ENTRY_PATH", "An archive entry with an unsafe path was ignored.",
                 EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, location);
@@ -513,8 +609,10 @@ internal sealed class OlmSalvage {
     private bool RepairXml(ZipEntry entry, long dataOffset, int maxItems, long maxRead, FileStream spill, ref int items,
         ref long consumed, ref string? stopReason, ref bool limited) {
         XmlReaderSettings settings = CreateXmlSettings();
+        bool archiveBound = maxRead < _limits.MaxArchiveEntryBytes;
         var counting = new CountingStream(OpenPayload(entry, dataOffset, tolerateTruncation: true),
-            Math.Min(_limits.MaxArchiveEntryBytes, maxRead));
+            Math.Min(_limits.MaxArchiveEntryBytes, maxRead),
+            archiveBound ? nameof(EmailStoreReaderOptions.MaxArchiveDecodedBytes) : nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes));
         try {
             using (counting)
             using (XmlReader inner = XmlReader.Create(counting, settings))
@@ -563,7 +661,7 @@ internal sealed class OlmSalvage {
                 } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException ||
                                                      exception is IOException) {
                     stopReason = exception.Message;
-                    if (IsXmlLimit(exception, counting.BytesRead)) _stoppedAtLimit = true;
+                    if (IsXmlLimit(exception, counting.BytesRead) || counting.ReachedLimit) _stoppedAtLimit = true;
                 }
                 if (started) writer.WriteEndElement();
             }
@@ -573,6 +671,7 @@ internal sealed class OlmSalvage {
         } finally {
             // Bytes read count against the budget whether or not repair keeps any record.
             consumed = counting.BytesRead;
+            if (counting.ReachedLimit) _stoppedAtLimit = true;
         }
         return items > 0;
     }
@@ -588,8 +687,10 @@ internal sealed class OlmSalvage {
                 Math.Max(_limits.MaxInputBytes, rebuilt.Length),
                 Math.Max(_limits.MaxArchiveEntryBytes, _largestRebuiltEntry),
                 Math.Max(_limits.MaxArchiveDecodedBytes, _rebuiltBytes));
+            // The rebuilt archive is a private spill nobody else writes, so it is opened as a snapshot: each item
+            // read does not re-hash the whole spill. The original input was checked while it was copied.
             backend = new OlmStoreSessionBackend(rebuilt, _archiveName, rebuiltLimits, _cancellationToken,
-                isolateItemFailures: true);
+                isSnapshot: true, isolateItemFailures: true);
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
                                              exception is EmailStoreLimitExceededException) {
             Add("EMAIL_STORE_OLM_SALVAGE_REBUILD_UNREADABLE", exception.Message, EmailStoreDiagnosticSeverity.Error, null);
@@ -968,7 +1069,8 @@ internal sealed class OlmSalvage {
 
     private sealed class ZipEntry {
         internal ZipEntry(string name, ushort flags, ushort method, uint crc, long compressedSize, long expandedSize,
-            long localHeaderOffset, long? dataOffset) {
+            long localHeaderOffset, long? dataOffset, bool nameTooLong = false) {
+            NameTooLong = nameTooLong;
             Name = name;
             Flags = flags;
             Method = method;
@@ -979,6 +1081,8 @@ internal sealed class OlmSalvage {
             DataOffset = dataOffset;
         }
 
+        /// <summary>The name is longer than recovery keeps; <see cref="Name"/> holds only its start.</summary>
+        internal bool NameTooLong { get; }
         internal string Name { get; }
         internal ushort Flags { get; }
         internal ushort Method { get; }
@@ -1053,12 +1157,16 @@ internal sealed class OlmSalvage {
         private readonly Stream _inner;
         private readonly long _maximum;
 
-        internal CountingStream(Stream inner, long maximum) {
+        private readonly string _limitName;
+
+        internal CountingStream(Stream inner, long maximum, string limitName) {
             _inner = inner;
             _maximum = maximum;
+            _limitName = limitName;
         }
 
         internal long BytesRead { get; private set; }
+        internal bool ReachedLimit { get; private set; }
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
@@ -1066,7 +1174,10 @@ internal sealed class OlmSalvage {
         public override long Position { get => BytesRead; set => throw new NotSupportedException(); }
 
         public override int Read(byte[] buffer, int offset, int count) {
-            if (BytesRead >= _maximum) throw new InvalidDataException("The damaged entry exceeds MaxArchiveEntryBytes.");
+            if (BytesRead >= _maximum) {
+                ReachedLimit = true;
+                throw new InvalidDataException("The damaged entry exceeds " + _limitName + ".");
+            }
             int read = _inner.Read(buffer, offset, (int)Math.Min(count, _maximum - BytesRead));
             BytesRead += read;
             return read;

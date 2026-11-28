@@ -156,12 +156,8 @@ internal sealed class DbxSalvage {
         HashSet<uint> referenced = ReferencedFragments();
         foreach (KeyValuePair<uint, Fragment> pair in _fragments) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (IsMessageStart(pair.Key, pair.Value)) {
-                _messageStarts.Add(pair.Key);
-                _bodyHeads.Add(pair.Key);
-            } else if (!referenced.Contains(pair.Key) && StartsWithHeader(pair.Key, pair.Value)) {
-                _bodyHeads.Add(pair.Key);
-            }
+            if (IsMessageStart(pair.Key, pair.Value)) _messageStarts.Add(pair.Key);
+            if (!referenced.Contains(pair.Key) && StartsWithHeader(pair.Key, pair.Value)) _bodyHeads.Add(pair.Key);
         }
     }
 
@@ -170,9 +166,9 @@ internal sealed class DbxSalvage {
     };
 
     /// <summary>
-    /// Whether a fragment's payload opens with a header block that names a top-level message header. MIME part
-    /// headers inside a message (Content-Type and the like) do not qualify, so a fragment boundary that happens to
-    /// fall on a part header is not mistaken for the start of another message.
+    /// Whether a fragment's payload opens with a header block that names a top-level message header. Quoted or
+    /// forwarded text can look the same, so this is only a carving hint: it stops a chain that no record owns, and
+    /// never breaks a chain that a message record points at.
     /// </summary>
     private bool IsMessageStart(uint address, Fragment fragment) {
         var bytes = new byte[Math.Min(1024, (int)fragment.Used)];
@@ -385,13 +381,20 @@ internal sealed class DbxSalvage {
             try {
                 using FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false);
                 spillPath = spill.Name;
-                chain = CopyChain(firstFragment, spill);
+                chain = CopyChain(firstFragment, spill, carving: isChain);
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", exception.Message,
                     EmailStoreDiagnosticSeverity.Error, id));
                 return new EmailStoreSalvageEntry(id, EmailStoreSalvageStatus.NotRecovered, location, sourceOffset, 0,
                     declared, indexed, null, "EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", OutlookItemKind.Message, subject,
                     null, 0, diagnostics.AsReadOnly());
+            }
+            if (chain.DamageCode == null && declared.HasValue && declared.Value > chain.Bytes && chain.Bytes > 0) {
+                // The record declares more MIME bytes than the chain holds, so its end-of-chain link came too early.
+                chain = ChainResult.Damaged(chain.Bytes, chain.LastFragment ?? sourceOffset,
+                    "EMAIL_STORE_DBX_SALVAGE_CHAIN_SHORT",
+                    "The message fragment chain ends after " + chain.Bytes.ToString(CultureInfo.InvariantCulture) +
+                    " of the " + declared.Value.ToString(CultureInfo.InvariantCulture) + " bytes the record declares.");
             }
             if (chain.DamageCode != null) {
                 diagnostics.Add(new EmailStoreDiagnostic(chain.DamageCode, chain.DamageMessage!,
@@ -464,7 +467,7 @@ internal sealed class DbxSalvage {
         }
     }
 
-    private ChainResult CopyChain(uint first, Stream output) {
+    private ChainResult CopyChain(uint first, Stream output, bool carving) {
         var seen = new HashSet<uint>();
         var header = new byte[FragmentHeaderLength];
         var buffer = new byte[MaximumFragmentAllocation];
@@ -506,8 +509,9 @@ internal sealed class DbxSalvage {
                 return ChainResult.Damaged(bytes, payload + available, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_TRUNCATED",
                     "The file ends inside a message fragment.");
             uint next = UInt32(header, 12);
-            if (next == 0) return new ChainResult(bytes, null, null, null);
-            if (!seen.Contains(next) && (_bodyHeads.Contains(next) || _consumedFragments.Contains(next)))
+            if (next == 0) return new ChainResult(bytes, null, null, null, address);
+            if (!seen.Contains(next) && (_bodyHeads.Contains(next) || _consumedFragments.Contains(next) ||
+                                         (carving && _messageStarts.Contains(next))))
                 return ChainResult.Damaged(bytes, next, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT",
                     "A message fragment links into another message's fragments, so the chain stops before them.");
             address = next;
@@ -659,7 +663,9 @@ internal sealed class DbxSalvage {
     }
 
     private readonly struct ChainResult {
-        internal ChainResult(long bytes, long? damageOffset, string? damageCode, string? damageMessage) {
+        internal ChainResult(long bytes, long? damageOffset, string? damageCode, string? damageMessage,
+            long? lastFragment = null) {
+            LastFragment = lastFragment;
             Bytes = bytes;
             DamageOffset = damageOffset;
             DamageCode = damageCode;
@@ -667,6 +673,8 @@ internal sealed class DbxSalvage {
         }
 
         internal long Bytes { get; }
+        /// <summary>The fragment whose zero link ended a complete chain.</summary>
+        internal long? LastFragment { get; }
         internal long? DamageOffset { get; }
         internal string? DamageCode { get; }
         internal string? DamageMessage { get; }
