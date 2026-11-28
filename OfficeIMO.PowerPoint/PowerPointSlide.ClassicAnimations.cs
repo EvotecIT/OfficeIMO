@@ -125,8 +125,7 @@ namespace OfficeIMO.PowerPoint {
                 ? ReadClassicAnimations().FirstOrDefault(item =>
                     item.ShapeId == shapeId.Value)
                 : null;
-            return PowerPointEmbeddedSound.Read(SlidePart,
-                animation?.SoundRelationshipId);
+            return ReadSlideSound(animation?.SoundRelationshipId);
         }
 
         internal void SetClassicAnimations(
@@ -495,67 +494,17 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool IsClassicDimAction(AnimateColor color,
-            PowerPointClassicAnimation animation) =>
-            animation.AfterEffect ==
-                PowerPointClassicAnimationAfterEffect.Dim
-            && IsClassicShapeBehavior(color.CommonBehavior,
-                animation.ShapeId, "style.color");
+        private static bool IsClassicHiddenAction(SetBehavior set, PowerPointClassicAnimation animation) =>
+            IsClassicHiddenAction(OfficeXmlNode.FromSdk(set), animation);
 
-        private static bool IsClassicSoundAction(Audio audio,
-            PowerPointClassicAnimation animation) {
-            SoundTarget? target = audio.CommonMediaNode?
-                .GetFirstChild<TargetElement>()?
-                .GetFirstChild<SoundTarget>();
-            return animation.PlaysSound
-                && !string.IsNullOrEmpty(animation.SoundRelationshipId)
-                && string.Equals(target?.Embed?.Value,
-                    animation.SoundRelationshipId,
-                    StringComparison.Ordinal);
-        }
+        private static bool IsClassicDimAction(AnimateColor color, PowerPointClassicAnimation animation) =>
+            IsClassicDimAction(OfficeXmlNode.FromSdk(color), animation);
 
-        private static bool IsClassicStopSoundAction(Command command,
-            PowerPointClassicAnimation animation) {
-            CommonBehavior? behavior = command.CommonBehavior;
-            CommonTimeNode? owner = command.Ancestors<CommonTimeNode>()
-                .FirstOrDefault(node => node.NodeType?.Value ==
-                        TimeNodeValues.ClickEffect
-                    || node.NodeType?.Value == TimeNodeValues.AfterEffect);
-            return animation.StopsSound
-                && command.Type?.Value == CommandValues.Event
-                && string.Equals(command.CommandName?.Value,
-                    "onstopaudio", StringComparison.OrdinalIgnoreCase)
-                && command.ChildElements.Count == 1
-                && behavior != null
-                && behavior.Descendants<SlideTarget>().Count() == 1
-                && behavior.Descendants<ShapeTarget>().Count() == 0
-                && owner != null
-                && owner.Descendants<AnimateEffect>().Count(effect =>
-                    uint.TryParse(effect.Descendants<ShapeTarget>()
-                            .FirstOrDefault()?.ShapeId?.Value,
-                        NumberStyles.Integer, CultureInfo.InvariantCulture,
-                        out uint effectShapeId)
-                    && effectShapeId == animation.ShapeId) == 1;
-        }
+        private static bool IsClassicSoundAction(Audio audio, PowerPointClassicAnimation animation) =>
+            IsClassicSoundAction(OfficeXmlNode.FromSdk(audio), animation);
 
-        private static bool IsClassicShapeBehavior(CommonBehavior? behavior,
-            uint shapeId, string attributeName) {
-            ShapeTarget? target = behavior?
-                .GetFirstChild<TargetElement>()?
-                .GetFirstChild<ShapeTarget>();
-            AttributeName[] attributes = behavior?
-                .GetFirstChild<AttributeNameList>()?
-                .Elements<AttributeName>().ToArray()
-                ?? Array.Empty<AttributeName>();
-            return string.Equals(target?.ShapeId?.Value,
-                       shapeId.ToString(CultureInfo.InvariantCulture),
-                       StringComparison.Ordinal)
-                   && behavior != null
-                   && behavior.Descendants<ShapeTarget>().Count() == 1
-                   && attributes.Length == 1
-                   && string.Equals(attributes[0].Text, attributeName,
-                       StringComparison.Ordinal);
-        }
+        private static bool IsClassicStopSoundAction(Command command, PowerPointClassicAnimation animation) =>
+            IsClassicStopSoundAction(OfficeXmlNode.FromSdk(command), animation);
 
         private static bool IsClassicTimingEffect(AnimateEffect effect,
             PowerPointClassicAnimation animation) {
@@ -682,7 +631,11 @@ namespace OfficeIMO.PowerPoint {
                 .ToArray();
             return targets.SequenceEqual(animations.Select(animation =>
                        animation.ShapeId))
-                && HasOnlyClassicStandardActions(timing, animations);
+                // The SDK interop surface can contain a typed action in an unexpected position.
+                // Inspect those actions before deciding whether it is safe to replace the entire timing tree.
+                && HasOnlyClassicStandardActions(timing.Descendants()
+                    .Where(element => element is SetBehavior or AnimateColor or Audio or Command)
+                    .Select(OfficeXmlNode.FromSdk).ToArray(), animations);
         }
 
         private void UpdateClassicAnimation(PowerPointShape shape,
@@ -732,49 +685,6 @@ namespace OfficeIMO.PowerPoint {
                 playsSound == false ? null
                     : soundRelationshipId ?? animation.SoundRelationshipId,
                 playsSound == false ? null : soundName ?? animation.SoundName);
-
-        private IReadOnlyList<PowerPointClassicAnimation> ReadClassicAnimations() {
-            SlideExtension? extension = SlideRoot.GetFirstChild<SlideExtensionList>()?
-                .Elements<SlideExtension>().FirstOrDefault(item => string.Equals(
-                    item.Uri?.Value, ClassicAnimationExtensionUri,
-                    StringComparison.Ordinal));
-            OpenXmlElement? root = extension?.ChildElements.FirstOrDefault(element =>
-                element.NamespaceUri == ClassicAnimationNamespace
-                && element.LocalName == "classicAnimations");
-            if (root == null) return InferClassicAnimations();
-            var result = new List<PowerPointClassicAnimation>();
-            foreach (OpenXmlElement element in root.ChildElements.Where(item =>
-                         item.NamespaceUri == ClassicAnimationNamespace
-                         && item.LocalName == "animation")) {
-                if (!TryReadUInt(element, "shapeId", out uint shapeId)
-                    || !TryReadByte(element, "effect", out byte effect)
-                    || !TryReadByte(element, "direction", out byte direction)
-                    || !TryReadByte(element, "build", out byte build)
-                    || !TryReadInt(element, "delay", out int delay)
-                    || !TryReadInt(element, "order", out int order)
-                    || !TryReadByte(element, "after", out byte after)
-                    || !TryReadByte(element, "textBuild", out byte textBuild)
-                    || !TryReadUInt(element, "dimColor", out uint dimColor)
-                    || !IsClassicAnimationValue(effect, direction, build,
-                        delay, after, textBuild)) continue;
-                OpenXmlElement? sound = element.ChildElements.FirstOrDefault(item =>
-                    item.NamespaceUri == "http://schemas.openxmlformats.org/presentationml/2006/main"
-                    && item.LocalName == "snd");
-                result.Add(new PowerPointClassicAnimation(shapeId,
-                    (PowerPointClassicAnimationEffect)effect, direction,
-                    (PowerPointClassicAnimationBuildType)build,
-                    ReadBool(element, "automatic"), delay, order,
-                    ReadBool(element, "reverse"),
-                    ReadBool(element, "animateBackground"),
-                    (PowerPointClassicAnimationAfterEffect)after,
-                    (PowerPointClassicTextBuild)textBuild, dimColor,
-                    ReadBool(element, "playsSound"),
-                    ReadBool(element, "stopsSound"),
-                    sound == null ? null : GetAttribute(sound, "embed"),
-                    sound == null ? null : GetAttribute(sound, "name")));
-            }
-            return result.OrderBy(animation => animation.Order).ToArray();
-        }
 
         private void WriteClassicAnimationMetadata(
             IReadOnlyList<PowerPointClassicAnimation> animations) {
@@ -930,25 +840,6 @@ namespace OfficeIMO.PowerPoint {
                 0x1A => direction is 1 or 2 or 3 or 4 or 8,
                 _ => false
             });
-
-        private static bool TryReadUInt(OpenXmlElement element, string name,
-            out uint value) => uint.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool TryReadByte(OpenXmlElement element, string name,
-            out byte value) => byte.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool TryReadInt(OpenXmlElement element, string name,
-            out int value) => int.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool ReadBool(OpenXmlElement element, string name) =>
-            bool.TryParse(GetAttribute(element, name), out bool value) && value;
-
-        private static string? GetAttribute(OpenXmlElement element, string name) =>
-            element.GetAttributes().FirstOrDefault(attribute =>
-                attribute.LocalName == name).Value;
 
         private static void SetAttribute(OpenXmlElement element, string name,
             object value) => element.SetAttribute(new OpenXmlAttribute(string.Empty,

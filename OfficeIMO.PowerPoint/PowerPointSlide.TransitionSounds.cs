@@ -123,11 +123,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
-        public byte[]? GetTransitionSoundBytes() {
-            string? id = GetTransitionSoundRelationshipId(GetTransitionNode());
+        public byte[]? GetTransitionSoundBytes() =>
+            ReadSlideSound(GetTransitionSoundRelationshipId(GetTransitionNode()));
+
+        private byte[]? ReadSlideSound(string? id) {
             PowerPointPartRef part = PartRef;
-            if (!TryGetTransitionAudioRelationship(part, id, out PowerPointRelationship relationship)) return null;
-            if (!relationship.TargetPart.IsNone) return relationship.TargetPart.ReadBytes();
+            if (!TryGetSlideAudioRelationship(part, id, out PowerPointRelationship relationship)) return null;
+            PowerPointPartRef target = relationship.TargetPart;
+            if (!target.IsNone) {
+                if (target.Document?.ReadablePackage is { } package && package.TryGetStoredLength(target.Name, out long length)
+                    && length > PowerPointMedia.MaximumOwnedPayloadBytes) {
+                    return PowerPointEmbeddedSound.Read(SlidePart, id);
+                }
+                return target.ReadBytes();
+            }
             return part.IsSdk ? PowerPointEmbeddedSound.Read(SlidePart, id) : null;
         }
 
@@ -147,11 +156,11 @@ namespace OfficeIMO.PowerPoint {
         private void RemoveUnusedTransitionSounds(IEnumerable<string> relationshipIds) {
             PowerPointPartRef part = PartRef;
             foreach (string id in relationshipIds) {
-                if (TryGetTransitionAudioRelationship(part, id, out _)) part.RemoveRelationshipIfUnused(id, part);
+                if (TryGetSlideAudioRelationship(part, id, out _)) part.RemoveRelationshipIfUnused(id, part);
             }
         }
 
-        private static bool TryGetTransitionAudioRelationship(PowerPointPartRef part, string? id, out PowerPointRelationship relationship) {
+        private static bool TryGetSlideAudioRelationship(PowerPointPartRef part, string? id, out PowerPointRelationship relationship) {
             relationship = default;
             return id != null && part.TryGetRelationship(id, out relationship) && !relationship.IsExternal &&
                 OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type) == TransitionAudioRelationship;

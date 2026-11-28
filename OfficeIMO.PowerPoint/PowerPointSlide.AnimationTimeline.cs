@@ -237,8 +237,9 @@ namespace OfficeIMO.PowerPoint {
             return default;
         }
 
-        private static IEnumerable<OfficeXmlNode> TimingNodesNamed(OfficeXmlNode root, string name) {
+        private static IEnumerable<OfficeXmlNode> TimingNodesNamed(OfficeXmlNode root, string? name) {
             if (root.IsNone) yield break;
+            bool includeTargets = name is "sldTgt" or "spTgt";
             var pending = new Stack<(OfficeXmlNode Node, string Context)>();
             PushTimingChildren(root, root.LocalName, pending);
             while (pending.Count > 0) {
@@ -251,8 +252,9 @@ namespace OfficeIMO.PowerPoint {
                             PushTimingChildren(branch, context, pending);
                         }
                     }
-                } else if (node.NamespaceId == TimingNamespace && IsTimingChild(context, node.LocalName)) {
-                    if (node.LocalName == name) yield return node;
+                } else if (node.NamespaceId == TimingNamespace &&
+                           (IsTimingChild(context, node.LocalName) || includeTargets && IsTimingTargetChild(context, node.LocalName))) {
+                    if (name == null || node.LocalName == name) yield return node;
                     PushTimingChildren(node, node.LocalName, pending);
                 }
             }
@@ -278,6 +280,15 @@ namespace OfficeIMO.PowerPoint {
             "anim" or "animClr" or "animEffect" or "animMotion" or "animRot" or "animScale" or "cmd" or "set" => child == "cBhvr",
             "audio" or "video" => child == "cMediaNode",
             "cTn" => child is "childTnLst" or "subTnLst",
+            _ => false
+        };
+
+        private static bool IsTimingTargetChild(string parent, string child) => parent switch {
+            "cBhvr" or "cMediaNode" or "cond" or "endSync" => child == "tgtEl",
+            "tgtEl" => child is "spTgt" or "sldTgt",
+            "cTn" => child is "stCondLst" or "endCondLst" or "endSync",
+            "seq" => child is "prevCondLst" or "nextCondLst",
+            "stCondLst" or "endCondLst" or "prevCondLst" or "nextCondLst" => child == "cond",
             _ => false
         };
 

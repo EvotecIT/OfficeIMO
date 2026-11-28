@@ -1,6 +1,11 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -479,6 +484,70 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ReadsClassicAnimationsIgnoringAdvancedEffectsInsideExtensions(bool keepAuthoredMetadata) {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox target = slide.AddTextBox("Classic animation");
+            slide.AddClassicAnimation(target, PowerPointClassicAnimationEffect.Fade, new PowerPointClassicAnimationOptions {
+                Automatic = true, DelayMilliseconds = 400,
+                BuildType = PowerPointClassicAnimationBuildType.ByLevel2Paragraph, Reverse = true, AnimateBackground = true
+            });
+            using var bytes = new MemoryStream(presentation.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(bytes, leaveOpen: true);
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace producer = "https://schemas.officeimo.net/powerpoint/2026/classic-animations";
+            const string part = "/ppt/slides/slide1.xml";
+            XDocument markup = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(part)));
+            if (!keepAuthoredMetadata) markup.Root!.Element(p + "extLst")!.Elements(p + "ext")
+                .Single(extension => extension.Element(producer + "classicAnimations") != null).Remove();
+            markup.Root!.Element(p + "timing")!.Add(new XElement(p + "extLst",
+                new XElement(p + "ext", new XAttribute("uri", "{436DBF58-C5C2-449F-93DA-8926A8FAB706}"),
+                    new XElement(p + "animMotion", new XElement(p + "cBhvr",
+                        new XElement(p + "tgtEl", new XElement(p + "spTgt", new XAttribute("spid", target.Id!.Value))))))));
+            byte[] modified = Encoding.UTF8.GetBytes(markup.ToString(SaveOptions.DisableFormatting));
+            package.ReplacePart(part, modified, modified.Length);
+            using var input = new MemoryStream();
+            package.Save(input);
+            input.Position = 0;
+
+            using var reloaded = PowerPointDocument.Load(input);
+            PowerPointClassicAnimation animation = Assert.Single(reloaded.Slides.Single().ClassicAnimations);
+            Assert.Equal(target.Id, animation.ShapeId);
+            Assert.Equal(PowerPointClassicAnimationEffect.Fade, animation.Effect);
+            Assert.Equal(PowerPointClassicAnimationBuildType.ByLevel2Paragraph, animation.BuildType);
+            Assert.Equal(400, animation.DelayMilliseconds);
+            Assert.True(animation.Automatic && animation.Reverse && animation.AnimateBackground);
+            Assert.False(reloaded.IsSdkLoaded);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NativeClassicBuildInferencePreservesSdkHandlingOfInvalidTokensAndComments(bool addComment) {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            slide.AddClassicAnimation(slide.AddTextBox("Classic animation"), PowerPointClassicAnimationEffect.Fade);
+            Slide root = slide.SlidePart.Slide!;
+            root.SlideExtensionList!.Remove();
+            BuildParagraph build = Assert.Single(root.Timing!.Descendants<BuildParagraph>());
+            if (addComment) build.Parent!.Append(new OpenXmlMiscNode(XmlNodeType.Comment, "<!--producer notes-->"));
+            else build.SetAttribute(new OpenXmlAttribute(string.Empty, "build", string.Empty, "unknown-build"));
+
+            using var input = new MemoryStream(source.ToBytes());
+            using var restored = PowerPointDocument.Load(input);
+            PowerPointSlide restoredSlide = Assert.Single(restored.Slides);
+            if (addComment) {
+                Assert.Empty(restoredSlide.ClassicAnimations);
+                Assert.True(restored.IsSdkLoaded);
+            } else {
+                Assert.Throws<FormatException>(() => _ = restoredSlide.ClassicAnimations);
+                Assert.False(restored.IsSdkLoaded);
+            }
+        }
+
         [Fact]
         public void ClearingClassicAnimationsRemovesOnlyClassicMixedTiming() {
             using PowerPointDocument presentation =
@@ -499,6 +568,21 @@ namespace OfficeIMO.Tests {
             Assert.Single(slide.SlidePart.Slide.Timing
                 .Descendants<Audio>());
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ClearingClassicAnimationsKeepsOtherTypedActionsAttachedThroughSdkInterop() {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddClassicAnimation(slide.AddTextBox("Classic animation"), PowerPointClassicAnimationEffect.Fade);
+            Timing timing = slide.SlidePart.Slide!.Timing!;
+            CommonTimeNode root = timing.Descendants<CommonTimeNode>().First();
+            AnimateColor otherAction = root.AppendChild(new AnimateColor());
+
+            slide.ClearClassicAnimations();
+
+            Assert.Same(otherAction, Assert.Single(slide.SlidePart.Slide.Timing!.Descendants<AnimateColor>()));
+            Assert.Empty(slide.ClassicAnimations);
         }
 
         [Fact]
