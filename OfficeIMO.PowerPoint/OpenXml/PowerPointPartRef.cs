@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXmlSdk;
 using OfficeIMO.OpenXml.Internal;
@@ -271,16 +272,27 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>The part's bytes as they would be saved now.</summary>
-        internal byte[] ReadBytes() {
+        internal byte[] ReadBytes(long? maximumBytes = null) {
+            if (maximumBytes is <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             PowerPointPartRef current = Current;
             if (current._sdk != null) {
                 using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+                if (maximumBytes.HasValue) return OfficeStreamReader.ReadAllBytes(stream, maximumBytes);
                 using var copy = new MemoryStream();
                 stream.CopyTo(copy);
                 return copy.ToArray();
             }
             OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
-            return package.ReadPartBytes(current._name!);
+            string name = current._name!;
+            if (maximumBytes == null) return package.ReadPartBytes(name);
+            if (package.TryGetBinaryLength(name, out long length)) {
+                OfficeStreamReader.EnsureWithinLimit(length, maximumBytes);
+                return package.ReadPartBytes(name);
+            }
+
+            byte[] bytes = package.ReadPartBytes(name);
+            OfficeStreamReader.EnsureWithinLimit(bytes.LongLength, maximumBytes);
+            return bytes;
         }
 
         /// <summary>
