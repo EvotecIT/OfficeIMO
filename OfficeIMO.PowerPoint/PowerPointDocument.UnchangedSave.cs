@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         private bool TryCreateUnchangedPackageBytes(bool presentationDestination, out byte[] bytes) {
             bytes = Array.Empty<byte>();
-            if (!_sdkDeferred || IsSdkLoaded || !presentationDestination
+            if (!_sdkDeferred || IsSdkLoaded || !presentationDestination || !IsLoadedStandardPresentation
                 || _packageStream is not { CanRead: true, CanSeek: true } packageStream) {
                 return false;
             }

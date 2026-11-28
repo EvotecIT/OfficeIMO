@@ -52,6 +52,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
     /// <summary>Returns whether the package has a part with this name, for example <c>/word/document.xml</c>.</summary>
     internal bool PartExists(string partName) => FindMember(partName) != null;
 
+    /// <summary>Whether the archive stores a logical part as a set of OPC physical pieces.</summary>
+    internal bool HasInterleavedParts => _members.Values.Any(name =>
+        name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) && OfficeOpcPieceAssembler.HasPieceSuffix(name));
+
     /// <summary>Inflates a part into a buffer the caller disposes.</summary>
     /// <exception cref="InvalidDataException">The part is missing or its ZIP member is corrupt.</exception>
     internal OfficePooledBytes ReadPart(string partName) {
@@ -218,8 +222,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string target)) {
                     throw new InvalidDataException("A relationship in '" + relationshipsPart + "' lacks its Id, Type or Target.");
                 }
-                bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
-                    && string.Equals(mode, "External", StringComparison.Ordinal);
+                bool hasMode = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode);
+                if (hasMode && mode != "Internal" && mode != "External")
+                    throw new InvalidDataException("A relationship in '" + relationshipsPart + "' has an invalid TargetMode.");
+                bool external = hasMode && mode == "External";
                 if (ids.ContainsKey(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
                 var relationship = new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external);
                 ids.Add(id, relationship);

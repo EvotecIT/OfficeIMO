@@ -41,9 +41,13 @@ public sealed partial class PowerPointDocument {
         using OfficeOpcPackage package = OpenProvenancePackage(stream, options);
         string expectedExtension = PowerPointFormatCatalog.GetByExtension(fileName).Extension;
         string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
-        string? actualExtension = main != null && package.PartExists(main)
-            ? PresentationExtension(package.GetContentType(main))
-            : null;
+        string? contentType = main != null && package.PartExists(main) ? package.GetContentType(main) : null;
+        string? actualExtension = PresentationExtension(contentType);
+        if (actualExtension == null && PresentationSubtypes.ContentTypes.Any(subtype =>
+                string.Equals(subtype.ContentType, contentType, StringComparison.OrdinalIgnoreCase))) {
+            // The SDK falls back to Presentation when the known MIME differs only in spelling.
+            actualExtension = ".pptx";
+        }
         if (actualExtension == null) throw new InvalidDataException("The package is not a PowerPoint presentation.");
 
         if (!string.Equals(expectedExtension, actualExtension, StringComparison.OrdinalIgnoreCase)) {
@@ -60,16 +64,24 @@ public sealed partial class PowerPointDocument {
     private static OfficeOpcPackage OpenProvenancePackage(Stream stream, OfficeProvenanceOptions limits) =>
         OfficeOpcPackage.Open(stream, maximumEntryLength: limits.MaxAssetBytes, maximumEntries: limits.MaxContainerEntries);
 
-    private static string? PresentationExtension(string? contentType) => contentType?.ToLowerInvariant() switch {
-        PresentationMainContentType => ".pptx",
-        "application/vnd.ms-powerpoint.presentation.macroenabled.main+xml" => ".pptm",
-        "application/vnd.ms-powerpoint.addin.macroenabled.main+xml" => ".ppam",
-        "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml" => ".potx",
-        "application/vnd.ms-powerpoint.template.macroenabled.main+xml" => ".potm",
-        "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml" => ".ppsx",
-        "application/vnd.ms-powerpoint.slideshow.macroenabled.main+xml" => ".ppsm",
-        _ => null
-    };
+    private static class PresentationSubtypes {
+        internal static readonly (string ContentType, string Extension)[] ContentTypes = [
+            (PresentationMainContentType, ".pptx"),
+            ("application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml", ".pptm"),
+            ("application/vnd.ms-powerpoint.addin.macroEnabled.main+xml", ".ppam"),
+            ("application/vnd.openxmlformats-officedocument.presentationml.template.main+xml", ".potx"),
+            ("application/vnd.ms-powerpoint.template.macroEnabled.main+xml", ".potm"),
+            ("application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml", ".ppsx"),
+            ("application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml", ".ppsm")
+        ];
+    }
+
+    private static string? PresentationExtension(string? contentType) {
+        foreach ((string type, string extension) in PresentationSubtypes.ContentTypes) {
+            if (string.Equals(type, contentType, StringComparison.Ordinal)) return extension;
+        }
+        return null;
+    }
 
     private static OfficeOpcRelationship? FindProvenancePart(OfficeOpcPackage package, string relationshipType, string contentType) {
         OfficeOpcRelationship? first = null;
