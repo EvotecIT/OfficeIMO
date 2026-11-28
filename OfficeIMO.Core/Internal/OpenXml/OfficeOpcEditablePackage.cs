@@ -262,10 +262,11 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         return null;
     }
 
-    /// <summary>How many parts have, or had before they were deleted, a content type.</summary>
-    internal int CountParts(string contentType) {
+    /// <summary>How many parts have a content type, optionally including parts that were deleted.</summary>
+    internal int CountParts(string contentType, bool includeDeleted = true) {
         int count = 0;
         foreach (Part part in _parts) {
+            if (part.Deleted && !includeDeleted) continue;
             string? type = part.Deleted ? part.DeletedContentType : GetContentType(part.Name);
             if (string.Equals(type, contentType, StringComparison.OrdinalIgnoreCase)) count++;
         }

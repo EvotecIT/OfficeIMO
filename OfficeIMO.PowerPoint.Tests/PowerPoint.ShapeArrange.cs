@@ -1,10 +1,13 @@
 using System.Text;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
+using Shape = DocumentFormat.OpenXml.Presentation.Shape;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -62,6 +65,86 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BringToFrontKeepsTheSlideExtensionListLast(bool openSdk) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "First");
+                slide.AddRectangle(OfficeLength.Points(10), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Second");
+                var sdkSlide = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide;
+                sdkSlide.CommonSlideData!.ShapeTree!.AppendChild(new ExtensionListWithModification());
+                Assert.Empty(new OpenXmlValidator().Validate(sdkSlide));
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            if (openSdk) _ = loaded.OpenXmlDocument;
+            reopened.BringToFront(reopened.Shapes[0]);
+            Assert.Equal(openSdk, loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            var savedSlide = saved.PresentationPart!.SlideParts.Single().Slide;
+            ShapeTree tree = savedSlide.CommonSlideData!.ShapeTree!;
+            Assert.Equal(new[] { "Second", "First" }, tree.Elements<Shape>()
+                .Select(shape => shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value));
+            Assert.IsType<ExtensionListWithModification>(tree.LastChild);
+            Assert.Empty(new OpenXmlValidator().Validate(savedSlide));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ShapeAuthoringAndDuplicationPreserveTheTerminalExtensionAndItsOpaqueShape(bool wrapExtension) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Real shape");
+                ShapeTree tree = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+                    .Slide.CommonSlideData!.ShapeTree!;
+                var opaque = (Shape)tree.Elements<Shape>().Single().CloneNode(true);
+                opaque.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name = "Not a drawing child";
+                var extension = new ExtensionListWithModification(new DocumentFormat.OpenXml.Presentation.Extension(opaque) {
+                    Uri = "{FA23B9B3-9482-4D05-A265-D23ED5F02EEE}"
+                });
+                if (wrapExtension) {
+                    var choice = new AlternateContentChoice(extension.CloneNode(true)) { Requires = "p14" };
+                    var wrapper = new AlternateContent(choice, new AlternateContentFallback(extension));
+                    wrapper.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
+                    tree.AppendChild(wrapper);
+                } else {
+                    tree.AppendChild(extension);
+                }
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            PowerPointShape original = Assert.Single(reopened.Shapes);
+            PowerPointShape duplicate = reopened.DuplicateShape(original);
+            reopened.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(0),
+                OfficeLength.Points(10), OfficeLength.Points(10), "Added shape");
+            PowerPointTextBox text = reopened.AddTextBox("Added text");
+            reopened.AddConnector(OfficeLength.Points(0), OfficeLength.Points(0),
+                OfficeLength.Points(50), OfficeLength.Points(50), PowerPointConnectorKind.Straight);
+            Assert.False(loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            ShapeTree treeAfter = saved.PresentationPart!.SlideParts.Single().Slide.CommonSlideData!.ShapeTree!;
+            Assert.Equal(new[] { original.Name, duplicate.Name, "Added shape", text.Name }, treeAfter.Elements<Shape>()
+                .Select(shape => shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value));
+            Assert.Single(treeAfter.Elements<ConnectionShape>());
+            OpenXmlElement tail = treeAfter.LastChild!;
+            Assert.Equal(wrapExtension ? "AlternateContent" : "extLst", tail.LocalName);
+            Assert.Contains("Not a drawing child", tail.OuterXml, StringComparison.Ordinal);
         }
 
         [Fact]

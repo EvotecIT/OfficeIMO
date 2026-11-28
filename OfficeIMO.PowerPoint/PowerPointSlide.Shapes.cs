@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
                 properties.Append(properties.CreateElement(OfficeXmlNamespaces.DrawingML, "noFill"));
             }
 
-            shape = tree.Append(shape);
+            shape = tree.InsertBefore(shape, FindTerminalPresentationExtension(tree));
             part.MarkEdited();
             return TrackShape((PowerPointAutoShape)WrapSlideShape(shape, part)!);
         }

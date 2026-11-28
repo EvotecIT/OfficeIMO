@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (shifted) duplicate.SetPosition(left, top);
 
-            parent.InsertBefore(clone, original.NextNode);
+            parent.InsertBefore(clone, original.NextNode());
             part.MarkEdited();
             ShapeList.Insert(index + 1, duplicate);
             return duplicate;
