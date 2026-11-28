@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel {
         internal IReadOnlyDictionary<string, bool> LegacyXlsEncryptedSummaryEntries => _legacyXlsEncryptedSummaryEntries;
 
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default,
-            byte[]? ownedProjection = null) {
+            byte[]? ownedProjection = null, bool nativeRecordsAreComplete = true) {
             ArgumentNullException.ThrowIfNull(workbook);
 
             SourceFormat = ExcelFileFormat.Xls;
@@ -144,7 +144,8 @@ namespace OfficeIMO.Excel {
             _legacyXlsWasEncryptedSource = workbook.WasEncryptedSource;
             foreach (var entry in workbook.EncryptedSummaryEntries) _legacyXlsEncryptedSummaryEntries[entry.Key] = entry.Value;
             _packageDirty = false;
-            _legacyXlsDeferredPreservation = ownedProjection == null ? null : new LegacyXlsDeferredPreservation(ownedProjection, workbook);
+            _legacyXlsDeferredPreservation = ownedProjection == null
+                ? null : new LegacyXlsDeferredPreservation(ownedProjection, workbook, nativeRecordsAreComplete);
             _legacyXlsPreservationSnapshot = ownedProjection == null
                 ? LegacyXlsPreservationSnapshot.Capture(this, workbook, cancellationToken)
                 : null;
@@ -196,7 +197,8 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelDocument document;
-            if (TryProjectPlainLegacyXls(workbook, cancellationToken, out byte[]? ownedProjection, out ExcelDeferredWorkbook? deferred)) {
+            if (TryProjectPlainLegacyXls(workbook, cancellationToken, out byte[]? ownedProjection,
+                out ExcelDeferredWorkbook? deferred, out bool nativeRecordsAreComplete)) {
                 document = CreateDeferredDocument(deferred!, ownedProjection!, CreateOpenSettings(null), readOnly,
                     filePath: null, sourceStream: null, leaveSourceStreamOpen: true, DocumentPersistenceMode.Explicit);
                 document._deferredCreated = true;
@@ -213,7 +215,7 @@ namespace OfficeIMO.Excel {
                     document = ReopenProjectedWorkbookReadOnly(document);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                document.MarkLoadedFromLegacyXls(sourcePath, workbook, cancellationToken, ownedProjection);
+                document.MarkLoadedFromLegacyXls(sourcePath, workbook, cancellationToken, ownedProjection, nativeRecordsAreComplete);
                 return document;
             } catch {
                 document.Dispose();

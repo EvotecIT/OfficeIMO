@@ -14,13 +14,14 @@ public partial class ExcelDocument {
 
     /// <summary>Projects a plain BIFF sheet using the workbook shell, owned XML trees and shared-string writer.</summary>
     private static bool TryProjectPlainLegacyXls(LegacyXlsWorkbook source, CancellationToken token,
-        out byte[]? bytes, out ExcelDeferredWorkbook? workbook) {
+        out byte[]? bytes, out ExcelDeferredWorkbook? workbook, out bool nativeRecordsAreComplete) {
         bytes = null;
         workbook = null;
+        nativeRecordsAreComplete = false;
         if (source.WasEncryptedSource || source.Worksheets.Count != 1 || source.ChartSheets.Count != 0
             || source.SourceCompoundFile?.Streams is not { Count: 1 } streams
             || LegacyWorkbookStreamLocator.FindWorkbookStream(streams) is not { } nativeStream
-            || !HasPlainLegacyXlsRecords(nativeStream, source.Worksheets[0].StreamOffset, token)) {
+            || !HasPlainLegacyXlsRecords(nativeStream, source.Worksheets[0].StreamOffset, token, out nativeRecordsAreComplete)) {
             return false;
         }
 
@@ -168,7 +169,9 @@ public partial class ExcelDocument {
 
     // Only records whose complete worksheet projection is implemented above can take the owned path.
     // The parsed BIFF model remains authoritative for values and native data retention.
-    private static bool HasPlainLegacyXlsRecords(byte[] stream, int sheetOffset, CancellationToken token) {
+    private static bool HasPlainLegacyXlsRecords(byte[] stream, int sheetOffset, CancellationToken token,
+        out bool nativeRecordsAreComplete) {
+        nativeRecordsAreComplete = false;
         int offset = 0;
         int completedSubstreams = 0;
         while (offset <= stream.Length - 4) {
@@ -196,6 +199,8 @@ public partial class ExcelDocument {
                 if (offset != sheetOffset) return false;
             } else {
                 // Some compound files include sector padding in the recorded Workbook stream size.
+                // Native preservation reads to the declared end and rejects an incomplete record header.
+                nativeRecordsAreComplete = (stream.Length - offset) % 4 == 0;
 #if NET8_0_OR_GREATER
                 token.ThrowIfCancellationRequested();
                 return stream.AsSpan(offset).IndexOfAnyExcept((byte)0) < 0;

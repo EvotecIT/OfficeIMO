@@ -9,13 +9,15 @@ public partial class ExcelDocument {
 
     internal bool HasOwnedLegacyXlsProjection => _legacyXlsDeferredPreservation != null;
 
-    private sealed record LegacyXlsDeferredPreservation(byte[] Projection, LegacyXlsWorkbook Workbook);
+    private sealed record LegacyXlsDeferredPreservation(byte[] Projection, LegacyXlsWorkbook Workbook, bool NativeRecordsAreComplete);
 
     /// <summary>Reuse the original package at the point before the deferred cell changes are replayed.</summary>
     private void CaptureLegacyXlsBeforeCellReplay(byte[] openedProjection) {
         if (_legacyXlsDeferredPreservation is not { } original || !ReferenceEquals(original.Projection, openedProjection)
             || _packagePropertiesDirty || _customDocumentPropertiesDirty) return;
-        _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, original.Workbook, CancellationToken.None);
+        if (original.NativeRecordsAreComplete) {
+            _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, original.Workbook, CancellationToken.None);
+        }
         Volatile.Write(ref _legacyXlsDeferredPreservation, null);
     }
 
@@ -26,10 +28,12 @@ public partial class ExcelDocument {
         return WithDeferredOpenGate(() => {
             if (_legacyXlsDeferredPreservation is { } original) {
                 token.ThrowIfCancellationRequested();
-                using ExcelDocument projection = LoadFromByteArray(original.Projection, new ExcelLoadOptions(),
-                    filePath: null, captureSourcePackageSecurity: false);
-                projection._deferredCreated = true;
-                _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(projection, original.Workbook, token);
+                if (original.NativeRecordsAreComplete) {
+                    using ExcelDocument projection = LoadFromByteArray(original.Projection, new ExcelLoadOptions(),
+                        filePath: null, captureSourcePackageSecurity: false);
+                    projection._deferredCreated = true;
+                    _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(projection, original.Workbook, token);
+                }
                 Volatile.Write(ref _legacyXlsDeferredPreservation, null);
             }
             return _legacyXlsPreservationSnapshot;
