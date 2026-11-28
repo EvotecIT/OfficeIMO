@@ -54,8 +54,8 @@ namespace OfficeIMO.PowerPoint {
             Dictionary<string, DateTime?>? assignedDates = _packageDateOverrides;
             _packageDateOverrides = null;
             if (assignedDates == null) return;
-            foreach ((string name, DateTime? value) in assignedDates) {
-                PowerPointUtils.WriteSdkBuiltinDateProperty(this, name, value);
+            foreach (KeyValuePair<string, DateTime?> assignment in assignedDates) {
+                PowerPointUtils.WriteSdkBuiltinDateProperty(this, assignment.Key, assignment.Value);
             }
         }
 
