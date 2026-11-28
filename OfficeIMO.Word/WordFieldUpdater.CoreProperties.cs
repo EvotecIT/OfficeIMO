@@ -21,9 +21,9 @@ internal static partial class WordFieldUpdater {
     private static bool TryEvaluateCoreProperty(WordDocument document, CoreFieldProperty property,
         WordFieldInventory.ParsedFieldInstruction parsed, out string? value, out WordFieldUpdateStatus status,
         out string message) {
-        object? propertyValue = document._ownedModel is { } model
-            ? ReadOwnedCoreProperty(model, property)
-            : ReadSdkCoreProperty(document.Properties, property);
+        if (document._ownedModel is not { } model || !TryReadOwnedCoreProperty(model, property, out object? propertyValue)) {
+            propertyValue = ReadSdkCoreProperty(document.Properties, property);
+        }
         string success = $"Updated from built-in document property {property}.";
         return IsCoreDate(property)
             ? TrySetDate((DateTime?)propertyValue, parsed, success, out value, out status, out message)
@@ -35,13 +35,31 @@ internal static partial class WordFieldUpdater {
 
     private static readonly ConditionalWeakTable<OfficeXmlTree, Dictionary<CoreFieldProperty, object>> OwnedCoreProperties = new();
 
-    private static object? ReadOwnedCoreProperty(WordPackageModel model, CoreFieldProperty property) {
+    private static bool TryReadOwnedCoreProperty(WordPackageModel model, CoreFieldProperty property, out object? value) {
+        value = null;
+        if (!model.Package.PartExists("/_rels/.rels")) return true;
+
         const string relationship = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
-        if (ReadPackagePropertyPart(model, relationship).Tree is not { } tree) return null;
+        const int Relationships = OfficeXmlNamespaces.PackageRelationships;
+        OfficeXmlTree relationships = model.Package.GetRelationships(null);
+        var root = new OfficeXmlNode(relationships, relationships.Root);
+        OfficeXmlNode reference = default;
+        foreach (OfficeXmlNode candidate in root.Children(Relationships, "Relationship")) {
+            if (candidate.Attribute("Type") != relationship) continue;
+            // Let the package reader report its format error before updating the field.
+            if (reference.Exists) return false;
+            reference = candidate;
+        }
+
+        if (reference.Attribute("Id") is not { } id ||
+            model.Package.GetRelationshipTarget(null, id) is not { } target ||
+            !model.Package.PartExists(target)) return true;
 
         // Like the package reader, validate the part on first use. Keep the result while the parsed part is unchanged.
+        OfficeXmlTree tree = model.Package.GetXml(target);
         var values = tree.Version == 0 ? OwnedCoreProperties.GetValue(tree, ReadOwnedCoreProperties) : ReadOwnedCoreProperties(tree);
-        return values.TryGetValue(property, out object? value) ? value : null;
+        values.TryGetValue(property, out value);
+        return true;
     }
 
     private static Dictionary<CoreFieldProperty, object> ReadOwnedCoreProperties(OfficeXmlTree tree) {
