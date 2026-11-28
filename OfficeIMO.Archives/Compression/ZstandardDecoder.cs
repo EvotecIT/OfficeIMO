@@ -61,6 +61,7 @@ internal sealed class ZstandardDecoder {
     private readonly byte[] _block = new byte[MaxBlockSize];
     private readonly byte[] _literals = new byte[MaxBlockSize];
     private readonly byte[] _small = new byte[8];
+    private readonly byte[] _one = new byte[1];
     private readonly int[] _repeats = new int[3];
     private readonly ZstandardBackwardBits _bits = new();
     private readonly XxHash64 _checksum = new();
@@ -542,7 +543,7 @@ internal sealed class ZstandardDecoder {
 
             long produced = _frameProduced + (_position - blockStart);
             long reach = produced <= _window ? produced + _dictionaryLength : _window;
-            if (matchOffset <= 0 || matchOffset > reach) throw Corrupt(offset + position, $"a match offset of at most {reach}");
+            if (matchOffset <= 0 || matchOffset > reach) throw Corrupt(offset + position, $"a match offset between 1 and {reach}");
             int source = _position - (int)matchOffset;
             if (matchOffset >= matchLength) {
                 Buffer.BlockCopy(history, source, history, _position, matchLength);
@@ -577,12 +578,13 @@ internal sealed class ZstandardDecoder {
     }
 
     private int ReadByte(string structure) {
-        int value = _source.ReadByte();
+        // Read into the scratch buffer: Stream.ReadByte allocates on every call for streams that don't override it.
+        int read = _source.Read(_one, 0, 1);
         // A read can request cancellation as it returns, so cancellation wins over anything the bytes would fail.
         _settings.CancellationToken.ThrowIfCancellationRequested();
-        if (value < 0) throw Corrupt(_offset, structure);
+        if (read <= 0) throw Corrupt(_offset, structure);
         _offset++;
-        return value;
+        return _one[0];
     }
 
     private void ReadExact(byte[] buffer, int offset, int count, long inputOffset, string structure) {

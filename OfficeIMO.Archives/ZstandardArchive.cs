@@ -133,6 +133,8 @@ public static class ZstandardArchive {
     }
 
     private static Stream Admit(Stream source, long start, long length, ArchiveLimits limits, CancellationToken cancellationToken) {
+        // Measuring the source can request cancellation; report that rather than a limit the measured length would break.
+        cancellationToken.ThrowIfCancellationRequested();
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         Stream view;
         try {

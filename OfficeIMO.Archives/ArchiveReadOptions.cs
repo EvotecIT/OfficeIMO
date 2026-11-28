@@ -10,7 +10,7 @@ public sealed class ArchiveReadOptions {
     /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
     public int? ZipLegacyCodePage { get; set; }
 
-    /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Nonseekable input is snapshotted in memory up to 8 MiB and to a temporary file beyond that, within this limit.</summary>
+    /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Nonseekable input is snapshotted first, within this limit; depending on the reader the snapshot stays in memory, bounded by Int32.MaxValue, or moves to a temporary file beyond 8 MiB.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum physical members, including directories and unselected files.</summary>
     public int MaxEntryCount { get; set; } = 10000;
