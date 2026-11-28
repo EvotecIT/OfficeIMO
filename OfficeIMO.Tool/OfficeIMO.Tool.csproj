@@ -79,9 +79,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
   </ItemGroup>
-  <!-- Without the runtime list, pack would quietly produce a RID-neutral package instead of the per-platform set. -->
-  <Target Name="RequireToolPackagingProperty" BeforeTargets="Pack"
-          Condition="'$(PowerForgePackaging)' != 'true' and '$(RuntimeIdentifier)' == ''">
+  <!-- Without the runtime list, pack would quietly produce a RID-neutral package, or a single-platform package under
+       the main package ID, instead of the per-platform set. BeforePack runs before NuGet writes anything. -->
+  <PropertyGroup>
+    <BeforePack>RequireToolPackagingProperty;$(BeforePack)</BeforePack>
+  </PropertyGroup>
+  <Target Name="RequireToolPackagingProperty" Condition="'$(PowerForgePackaging)' != 'true'">
     <Error Text="OfficeIMO.Tool packs its per-platform packages only with -p:PowerForgePackaging=true, which PSPublishModule 3.0.196 or newer sets for releases." />
   </Target>
 </Project>
