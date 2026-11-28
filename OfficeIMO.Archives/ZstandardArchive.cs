@@ -50,20 +50,29 @@ public static class ZstandardArchive {
     /// <paramref name="destination"/>, passing over skippable frames and verifying content sizes and checksums.</summary>
     /// <remarks>Input is bounded by <see cref="ArchiveReadOptions.MaxInputBytes"/>; output by the smaller of
     /// <see cref="ArchiveReadOptions.MaxEntryBytes"/> and <see cref="ArchiveReadOptions.MaxExpandedBytes"/>, and it is
-    /// charged to the operation budget as selected bytes. Declared windows are bounded by
-    /// <see cref="ArchiveReadOptions.MaxWindowBytes"/>. Nonseekable input is snapshotted first. The source stays open.
+    /// charged to the operation budget as selected bytes, and decode work by
+    /// <see cref="ArchiveReadOptions.MaxDecompressionWorkBytes"/>. Declared windows are bounded by
+    /// <see cref="ArchiveReadOptions.MaxWindowBytes"/>, except in single-segment frames, whose window is their declared
+    /// content size and which the output limit bounds instead. Nonseekable input is snapshotted first. The source stays open.
     /// Output is written block by block, so a failure can leave a partial result in the destination.</remarks>
     /// <exception cref="ArchiveCorruptionException">The input is not Zstandard, is truncated, or fails a checksum.</exception>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured limit is exceeded.</exception>
     public static ZstandardReadResult Decompress(Stream source, Stream destination, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        Decompress(source, destination, null, options, cancellationToken);
+        Decode(source, destination, null, options, cancellationToken);
 
     /// <summary>Decompresses frames that were compressed against <paramref name="dictionary"/>. A frame that names a
-    /// different dictionary ID is rejected.</summary>
+    /// different dictionary ID is rejected, and so is a frame that names any dictionary when
+    /// <paramref name="dictionary"/> is raw content, which has no ID.</summary>
     /// <inheritdoc cref="Decompress(Stream, Stream, ArchiveReadOptions?, CancellationToken)"/>
-    public static ZstandardReadResult Decompress(Stream source, Stream destination, ZstandardDictionary? dictionary,
+    public static ZstandardReadResult DecompressWithDictionary(Stream source, Stream destination, ZstandardDictionary dictionary,
         ArchiveReadOptions? options = null, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(dictionary);
+        return Decode(source, destination, dictionary, options, cancellationToken);
+    }
+
+    private static ZstandardReadResult Decode(Stream source, Stream destination, ZstandardDictionary? dictionary,
+        ArchiveReadOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();

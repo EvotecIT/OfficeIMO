@@ -16,6 +16,8 @@ public enum ArchiveFormat {
     GZip,
     /// <summary>A 7z archive.</summary>
     SevenZip,
+    /// <summary>A RAR 5.0 container.</summary>
+    Rar5,
     /// <summary>A TAR archive compressed with Zstandard (.tar.zst, .tzst).</summary>
     TarZstandard,
     /// <summary>A single file compressed with Zstandard (.zst) whose content is not a TAR archive.</summary>

@@ -91,7 +91,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         CancellationToken cancellationToken) {
         var workBudget = new PdfUnderstandingWorkBudget(maxWorkUnits, cancellationToken);
         if (!reads.RolesBuilt) {
+            long consumedBefore = workBudget.Consumed;
             reads.Roles = BuildTaggedContentRoleIndex(document, reads.Graph, workBudget);
+            reads.RolesWork = workBudget.Consumed - consumedBefore;
             reads.RolesBuilt = true;
         }
         if (reads.Roles is not TaggedContentRoleIndex roles) return false;
@@ -197,6 +199,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         // Which marked content the structure tree binds to roles, built on first use.
         internal bool RolesBuilt { get; set; }
         internal object? Roles { get; set; }
+        // Work units building the role index took, charged again to each later pass that reuses it.
+        internal long RolesWork { get; set; }
         // Passing tables' segments by page, built on first use once every table has been read.
         internal Dictionary<int, List<PdfUnderstandingTableCandidate>>? TablesByPage { get; set; }
     }

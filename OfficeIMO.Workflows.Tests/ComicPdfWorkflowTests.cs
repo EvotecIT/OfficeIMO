@@ -1,17 +1,20 @@
+using OfficeIMO.Archives;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ComicPdfWorkflowTests {
-    [Fact]
-    public async Task ComicSevenZipConversionKeepsEachNativePageCanvasInPdf() {
-        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.cb7");
+    [Theory]
+    [InlineData("cb7")]
+    [InlineData("cbr")]
+    public async Task ComicConversionKeepsEachNativePageCanvasInPdf(string format) {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour." + format);
         DirectoryInfo directory = Directory.CreateTempSubdirectory("officeimo-comic-route-");
         try {
             string output = Path.Combine(directory.FullName, "comic.pdf");
             OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = source, OutputPath = output,
-                ConversionRouteId = "ebook-cb7-pdf"
+                ConversionRouteId = $"ebook-{format}-pdf"
             });
 
             Assert.True(result.Succeeded, result.Summary);
@@ -24,4 +27,27 @@ public sealed class ComicPdfWorkflowTests {
             directory.Delete(recursive: true);
         }
     }
+    [Fact]
+    public async Task CompressedRarComicFailsWithTheEntryAndCodecDiagnosticBeforePublishingPdf() {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour-compressed.cbr");
+        DirectoryInfo directory = Directory.CreateTempSubdirectory("officeimo-cbr-compressed-");
+        try {
+            string output = Path.Combine(directory.FullName, "comic.pdf");
+            OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert, InputPath = source, OutputPath = output,
+                ConversionRouteId = "ebook-cbr-pdf"
+            });
+
+            Assert.False(result.Succeeded);
+            OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, item => item.Code == "WorkflowFailed");
+            Assert.Equal(nameof(Rar5CompressionNotSupportedException), failure.Details["exceptionType"]);
+            Assert.Contains("ComicInfo.xml", failure.Message, StringComparison.Ordinal);
+            Assert.Contains("method 3", failure.Message, StringComparison.Ordinal);
+            Assert.Contains("131072-byte dictionary", failure.Message, StringComparison.Ordinal);
+            Assert.False(File.Exists(output));
+        } finally {
+            directory.Delete(recursive: true);
+        }
+    }
+
 }

@@ -44,7 +44,7 @@ public static partial class InvoiceParser {
             XElement? account = c.Child(element, Cac + "PayeeFinancialAccount");
             if (account != null) {
                 string identifier = c.Required(account, Cbc + "ID");
-                result.Account = new InvoiceBankAccount { Identifier = identifier, IsIban = InvoiceBankAccountIdentity.IsValidIban(identifier),
+                result.Account = new InvoiceBankAccount { Identifier = identifier, IsIban = FinancialSchemes.Iban.IsValid(identifier),
                     Name = c.Text(account, Cbc + "Name"), ProviderIdentifier = c.Text(c.Child(account, Cac + "FinancialInstitutionBranch"), Cbc + "ID") };
             }
             XElement? card = c.Child(element, Cac + "CardAccount"), mandate = c.Child(element, Cac + "PaymentMandate");

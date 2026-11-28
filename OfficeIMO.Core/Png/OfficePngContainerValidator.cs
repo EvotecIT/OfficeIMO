@@ -25,6 +25,35 @@ internal static class OfficePngContainerValidator {
         CancellationToken cancellationToken,
         int maximumChunks,
         out int frameCount,
+        out string? failureReason) =>
+        TryValidate(bytes, cancellationToken, maximumChunks, long.MaxValue, out frameCount, out failureReason, out _);
+
+    /// <summary>
+    /// Validates the container while inflating at most <paramref name="maximumInflatedTextBytes"/> of compressed text in total.
+    /// <paramref name="inflatedTextBytes"/> reports the bytes inflated, or a value above <paramref name="maximumInflatedTextBytes"/>
+    /// when compressed text did not fit; it is never inflated past the remaining allowance. Uncompressed text is not counted,
+    /// because it does not expand the input.
+    /// </summary>
+    internal static bool TryValidate(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        long maximumInflatedTextBytes,
+        out int frameCount,
+        out string? failureReason,
+        out long inflatedTextBytes) {
+        var textBudget = new PngTextBudget(maximumInflatedTextBytes);
+        bool valid = TryValidateCore(bytes, cancellationToken, maximumChunks, textBudget, out frameCount, out failureReason);
+        inflatedTextBytes = textBudget.InflationExceeded ? textBudget.MaximumInflatedBytes + 1L : textBudget.InflatedBytes;
+        return valid;
+    }
+
+    private static bool TryValidateCore(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        PngTextBudget textBudget,
+        out int frameCount,
         out string? failureReason) {
         frameCount = 0;
         failureReason = null;
@@ -59,7 +88,6 @@ internal static class OfficePngContainerValidator {
             int declaredFrameCount = 1;
             uint gammaValue = 0;
             bool hasStandardRgbChromaticities = false;
-            long decodedTextBytes = 0;
             int offset = Signature.Length;
             int chunkCount = 0;
             while (offset + 12 <= bytes.Length) {
@@ -226,7 +254,7 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "tEXt":
                         if (!seenHeader || !HasValidLatinText(
-                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
+                                bytes, dataOffset, length, textBudget, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid tEXt chunk.";
                             return false;
                         }
@@ -234,7 +262,7 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "zTXt":
                         if (!seenHeader || !HasValidCompressedText(
-                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
+                                bytes, dataOffset, length, textBudget, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid zTXt chunk.";
                             return false;
                         }
@@ -242,7 +270,7 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "iTXt":
                         if (!seenHeader || !HasValidInternationalText(
-                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
+                                bytes, dataOffset, length, textBudget, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid iTXt chunk.";
                             return false;
                         }
@@ -513,7 +541,7 @@ internal static class OfficePngContainerValidator {
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes,
+        PngTextBudget textBudget,
         CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int textOffset = keywordEnd + 1;
@@ -522,14 +550,14 @@ internal static class OfficePngContainerValidator {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (bytes[textOffset + index] == 0) return false;
         }
-        return TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
+        return textBudget.TryAddDecoded(textLength);
     }
 
     private static bool HasValidCompressedText(
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes,
+        PngTextBudget textBudget,
         CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int methodOffset = keywordEnd + 1;
@@ -538,7 +566,7 @@ internal static class OfficePngContainerValidator {
             bytes,
             methodOffset + 1,
             offset + length - methodOffset - 1,
-            ref decodedTextBytes,
+            textBudget,
             requireUtf8: false,
             cancellationToken);
     }
@@ -547,7 +575,7 @@ internal static class OfficePngContainerValidator {
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes,
+        PngTextBudget textBudget,
         CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int end = offset + length;
@@ -562,44 +590,59 @@ internal static class OfficePngContainerValidator {
         int translatedEnd = FindNull(bytes, translatedOffset, end, cancellationToken);
         int translatedLength = translatedEnd - translatedOffset;
         if (translatedEnd < 0 ||
-            !TryAddDecodedTextBytes(ref decodedTextBytes, translatedLength) ||
+            !textBudget.TryAddDecoded(translatedLength) ||
             !HasValidUtf8(bytes, translatedOffset, translatedLength, cancellationToken)) return false;
         int textOffset = translatedEnd + 1;
         int textLength = end - textOffset;
         if (bytes[flagOffset] == 1) {
             return TryInflateText(
-                bytes, textOffset, textLength, ref decodedTextBytes, requireUtf8: true, cancellationToken);
+                bytes, textOffset, textLength, textBudget, requireUtf8: true, cancellationToken);
         }
         return HasValidUtf8(bytes, textOffset, textLength, cancellationToken) &&
-               TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
+               textBudget.TryAddDecoded(textLength);
     }
 
     private static bool TryInflateText(
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes,
+        PngTextBudget textBudget,
         bool requireUtf8,
         CancellationToken cancellationToken) {
+        long allowance = textBudget.RemainingInflationBytes;
+        bool allowanceBinds = allowance <= MaximumPngTextBytes;
+        // An exhausted allowance still admits an empty stream, so one byte is requested to tell it apart from real output.
+        int requested = (int)Math.Max(1L, Math.Min(MaximumPngTextBytes, allowance));
         if (length < 6 || !TryGetCompressedMetadataOutputLimit(
                 bytes.LongLength,
                 length,
-                MaximumPngTextBytes,
+                requested,
                 out int maximumTextBytes)) return false;
         var compressed = new byte[length];
         Buffer.BlockCopy(bytes, offset, compressed, 0, length);
         try {
             byte[] text = OfficeZlibCodec.Decompress(
                 compressed, maximumTextBytes, cancellationToken: cancellationToken);
+            textBudget.InflatedBytes += text.Length;
+            if (allowanceBinds && text.Length > allowance) {
+                textBudget.InflationExceeded = true;
+                return false;
+            }
             return (!requireUtf8 || HasValidUtf8(text, 0, text.Length, cancellationToken)) &&
-                   TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
+                   textBudget.TryAddDecoded(text.Length);
+        } catch (OfficeDecompressionSizeLimitException) {
+            if (allowanceBinds && maximumTextBytes == requested) textBudget.InflationExceeded = true;
+            textBudget.InflatedBytes += maximumTextBytes;
+            return false;
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
-            exception is OfficeDecompressionSizeLimitException ||
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
+            // A stream can expand before its checksum or structure fails, and the decoder does not say how far it got, so a
+            // failed attempt is charged as if it reached its limit.
+            textBudget.InflatedBytes += maximumTextBytes;
             return false;
         }
     }
@@ -714,9 +757,19 @@ internal static class OfficePngContainerValidator {
 
     private static bool IsUtf8Continuation(byte value) => value is >= 0x80 and <= 0xBF;
 
-    private static bool TryAddDecodedTextBytes(ref long total, int count) {
-        total += count;
-        return total <= MaximumPngTextBytes;
+    /// <summary>Decoded text across all text chunks (at most 1 MiB) and the inflation allowance the caller can afford.</summary>
+    private sealed class PngTextBudget {
+        internal PngTextBudget(long maximumInflatedBytes) => MaximumInflatedBytes = Math.Max(0, maximumInflatedBytes);
+        internal long MaximumInflatedBytes { get; }
+        internal long DecodedBytes { get; private set; }
+        internal long InflatedBytes { get; set; }
+        internal bool InflationExceeded { get; set; }
+        internal long RemainingInflationBytes => MaximumInflatedBytes - InflatedBytes;
+
+        internal bool TryAddDecoded(int count) {
+            DecodedBytes += count;
+            return DecodedBytes <= MaximumPngTextBytes;
+        }
     }
 
     private static bool IsValidKeywordByte(byte value) =>

@@ -7,7 +7,10 @@
 | `ArchiveInspector.Open` / `PlanRead` / `OpenRead` / `ReadMembers` | ZIP, CAB, MSI | Raw ordinal-preserving inventory, complete verified member reads and atomic grouped reads. |
 | `ArchiveInspection.Verify` / `CopyTo` | ZIP, CAB, MSI | Structured integrity outcomes; verified copying uses a private decoded spool for every format. CAB/MSI verify the complete containing folder. |
 | `ArchiveReader.ListSevenZip` / `ReadSevenZip` | 7z | Validated file table and portable paths. Selected reads verify each complete containing folder and return caller-owned arrays. |
-| `ArchiveExtractor.Extract` | ZIP, 7z, CAB, MSI, TAR (plain, .tar.gz, .tar.zst, .tar.xz, .tar.lz), single gzip, Zstandard, xz and lzip files | Strict verified extraction through a sibling staging directory and completed-directory publication. TAR links and device records are never created; selecting one fails the extraction. |
+| RAR5 | Stored members, CRC-32 and BLAKE2sp, bounded SFX signature discovery and ordered volume sets | Methods 1–5, RAR 4, encryption and writing are unsupported. |
+| `ArchiveReader.InspectRar5` / `ReadRar5` | RAR5 | Stored entries, verified CRC-32 or BLAKE2sp, comments and primary file headers in archive order. |
+| `InspectRar5Volumes` / `ReadRar5Volumes` / `ExtractRar5Volumes` | RAR5 volume sets | Join stored members across explicitly supplied volumes. Extraction uses the same staging and path policy. |
+| `ArchiveExtractor.Extract` | ZIP, 7z, RAR5, CAB, MSI, TAR (plain, .tar.gz, .tar.zst, .tar.xz, .tar.lz), single gzip, Zstandard, xz and lzip files | Strict verified extraction through a sibling staging directory and completed-directory publication. TAR links and device records are never created; selecting one fails the extraction. |
 | `ArchiveReader.ReadTar` / `ListTar` | TAR, plain or compressed with gzip, Zstandard, xz or lzip | Header checksums, numeric fields, extended headers and content bounds are verified; `ReadTar` applies extraction path checks and returns selected regular files, `ListTar` returns every member's metadata including link targets. |
 | `GZipArchive.Decompress` / `Compress` / `CreateWriter` | gzip | Concatenated members, per-member CRC-32 and length, optional header CRC; output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes` and charged as selected bytes; writing uses the deterministic managed Deflate encoder. |
 | `ZstandardArchive.Decompress` | Zstandard | RFC 8878 frames, concatenated and skippable frames, raw, RLE and compressed blocks, trained and raw-content dictionaries; content size and XXH64 checksum verified. Declared windows are bounded by `MaxWindowBytes` (default 64 MiB); output by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`, charged as selected bytes. Malformed input raises `ArchiveCorruptionException` with the offset. |
@@ -103,3 +106,31 @@ The [7-Zip producer fixtures](../OfficeIMO.Archives.Tests/Fixtures/IndependentSe
 cover plain and encoded headers, solid LZMA2, non-solid LZMA, Copy and encryption refusal.
 The [7z format description](https://github.com/ip7z/7zip/blob/main/DOC/7zFormat.txt)
 and [XZ format description](https://tukaani.org/xz/xz-file-format.txt) document the container and LZMA2 dictionary properties.
+
+## RAR5 reading
+
+- Signature discovery considers the first 1 MiB before an archive and leaves
+  the preceding bytes inert. Each primary header has a CRC-32, a body of at
+  most 2 MiB, and byte-offset diagnostics. The locator and Quick Open cache
+  never select file paths or payload offsets.
+- Supply volumes explicitly in order. At most 256 volumes share the input,
+  entry, metadata, expansion and work limits. Stored split entries verify any
+  checksums on earlier pieces and the final checksum on the complete member.
+- Listing reports directories, stored and compressed members, comment availability,
+  redirection targets, owner fields and file times. Subsecond Unix times retain
+  all nine digits. A file copy reads the verified bytes of an earlier regular
+  member. Filesystem links and ownership remain metadata, and extraction
+  never creates junctions or follows redirection targets on disk.
+- Inspection verifies stored UTF-8 comments. If `CommentCompressionMethod`
+  is greater than zero, accessing `Comment` raises the same typed error as
+  reading a selected compressed entry.
+- Reading a selected compressed entry raises
+  `Rar5CompressionNotSupportedException` with its name, method and dictionary
+  size. An encrypted archive or member raises
+  `Rar5EncryptionNotSupportedException`. No writer is provided.
+
+The [RARLAB technical note](https://www.rarlab.com/technote.htm) defines the
+container, the [BLAKE2 paper](https://www.blake2.net/blake2.pdf) defines the
+parallel tree, and [RFC 7693](https://www.rfc-editor.org/rfc/rfc7693) defines
+the BLAKE2s node hash. Fixture commands and checksums are recorded beside the
+[RARLAB fixtures](../OfficeIMO.Archives.Tests/Fixtures/IndependentRar5/rar5-provenance.json).

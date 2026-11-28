@@ -147,6 +147,7 @@
   <Project Path="OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence/OfficeIMO.Confluence.csproj" />
   <Project Path="OfficeIMO.Core/OfficeIMO.Core.csproj" />
+  <Project Path="OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj" />
   <Project Path="OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj" />
   <Project Path="OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj" />
   <Project Path="OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
@@ -302,6 +303,8 @@
   <Project Path="OfficeIMO.Reader.Dbf/OfficeIMO.Reader.Dbf.csproj" />
   <Project Path="OfficeIMO.Reader.DjVu/OfficeIMO.Reader.DjVu.csproj" />
   <Project Path="OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction/OfficeIMO.Reader.DocumentExtraction.csproj" />
   <Project Path="OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj" />
   <Project Path="OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj" />
   <Project Path="OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj" />

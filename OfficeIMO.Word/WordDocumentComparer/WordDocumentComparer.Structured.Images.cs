@@ -1,14 +1,8 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Wordprocessing;
-using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeImages(WordDocument source, WordDocument target, WordComparisonResult result) {
+        private static void AnalyzeImages(WordPackageView source, WordPackageView target, WordComparisonResult result) {
             IReadOnlyList<ImageSnapshot> sourceImages = GetImageSnapshots(source);
             IReadOnlyList<ImageSnapshot> targetImages = GetImageSnapshots(target);
             IReadOnlyList<MatchedIndexPair> matchedImages = FindMatchingIndexes(
@@ -164,234 +158,171 @@ namespace OfficeIMO.Word {
                 sourceImages[imageIndex].DocumentOrder);
         }
 
-        private static List<ImageSnapshot> GetImageSnapshots(WordDocument document) {
+        private static List<ImageSnapshot> GetImageSnapshots(WordPackageView document) {
             var snapshots = new List<ImageSnapshot>();
-            MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddImageSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
+            WordPartView? mainPart = document.Main;
+            AddImageSnapshots(snapshots, mainPart, BodyOf(mainPart), BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
                 int headerIndex = 0;
-                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                    AddImageSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddImageSnapshots(snapshots, headerPartKey.Key, HeaderRoot(headerPartKey.Key), headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
-                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                    AddImageSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddImageSnapshots(snapshots, footerPartKey.Key, FooterRoot(footerPartKey.Key), footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
-                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnotes[footnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
-                        footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
+                    AddImageSnapshots(snapshots, FootnotesPart(mainPart), footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
-                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnotes[endnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
-                        endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
+                    AddImageSnapshots(snapshots, EndnotesPart(mainPart), endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddImageSnapshots(List<ImageSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase) {
-            if (part == null || container == null) {
+        private static void AddImageSnapshots(List<ImageSnapshot> snapshots, WordPartView? part, OfficeXmlNode container, string partKey, int orderBase) {
+            if (part == null || container.IsNone) {
                 return;
             }
 
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                switch (ordered.Element) {
-                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
-                        DocumentFormat.OpenXml.Drawing.Blip? blip = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
-                        if (blip == null) {
-                            break;
-                        }
+                OfficeXmlNode element = ordered.Element;
+                if (element.Is(W, "drawing")) {
+                    OfficeXmlNode blip = FirstDescendant(element, Dml, "blip");
+                    if (blip.IsNone) {
+                        continue;
+                    }
 
-                        string drawingVisualSignature = GetDrawingVisualSignature(part, drawing);
-                        string drawingPositionKey = GetImagePositionKey(partKey, drawing);
-                        if (blip.Embed?.Value is string embeddedRelationshipId) {
-                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
-                        } else if (blip.Link?.Value is string externalRelationshipId) {
-                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
-                        }
-
-                        break;
-                    case V.ImageData imageData when imageData.RelationshipId?.Value is string relationshipId:
-                        string vmlVisualSignature = GetVmlVisualSignature(part, imageData);
-                        string vmlPositionKey = GetImagePositionKey(partKey, imageData);
-                        if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
-                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
-                        } else {
-                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
-                        }
-
-                        break;
+                    string drawingVisualSignature = GetDrawingVisualSignature(part, element);
+                    string drawingPositionKey = GetImagePositionKey(partKey, element);
+                    if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "embed") is string embeddedRelationshipId) {
+                        AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
+                    } else if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "link") is string externalRelationshipId) {
+                        AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
+                    }
+                } else if (element.Is(Vml, "imagedata") &&
+                           element.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id") is string relationshipId) {
+                    string vmlVisualSignature = GetVmlVisualSignature(part, element);
+                    string vmlPositionKey = GetImagePositionKey(partKey, element);
+                    if (part.HasExternalRelationship(relationshipId)) {
+                        AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
+                    } else {
+                        AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
+                    }
                 }
             }
         }
 
-        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
-            OpenXmlPart relatedPart;
-            try {
-                relatedPart = part.GetPartById(relationshipId);
-            } catch (ArgumentOutOfRangeException) {
+        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, WordPartView part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
+            WordPartView? relatedPart = part.GetPartById(relationshipId);
+            if (relatedPart == null || !IsImagePartRelationship(part, relationshipId)) {
                 return;
             }
 
-            if (relatedPart is not ImagePart imagePart) {
-                return;
-            }
-
-            using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            snapshots.Add(ImageSnapshot.FromEmbedded(CreateImageFingerprint(stream), visualSignature, partKey, documentOrder, positionKey));
+            snapshots.Add(ImageSnapshot.FromEmbedded(CreateImageFingerprint(relatedPart), visualSignature, partKey, documentOrder, positionKey));
         }
 
-        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
-            ExternalRelationship? relationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
-            snapshots.Add(ImageSnapshot.FromExternal(relationship?.Uri?.ToString() ?? relationshipId, visualSignature, partKey, documentOrder, positionKey));
+        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, WordPartView part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
+            string externalUri = part.TryGetExternalRelationship(relationshipId, out _, out string uri) ? uri : relationshipId;
+            snapshots.Add(ImageSnapshot.FromExternal(externalUri, visualSignature, partKey, documentOrder, positionKey));
         }
 
-        private static string GetDrawingVisualSignature(OpenXmlPart part, DocumentFormat.OpenXml.Wordprocessing.Drawing drawing) {
-            OpenXmlElement clone = drawing.CloneNode(true);
-            foreach (DocumentFormat.OpenXml.Drawing.Blip blip in clone.Descendants<DocumentFormat.OpenXml.Drawing.Blip>()) {
-                blip.Embed = null;
-                blip.Link = null;
-            }
-
-            foreach (OpenXmlElement element in new[] { clone }.Concat(clone.Descendants())) {
-                element.RemoveAttribute("embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                element.RemoveAttribute("link", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                RemoveVolatileDrawingAttributes(element);
-            }
-
-            foreach (DW.DocProperties properties in clone.Descendants<DW.DocProperties>()) {
-                properties.Id = 0U;
-                properties.Name = string.Empty;
-            }
-
-            foreach (PIC.NonVisualDrawingProperties properties in clone.Descendants<PIC.NonVisualDrawingProperties>()) {
-                properties.Id = 0U;
-                properties.Name = string.Empty;
-            }
-
-            return clone.OuterXml + GetImageHyperlinkSignature(part, drawing);
+        private static string GetDrawingVisualSignature(WordPartView part, OfficeXmlNode drawing) {
+            return GetElementSignature(drawing, DrawingVisualSignatureRules.Instance) + GetImageHyperlinkSignature(part, drawing);
         }
 
-        private static string GetVmlVisualSignature(OpenXmlPart part, V.ImageData imageData) {
-            OpenXmlElement clone = (imageData.Parent ?? imageData).CloneNode(true);
-            if (clone is V.ImageData clonedImageData) {
-                clonedImageData.RelationshipId = null;
+        /// <summary>A drawing without its relationship ids, editing ids and generated identity.</summary>
+        private sealed class DrawingVisualSignatureRules : SignatureRules {
+            internal static readonly DrawingVisualSignatureRules Instance = new();
+
+            internal override void Rewrite(OfficeXmlNode element, List<WordXmlAttribute> attributes) {
+                RemoveAll(attributes, attribute =>
+                    attribute.NamespaceUri == RelationshipsNamespaceUri && (attribute.LocalName == "embed" || attribute.LocalName == "link") ||
+                    attribute.LocalName == "editId" || attribute.LocalName == "anchorId");
+                ResetDrawingProperties(element, attributes);
             }
-
-            foreach (V.ImageData descendant in clone.Descendants<V.ImageData>()) {
-                descendant.RelationshipId = null;
-            }
-
-            foreach (OpenXmlElement element in new[] { clone }.Concat(clone.Descendants())) {
-                if (element is V.Shape shape) {
-                    shape.Id = null;
-                }
-
-                RemoveVolatileVmlAttributes(element);
-            }
-
-            return clone.OuterXml + GetImageHyperlinkSignature(part, imageData);
         }
 
-        private static string GetImageHyperlinkSignature(OpenXmlPart part, OpenXmlElement imageElement) {
+        private static string GetVmlVisualSignature(WordPartView part, OfficeXmlNode imageData) {
+            OfficeXmlNode shape = imageData.Parent.IsNone ? imageData : imageData.Parent;
+            return GetElementSignature(shape, VmlVisualSignatureRules.Instance) + GetImageHyperlinkSignature(part, imageData);
+        }
+
+        /// <summary>A VML shape without its relationship id and generated shape identifiers.</summary>
+        private sealed class VmlVisualSignatureRules : SignatureRules {
+            internal static readonly VmlVisualSignatureRules Instance = new();
+
+            internal override void Rewrite(OfficeXmlNode element, List<WordXmlAttribute> attributes) {
+                RemoveAll(attributes, attribute => attribute.LocalName == "id" || attribute.LocalName == "spid" || attribute.LocalName == "connectortype");
+            }
+        }
+
+        private static string GetImageHyperlinkSignature(WordPartView part, OfficeXmlNode imageElement) {
             var tokens = new List<string>();
-            Hyperlink? hyperlink = imageElement.Ancestors<Hyperlink>().FirstOrDefault();
-            if (hyperlink != null) {
+            OfficeXmlNode hyperlink = AncestorW(imageElement, "hyperlink");
+            if (!hyperlink.IsNone) {
                 tokens.Add("word:" + GetHyperlinkSignature(part, hyperlink));
             }
 
-            foreach (A.HyperlinkOnClick drawingHyperlink in imageElement.Descendants<A.HyperlinkOnClick>()) {
+            foreach (OfficeXmlNode drawingHyperlink in DescendantsOf(imageElement, Dml, "hlinkClick")) {
                 tokens.Add("drawing:" + GetDrawingHyperlinkSignature(part, drawingHyperlink));
             }
 
             return tokens.Count == 0 ? string.Empty : "|hyperlink:" + string.Join("|", tokens.ToArray());
         }
 
-        private static string GetDrawingHyperlinkSignature(OpenXmlPart part, A.HyperlinkOnClick hyperlink) {
+        private static string GetDrawingHyperlinkSignature(WordPartView part, OfficeXmlNode hyperlink) {
             return string.Join(
                 "|",
-                hyperlink.GetAttributes()
+                WordXmlNodes.Attributes(hyperlink)
                     .OrderBy(attribute => attribute.NamespaceUri, StringComparer.Ordinal)
                     .ThenBy(attribute => attribute.LocalName, StringComparer.Ordinal)
                     .Select(attribute => attribute.LocalName == "id"
-                        ? attribute.LocalName + "=" + GetRelationshipTarget(part, attribute.Value ?? string.Empty)
-                        : attribute.LocalName + "=" + (attribute.Value ?? string.Empty))
+                        ? attribute.LocalName + "=" + GetRelationshipTarget(part, attribute.Value)
+                        : attribute.LocalName + "=" + attribute.Value)
                     .ToArray());
         }
 
-        private static string GetImagePositionKey(string partKey, OpenXmlElement imageElement) {
-            OpenXmlElement block = imageElement.Ancestors<Paragraph>().FirstOrDefault() ??
-                                   imageElement.Ancestors<Table>().FirstOrDefault() ??
-                                   imageElement;
+        private static string GetImagePositionKey(string partKey, OfficeXmlNode imageElement) {
+            OfficeXmlNode block = AncestorW(imageElement, "p");
+            if (block.IsNone) block = AncestorW(imageElement, "tbl");
+            if (block.IsNone) block = imageElement;
             return partKey + ":" + GetImageBlockPath(partKey, block) +
                    ":image:" + GetImageOrdinalWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                    ":offset:" + GetImageInlineOffsetWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static string GetImageBlockPath(string partKey, OpenXmlElement block) {
-            OpenXmlElement? noteRoot = null;
+        private static string GetImageBlockPath(string partKey, OfficeXmlNode block) {
+            OfficeXmlNode noteRoot = default;
             if (partKey.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal)) {
-                noteRoot = block.Ancestors<Footnote>().FirstOrDefault();
+                noteRoot = AncestorW(block, "footnote");
             } else if (partKey.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal)) {
-                noteRoot = block.Ancestors<Endnote>().FirstOrDefault();
+                noteRoot = AncestorW(block, "endnote");
             }
 
-            return noteRoot == null ? GetStableElementPath(block) : GetStableElementPathRelativeTo(block, noteRoot);
+            return noteRoot.IsNone ? GetStableElementPath(block) : GetStableElementPathRelativeTo(block, noteRoot);
         }
 
-        private static string GetStableElementPathRelativeTo(OpenXmlElement element, OpenXmlElement root) {
-            var segments = new Stack<string>();
-            OpenXmlElement? current = element;
-            while (current != null && current.Parent != null && !ReferenceEquals(current, root)) {
-                OpenXmlElement parent = current.Parent;
-                int ordinal = parent.Elements()
-                    .Where(item => item.GetType() == current.GetType())
-                    .TakeWhile(item => !ReferenceEquals(item, current))
-                    .Count();
-                segments.Push(current.GetType().Name + "[" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
-                current = parent;
-            }
-
-            return string.Join("/", segments.ToArray());
-        }
-
-        private static void RemoveVolatileDrawingAttributes(OpenXmlElement element) {
-            foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
-                if (attribute.LocalName == "editId" || attribute.LocalName == "anchorId") {
-                    element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
-                }
-            }
-        }
-
-        private static void RemoveVolatileVmlAttributes(OpenXmlElement element) {
-            foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
-                if (attribute.LocalName == "id" ||
-                    attribute.LocalName == "spid" ||
-                    attribute.LocalName == "connectortype") {
-                    element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
-                }
-            }
-        }
-
-        private static int GetImageOrdinalWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
+        private static int GetImageOrdinalWithinBlock(OfficeXmlNode block, OfficeXmlNode imageElement) {
             int ordinal = 0;
-            foreach (OpenXmlElement element in EnumerateComparableDescendants(block)) {
-                if (ReferenceEquals(element, imageElement)) {
+            foreach (OfficeXmlNode element in EnumerateComparableDescendants(block)) {
+                if (element == imageElement) {
                     return ordinal;
                 }
 
-                if (element is DocumentFormat.OpenXml.Wordprocessing.Drawing || element is V.ImageData) {
+                if (element.Is(W, "drawing") || element.Is(Vml, "imagedata")) {
                     ordinal++;
                 }
             }
@@ -399,10 +330,10 @@ namespace OfficeIMO.Word {
             return ordinal;
         }
 
-        private static int GetImageInlineOffsetWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
+        private static int GetImageInlineOffsetWithinBlock(OfficeXmlNode block, OfficeXmlNode imageElement) {
             int offset = 0;
-            foreach (OpenXmlElement element in EnumerateComparableDescendants(block)) {
-                if (ReferenceEquals(element, imageElement)) {
+            foreach (OfficeXmlNode element in EnumerateComparableDescendants(block)) {
+                if (element == imageElement) {
                     return offset;
                 }
 
@@ -412,19 +343,27 @@ namespace OfficeIMO.Word {
             return offset;
         }
 
-        private static int GetInlinePositionLength(OpenXmlElement element) {
-            return element switch {
-                Text text => text.Text?.Length ?? 0,
-                TabChar => 1,
-                Break => 1,
-                SymbolChar => 1,
-                NoBreakHyphen => 1,
-                SoftHyphen => 1,
-                CarriageReturn => 1,
-                FootnoteReference => 1,
-                EndnoteReference => 1,
-                _ => 0
-            };
+        private static int GetInlinePositionLength(OfficeXmlNode element) {
+            if (element.NamespaceId != W) {
+                return 0;
+            }
+
+            switch (element.LocalName) {
+                case "t":
+                    return element.InnerText.Length;
+                case "tab":
+                    return IsTabChar(element) ? 1 : 0;
+                case "br":
+                case "sym":
+                case "noBreakHyphen":
+                case "softHyphen":
+                case "cr":
+                case "footnoteReference":
+                case "endnoteReference":
+                    return 1;
+                default:
+                    return 0;
+            }
         }
 
         private static string ImageLocation(int imageIndex) {
@@ -445,7 +384,8 @@ namespace OfficeIMO.Word {
                    sourceImage.EmbeddedFingerprint.Equals(targetImage.EmbeddedFingerprint);
         }
 
-        private static ImageFingerprint CreateImageFingerprint(Stream stream) {
+        private static ImageFingerprint CreateImageFingerprint(WordPartView imagePart) {
+            using Stream stream = imagePart.OpenRead();
             using System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create();
             byte[] buffer = new byte[81920];
             long length = 0;

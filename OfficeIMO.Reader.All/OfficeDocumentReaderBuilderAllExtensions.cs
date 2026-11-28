@@ -1,3 +1,4 @@
+using OfficeIMO.Archives;
 using OfficeIMO.Comic;
 using OfficeIMO.Fb2;
 using OfficeIMO.Mobi;
@@ -61,6 +62,9 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddSourceCodeHandler()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cbr", new[] { ".cbr" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe,
+                classifyReadError: static error => error is Rar5EncryptionNotSupportedException ? ReaderErrorCodes.UnsupportedEncryption : null))
             .AddHandler(EpubReaderAdapter.CreateImportHandler("cb7", new[] { ".cb7" },
                 ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
             .AddHandler(EpubReaderAdapter.CreateImportHandler("cbz", new[] { ".cbz" },

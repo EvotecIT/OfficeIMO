@@ -13,6 +13,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointTable(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointTable(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         /// <summary>The table's <c>a:tbl</c> in its graphic frame, held where the frame is.</summary>
         internal OfficeXmlNode TableNode => XmlElement.Child(D, "graphic").Child(D, "graphicData").Child(D, "tbl");
 

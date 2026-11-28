@@ -149,6 +149,7 @@ internal static class OfficeHiddenDataAssets {
                 ? "Content Credentials (C2PA manifest) declaring generative AI"
                 : "Content Credentials (C2PA manifest)",
             OfficeProvenanceCarrierKind.C2paExternalManifest => "Reference to external Content Credentials",
+            OfficeProvenanceCarrierKind.AiGeneratorMetadata => "AI generator settings: " + evidence.Value,
             _ => "Digital source type: " + evidence.DigitalSourceKind
         };
         return evidence.IsStructurallyValid ? description : description + " (malformed)";

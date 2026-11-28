@@ -124,6 +124,7 @@
     "OfficeIMO.Reader.Csv": "3.6.X",
     "OfficeIMO.Reader.Dbf": "3.6.X",
     "OfficeIMO.Reader.DocBook": "3.6.X",
+    "OfficeIMO.Reader.DocumentExtraction": "3.6.X",
     "OfficeIMO.Reader.Email": "3.6.X",
     "OfficeIMO.Reader.Excel": "3.6.X",
     "OfficeIMO.Reader.Epub": "3.6.X",

@@ -5,6 +5,7 @@
       "OfficeIMO.Archives.Tests\\OfficeIMO.Archives.Tests.csproj",
       "OfficeIMO.Archives\\OfficeIMO.Archives.csproj",
       "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Entities.Tests\\OfficeIMO.Entities.Tests.csproj",
       "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
       "OfficeIMO.Toml.Configuration.Tests\\OfficeIMO.Toml.Configuration.Tests.csproj",
       "OfficeIMO.Toml.Configuration\\OfficeIMO.Toml.Configuration.csproj",

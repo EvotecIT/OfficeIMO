@@ -1096,6 +1096,14 @@ _Dependency footprint:_ OfficeIMO.Reader.Core and DBAClientX.Dbf; no database dr
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and DocBook.
 
+#### [OfficeIMO.Reader.DocumentExtraction](../OfficeIMO.Reader.DocumentExtraction/README.md)
+
+- [x] `OfficeIMODocumentExtractionClient` for the preview `Microsoft.Extensions.DocumentExtraction` abstraction, using whichever Reader handlers the application registers
+- [x] Headings as nested sections, list items, tables with header rows, images with alternative and OCR text, page, slide and sheet frames, and PDF regions
+- [x] `AddOfficeIMODocumentExtraction` and keyed registration that compose with the abstraction's middleware
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` plus the preview `Microsoft.Extensions.DocumentExtraction` packages (which bring `Microsoft.Extensions.AI.Abstractions`); `net8.0` and `net10.0` only.
+
 #### [OfficeIMO.Reader.Email](../OfficeIMO.Reader.Email/README.md)
 
 - [x] One adapter package for EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, vCard, PST/OST/OLM/EMLX, mailbox directories, and OAB

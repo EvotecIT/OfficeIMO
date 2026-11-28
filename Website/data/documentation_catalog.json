@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 385,
-    "productionComponentCount": 183,
-    "testProjectCount": 73,
+    "projectCount": 389,
+    "productionComponentCount": 184,
+    "testProjectCount": 75,
     "benchmarkProjectCount": 49,
-    "validationProjectCount": 81,
+    "validationProjectCount": 82,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122746
+    "conceptualWordCount": 122823
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 35,
+      "componentCount": 36,
       "componentIndexes": [
         118,
         119,
@@ -50,7 +50,8 @@
         149,
         150,
         151,
-        152
+        152,
+        153
       ]
     },
     {
@@ -91,16 +92,16 @@
         114,
         116,
         117,
-        160,
         161,
         162,
-        164,
+        163,
         165,
-        177,
+        166,
         178,
         179,
         180,
-        181
+        181,
+        182
       ]
     },
     {
@@ -121,7 +122,7 @@
         87,
         88,
         115,
-        156
+        157
       ]
     },
     {
@@ -153,7 +154,6 @@
         111,
         112,
         113,
-        166,
         167,
         168,
         169,
@@ -161,14 +161,15 @@
         171,
         172,
         173,
-        174
+        174,
+        175
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        182
+        183
       ]
     },
     {
@@ -202,9 +203,9 @@
         104,
         105,
         106,
-        153,
         154,
-        155
+        155,
+        156
       ]
     },
     {
@@ -241,12 +242,12 @@
         84,
         85,
         89,
-        157,
         158,
         159,
-        163,
-        175,
-        176
+        160,
+        164,
+        176,
+        177
       ]
     }
   ],
@@ -360,10 +361,10 @@
       "name": "OfficeIMO.Archives",
       "packageId": "OfficeIMO.Archives",
       "category": "Foundations and integrations",
-      "description": "Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, 7z, TAR and gzip reading, deterministic ZIP, TAR and gzip creation, and managed payload extraction.",
+      "description": "Bounded ZIP reading and traversal, Cabinet and Windows Installer inspection and member reads, 7z, stored RAR5, TAR and gzip reading, deterministic ZIP, TAR and gzip creation, and managed payload extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-      "sourceFileCount": 67,
+      "sourceFileCount": 79,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/archives/",
       "apiUrl": "/api/archives/",
@@ -569,7 +570,7 @@
       "name": "OfficeIMO.Comic",
       "packageId": "OfficeIMO.Comic",
       "category": "Formats and interoperability",
-      "description": "Read CBZ and CB7 page images and ComicInfo metadata as a fixed-layout publication.",
+      "description": "Read CBZ, CB7 and stored RAR5 CBR page images and ComicInfo metadata as a fixed-layout publication.",
       "kind": "package",
       "projectPath": "OfficeIMO.Comic/OfficeIMO.Comic.csproj",
       "sourceFileCount": 3,
@@ -610,8 +611,8 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1396,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 1503,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core",
@@ -926,8 +927,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1502,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 1517,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel",
@@ -2133,7 +2134,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
       "sourceFileCount": 1822,
-      "referencingTestProjectCount": 14,
+      "referencingTestProjectCount": 15,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf",
@@ -2265,8 +2266,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 605,
-      "referencingTestProjectCount": 8,
+      "sourceFileCount": 622,
+      "referencingTestProjectCount": 9,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint",
@@ -2475,7 +2476,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
       "sourceFileCount": 2,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-all/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.All",
@@ -2617,6 +2618,23 @@
         "net8.0",
         "net10.0",
         "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Reader.DocumentExtraction",
+      "packageId": "OfficeIMO.Reader.DocumentExtraction",
+      "category": "Extraction and ingestion",
+      "description": "OfficeIMO provider for Microsoft.Extensions.DocumentExtraction: in-process extraction of Word, Excel, PowerPoint, PDF, HTML, EPUB and other formats into ExtractionDocument.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.DocumentExtraction/OfficeIMO.Reader.DocumentExtraction.csproj",
+      "sourceFileCount": 7,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocumentExtraction",
+      "targetFrameworks": [
+        "net8.0",
+        "net10.0"
       ]
     },
     {
@@ -3372,8 +3390,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 915,
-      "referencingTestProjectCount": 13,
+      "sourceFileCount": 770,
+      "referencingTestProjectCount": 14,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word",
