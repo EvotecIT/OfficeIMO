@@ -68,7 +68,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
         using Stream worksheet = projection.GetEntry("xl/worksheets/sheet1.xml")!.Open();
         var ns = System.Xml.Linq.XNamespace.Get("http://schemas.openxmlformats.org/spreadsheetml/2006/main");
         var cells = System.Xml.Linq.XDocument.Load(worksheet).Root!.Element(ns + "sheetData")!.Elements(ns + "row")
-            .SelectMany(row => row.Elements(ns + "c")).ToDictionary(cell => (string)cell.Attribute("r")!);
+            .SelectMany(row => row.Elements(ns + "c")).ToDictionary(cell => cell.Attribute("r")!.Value);
         var formula = cells["B1"].Element(ns + "f")!;
         Assert.Equal("array", (string?)formula.Attribute("t"));
         Assert.Equal("B1:B2", (string?)formula.Attribute("ref"));
