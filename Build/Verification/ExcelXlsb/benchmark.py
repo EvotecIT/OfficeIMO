@@ -24,13 +24,15 @@ def measure(output):
     fixture = output / "benchmark.xlsb"
     array_fixture = output / "benchmark-array.xlsb"
     styled_fixture = output / "benchmark-styled.xlsx"
+    multiline_fixture = output / "benchmark-multiline.xlsb"
     executable, env = driver(output, "baseline")
-    run(["dotnet", str(executable), "seed", str(fixture), str(array_fixture), str(styled_fixture)], executable.parent, env=env)
+    run(["dotnet", str(executable), "seed", str(fixture), str(array_fixture), str(styled_fixture), str(multiline_fixture)], executable.parent, env=env)
     inputs_path = output / "inputs.json"
     inputs = json.loads(inputs_path.read_text())
     inputs["fixtureSha256"] = hashlib.sha256(fixture.read_bytes()).hexdigest()
     inputs["arrayFixtureSha256"] = hashlib.sha256(array_fixture.read_bytes()).hexdigest()
     inputs["styledFixtureSha256"] = hashlib.sha256(styled_fixture.read_bytes()).hexdigest()
+    inputs["multilineFixtureSha256"] = hashlib.sha256(multiline_fixture.read_bytes()).hexdigest()
     inputs["initialLoad"] = run(["uptime"], output, stdout=subprocess.PIPE).stdout.strip()
     inputs_path.write_text(json.dumps(inputs, indent=2) + "\n")
 
@@ -44,12 +46,13 @@ def measure(output):
                  "--job", "short", "--artifacts", str(report), "--exporters", "json"], executable.parent,
                 env={**env, "OFFICEIMO_XLSB_BENCH_INPUT": str(fixture),
                      "OFFICEIMO_XLSB_BENCH_ARRAY_INPUT": str(array_fixture),
-                     "OFFICEIMO_XLSB_BENCH_STYLED_INPUT": str(styled_fixture)})
+                     "OFFICEIMO_XLSB_BENCH_STYLED_INPUT": str(styled_fixture),
+                     "OFFICEIMO_XLSB_BENCH_MULTILINE_INPUT": str(multiline_fixture)})
             reports = list((report / "results").glob("*-report*.json"))
             if len(reports) != 1:
                 raise RuntimeError(f"Expected one benchmark report in {report}")
             results = json.loads(reports[0].read_text())["Benchmarks"]
-            if len(results) != 5 or any(not result.get("Statistics") for result in results):
+            if len(results) != 6 or any(not result.get("Statistics") for result in results):
                 raise RuntimeError(f"One or more workloads did not finish in {report}")
 
 

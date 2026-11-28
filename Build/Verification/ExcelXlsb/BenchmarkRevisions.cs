@@ -2,10 +2,11 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using OfficeIMO.Excel;
 
-if (args.Length == 4 && args[0] == "seed") {
+if (args.Length == 5 && args[0] == "seed") {
     File.WriteAllBytes(args[1], XlsbMigrationBenchmarks.CreateNativeWorkbook());
     File.WriteAllBytes(args[2], XlsbMigrationBenchmarks.CreateNativeArrayWorkbook());
     File.WriteAllBytes(args[3], XlsbMigrationBenchmarks.CreateStyledWorkbook());
+    File.WriteAllBytes(args[4], XlsbMigrationBenchmarks.CreateMultilineWorkbook());
 } else {
     BenchmarkSwitcher.FromAssembly(typeof(XlsbMigrationBenchmarks).Assembly).Run(args);
 }
@@ -18,6 +19,8 @@ public class XlsbMigrationBenchmarks {
     private byte[] _input = null!;
     private byte[] _arrayInput = null!;
     private ExcelDocument _styledWorkbook = null!;
+    private byte[] _multilineInput = null!;
+    private const string MultilineText = "First\r\nSecond";
 
     [GlobalSetup]
     public void Setup() {
@@ -27,6 +30,8 @@ public class XlsbMigrationBenchmarks {
             ?? throw new InvalidOperationException("Set OFFICEIMO_XLSB_BENCH_ARRAY_INPUT to the workbook with array formulas.");
         string styledFile = Environment.GetEnvironmentVariable("OFFICEIMO_XLSB_BENCH_STYLED_INPUT")
             ?? throw new InvalidOperationException("Set OFFICEIMO_XLSB_BENCH_STYLED_INPUT to the authored styled workbook.");
+        string multilineFile = Environment.GetEnvironmentVariable("OFFICEIMO_XLSB_BENCH_MULTILINE_INPUT")
+            ?? throw new InvalidOperationException("Set OFFICEIMO_XLSB_BENCH_MULTILINE_INPUT to the workbook with multiline text.");
         _input = File.ReadAllBytes(inputFile);
         _arrayInput = File.ReadAllBytes(arrayFile);
         using (ExcelDocument workbook = Load(_arrayInput)) {
@@ -37,6 +42,12 @@ public class XlsbMigrationBenchmarks {
                 || array.Cell(1, 2).GetValue<double>() != 3D || array.Cell(2, 2).GetValue<double>() != 3D
                 || array.Cell(Rows, 1).GetValue<double>() != Rows)
                 throw new InvalidDataException("The benchmark array workbook did not import its formulas, range and cached values.");
+        }
+        _multilineInput = File.ReadAllBytes(multilineFile);
+        using (ExcelDocument multiline = Load(_multilineInput)) {
+            ExcelSheet sheet = multiline.Sheets.Single();
+            if (sheet.Cell(1, 1).GetValue<string>() != MultilineText || sheet.Cell(Rows, 2).GetValue<double>() != Rows)
+                throw new InvalidDataException("The benchmark workbook did not retain the multiline text and companion numeric data.");
         }
         _styledWorkbook = Load(File.ReadAllBytes(styledFile));
         using (ExcelDocument styled = Load(SaveStyledWorkbook())) {
@@ -60,6 +71,12 @@ public class XlsbMigrationBenchmarks {
     [Benchmark]
     public int ImportArrayWorkbook() {
         using ExcelDocument document = Load(_arrayInput);
+        return document.Sheets.Count;
+    }
+
+    [Benchmark]
+    public int ImportMultilineWorkbook() {
+        using ExcelDocument document = Load(_multilineInput);
         return document.Sheets.Count;
     }
 
@@ -114,6 +131,18 @@ public class XlsbMigrationBenchmarks {
             }
         });
         return document.ToBytes();
+    }
+
+    internal static byte[] CreateMultilineWorkbook() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Lines");
+        sheet.Batch(data => {
+            for (int row = 1; row <= Rows; row++) {
+                data.Cell(row, 1).SetValue(MultilineText);
+                data.Cell(row, 2).SetValue(row);
+            }
+        });
+        return document.ToBytes(Native);
     }
 
     private byte[] EditWorkbook() {
