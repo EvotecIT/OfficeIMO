@@ -123,8 +123,6 @@ namespace OfficeIMO.PowerPoint {
                 PackageSlideList? slides = PackageSlideList.Read(package);
                 if (slides == null || index < 0 || index >= slides.Entries.Count) return false;
                 OfficeXmlTree presentation = slides.Presentation;
-                // Custom shows list slides by relationship, and the model takes the removed slide out of them.
-                if (presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "custShowLst") != OfficeXmlTree.NoNode) return false;
                 (int entry, string relationship, string slide) = slides.Entries[index];
                 List<uint>? ids = slides.ReadIds();
                 if (ids == null) return false;
@@ -147,7 +145,10 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (!PowerPointTreeSections.TryPlan(presentation, package.Namespaces.GetId(PowerPointTreeSections.P14Namespace), ids, out PowerPointTreeSections.Plan? sections)) return false;
 
+                if (!TryPlanPackageSlideCustomShows(package, slides, relationship, out SlideCustomShowPruning? customShows)) return false;
+
                 presentation.Remove(entry);
+                if (customShows != null) ApplyPackageSlideCustomShows(customShows);
                 OfficeXmlTree relationships = package.GetXml(presentationRelationships);
                 relationships.Remove(presentationRelationship);
                 RelationshipsOf(package, main).RemoveAll(edge => string.Equals(edge.Id, relationship, StringComparison.Ordinal));

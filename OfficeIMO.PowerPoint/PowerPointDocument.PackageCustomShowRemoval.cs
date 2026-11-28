@@ -21,28 +21,35 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode node = RequireOwnedCustomShow(presentation, show);
             uint? id = PowerPointCustomShow.ReadId(node);
             List<CustomShowLinkEdit>? edits = null;
-            if (id is uint showId && !TryPlanOwnedCustomShowLinks(package, presentation, showId, out edits)) return false;
+            if (id is uint showId && !TryPlanOwnedCustomShowLinks(package, presentation, new[] { showId }, out edits)) return false;
 
             OfficeXmlNode list = node.Parent;
             // Keep the detached show readable after the package that held it has been released.
             node.Tree!.RetainSourceBytes();
             node.Remove();
             if (KnownCustomShowChild(list, "custShow").IsNone) list.Remove();
-            if (edits != null) {
-                foreach (CustomShowLinkEdit edit in edits) {
-                    foreach (OfficeXmlNode action in edit.Actions) action.Remove();
-                    foreach (string relationship in edit.Relationships) edit.Owner.RemoveRelationshipIfUnused(relationship, default);
-                    edit.Owner.MarkEdited();
-                }
-            }
+            ApplyOwnedCustomShowLinkEdits(edits);
             presentation.MarkEdited();
             return true;
         }
 
-        private sealed record CustomShowLinkEdit(PowerPointPartRef Owner, List<OfficeXmlNode> Actions, HashSet<string> Relationships);
+        private static void ApplyOwnedCustomShowLinkEdits(List<CustomShowLinkEdit>? edits) {
+            if (edits == null) return;
+            foreach (CustomShowLinkEdit edit in edits) {
+                foreach (OfficeXmlNode action in edit.Actions) action.Remove();
+                if (edit.Relationships is { } relationships) {
+                    foreach (int relationship in edit.RemovedRelationships!) relationships.Remove(relationship);
+                    edit.Owner.Document!.InvalidatePackageRelationships();
+                }
+                edit.Owner.MarkEdited();
+            }
+        }
+
+        private sealed record CustomShowLinkEdit(PowerPointPartRef Owner, List<OfficeXmlNode> Actions,
+            OfficeXmlTree? Relationships, List<int>? RemovedRelationships);
 
         private bool TryPlanOwnedCustomShowLinks(OfficeOpcEditablePackage package, PowerPointPartRef presentation,
-            uint showId, out List<CustomShowLinkEdit>? edits) {
+            ICollection<uint> showIds, out List<CustomShowLinkEdit>? edits) {
             edits = null;
             var xmlParts = new Dictionary<string, bool>(OfficeAsciiIgnoreCaseComparer.Instance) {
                 [presentation.Name] = false
@@ -64,7 +71,7 @@ namespace OfficeIMO.PowerPoint {
                     if (package.TryReadUnparsed(partName, out OfficeXmlPullReader reader, out OfficePooledBytes content,
                         processMarkupCompatibility: false)) {
                         using (content) {
-                            if (!MayHaveCustomShowLink(reader, showId)) continue;
+                            if (!MayHaveCustomShowLink(reader, showIds)) continue;
                         }
                     }
                     // An opaque part must keep its original bytes if an existing owned edit is flushed before SDK cleanup.
@@ -76,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointPartRef owner = PowerPointPartRef.Package(this, partName);
                     var actions = new List<OfficeXmlNode>();
                     var relationships = new HashSet<string>(StringComparer.Ordinal);
-                    foreach (OfficeXmlNode action in FindCustomShowLinks(root, showId)) {
+                    foreach (OfficeXmlNode action in FindCustomShowLinks(root, showIds)) {
                         OfficeXmlNode extension = CustomShowLinkExtension(action);
                         if (extension.Exists) {
                             if (IsUnknownCustomShowDecoy(action, extension)) continue;
@@ -92,7 +99,10 @@ namespace OfficeIMO.PowerPoint {
                         }
                         actions.Add(action);
                     }
-                    if (actions.Count != 0) (edits ??= new List<CustomShowLinkEdit>()).Add(new CustomShowLinkEdit(owner, actions, relationships));
+                    if (actions.Count != 0) {
+                        (OfficeXmlTree? relationshipTree, List<int>? remove) = PlanUnusedCustomShowRelationships(package, owner, root, actions, relationships);
+                        (edits ??= new List<CustomShowLinkEdit>()).Add(new CustomShowLinkEdit(owner, actions, relationshipTree, remove));
+                    }
                 }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException or NotSupportedException) {
@@ -100,7 +110,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool MayHaveCustomShowLink(OfficeXmlPullReader reader, uint showId) {
+        private static bool MayHaveCustomShowLink(OfficeXmlPullReader reader, ICollection<uint> showIds) {
             // A link in a compatibility wrapper can require the original typed cleanup. Include it in this
             // preflight, then accept owned edits only for known content outside the wrappers.
             while (reader.Read()) {
@@ -108,15 +118,15 @@ namespace OfficeIMO.PowerPoint {
                 if (reader.NamespaceId == LinkDrawingNamespace &&
                     (reader.LocalNameEquals("hlinkClick") || reader.LocalNameEquals("hlinkMouseOver") || reader.LocalNameEquals("hlinkHover")) &&
                     reader.TryGetAttribute(OfficeXmlNamespaces.None, "action", out string action) &&
-                    TryParseCustomShowAction(action, out uint id, out _) && id == showId) return true;
+                    TryParseCustomShowAction(action, out uint id, out _) && showIds.Contains(id)) return true;
             }
             return false;
         }
 
-        private static IEnumerable<OfficeXmlNode> FindCustomShowLinks(OfficeXmlNode root, uint showId) {
+        private static IEnumerable<OfficeXmlNode> FindCustomShowLinks(OfficeXmlNode root, ICollection<uint> showIds) {
             foreach (string name in CustomShowLinkMarkup.Names) {
                 foreach (OfficeXmlNode link in root.Descendants(LinkDrawingNamespace, name)) {
-                    if (TryParseCustomShowAction(link.Attribute("action"), out uint id, out _) && id == showId) yield return link;
+                    if (TryParseCustomShowAction(link.Attribute("action"), out uint id, out _) && showIds.Contains(id)) yield return link;
                 }
             }
         }
@@ -169,6 +179,22 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode slide = common.Parent;
             return container.Is(LinkPresentationNamespace, "spTree") && common.Is(LinkPresentationNamespace, "cSld") &&
                 slide.Is(LinkPresentationNamespace, "sld") && slide.Parent.IsNone;
+        }
+
+        private static (OfficeXmlTree? Tree, List<int>? Remove) PlanUnusedCustomShowRelationships(OfficeOpcEditablePackage package,
+            PowerPointPartRef owner, OfficeXmlNode root, List<OfficeXmlNode> actions, HashSet<string> candidateIds) {
+            if (candidateIds.Count == 0) return default;
+
+            // Decoding malformed attributes can fail, so resolve usage before any action, show or slide is removed.
+            var removedActions = new HashSet<int>(actions.Select(action => action.Node));
+            OfficeXmlTree relationships = package.GetRelationships(owner.Name);
+            var remove = new List<int>();
+            foreach (string id in candidateIds) {
+                if (PowerPointPartRef.ReferencesRelationship(root, id, removedActions)) continue;
+                int node = FindRelationship(relationships, id);
+                if (node != OfficeXmlTree.NoNode) remove.Add(node);
+            }
+            return remove.Count == 0 ? default : (relationships, remove);
         }
 
         private static bool PlanOwnedCustomShowRelationship(PowerPointPartRef owner, PowerPointPartRef presentation,
