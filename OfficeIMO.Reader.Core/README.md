@@ -29,7 +29,7 @@ OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx");
 foreach (var item in document.EnumerateContent()) Console.WriteLine(item.Location);
 ```
 
-`EnumerateContent()` walks paragraphs and tables together in source order, each with the source location the reader knows. Word page numbers are computed only when you turn on `IncludePageLocations` in the Word reader options (`ReaderWordOptions`).
+`EnumerateContent()` walks paragraphs and tables together in source order, each with the source location the reader knows. Word page numbers are computed only when you turn on `IncludePageLocations` in the Word reader options (`ReaderWordOptions`); a full Word read then returns rendered text lines instead of paragraphs, so a long paragraph can produce several items.
 
 ## What it does
 
