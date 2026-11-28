@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Drawing.Binary;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -171,6 +172,33 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
 
             Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Preflight_ReportsOversizedCustomXmlWithoutReadingIt() {
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
+                pptx = created.ToBytes();
+            }
+            using (var stream = new MemoryStream()) {
+                stream.Write(pptx, 0, pptx.Length);
+                using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+                    DocumentFormat.OpenXml.Packaging.CustomXmlPart custom = package.PresentationPart!
+                        .AddCustomXmlPart(DocumentFormat.OpenXml.Packaging.CustomXmlPartType.CustomXml);
+                    using var payload = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                        "<root>" + new string('x', 510_000) + "</root>"));
+                    custom.FeedData(payload);
+                }
+                pptx = stream.ToArray();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 500_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.Contains(preflight.Findings, finding => finding.Code == "ppt-write-custom-xml");
         }
 
         [Fact]

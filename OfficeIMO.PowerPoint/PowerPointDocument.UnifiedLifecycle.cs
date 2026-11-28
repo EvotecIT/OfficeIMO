@@ -230,7 +230,7 @@ public sealed partial class PowerPointDocument {
                 foreach (IdPartPair pair in pending.Pop().Parts) {
                     OpenXmlPart part = pair.OpenXmlPart;
                     if (!seen.Add(part)) continue;
-                    if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) _ = part.RootElement;
+                    if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) LoadForMarkupCompatibility(part);
                     pending.Push(part);
                 }
             }
@@ -240,6 +240,16 @@ public sealed partial class PowerPointDocument {
             }
         }
         package.Position = start;
+    }
+
+    // A part that can't be loaded (over the part limit or malformed) keeps its stored markup in the copy; the reader then
+    // reports it only if it reads that part, as reading it through the document would.
+    private static void LoadForMarkupCompatibility(OpenXmlPart part) {
+        try {
+            _ = part.RootElement;
+        } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException
+                                                or DocumentFormat.OpenXml.Packaging.OpenXmlPackageException) {
+        }
     }
 
     // Writes the content of each edited part into the same part of the copy.
