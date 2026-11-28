@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 using System.Collections.Concurrent;
 using System.Data;
 using System.Diagnostics;
@@ -137,19 +138,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var worksheet = WorksheetRoot;
-            foreach (var child in worksheet.ChildElements) {
-                if (child is SheetViews views && IsNeutralSheetViews(views)) continue;
-                if (child is not SheetData sheetData) {
-                    return false;
+            return ReadWorksheetObject(worksheet => {
+                foreach (OfficeXmlNode child in worksheet.Children()) {
+                    if (child.Is(WorksheetMarkup, "sheetViews") && IsNeutralSheetViews(child)) continue;
+                    if (!child.Is(WorksheetMarkup, "sheetData")) return false;
+
+                    foreach (OfficeXmlNode row in child.Children(WorksheetMarkup, "row")) {
+                        if (row.Child(WorksheetMarkup, "c").Exists) return false;
+                    }
                 }
 
-                if (sheetData.Elements<Row>().Any(row => row.Elements<Cell>().Any())) {
-                    return false;
-                }
-            }
-
-            return true;
+                return true;
+            });
         }
 
         private bool IsOnlyVisibleWorksheetWithoutParts() {

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
-using X15 = DocumentFormat.OpenXml.Office2013.Excel;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
                     if (numberFormatId != 0) {
                         var workbookPart = _excelDocument.WorkbookPartRoot
                             ?? throw new InvalidOperationException("WorkbookPart is null");
-                        if (!BuildNumberFormatCodeMap(workbookPart).TryGetValue(numberFormatId, out numberFormatCode)
+                        if (!BuildNumberFormatCodeMap(OfficeXmlNode.FromSdk(workbookPart.WorkbookStylesPart?.Stylesheet)).TryGetValue(numberFormatId, out numberFormatCode)
                             || numberFormatCode is not ("#,##0" or "#,##0.00" or "#,##0.000" or "0.00" or "0.0" or "0.0%" or "0.00%" or "0.000"
                                 or "$#,##0" or "\\$#,##0" or "$#,##0.00" or "\\$#,##0.00"
                                 or "#,##0.00;(#,##0.00)" or "#,##0.00;\\(#,##0.00\\)"))
@@ -248,25 +248,30 @@ namespace OfficeIMO.Excel {
                 || type == PivotFilterValues.CaptionBetween || type == PivotFilterValues.CaptionNotBetween;
         }
 
-        private static bool IsMaterializedPivotFixedDateFilter(PivotFilter filter) {
-            var type = filter.Type?.Value;
-            return type == PivotFilterValues.DateEqual || type == PivotFilterValues.DateNotEqual
-                || type == PivotFilterValues.DateNewerThan || type == PivotFilterValues.DateNewerThanOrEqual
-                || type == PivotFilterValues.DateOlderThan || type == PivotFilterValues.DateOlderThanOrEqual
-                || type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween;
-        }
+        private static bool IsMaterializedPivotFixedDateFilter(PivotFilter filter) =>
+            IsMaterializedPivotFixedDateFilter(filter.Type?.Value.ToOfficeEnum());
 
-        private static bool QualifiedPivotWholeDay(PivotFilter filter) {
-            var list = filter.GetFirstChild<PivotFilterExtensionList>();
-            if (list == null) return false;
-            var extensions = list.Elements<PivotFilterExtension>().ToArray();
-            if (list.ChildElements.Count != 1 || extensions.Length != 1
-                || extensions[0].Uri?.Value != WholeDayPivotFilterExtensionUri
-                || extensions[0].ChildElements.Count != 1
-                || extensions[0].GetFirstChild<X15.PivotFilter>() is not X15.PivotFilter setting
-                || setting.UseWholeDay == null)
+        private static bool IsMaterializedPivotFixedDateFilter(ExcelPivotFilterType? type) => type is
+            ExcelPivotFilterType.DateEqual or ExcelPivotFilterType.DateNotEqual
+            or ExcelPivotFilterType.DateNewerThan or ExcelPivotFilterType.DateNewerThanOrEqual
+            or ExcelPivotFilterType.DateOlderThan or ExcelPivotFilterType.DateOlderThanOrEqual
+            or ExcelPivotFilterType.DateBetween or ExcelPivotFilterType.DateNotBetween;
+
+        private static bool QualifiedPivotWholeDay(PivotFilter filter) => QualifiedPivotWholeDay(OfficeXmlNode.FromSdk(filter));
+
+        private static bool QualifiedPivotWholeDay(OfficeXmlNode filter) {
+            const string x15 = "http://schemas.microsoft.com/office/spreadsheetml/2010/11/main";
+            OfficeXmlNode list = filter.Child(WorksheetMarkup, "extLst");
+            if (list.IsNone) return false;
+            OfficeXmlNode extension = list.FirstChild;
+            OfficeXmlNode setting = extension.FirstChild;
+            if (!extension.Is(WorksheetMarkup, "ext") || extension.NextSibling.Exists
+                || extension.Attribute("uri") != WholeDayPivotFilterExtensionUri
+                || !setting.Is(x15, "pivotFilter") || setting.NextSibling.Exists
+                || setting.BooleanAttribute("useWholeDay") is not bool useWholeDay) {
                 throw new NotSupportedException("The fixed-date filter has an unsupported whole-day extension.");
-            return setting.UseWholeDay.Value;
+            }
+            return useWholeDay;
         }
 
         private static readonly PivotFilterValues[] MaterializedPivotCalendarMonthTypes = {

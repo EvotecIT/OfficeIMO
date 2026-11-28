@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 using RichRel = DocumentFormat.OpenXml.Office.Y2022.RichValueRel;
 
@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
             private readonly List<Rich.RichValueStructure> _structures;
             private readonly List<RichRel.RichValueRelRelationship> _relationships;
             private readonly ExtendedPart _relationshipPart;
+            private readonly RichImageIndex _index;
             private readonly Dictionary<uint, (OpenXmlPart Part, string AltText)> _resolved =
                 new Dictionary<uint, (OpenXmlPart Part, string AltText)>();
             private readonly HashSet<uint> _invalid = new HashSet<uint>();
@@ -33,6 +34,11 @@ namespace OfficeIMO.Excel {
                 _structures = structures;
                 _relationships = relationships;
                 _relationshipPart = relationshipPart;
+                _index = new RichImageIndex(OfficeXmlNode.FromSdk(metadata),
+                    index => OfficeXmlNode.FromSdk(metadataBlocks.ElementAtOrDefault(index)),
+                    index => OfficeXmlNode.FromSdk(futureBlocks.ElementAtOrDefault(index)),
+                    index => OfficeXmlNode.FromSdk(richValues.ElementAtOrDefault(index)),
+                    index => OfficeXmlNode.FromSdk(structures.ElementAtOrDefault(index)));
             }
 
             internal Metadata Metadata => _metadata;
@@ -80,34 +86,9 @@ namespace OfficeIMO.Excel {
 
             internal bool TryResolveSlot(uint metadataIndex, out InCellImageSlot slot) {
                 slot = default;
-                if (metadataIndex == 0U || metadataIndex > int.MaxValue) return false;
-                MetadataBlock? metadataBlock = _metadataBlocks.ElementAtOrDefault((int)metadataIndex - 1);
-                MetadataRecord? record = metadataBlock?.Elements<MetadataRecord>()
-                    .FirstOrDefault(candidate => IsRichValueMetadataType(
-                        _metadata,
-                        candidate.TypeIndex?.Value ?? 0U));
-                if (record == null) return false;
-                uint futureIndex = record.Val?.Value ?? uint.MaxValue;
-                if (futureIndex > int.MaxValue) return false;
-                FutureMetadataBlock? futureBlock = _futureBlocks.ElementAtOrDefault((int)futureIndex);
-                if (!TryGetRichValueIndex(futureBlock, out uint valueIndex) || valueIndex > int.MaxValue) return false;
-                Rich.RichValue? value = _richValues.ElementAtOrDefault((int)valueIndex);
-                uint structureIndex = value?.S?.Value ?? uint.MaxValue;
-                if (structureIndex > int.MaxValue) return false;
-                Rich.RichValueStructure? structure = _structures.ElementAtOrDefault((int)structureIndex);
-                if (!TryGetImageRelationshipIndex(value, structure, out int relationshipIndex, out string altText)
-                    || relationshipIndex < 0
-                    || relationshipIndex >= _relationships.Count) {
-                    return false;
-                }
-                slot = new InCellImageSlot(
-                    metadataIndex,
-                    (int)futureIndex,
-                    (int)valueIndex,
-                    relationshipIndex,
-                    value!,
-                    structure!,
-                    altText);
+                if (!_index.TryResolve(metadataIndex, out var image) || image.Relationship >= _relationships.Count) return false;
+                slot = new InCellImageSlot(metadataIndex, image.Future, image.Value, image.Relationship,
+                    _richValues[image.Value], _structures[image.Structure], image.AltText);
                 return true;
             }
         }
@@ -321,29 +302,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static void SetRichValueIndex(FutureMetadataBlock block, uint valueIndex) {
-            OpenXmlElement? valueBlock = block.Descendants<Rich.RichValueBlock>().FirstOrDefault()
-                ?? block.Descendants().FirstOrDefault(element => string.Equals(element.LocalName, "rvb", StringComparison.Ordinal));
-            if (valueBlock is Rich.RichValueBlock typedBlock) typedBlock.I = valueIndex;
-            else valueBlock?.SetAttribute(new OpenXmlAttribute(
-                "i",
-                string.Empty,
-                valueIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        }
+        private static void SetRichValueIndex(FutureMetadataBlock block, uint valueIndex) =>
+            RichValueErrorLookup.FindValueBlock(OfficeXmlNode.FromSdk(block)).SetUInt32Attribute("i", valueIndex);
 
-        private static void SetImageRelationshipIndex(
-            Rich.RichValue value,
-            Rich.RichValueStructure structure,
-            int relationshipIndex) {
-            List<Rich.Key> keys = structure.Elements<Rich.Key>().ToList();
-            List<Rich.Value> values = value.Elements<Rich.Value>().ToList();
-            int identifierIndex = keys.FindIndex(key => string.Equals(
-                key.N?.Value,
-                "_rvRel:LocalImageIdentifier",
-                StringComparison.OrdinalIgnoreCase));
-            if (identifierIndex >= 0 && identifierIndex < values.Count) {
-                values[identifierIndex].Text = relationshipIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
+        private static void SetImageRelationshipIndex(Rich.RichValue value, Rich.RichValueStructure structure, int relationshipIndex) {
+            OfficeXmlNode field = FindRichImageField(OfficeXmlNode.FromSdk(value), OfficeXmlNode.FromSdk(structure), "_rvRel:LocalImageIdentifier");
+            if (field.Exists) field.SetInnerText(relationshipIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         private bool IsExclusiveInCellImageSlot(InCellImageLookup lookup, InCellImageSlot slot) {
@@ -391,56 +355,41 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryGetRichValueIndex(FutureMetadataBlock? futureBlock, out uint valueIndex) {
-            valueIndex = uint.MaxValue;
-            OpenXmlElement? valueBlock = futureBlock?.Descendants<Rich.RichValueBlock>().FirstOrDefault()
-                ?? futureBlock?.Descendants().FirstOrDefault(element =>
-                    string.Equals(element.LocalName, "rvb", StringComparison.Ordinal));
-            if (valueBlock is Rich.RichValueBlock typedBlock) {
-                valueIndex = typedBlock.I?.Value ?? uint.MaxValue;
-                return valueIndex != uint.MaxValue;
-            }
-            return valueBlock != null
-                && uint.TryParse(
-                    valueBlock.GetAttribute("i", string.Empty).Value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out valueIndex);
+            valueIndex = RichValueErrorLookup.FindValueBlock(OfficeXmlNode.FromSdk(futureBlock)).UInt32Attribute("i") ?? uint.MaxValue;
+            return valueIndex != uint.MaxValue;
         }
 
-        private static bool TryGetImageRelationshipIndex(
-            Rich.RichValue? value,
-            Rich.RichValueStructure? structure,
-            out int relationshipIndex,
-            out string altText) {
+        private static bool TryGetImageRelationshipIndex(Rich.RichValue? value, Rich.RichValueStructure? structure,
+            out int relationshipIndex, out string altText) =>
+            TryGetImageRelationshipIndex(OfficeXmlNode.FromSdk(value), OfficeXmlNode.FromSdk(structure), out relationshipIndex, out altText);
+
+        private static bool TryGetImageRelationshipIndex(OfficeXmlNode value, OfficeXmlNode structure,
+            out int relationshipIndex, out string altText) {
             relationshipIndex = -1;
             altText = string.Empty;
-            if (!string.Equals(structure?.T?.Value, "_localImage", StringComparison.OrdinalIgnoreCase) || value == null) return false;
-            List<Rich.Key> keys = structure!.Elements<Rich.Key>().ToList();
-            List<Rich.Value> values = value.Elements<Rich.Value>().ToList();
-            int identifierIndex = keys.FindIndex(key => string.Equals(
-                key.N?.Value,
-                "_rvRel:LocalImageIdentifier",
-                StringComparison.OrdinalIgnoreCase));
-            int textIndex = keys.FindIndex(key => string.Equals(key.N?.Value, "Text", StringComparison.OrdinalIgnoreCase));
-            if (identifierIndex < 0
-                || identifierIndex >= values.Count
-                || !uint.TryParse(values[identifierIndex].Text, out uint relationIndex)
-                || relationIndex > int.MaxValue) {
-                return false;
-            }
-            relationshipIndex = (int)relationIndex;
-            if (textIndex >= 0 && textIndex < values.Count) altText = values[textIndex].Text;
+            if (!string.Equals(structure.Attribute("t"), "_localImage", StringComparison.OrdinalIgnoreCase)) return false;
+            OfficeXmlNode identifier = FindRichImageField(value, structure, "_rvRel:LocalImageIdentifier");
+            if (!uint.TryParse(identifier.InnerText, out uint index) || index > int.MaxValue) return false;
+            relationshipIndex = (int)index;
+            altText = FindRichImageField(value, structure, "Text").InnerText;
             return true;
         }
 
-        private static void SetRichValueAltText(
-            Rich.RichValue value,
-            Rich.RichValueStructure structure,
-            string altText) {
-            List<Rich.Key> keys = structure.Elements<Rich.Key>().ToList();
-            List<Rich.Value> values = value.Elements<Rich.Value>().ToList();
-            int textIndex = keys.FindIndex(key => string.Equals(key.N?.Value, "Text", StringComparison.OrdinalIgnoreCase));
-            if (textIndex >= 0 && textIndex < values.Count) values[textIndex].Text = altText;
+        private static void SetRichValueAltText(Rich.RichValue value, Rich.RichValueStructure structure, string altText) {
+            OfficeXmlNode text = FindRichImageField(OfficeXmlNode.FromSdk(value), OfficeXmlNode.FromSdk(structure), "Text");
+            if (text.Exists) text.SetInnerText(altText);
+        }
+
+        private static OfficeXmlNode FindRichImageField(OfficeXmlNode value, OfficeXmlNode structure, string fieldName) {
+            const string rich = RichValueErrorLookup.RichData;
+            OfficeXmlNode field = value.FirstChild;
+            foreach (OfficeXmlNode key in structure.Children()) {
+                if (!key.Is(rich, "k")) continue;
+                while (field.Exists && !field.Is(rich, "v")) field = field.NextSibling;
+                if (field.IsNone || string.Equals(key.Attribute("n"), fieldName, StringComparison.OrdinalIgnoreCase)) return field;
+                field = field.NextSibling;
+            }
+            return default;
         }
     }
 }

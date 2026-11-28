@@ -3,6 +3,9 @@ namespace OfficeIMO.Excel {
     /// Read-only worksheet view metadata such as frozen panes, gridlines, zoom, and direction.
     /// </summary>
     public sealed class ExcelWorksheetViewInfo {
+        internal bool ShowRowColumnHeadings { get; set; } = true;
+        internal bool ShowZeros { get; set; } = true;
+
         /// <summary>Gets or sets whether the worksheet contains a pane definition.</summary>
         public bool HasPane { get; internal set; }
 

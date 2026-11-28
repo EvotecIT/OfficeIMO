@@ -1,45 +1,27 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
-    // Page setup helpers for orientation and margins.
     public partial class ExcelSheet {
-        /// <summary>
-        /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.
-        /// </summary>
         internal void SetOrientationCore(OfficePageOrientation orientation) {
             Persistence.OwnsTablePrintDefaults = false;
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var pageSetup = GetOrCreatePageSetup(ws);
-                string val = orientation == OfficePageOrientation.Landscape ? "landscape" : "portrait";
-                pageSetup.SetAttribute(new OpenXmlAttribute("", "orientation", "", val));
-            });
+            SetPageSetupAttribute("orientation", orientation == OfficePageOrientation.Landscape ? "landscape" : "portrait");
         }
 
-        /// <summary>
-        /// Sets a known worksheet paper size on the sheet's PageSetup.
-        /// </summary>
         internal void SetPaperSizeCore(ExcelPaperSize paperSize) {
             ValidatePaperSize(paperSize);
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var pageSetup = GetOrCreatePageSetup(ws);
-                pageSetup.PaperSize = (uint)paperSize;
+            SetPageSetupAttribute("paperSize", ((uint)paperSize).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        private void SetPageSetupAttribute(string name, string value) =>
+            EditWorksheetObject(worksheet => {
+                GetOrCreatePageSetup(worksheet).SetAttribute(name, value);
+                return true;
             });
-        }
 
-        private static PageSetup GetOrCreatePageSetup(Worksheet ws) {
-            var pageSetup = ws.GetFirstChild<PageSetup>();
-            if (pageSetup != null) {
-                return pageSetup;
-            }
-
-            pageSetup = new PageSetup();
-            var margins = ws.GetFirstChild<PageMargins>();
-            if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
-            return pageSetup;
-        }
+        private static OfficeXmlNode GetOrCreatePageSetup(OfficeXmlNode worksheet) =>
+            AddWorksheetObject(worksheet, "pageSetup", "headerFooter", "rowBreaks", "colBreaks", "customProperties",
+                "cellWatches", "ignoredErrors", "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF", "picture",
+                "oleObjects", "controls", "webPublishItems", "tableParts");
 
         private static void ValidatePaperSize(ExcelPaperSize paperSize) {
             if (!Enum.IsDefined(typeof(ExcelPaperSize), paperSize)) {
@@ -47,9 +29,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>
-        /// Sets physical page margins. Omitted header/footer margins are 0.3 inches.
-        /// </summary>
+        /// <summary>Sets physical margins. Omitted header and footer margins are 0.3 inches.</summary>
         internal void SetMarginsCore(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
             header ??= OfficeLength.Inches(0.3);
             footer ??= OfficeLength.Inches(0.3);
@@ -59,14 +39,17 @@ namespace OfficeIMO.Excel {
             if (bottom < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(bottom));
             if (header.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(header));
             if (footer.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(footer));
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var margins = ws.GetFirstChild<PageMargins>();
-                if (margins == null) {
-                    margins = new PageMargins();
-                    ws.InsertAt(margins, 0);
-                }
-                margins.Left = left.ToInches(); margins.Right = right.ToInches(); margins.Top = top.ToInches(); margins.Bottom = bottom.ToInches(); margins.Header = header.Value.ToInches(); margins.Footer = footer.Value.ToInches();
+            EditWorksheetObject(worksheet => {
+                OfficeXmlNode margins = AddWorksheetObject(worksheet, "pageMargins", "pageSetup", "headerFooter", "rowBreaks",
+                    "colBreaks", "customProperties", "cellWatches", "ignoredErrors", "smartTags", "drawing", "legacyDrawing",
+                    "legacyDrawingHF", "picture", "oleObjects", "controls", "webPublishItems", "tableParts");
+                margins.SetDoubleAttribute("left", left.ToInches());
+                margins.SetDoubleAttribute("right", right.ToInches());
+                margins.SetDoubleAttribute("top", top.ToInches());
+                margins.SetDoubleAttribute("bottom", bottom.ToInches());
+                margins.SetDoubleAttribute("header", header.Value.ToInches());
+                margins.SetDoubleAttribute("footer", footer.Value.ToInches());
+                return true;
             });
         }
 
@@ -91,66 +74,63 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>Sets or removes one fit-to-page dimension; fit-to-page stays on while either dimension is stored.</summary>
         internal void SetFitToPageDimension(bool width, uint? value) {
             Persistence.OwnsTablePrintDefaults = false;
-            WriteLock(() => {
-                Worksheet worksheet = WorksheetRoot;
-                PageSetup pageSetup = GetOrCreatePageSetup(worksheet);
-                if (width) {
-                    pageSetup.FitToWidth = value;
-                    if (!value.HasValue) pageSetup.RemoveAttribute("fitToWidth", string.Empty);
-                } else {
-                    pageSetup.FitToHeight = value;
-                    if (!value.HasValue) pageSetup.RemoveAttribute("fitToHeight", string.Empty);
-                }
-
-                bool fit = pageSetup.FitToWidth != null || pageSetup.FitToHeight != null;
-                SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
-                PageSetupProperties? properties = sheetProperties?.GetFirstChild<PageSetupProperties>();
-                if (fit) {
-                    if (sheetProperties == null) {
-                        sheetProperties = new SheetProperties();
-                        worksheet.InsertAt(sheetProperties, 0);
-                    }
-
-                    properties ??= sheetProperties.AppendChild(new PageSetupProperties());
-                    properties.FitToPage = true;
-                } else if (properties != null) {
-                    properties.FitToPage = null;
-                    properties.RemoveAttribute("fitToPage", string.Empty);
-                }
+            EditWorksheetObject(worksheet => {
+                OfficeXmlNode pageSetup = GetOrCreatePageSetup(worksheet);
+                pageSetup.SetUInt32Attribute(width ? "fitToWidth" : "fitToHeight", value);
+                bool fit = pageSetup.HasAttribute("fitToWidth") || pageSetup.HasAttribute("fitToHeight");
+                SetFitToPageMarkup(worksheet, fit ? true : null);
+                return true;
             });
         }
 
-        /// <summary>Removes one stored page setup attribute, returning the setting to Excel's default.</summary>
         internal void ClearPageSetupAttribute(string localName) {
             Persistence.OwnsTablePrintDefaults = false;
-            WriteLock(() => {
-                PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
-                pageSetup?.RemoveAttribute(localName, string.Empty);
-            });
+            EditWorksheetObject(worksheet => worksheet.Child(WorksheetMarkup, "pageSetup").RemoveAttribute(localName));
         }
 
-        internal void SetFitToPage(bool fitToPage, bool save = false) {
-            WriteLock(() => {
-                Worksheet worksheet = WorksheetRoot;
-                SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
-                if (sheetProperties == null) {
-                    sheetProperties = new SheetProperties();
-                    worksheet.PrependChild(sheetProperties);
-                }
+        internal void SetFitToPage(bool fitToPage, bool save = false) =>
+            EditWorksheetObject(worksheet => {
+                SetFitToPageMarkup(worksheet, fitToPage);
+                return true;
+            }, save);
 
-                PageSetupProperties? pageSetupProperties = sheetProperties.GetFirstChild<PageSetupProperties>();
-                if (pageSetupProperties == null) {
-                    pageSetupProperties = new PageSetupProperties();
-                    sheetProperties.AppendChild(pageSetupProperties);
-                }
+        private static void SetFitToPageMarkup(OfficeXmlNode worksheet, bool? fitToPage) {
+            OfficeXmlNode properties = worksheet.Child(WorksheetMarkup, "sheetPr");
+            OfficeXmlNode setup = properties.Child(WorksheetMarkup, "pageSetUpPr");
+            if (fitToPage.HasValue) {
+                if (properties.IsNone) properties = worksheet.GetOrPrependChild(WorksheetMarkup, "sheetPr");
+                if (setup.IsNone) setup = properties.Append(properties.CreateElement(WorksheetMarkup, "pageSetUpPr"));
+            }
+            if (!setup.IsNone) setup.SetBooleanAttribute("fitToPage", fitToPage);
+        }
 
-                pageSetupProperties.FitToPage = fitToPage;
-                if (save) {
-                    worksheet.Save();
-                }
+        internal void SetPageSetupCore(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) {
+            Persistence.OwnsTablePrintDefaults = false;
+            ApplyPageSetup(fitToWidth, fitToHeight, scale, pageOrder, paperSize, clearStaleFit: false);
+        }
+
+        internal void SetPageSetupAndClearStaleFit(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) =>
+            ApplyPageSetup(fitToWidth, fitToHeight, scale, pageOrder, paperSize, clearStaleFit: true);
+
+        private void ApplyPageSetup(uint? fitToWidth, uint? fitToHeight, uint? scale, ExcelPageOrder? pageOrder, ExcelPaperSize? paperSize, bool clearStaleFit) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
+            }
+            if (paperSize.HasValue) ValidatePaperSize(paperSize.Value);
+
+            EditWorksheetObject(worksheet => {
+                OfficeXmlNode pageSetup = GetOrCreatePageSetup(worksheet);
+                if (fitToWidth.HasValue || clearStaleFit) pageSetup.SetUInt32Attribute("fitToWidth", fitToWidth);
+                if (fitToHeight.HasValue || clearStaleFit) pageSetup.SetUInt32Attribute("fitToHeight", fitToHeight);
+                if (scale.HasValue || clearStaleFit) pageSetup.SetUInt32Attribute("scale", scale);
+                if (paperSize.HasValue) pageSetup.SetUInt32Attribute("paperSize", (uint)paperSize.Value);
+                if (pageOrder.HasValue) pageSetup.SetAttribute("pageOrder",
+                    pageOrder == ExcelPageOrder.OverThenDown ? "overThenDown" : "downThenOver");
+                if (fitToWidth.HasValue || fitToHeight.HasValue) SetFitToPageMarkup(worksheet, true);
+                else if (clearStaleFit) SetFitToPageMarkup(worksheet, null);
+                return true;
             });
         }
     }

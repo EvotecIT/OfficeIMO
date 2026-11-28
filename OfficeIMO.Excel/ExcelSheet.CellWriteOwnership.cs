@@ -500,7 +500,7 @@ namespace OfficeIMO.Excel {
             FormulaArgumentValue value = expected.Value;
             if (value.IsError)
                 return cell.DataType?.Value == CellValues.Error
-                    && ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text) == value.ErrorCode;
+                    && ResolveRichValueError(cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error, cell.ValueMetaIndex?.Value, ExcelWorksheetScan.FindValue(cell)?.Text) == value.ErrorCode;
             if (cell.ValueMetaIndex != null) return false;
             if (value.IsBoolean)
                 return cell.DataType?.Value == CellValues.Boolean

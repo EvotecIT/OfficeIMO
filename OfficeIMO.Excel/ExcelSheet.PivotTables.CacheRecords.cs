@@ -342,25 +342,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void WriteGeneratedPivotCacheRecordItems(
-            OpenXmlWriter writer,
-            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
-            IReadOnlyList<Dictionary<PivotFieldValue, uint>?> generatedLookups,
-            int row,
-            int firstColumn) {
-            for (int i = 0; i < generatedFields.Count; i++) {
-                var generatedField = generatedFields[i];
-                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField);
-                writer.WriteElement(CreatePivotCacheRecordItem(value, generatedLookups[i]));
-            }
-        }
-
-        private static void WriteCalculatedPivotCacheRecordItems(OpenXmlWriter writer, int calculatedFieldCount) {
-            for (int i = 0; i < calculatedFieldCount; i++) {
-                writer.WriteElement(new MissingItem());
-            }
-        }
-
         private void WriteGeneratedPivotCacheRecordItemsXml(
             TextWriter writer,
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.Excel.Utilities;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
@@ -29,12 +30,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<ExcelThreadedCommentInfo> GetThreadedComments() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
-                WorkbookPart workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
-                IReadOnlyDictionary<string, string> people = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
-                return ExcelWorksheetCommentResolver.BuildThreadedCommentMap(_worksheetPart, people, Name)
-                    .Values
-                    .SelectMany(comments => comments)
-                    .ToArray();
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry, ReadOwnedThreadedComments,
+                    out IReadOnlyList<ExcelThreadedCommentInfo> owned)) return owned;
+                return ReadThreadedComments(ExcelPartRef.WorksheetForMetadata(this), ReadThreadedPeople(ExcelPartRef.Workbook(_excelDocument)), Name);
             });
         }
 
@@ -87,6 +85,10 @@ namespace OfficeIMO.Excel {
 
             ExcelThreadedCommentResult? result = null;
             WriteLock(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryEditWorksheetPackage(entry, (package, worksheet) => {
+                    result = UpdateOwnedThreadedComment(package, worksheet, id, options);
+                    return true;
+                })) return;
                 if (!TryFindWorkbookThreadedComment(id, out WorksheetPart? worksheetPart, out WorksheetThreadedCommentsPart? commentsPart, out Threaded.ThreadedComment? comment)
                     || !ReferenceEquals(worksheetPart, _worksheetPart)
                     || commentsPart?.ThreadedComments == null
@@ -150,6 +152,10 @@ namespace OfficeIMO.Excel {
             string normalizedId = NormalizeThreadedId(id, nameof(id), generateIfMissing: false);
             bool removed = false;
             WriteLock(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryEditWorksheetPackage(entry, (package, worksheet) => {
+                    removed = RemoveOwnedThreadedComments(package, worksheet, normalizedId, null, removeReplies) != 0;
+                    return removed;
+                })) return;
                 if (!TryFindWorkbookThreadedComment(normalizedId, out WorksheetPart? worksheetPart, out _, out _)
                     || !ReferenceEquals(worksheetPart, _worksheetPart)) {
                     return;
@@ -215,6 +221,10 @@ namespace OfficeIMO.Excel {
             string cellReference = NormalizeThreadedCommentAddress(address, nameof(address));
             int removed = 0;
             WriteLock(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryEditWorksheetPackage(entry, (package, worksheet) => {
+                    removed = RemoveOwnedThreadedComments(package, worksheet, null, cellReference, removeReplies: false);
+                    return removed != 0;
+                })) return;
                 foreach (WorksheetThreadedCommentsPart part in _worksheetPart.WorksheetThreadedCommentsParts.ToList()) {
                     Threaded.ThreadedComments? root = part.ThreadedComments;
                     if (root == null) {

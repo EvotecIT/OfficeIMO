@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel {
 
             internal override bool TryGetPosition(out int row, out int column) => _sheet.TryGetEffectiveCellCoordinates(Cell, out row, out column);
 
-            internal override string? ResolveRichValueError(string? fallback) => _sheet.ResolveRichValueError(Cell, fallback);
+            internal override string? ResolveRichValueError(string? fallback) => _sheet.ResolveRichValueError(Cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error, Cell.ValueMetaIndex?.Value, fallback);
 
             internal override void SetCalculateCell(bool? calculate) {
                 if (Formula is not CellFormula formula) return;

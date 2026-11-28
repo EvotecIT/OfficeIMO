@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -433,30 +434,37 @@ namespace OfficeIMO.Excel {
         }
 
         private static void CompareCellStyles(ExcelSheet left, ExcelSheet right, ICollection<ExcelWorkbookDifference> differences, int maxDifferences) {
-            var rightCells = (right.WorksheetPart.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>())
-                .Where(cell => !string.IsNullOrWhiteSpace(cell.CellReference?.Value))
-                .ToDictionary(cell => cell.CellReference!.Value!, StringComparer.OrdinalIgnoreCase);
-            foreach (Cell leftCell in left.WorksheetPart.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>()) {
+            var rightCells = ReadCellStyles(right).ToDictionary(cell => cell.Key, cell => cell.Value, StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, string> leftCell in ReadCellStyles(left)) {
                 if (differences.Count >= maxDifferences) break;
-                string? address = leftCell.CellReference?.Value;
-                if (string.IsNullOrWhiteSpace(address)) continue;
-                rightCells.TryGetValue(address!, out Cell? rightCell);
-                rightCells.Remove(address!);
-                string leftStyle = leftCell.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                string rightStyle = rightCell?.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                if (!string.Equals(leftStyle, rightStyle, StringComparison.Ordinal)) {
-                    AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name, address, leftStyle, rightStyle));
+                rightCells.TryGetValue(leftCell.Key, out string? rightStyle);
+                rightCells.Remove(leftCell.Key);
+                if (!string.Equals(leftCell.Value, rightStyle ?? string.Empty, StringComparison.Ordinal)) {
+                    AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name,
+                        leftCell.Key, leftCell.Value, rightStyle ?? string.Empty));
                 }
             }
 
-            foreach (KeyValuePair<string, Cell> rightOnly in rightCells) {
+            foreach (KeyValuePair<string, string> rightOnly in rightCells) {
                 if (differences.Count >= maxDifferences) break;
-                string rightStyle = rightOnly.Value.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                if (!string.IsNullOrEmpty(rightStyle)) {
-                    AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name, rightOnly.Key, string.Empty, rightStyle));
+                if (rightOnly.Value.Length != 0) {
+                    AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name,
+                        rightOnly.Key, string.Empty, rightOnly.Value));
                 }
             }
         }
+
+        private static IReadOnlyList<KeyValuePair<string, string>> ReadCellStyles(ExcelSheet sheet) =>
+            sheet.ReadWorksheetObject(worksheet => {
+                var styles = new List<KeyValuePair<string, string>>();
+                foreach (var cell in worksheet.ContentDescendants(OfficeXmlNamespaces.SpreadsheetML, "c")) {
+                    string? address = cell.Attribute("r");
+                    if (!string.IsNullOrWhiteSpace(address)) {
+                        styles.Add(new KeyValuePair<string, string>(address!, cell.UInt32Attribute("s")?.ToString(CultureInfo.InvariantCulture) ?? string.Empty));
+                    }
+                }
+                return styles;
+            });
 
         private static void CompareSheetSnapshots(ExcelWorkbookInfo leftSnapshot, ExcelWorkbookInfo rightSnapshot, string sheetName, ICollection<ExcelWorkbookDifference> differences, int maxDifferences, ExcelWorkbookDiffOptions options) {
             ExcelWorksheetInfo? left = leftSnapshot.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
@@ -505,16 +513,21 @@ namespace OfficeIMO.Excel {
 
         private uint GetNextPowerQueryConnectionId() {
             uint maxId = 0;
-            foreach (OpenXmlPart part in EnumerateWorkbookConnectionParts()) {
+            foreach ((_, ExcelPartRef part) in ExcelPartRef.Workbook(this).Parts) {
+                if (part.RelationshipType != WorkbookConnectionRelationshipType
+                    && part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) < 0) continue;
+
                 try {
-                    XDocument document = XDocument.Parse(ReadOpenXmlPartText(part));
-                    foreach (XElement connection in document.Descendants().Where(element => element.Name.LocalName == "connection")) {
-                        if (uint.TryParse(connection.Attribute("id")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint id)) {
-                            maxId = Math.Max(maxId, id);
-                        }
+                    OfficeXmlNode connections = part.Root;
+                    if (connections.IsNone) {
+                        using Stream input = part.OpenRead();
+                        connections = ExcelReaderPackage.ReadPartRoot(input, CancellationToken.None);
+                    }
+                    foreach (OfficeXmlNode connection in connections.ContentDescendants(OfficeXmlNamespaces.SpreadsheetML, "connection")) {
+                        if (connection.UInt32Attribute("id") is uint id) maxId = Math.Max(maxId, id);
                     }
                 } catch {
-                    // Extended metadata can be caller-supplied and not all parts are XML connection parts.
+                    // Connection metadata can be supplied as an extended part without a readable XML root.
                 }
             }
 

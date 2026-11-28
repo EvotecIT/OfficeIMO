@@ -1,5 +1,6 @@
 using System.Text;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel;
 
@@ -21,19 +22,20 @@ public partial class ExcelSheet {
         bool? scaleWithDocument = null) => UpdateHeaderFooterSections(false, left, center, right,
             differentFirstPage, differentOddEven, alignWithMargins, scaleWithDocument);
 
-    internal string GetHeaderFooterSectionText(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position) {
-        HeaderFooter? value = WorksheetRoot.GetFirstChild<HeaderFooter>();
-        var sections = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
-        return position == ExcelHeaderFooterPosition.Left ? sections.L
-            : position == ExcelHeaderFooterPosition.Center ? sections.C
-            : sections.R;
-    }
+    internal string GetHeaderFooterSectionText(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position) =>
+        ReadWorksheetObject(worksheet => {
+            OfficeXmlNode value = worksheet.Child(WorksheetMarkup, "headerFooter");
+            var sections = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
+            return position == ExcelHeaderFooterPosition.Left ? sections.L
+                : position == ExcelHeaderFooterPosition.Center ? sections.C
+                : sections.R;
+        });
 
     internal ExcelHeaderFooterImageInfo? GetHeaderFooterSectionImage(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position) {
         if (kind != ExcelHeaderFooterKind.OddHeader && kind != ExcelHeaderFooterKind.OddFooter) return null;
         string shapeId = (position == ExcelHeaderFooterPosition.Left ? "L" : position == ExcelHeaderFooterPosition.Center ? "C" : "R")
             + (kind == ExcelHeaderFooterKind.OddHeader ? "H" : "F");
-        return ReadHeaderFooterImages(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes)
+        return ReadHeaderFooterImages(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes).Images
             .TryGetValue(shapeId, out ExcelHeaderFooterImageInfo? image) ? image : null;
     }
 
@@ -48,67 +50,71 @@ public partial class ExcelSheet {
             return;
         }
 
-        WriteLock(() => {
-            HeaderFooter value = EnsureHeaderFooter();
+        EditHeaderFooter(value => {
             var current = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
             string? rebuilt = BuildHeaderFooterSections(
                 position == ExcelHeaderFooterPosition.Left ? text : current.L,
                 position == ExcelHeaderFooterPosition.Center ? text : current.C,
                 position == ExcelHeaderFooterPosition.Right ? text : current.R);
-            switch (kind) {
-                case ExcelHeaderFooterKind.FirstHeader: value.FirstHeader = rebuilt == null ? null : new FirstHeader(rebuilt); break;
-                case ExcelHeaderFooterKind.FirstFooter: value.FirstFooter = rebuilt == null ? null : new FirstFooter(rebuilt); break;
-                case ExcelHeaderFooterKind.EvenHeader: value.EvenHeader = rebuilt == null ? null : new EvenHeader(rebuilt); break;
-                default: value.EvenFooter = rebuilt == null ? null : new EvenFooter(rebuilt); break;
-            }
-
+            SetHeaderFooterText(value, kind, rebuilt);
             if (text.Length > 0) {
-                if (kind == ExcelHeaderFooterKind.FirstHeader || kind == ExcelHeaderFooterKind.FirstFooter) value.DifferentFirst = true;
-                else value.DifferentOddEven = true;
+                value.SetBooleanAttribute(kind is ExcelHeaderFooterKind.FirstHeader or ExcelHeaderFooterKind.FirstFooter
+                    ? "differentFirst" : "differentOddEven", true);
             }
-
-            CleanupHeaderFooterPictureArtifacts();
         });
     }
 
-    private static string? GetHeaderFooterText(HeaderFooter? value, ExcelHeaderFooterKind kind) => kind switch {
-        ExcelHeaderFooterKind.OddHeader => value?.OddHeader?.Text,
-        ExcelHeaderFooterKind.OddFooter => value?.OddFooter?.Text,
-        ExcelHeaderFooterKind.FirstHeader => value?.FirstHeader?.Text,
-        ExcelHeaderFooterKind.FirstFooter => value?.FirstFooter?.Text,
-        ExcelHeaderFooterKind.EvenHeader => value?.EvenHeader?.Text,
-        _ => value?.EvenFooter?.Text
+    private static string HeaderFooterElementName(ExcelHeaderFooterKind kind) => kind switch {
+        ExcelHeaderFooterKind.OddHeader => "oddHeader",
+        ExcelHeaderFooterKind.OddFooter => "oddFooter",
+        ExcelHeaderFooterKind.FirstHeader => "firstHeader",
+        ExcelHeaderFooterKind.FirstFooter => "firstFooter",
+        ExcelHeaderFooterKind.EvenHeader => "evenHeader",
+        _ => "evenFooter"
     };
+
+    private static readonly OfficeXmlChildOrder HeaderFooterOrder = new(
+        new[] { WorksheetMarkup, WorksheetMarkup, WorksheetMarkup, WorksheetMarkup, WorksheetMarkup, WorksheetMarkup },
+        new[] { "oddHeader", "oddFooter", "evenHeader", "evenFooter", "firstHeader", "firstFooter" },
+        new[] { 0, 1, 2, 3, 4, 5 });
+
+    private static string? GetHeaderFooterText(OfficeXmlNode value, ExcelHeaderFooterKind kind) =>
+        value.ChildText(WorksheetMarkup, HeaderFooterElementName(kind));
+
+    private static void SetHeaderFooterText(OfficeXmlNode value, ExcelHeaderFooterKind kind, string? text) =>
+        value.SetChildText(WorksheetMarkup, HeaderFooterElementName(kind), text, HeaderFooterOrder);
 
     private void UpdateHeaderFooterSections(bool header, string? left, string? center, string? right,
         bool? differentFirstPage, bool? differentOddEven, bool? alignWithMargins, bool? scaleWithDocument) {
         if (left == null && center == null && right == null && differentFirstPage == null && differentOddEven == null
             && alignWithMargins == null && scaleWithDocument == null) return;
-        WriteLock(() => {
-            HeaderFooter value = EnsureHeaderFooter();
-            bool enableFirst = differentFirstPage == true && value.DifferentFirst?.Value != true;
-            bool enableOddEven = differentOddEven == true && value.DifferentOddEven?.Value != true;
+        EditHeaderFooter(value => {
+            bool enableFirst = differentFirstPage == true && value.BooleanAttribute("differentFirst") != true;
+            bool enableOddEven = differentOddEven == true && value.BooleanAttribute("differentOddEven") != true;
             if (left != null || center != null || right != null) {
-                var current = ParseHeaderFooterSections(header ? value.OddHeader?.Text ?? string.Empty : value.OddFooter?.Text ?? string.Empty);
-                string? text = BuildHeaderFooterSections(left ?? current.L, center ?? current.C, right ?? current.R);
-                if (header) value.OddHeader = text == null ? null : new OddHeader(text);
-                else value.OddFooter = text == null ? null : new OddFooter(text);
+                ExcelHeaderFooterKind kind = header ? ExcelHeaderFooterKind.OddHeader : ExcelHeaderFooterKind.OddFooter;
+                var current = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
+                SetHeaderFooterText(value, kind, BuildHeaderFooterSections(left ?? current.L, center ?? current.C, right ?? current.R));
             }
-            if (differentFirstPage.HasValue) value.DifferentFirst = differentFirstPage.Value;
-            if (differentOddEven.HasValue) value.DifferentOddEven = differentOddEven.Value;
-            if (alignWithMargins.HasValue) value.AlignWithMargins = alignWithMargins.Value;
-            if (scaleWithDocument.HasValue) value.ScaleWithDoc = scaleWithDocument.Value;
-            // Missing variants inherit the current running text; authored variants are never replaced implicitly.
+            if (differentFirstPage.HasValue) value.SetBooleanAttribute("differentFirst", differentFirstPage);
+            if (differentOddEven.HasValue) value.SetBooleanAttribute("differentOddEven", differentOddEven);
+            if (alignWithMargins.HasValue) value.SetBooleanAttribute("alignWithMargins", alignWithMargins);
+            if (scaleWithDocument.HasValue) value.SetBooleanAttribute("scaleWithDoc", scaleWithDocument);
             if (enableFirst) {
-                if (value.FirstHeader == null && value.OddHeader != null) value.FirstHeader = new FirstHeader(value.OddHeader.Text);
-                if (value.FirstFooter == null && value.OddFooter != null) value.FirstFooter = new FirstFooter(value.OddFooter.Text);
+                InheritHeaderFooterText(value, ExcelHeaderFooterKind.FirstHeader, ExcelHeaderFooterKind.OddHeader);
+                InheritHeaderFooterText(value, ExcelHeaderFooterKind.FirstFooter, ExcelHeaderFooterKind.OddFooter);
             }
             if (enableOddEven) {
-                if (value.EvenHeader == null && value.OddHeader != null) value.EvenHeader = new EvenHeader(value.OddHeader.Text);
-                if (value.EvenFooter == null && value.OddFooter != null) value.EvenFooter = new EvenFooter(value.OddFooter.Text);
+                InheritHeaderFooterText(value, ExcelHeaderFooterKind.EvenHeader, ExcelHeaderFooterKind.OddHeader);
+                InheritHeaderFooterText(value, ExcelHeaderFooterKind.EvenFooter, ExcelHeaderFooterKind.OddFooter);
             }
-            CleanupHeaderFooterPictureArtifacts();
         });
+    }
+
+    private static void InheritHeaderFooterText(OfficeXmlNode value, ExcelHeaderFooterKind destination, ExcelHeaderFooterKind source) {
+        if (GetHeaderFooterText(value, destination) == null && GetHeaderFooterText(value, source) is string text) {
+            SetHeaderFooterText(value, destination, text);
+        }
     }
 
     private static IEnumerable<(int Offset, char Code)> HeaderFooterCodes(string text) {

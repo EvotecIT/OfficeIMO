@@ -1,3 +1,6 @@
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -98,35 +101,35 @@ namespace OfficeIMO.Excel {
         internal ExcelHeaderFooterInfo GetHeaderFooter(long maximumTotalSourceImageBytes) {
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumTotalSourceImageBytes, 0L);
 
-            var ws = WorksheetRoot;
-            var hf = ws.GetFirstChild<HeaderFooter>();
-            string oddHeader = hf?.OddHeader?.Text ?? string.Empty;
-            string oddFooter = hf?.OddFooter?.Text ?? string.Empty;
-            string firstHeader = hf?.FirstHeader?.Text ?? string.Empty;
-            string firstFooter = hf?.FirstFooter?.Text ?? string.Empty;
-            string evenHeader = hf?.EvenHeader?.Text ?? string.Empty;
-            string evenFooter = hf?.EvenFooter?.Text ?? string.Empty;
+            var metadata = ReadWorksheetObject(worksheet => {
+                OfficeXmlNode footer = worksheet.Child(WorksheetMarkup, "headerFooter");
+                return (
+                    OddHeader: GetHeaderFooterText(footer, ExcelHeaderFooterKind.OddHeader),
+                    OddFooter: GetHeaderFooterText(footer, ExcelHeaderFooterKind.OddFooter),
+                    FirstHeader: GetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstHeader),
+                    FirstFooter: GetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstFooter),
+                    EvenHeader: GetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenHeader),
+                    EvenFooter: GetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenFooter),
+                    First: footer.BooleanAttribute("differentFirst") ?? false,
+                    OddEven: footer.BooleanAttribute("differentOddEven") ?? false,
+                    HasPicture: !worksheet.Child(WorksheetMarkup, "legacyDrawingHF").IsNone);
+            });
+            var (hl, hc, hr) = ParseHeaderFooterSections(metadata.OddHeader ?? string.Empty);
+            var (fl, fc, fr) = ParseHeaderFooterSections(metadata.OddFooter ?? string.Empty);
+            var (fhl, fhc, fhr) = ParseHeaderFooterSections(metadata.FirstHeader ?? string.Empty);
+            var (ffl, ffc, ffr) = ParseHeaderFooterSections(metadata.FirstFooter ?? string.Empty);
+            var (ehl, ehc, ehr) = ParseHeaderFooterSections(metadata.EvenHeader ?? string.Empty);
+            var (efl, efc, efr) = ParseHeaderFooterSections(metadata.EvenFooter ?? string.Empty);
 
-            var (hl, hc, hr) = ParseHeaderFooterSections(oddHeader);
-            var (fl, fc, fr) = ParseHeaderFooterSections(oddFooter);
-            var (fhl, fhc, fhr) = ParseHeaderFooterSections(firstHeader);
-            var (ffl, ffc, ffr) = ParseHeaderFooterSections(firstFooter);
-            var (ehl, ehc, ehr) = ParseHeaderFooterSections(evenHeader);
-            var (efl, efc, efr) = ParseHeaderFooterSections(evenFooter);
-
-            Dictionary<string, ExcelHeaderFooterImageInfo> imagesByShapeId = ReadHeaderFooterImages(maximumTotalSourceImageBytes);
+            var (imagesByShapeId, hasPicturePart) = metadata.HasPicture
+                ? ReadHeaderFooterImages(maximumTotalSourceImageBytes)
+                : (new Dictionary<string, ExcelHeaderFooterImageInfo>(StringComparer.OrdinalIgnoreCase), false);
             bool hasHeaderImageRel = imagesByShapeId.ContainsKey("LH") || imagesByShapeId.ContainsKey("CH") || imagesByShapeId.ContainsKey("RH");
             bool hasFooterImageRel = imagesByShapeId.ContainsKey("LF") || imagesByShapeId.ContainsKey("CF") || imagesByShapeId.ContainsKey("RF");
-            try {
-                var legacy = WorksheetRoot.GetFirstChild<LegacyDrawingHeaderFooter>();
-                if (legacy?.Id?.Value is string relId && !string.IsNullOrEmpty(relId)) {
-                    var part = _worksheetPart.GetPartById(relId);
-                    if (part is VmlDrawingPart && imagesByShapeId.Count == 0) {
-                        hasHeaderImageRel = true; // defensive for files where VML exists but cannot be parsed.
-                        hasFooterImageRel = true;
-                    }
-                }
-            } catch { /* ignore */ }
+            if (hasPicturePart && imagesByShapeId.Count == 0) {
+                hasHeaderImageRel = true;
+                hasFooterImageRel = true;
+            }
 
             return new ExcelHeaderFooterInfo {
                 HeaderLeft = hl,
@@ -147,8 +150,8 @@ namespace OfficeIMO.Excel {
                 EvenFooterLeft = efl,
                 EvenFooterCenter = efc,
                 EvenFooterRight = efr,
-                DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
-                DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
+                DifferentFirstPage = metadata.First,
+                DifferentOddEven = metadata.OddEven,
                 HeaderHasPicturePlaceholder = HasPicturePlaceholder(hl, hc, hr, fhl, fhc, fhr, ehl, ehc, ehr) || hasHeaderImageRel,
                 FooterHasPicturePlaceholder = HasPicturePlaceholder(fl, fc, fr, ffl, ffc, ffr, efl, efc, efr) || hasFooterImageRel,
                 HeaderLeftImage = imagesByShapeId.TryGetValue("LH", out var headerLeftImage) ? headerLeftImage : null,
@@ -170,30 +173,40 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private Dictionary<string, ExcelHeaderFooterImageInfo> ReadHeaderFooterImages(long maximumTotalSourceImageBytes) {
-            CommitCommentVmlChanges();
-            var images = new Dictionary<string, ExcelHeaderFooterImageInfo>(StringComparer.OrdinalIgnoreCase);
-            VmlDrawingPart? vmlPart = null;
-            try {
-                var legacy = WorksheetRoot.GetFirstChild<LegacyDrawingHeaderFooter>();
-                if (legacy?.Id?.Value is string relId && !string.IsNullOrWhiteSpace(relId)) {
-                    vmlPart = _worksheetPart.GetPartById(relId) as VmlDrawingPart;
+        private (Dictionary<string, ExcelHeaderFooterImageInfo> Images, bool HasDrawingPart) ReadHeaderFooterImages(long maximumTotalSourceImageBytes) =>
+            _excelDocument.ExecuteReadWithoutMaterializing(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry,
+                    (package, sheet) => ReadOwnedHeaderFooterImages(package, sheet, maximumTotalSourceImageBytes), out var owned)) return owned;
+
+                CommitCommentVmlChanges();
+                var empty = new Dictionary<string, ExcelHeaderFooterImageInfo>(StringComparer.OrdinalIgnoreCase);
+                try {
+                    string? id = ViewWorksheetRoot.Child(WorksheetMarkup, "legacyDrawingHF").Attribute(OfficeXmlNamespaces.Relationships, "id");
+                    ExcelPartRef drawing = ExcelPartRef.WorksheetForMetadata(this).GetPartById(id);
+                    if (drawing.ContentType != HeaderFooterVmlContentType) return (empty, false);
+                    using Stream source = drawing.OpenRead();
+                    return (ReadVmlHeaderFooterImages(source, maximumTotalSourceImageBytes, (relationship, limit) => {
+                        ExcelPartRef image = drawing.GetPartById(relationship);
+                        string type = image.ContentType;
+                        if (!type.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return default;
+                        using Stream data = image.OpenRead();
+                        return ExcelImageExportLimits.TryReadSourceImageBytes(data, limit, out byte[] bytes)
+                            ? (bytes, type) : default;
+                    }), true);
+                } catch (Exception exception) when (exception is IOException || exception is XmlException
+                    || exception is ArgumentException || exception is InvalidOperationException) {
+                    return (empty, false);
                 }
-            } catch {
-                return images;
-            }
+            });
 
-            if (vmlPart == null) {
-                return images;
-            }
-
+        private static Dictionary<string, ExcelHeaderFooterImageInfo> ReadVmlHeaderFooterImages(Stream source,
+            long maximumTotalSourceImageBytes, Func<string, long, (byte[]? Bytes, string? ContentType)> readImage) {
+            var images = new Dictionary<string, ExcelHeaderFooterImageInfo>(StringComparer.OrdinalIgnoreCase);
             long remainingSourceImageBytes = maximumTotalSourceImageBytes;
-
             XDocument vmlDocument;
             try {
-                using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
-                vmlDocument = LoadHeaderFooterVmlXDocument(stream);
-            } catch {
+                vmlDocument = LoadHeaderFooterVmlXDocument(source);
+            } catch (Exception exception) when (exception is IOException || exception is XmlException) {
                 return images;
             }
 
@@ -213,7 +226,7 @@ namespace OfficeIMO.Excel {
                     imageData.Attribute(HeaderFooterRelationshipNamespace + "id")?.Value,
                     imageData.Attribute(HeaderFooterOfficeNamespace + "relid")?.Value
                 }.Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).Distinct(StringComparer.Ordinal)) {
-                    if (TryReadHeaderFooterImage(vmlPart, relationshipId, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out ExcelHeaderFooterImageInfo? image)) {
+                    if (TryReadHeaderFooterImage(readImage, relationshipId, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out ExcelHeaderFooterImageInfo? image)) {
                         images[shapeId!] = image!;
                         break;
                     }
@@ -241,26 +254,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryReadHeaderFooterImage(
-            VmlDrawingPart vmlPart,
+            Func<string, long, (byte[]? Bytes, string? ContentType)> readImage,
             string relationshipId,
             string? style,
             ExcelHeaderFooterPosition position,
             ref long remainingSourceImageBytes,
             out ExcelHeaderFooterImageInfo? image) {
             image = null;
-            ImagePart imagePart;
-            try {
-                if (vmlPart.GetPartById(relationshipId) is not ImagePart part) {
-                    return false;
-                }
-
-                imagePart = part;
-            } catch {
-                return false;
-            }
-
-            using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            if (!ExcelImageExportLimits.TryReadSourceImageBytes(source, remainingSourceImageBytes, out byte[] bytes)) return false;
+            (byte[]? bytes, string? type) = readImage(relationshipId, remainingSourceImageBytes);
+            if (bytes == null || type == null) return false;
             remainingSourceImageBytes -= bytes.LongLength;
 
             double width = TryReadStylePoints(style, "width") ?? 0D;
@@ -282,7 +284,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                image = new ExcelHeaderFooterImageInfo(position, bytes, imagePart.ContentType, OfficeLength.Points(width), OfficeLength.Points(height));
+                image = new ExcelHeaderFooterImageInfo(position, bytes, type, OfficeLength.Points(width), OfficeLength.Points(height));
                 return true;
             } catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is OverflowException) {
                 image = null;
@@ -369,47 +371,23 @@ namespace OfficeIMO.Excel {
             bool differentOddEven = false,
             bool alignWithMargins = true,
             bool scaleWithDoc = true) {
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var hf = ws.GetFirstChild<HeaderFooter>();
-                if (hf == null) {
-                    hf = new HeaderFooter();
-                    // Per Excel behavior, place HeaderFooter before any Drawing when possible
-                    var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                    if (drawing != null) ws.InsertBefore(hf, drawing);
-                    else {
-                        var after = ws.GetFirstChild<PageSetup>();
-                        if (after != null) ws.InsertAfter(hf, after); else ws.Append(hf);
-                    }
-                }
-
-                hf.DifferentFirst = differentFirstPage ? true : (bool?)null;
-                hf.DifferentOddEven = differentOddEven ? true : (bool?)null;
-                hf.AlignWithMargins = alignWithMargins;
-                hf.ScaleWithDoc = scaleWithDoc;
-
-                var oddHeader = BuildHeaderFooterSections(headerLeft, headerCenter, headerRight);
-                var oddFooter = BuildHeaderFooterSections(footerLeft, footerCenter, footerRight);
-
-                if (oddHeader != null) hf.OddHeader = new OddHeader(oddHeader); else hf.OddHeader = null;
-                if (oddFooter != null) hf.OddFooter = new OddFooter(oddFooter); else hf.OddFooter = null;
-
-                if (differentOddEven) {
-                    if (oddHeader != null) hf.EvenHeader = new EvenHeader(oddHeader);
-                    if (oddFooter != null) hf.EvenFooter = new EvenFooter(oddFooter);
-                } else {
-                    hf.EvenHeader = null;
-                    hf.EvenFooter = null;
-                }
-                if (differentFirstPage) {
-                    if (oddHeader != null) hf.FirstHeader = new FirstHeader(oddHeader);
-                    if (oddFooter != null) hf.FirstFooter = new FirstFooter(oddFooter);
-                } else {
-                    hf.FirstHeader = null;
-                    hf.FirstFooter = null;
-                }
-
-                CleanupHeaderFooterPictureArtifacts();
+            EditHeaderFooter(footer => {
+                footer.SetBooleanAttribute("differentFirst", differentFirstPage ? true : (bool?)null);
+                footer.SetBooleanAttribute("differentOddEven", differentOddEven ? true : (bool?)null);
+                footer.SetBooleanAttribute("alignWithMargins", alignWithMargins);
+                footer.SetBooleanAttribute("scaleWithDoc", scaleWithDoc);
+                string? oddHeader = BuildHeaderFooterSections(headerLeft, headerCenter, headerRight);
+                string? oddFooter = BuildHeaderFooterSections(footerLeft, footerCenter, footerRight);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.OddHeader, oddHeader);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.OddFooter, oddFooter);
+                if (!differentOddEven || oddHeader != null)
+                    SetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenHeader, differentOddEven ? oddHeader : null);
+                if (!differentOddEven || oddFooter != null)
+                    SetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenFooter, differentOddEven ? oddFooter : null);
+                if (!differentFirstPage || oddHeader != null)
+                    SetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstHeader, differentFirstPage ? oddHeader : null);
+                if (!differentFirstPage || oddFooter != null)
+                    SetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstFooter, differentFirstPage ? oddFooter : null);
             });
         }
 
@@ -424,12 +402,10 @@ namespace OfficeIMO.Excel {
             string? footerCenter = null,
             string? footerRight = null,
             bool enabled = true) {
-            WriteLock(() => {
-                HeaderFooter hf = EnsureHeaderFooter();
-                hf.DifferentFirst = enabled ? true : (bool?)null;
-                hf.FirstHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new FirstHeader(header) : null : null;
-                hf.FirstFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new FirstFooter(footer) : null : null;
-                CleanupHeaderFooterPictureArtifacts();
+            EditHeaderFooter(footer => {
+                footer.SetBooleanAttribute("differentFirst", enabled ? true : (bool?)null);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstHeader, enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) : null);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.FirstFooter, enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) : null);
             });
         }
 
@@ -444,37 +420,26 @@ namespace OfficeIMO.Excel {
             string? footerCenter = null,
             string? footerRight = null,
             bool enabled = true) {
-            WriteLock(() => {
-                HeaderFooter hf = EnsureHeaderFooter();
-                hf.DifferentOddEven = enabled ? true : (bool?)null;
-                hf.EvenHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new EvenHeader(header) : null : null;
-                hf.EvenFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new EvenFooter(footer) : null : null;
-                CleanupHeaderFooterPictureArtifacts();
+            EditHeaderFooter(footer => {
+                footer.SetBooleanAttribute("differentOddEven", enabled ? true : (bool?)null);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenHeader, enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) : null);
+                SetHeaderFooterText(footer, ExcelHeaderFooterKind.EvenFooter, enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) : null);
             });
         }
 
-        private HeaderFooter EnsureHeaderFooter() {
-            var ws = WorksheetRoot;
-            var hf = ws.GetFirstChild<HeaderFooter>();
-            if (hf != null) {
-                return hf;
-            }
+        private static OfficeXmlNode EnsureHeaderFooter(OfficeXmlNode worksheet) =>
+            AddWorksheetObject(worksheet, "headerFooter", "rowBreaks", "colBreaks", "customProperties",
+                "cellWatches", "ignoredErrors", "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF",
+                "picture", "oleObjects", "controls", "webPublishItems", "tableParts");
 
-            hf = new HeaderFooter();
-            var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-            if (drawing != null) {
-                ws.InsertBefore(hf, drawing);
-            } else {
-                var after = ws.GetFirstChild<PageSetup>();
-                if (after != null) {
-                    ws.InsertAfter(hf, after);
-                } else {
-                    ws.Append(hf);
+        private void EditHeaderFooter(Action<OfficeXmlNode> edit) =>
+            EditWorksheetObject(worksheet => {
+                edit(EnsureHeaderFooter(worksheet));
+                if (worksheet.IsSdk && !worksheet.Child(WorksheetMarkup, "legacyDrawingHF").IsNone) {
+                    CleanupHeaderFooterPictureArtifacts();
                 }
-            }
-
-            return hf;
-        }
+                return true;
+            }, afterOwnedEdit: CleanupOwnedHeaderFooterPicture);
 
         /// <summary>
         /// Adds an image to the worksheet header at the given position. This will also ensure the header text
@@ -534,104 +499,76 @@ namespace OfficeIMO.Excel {
         private void EnsureHeaderFooterPicture(ExcelHeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, OfficeLength? width, OfficeLength? height) {
             if (width.HasValue && width.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
             if (height.HasValue && height.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
-            var ws = WorksheetRoot;
+            (double widthPoints, double heightPoints) = ResolveHeaderFooterImageSize(imageBytes, width, height);
+            string shape = (position == ExcelHeaderFooterPosition.Left ? "L" : position == ExcelHeaderFooterPosition.Center ? "C" : "R")
+                + (isHeader ? "H" : "F");
+            if (DeferredEntry is { } entry && _excelDocument.TryEditWorksheetObject(entry,
+                worksheet => {
+                    SetHeaderFooterPicturePlaceholder(worksheet, position, isHeader);
+                    return true;
+                },
+                (package, worksheet, root) => WriteOwnedHeaderFooterPicture(package, worksheet, root, shape,
+                    imageBytes, contentType, widthPoints, heightPoints))) return;
 
-            // 1) Ensure HeaderFooter element exists and contains &G in correct section
-            var hf = ws.GetFirstChild<HeaderFooter>();
-            if (hf == null) {
-                hf = new HeaderFooter();
-                var drawingBefore = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                if (drawingBefore != null) ws.InsertBefore(hf, drawingBefore);
-                else { var after = ws.GetFirstChild<PageSetup>(); if (after != null) ws.InsertAfter(hf, after); else ws.Append(hf); }
-            }
-
-            // Build/update section string to include &G placeholder
-            void UpsertSection(bool header, ExcelHeaderFooterPosition pos) {
-                string? current = null;
-                if (header)
-                    current = hf.OddHeader?.Text;
-                else
-                    current = hf.OddFooter?.Text;
-
-                var (l, c, r) = ParseHeaderFooterSections(current ?? string.Empty);
-
-                // Ensure picture placeholder &G is present for the selected section
-                string EnsureG(string s) {
-                    // Use IndexOf for .NET Standard 2.0 compatibility
-                    return HasHeaderFooterCode(s, 'G') ? s : ("&G" + s);
-                }
-
-                switch (pos) {
-                    case ExcelHeaderFooterPosition.Left: l = EnsureG(l); break;
-                    case ExcelHeaderFooterPosition.Center: c = EnsureG(c); break;
-                    case ExcelHeaderFooterPosition.Right: r = EnsureG(r); break;
-                }
-
-                string rebuilt = new StringBuilder()
-                    .Append(string.IsNullOrEmpty(l) ? string.Empty : "&L" + l)
-                    .Append(string.IsNullOrEmpty(c) ? string.Empty : "&C" + c)
-                    .Append(string.IsNullOrEmpty(r) ? string.Empty : "&R" + r)
-                    .ToString();
-
-                if (header)
-                    hf.OddHeader = string.IsNullOrEmpty(rebuilt) ? null : new OddHeader(rebuilt);
-                else
-                    hf.OddFooter = string.IsNullOrEmpty(rebuilt) ? null : new OddFooter(rebuilt);
-            }
-
-            UpsertSection(isHeader, position);
-
-            // 2) Create or reuse VML drawing part for header/footer images
+            OfficeXmlNode worksheetRoot = ViewWorksheetRoot;
+            SetHeaderFooterPicturePlaceholder(worksheetRoot, position, isHeader);
+            OfficeXmlNode legacy = worksheetRoot.Child(WorksheetMarkup, "legacyDrawingHF");
+            string? id = legacy.Attribute(OfficeXmlNamespaces.Relationships, "id");
             VmlDrawingPart vmlPart;
-            string relId;
-            var legacy = ws.GetFirstChild<LegacyDrawingHeaderFooter>();
-            if (legacy != null && legacy.Id != null) {
-                vmlPart = (VmlDrawingPart)_worksheetPart.GetPartById(legacy.Id!);
-                relId = _worksheetPart.GetIdOfPart(vmlPart);
+            if (!string.IsNullOrEmpty(id)) {
+                vmlPart = (VmlDrawingPart)_worksheetPart.GetPartById(id!);
             } else {
                 vmlPart = _worksheetPart.AddNewPart<VmlDrawingPart>();
-                relId = _worksheetPart.GetIdOfPart(vmlPart);
-                legacy = new LegacyDrawingHeaderFooter { Id = relId };
-                // Insert after HeaderFooter for proper order
-                if (hf != null) ws.InsertAfter(legacy, hf); else ws.Append(legacy);
+                SetHeaderFooterDrawingRelationship(worksheetRoot, _worksheetPart.GetIdOfPart(vmlPart));
             }
 
-            // 3) Add/replace image in the VML drawing part
-            ImagePart imgPart = vmlPart.AddImagePart(ToImagePartType(contentType));
-
-            using (var ms = new MemoryStream(imageBytes)) {
-                imgPart.FeedData(ms);
-            }
-            string imgRelId = vmlPart.GetIdOfPart(imgPart);
-
-            // Infer width/height if not provided
-            double wPt = width?.ToPoints() ?? 0;
-            double hPt = height?.ToPoints() ?? 0;
-            if (wPt <= 0 || hPt <= 0) {
-                try {
-                    var img = OfficeImageReader.Identify(imageBytes);
-                    double dpiX = img.DpiX;
-                    double dpiY = img.DpiY;
-                    if (wPt <= 0) wPt = img.Width * 72.0 / dpiX;
-                    if (hPt <= 0) hPt = img.Height * 72.0 / dpiY;
-                } catch { wPt = wPt <= 0 ? 144.0 : wPt; hPt = hPt <= 0 ? 48.0 : hPt; }
-            }
-
-            // 4) Upsert the VML shape for the selected section while preserving other header/footer images.
-            string shapeId = isHeader
-                ? (position == ExcelHeaderFooterPosition.Left ? "LH" : position == ExcelHeaderFooterPosition.Center ? "CH" : "RH")
-                : (position == ExcelHeaderFooterPosition.Left ? "LF" : position == ExcelHeaderFooterPosition.Center ? "CF" : "RF");
-
+            ImagePart imagePart = vmlPart.AddImagePart(ToImagePartType(contentType));
+            using (var source = new MemoryStream(imageBytes, writable: false)) imagePart.FeedData(source);
             CommitCommentVmlChanges();
-            XDocument vmlDocument = LoadOrCreateHeaderFooterVmlDocument(vmlPart);
-            UpsertHeaderFooterVmlShape(vmlDocument, shapeId, imgRelId, wPt, hPt);
-            using (var ms = new MemoryStream()) {
-                vmlDocument.Save(ms, SaveOptions.DisableFormatting);
-                ms.Position = 0;
-                vmlPart.FeedData(ms);
+            XDocument vml;
+            using (Stream drawing = vmlPart.GetStream(FileMode.Open, FileAccess.Read)) vml = LoadOrCreateHeaderFooterVmlDocument(drawing);
+            UpsertHeaderFooterVmlShape(vml, shape, vmlPart.GetIdOfPart(imagePart), widthPoints, heightPoints);
+            using (var output = new MemoryStream()) {
+                vml.Save(output, SaveOptions.DisableFormatting);
+                output.Position = 0;
+                vmlPart.FeedData(output);
             }
+            ExcelPartRef.WorksheetForMetadata(this).SaveRoot();
+        }
 
-            ws.Save();
+        private static void SetHeaderFooterPicturePlaceholder(OfficeXmlNode worksheet, ExcelHeaderFooterPosition position, bool isHeader) {
+            OfficeXmlNode footer = EnsureHeaderFooter(worksheet);
+            ExcelHeaderFooterKind kind = isHeader ? ExcelHeaderFooterKind.OddHeader : ExcelHeaderFooterKind.OddFooter;
+            var (left, center, right) = ParseHeaderFooterSections(GetHeaderFooterText(footer, kind) ?? string.Empty);
+            static string WithPicture(string text) => HasHeaderFooterCode(text, 'G') ? text : "&G" + text;
+            switch (position) {
+                case ExcelHeaderFooterPosition.Left: left = WithPicture(left); break;
+                case ExcelHeaderFooterPosition.Center: center = WithPicture(center); break;
+                case ExcelHeaderFooterPosition.Right: right = WithPicture(right); break;
+            }
+            string text = (left.Length == 0 ? string.Empty : "&L" + left)
+                + (center.Length == 0 ? string.Empty : "&C" + center)
+                + (right.Length == 0 ? string.Empty : "&R" + right);
+            SetHeaderFooterText(footer, kind, text.Length == 0 ? null : text);
+        }
+
+        private static void SetHeaderFooterDrawingRelationship(OfficeXmlNode worksheet, string id) =>
+            AddWorksheetObject(worksheet, "legacyDrawingHF", "picture", "oleObjects", "controls", "webPublishItems", "tableParts")
+                .SetAttribute(OfficeXmlNamespaces.Relationships, "id", id);
+
+        private static (double Width, double Height) ResolveHeaderFooterImageSize(byte[] image, OfficeLength? width, OfficeLength? height) {
+            double pointsWide = width?.ToPoints() ?? 0;
+            double pointsHigh = height?.ToPoints() ?? 0;
+            if (pointsWide > 0 && pointsHigh > 0) return (pointsWide, pointsHigh);
+            try {
+                var dimensions = OfficeImageReader.Identify(image);
+                if (pointsWide <= 0) pointsWide = dimensions.Width * 72D / dimensions.DpiX;
+                if (pointsHigh <= 0) pointsHigh = dimensions.Height * 72D / dimensions.DpiY;
+            } catch {
+                if (pointsWide <= 0) pointsWide = 144D;
+                if (pointsHigh <= 0) pointsHigh = 48D;
+            }
+            return (pointsWide, pointsHigh);
         }
 
         internal void CleanupHeaderFooterPictureArtifacts() {
@@ -660,21 +597,7 @@ namespace OfficeIMO.Excel {
             ws.RemoveChild(legacy);
         }
 
-        private bool HeaderFooterContainsPicturePlaceholder() {
-            var hf = WorksheetRoot.GetFirstChild<HeaderFooter>();
-            if (hf == null) {
-                return false;
-            }
-
-            static bool HasPicture(OpenXmlLeafTextElement? element)
-                => HasHeaderFooterCode(element?.Text, 'G');
-
-            return HasPicture(hf.OddHeader)
-                || HasPicture(hf.OddFooter)
-                || HasPicture(hf.EvenHeader)
-                || HasPicture(hf.EvenFooter)
-                || HasPicture(hf.FirstHeader)
-                || HasPicture(hf.FirstFooter);
-        }
+        private bool HeaderFooterContainsPicturePlaceholder() =>
+            WorksheetHeaderContainsPicture(ViewWorksheetRoot);
     }
 }

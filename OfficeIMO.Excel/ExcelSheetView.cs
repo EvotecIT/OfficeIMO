@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// The worksheet's view: frozen panes, gridlines, zero values, headings, direction, zoom and view mode.
@@ -11,8 +9,6 @@ namespace OfficeIMO.Excel {
         internal ExcelSheetView(ExcelSheet sheet) {
             _sheet = sheet;
         }
-
-        private SheetView? Element => _sheet.WorksheetRoot.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
 
         /// <summary>Freezes the top rows and left columns; zero for both removes frozen panes.</summary>
         /// <param name="topRows">Number of rows at the top to freeze.</param>
@@ -32,7 +28,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether cell gridlines are shown.</summary>
         public bool ShowGridlines {
-            get => Element?.ShowGridLines?.Value ?? true;
+            get => Inspect().ShowGridlines;
             set => _sheet.SetGridlinesVisibleCore(value);
         }
 
@@ -65,7 +61,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Zoom percentage (10-400) used by the normal view; null when the sheet stores none.</summary>
         public uint? ZoomScaleNormal {
-            get => Element?.ZoomScaleNormal?.Value;
+            get => Inspect().ZoomScaleNormal;
             set {
                 if (!value.HasValue) throw new ArgumentNullException(nameof(value), "Set a zoom percentage from 10 to 400.");
                 _sheet.ApplyViewOptions(new ExcelWorksheetViewOptions { ZoomScaleNormal = value });
@@ -74,12 +70,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>View mode: normal, page break preview or page layout.</summary>
         public ExcelWorksheetViewKind Kind {
-            get {
-                SheetViewValues? value = Element?.View?.Value;
-                if (value == SheetViewValues.PageBreakPreview) return ExcelWorksheetViewKind.PageBreakPreview;
-                if (value == SheetViewValues.PageLayout) return ExcelWorksheetViewKind.PageLayout;
-                return ExcelWorksheetViewKind.Normal;
-            }
+            get => Inspect().View switch {
+                "pageBreakPreview" => ExcelWorksheetViewKind.PageBreakPreview,
+                "pageLayout" => ExcelWorksheetViewKind.PageLayout,
+                _ => ExcelWorksheetViewKind.Normal
+            };
             set => _sheet.ApplyViewOptions(new ExcelWorksheetViewOptions { View = value });
         }
 

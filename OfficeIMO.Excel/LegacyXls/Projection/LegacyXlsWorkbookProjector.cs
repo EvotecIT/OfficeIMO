@@ -1322,7 +1322,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             IReadOnlyList<string> selectedRanges = selection.SelectedRanges
                 .Select(range => range.Reference)
                 .ToArray();
-            sheet.SetWorksheetSelection(activeCell, selectedRanges, hasFrozenPane ? ToPane(selection.Pane) : null, save: false);
+            sheet.SetWorksheetSelection(activeCell, selectedRanges, hasFrozenPane ? ToPane(selection.Pane)?.ToString() : null, save: false);
         }
 
         private static void ProjectSortSettings(ExcelSheet sheet, LegacyXlsSortSettings? sortSettings) {

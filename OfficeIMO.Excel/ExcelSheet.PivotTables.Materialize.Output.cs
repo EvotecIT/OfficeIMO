@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using PivotField2010 = DocumentFormat.OpenXml.Office2010.Excel.PivotField;
@@ -24,8 +25,7 @@ namespace OfficeIMO.Excel {
             string DisplayCaption(PivotFieldValue key, uint? formatId) {
                 if (key.Kind != PivotFieldValueKind.Number || formatId is not uint id || id == 0)
                     return PivotMaterializedCaption(key, plan.SourceDateSystem);
-                numberFormatCodes ??= BuildNumberFormatCodeMap(_excelDocument.WorkbookPartRoot
-                    ?? throw new InvalidOperationException("WorkbookPart is null"));
+                numberFormatCodes ??= BuildNumberFormatCodeMap(ExcelPartRef.Workbook(_excelDocument).WorkbookStyles.Root);
                 if (!numberFormatCodes.TryGetValue(id, out string? code))
                     throw new NotSupportedException("The pivot field number format is not available for subtotal captions.");
                 return PivotMaterializedCaption(key, plan.SourceDateSystem, id, code);

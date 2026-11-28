@@ -1,362 +1,399 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using System.Diagnostics;
 using System.Globalization;
-using System.Text;
+using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const string PivotCacheDefinitionRelationship = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "pivotCacheDefinition";
 
-        private static Dictionary<uint, PivotCacheDefinition> BuildPivotCacheMap(WorkbookPart workbookPart) {
-            var map = new Dictionary<uint, PivotCacheDefinition>();
-            var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
-            var pivotCaches = workbook.PivotCaches;
-            if (pivotCaches == null) return map;
-            foreach (var cache in pivotCaches.Elements<PivotCache>()) {
-                if (cache.CacheId == null) continue;
-                var relId = cache.Id?.Value;
-                if (relId == null) continue;
-                if (relId.Length == 0) continue;
-                if (workbookPart.GetPartById(relId) is PivotTableCacheDefinitionPart part && part.PivotCacheDefinition != null) {
-                    map[cache.CacheId.Value] = part.PivotCacheDefinition;
+        /// <summary>Returns pivot tables defined on this worksheet.</summary>
+        public IReadOnlyList<ExcelPivotTableInfo> GetPivotTables() =>
+            _excelDocument.ExecuteReadWithoutMaterializing(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry, ReadOwnedPivotTables,
+                    out IReadOnlyList<ExcelPivotTableInfo> owned)) return owned;
+
+                ExcelPartRef workbook = ExcelPartRef.Workbook(_excelDocument);
+                return ReadPivotTables(workbook.Root, workbook.WorkbookStyles.Root,
+                    ExcelPartRef.WorksheetForMetadata(this).PartsOfKind(ExcelPartKind.Pivot).Select(part => part.Root),
+                    id => workbook.GetPartById(id).Root, Name);
+            });
+
+        private static IReadOnlyList<ExcelPivotTableInfo> ReadOwnedPivotTables(OfficeOpcPackage package, ExcelDeferredSheet sheet) {
+            OfficeOpcRelationship[] pivots = package.GetRelationships(sheet.PartName)
+                .Where(relationship => relationship.Type == PivotTableRelationship).ToArray();
+            if (pivots.Length == 0) return Array.Empty<ExcelPivotTableInfo>();
+
+            var buffers = new List<OfficePooledBytes>();
+            OfficeXmlNode ReadRoot(string? target) {
+                if (target == null || !package.PartExists(target)) return default;
+                OfficePooledBytes bytes = package.ReadPart(target);
+                buffers.Add(bytes);
+                OfficeXmlTree tree = OfficeXmlTree.Parse(bytes.Array, bytes.Length, package.Namespaces);
+                return new OfficeXmlNode(tree, tree.Root);
+            }
+
+            try {
+                string? workbook = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
+                if (workbook == null) throw new InvalidOperationException("Workbook is missing.");
+                return ReadPivotTables(ReadRoot(workbook), ReadRoot(package.GetRelatedPartName(workbook,
+                        OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "styles")),
+                    pivots.Select(relationship => ReadRoot(relationship.TargetPartName)),
+                    id => {
+                        OfficeOpcRelationship? relationship = package.FindRelationship(workbook, id);
+                        return relationship?.Type == PivotCacheDefinitionRelationship ? ReadRoot(relationship.TargetPartName) : default;
+                    }, sheet.Name);
+            } finally {
+                foreach (OfficePooledBytes buffer in buffers) buffer.Dispose();
+            }
+        }
+
+        private static IReadOnlyList<ExcelPivotTableInfo> ReadPivotTables(OfficeXmlNode workbook, OfficeXmlNode styles,
+            IEnumerable<OfficeXmlNode> definitions, Func<string, OfficeXmlNode> readCache, string sheetName) {
+            if (!workbook.Is(WorksheetMarkup, "workbook")) throw new InvalidOperationException("Workbook is missing.");
+            var list = new List<ExcelPivotTableInfo>();
+            Dictionary<uint, OfficeXmlNode>? cacheMap = null;
+            Dictionary<uint, string>? numberFormatCodes = null;
+            int sheetIndex = -1;
+            int position = 0;
+            foreach (OfficeXmlNode sheet in workbook.Child(WorksheetMarkup, "sheets").Children(WorksheetMarkup, "sheet")) {
+                if (string.Equals(sheet.Attribute("name"), sheetName, StringComparison.Ordinal)) {
+                    sheetIndex = position;
+                    break;
                 }
+                position++;
+            }
+
+            foreach (OfficeXmlNode def in definitions) {
+                if (!def.Is(WorksheetMarkup, "pivotTableDefinition")) continue;
+                cacheMap ??= BuildPivotCacheMap(workbook, readCache);
+                numberFormatCodes ??= BuildNumberFormatCodeMap(styles);
+                uint cacheId = def.UInt32Attribute("cacheId") ?? 0U;
+                cacheMap.TryGetValue(cacheId, out var cacheDef);
+                var cacheFields = BuildCacheFieldNames(cacheDef);
+                OfficeXmlNode worksheetSource = cacheDef.Child(WorksheetMarkup, "cacheSource").Child(WorksheetMarkup, "worksheetSource");
+                var rowAxis = def.Child(WorksheetMarkup, "rowFields").Children(WorksheetMarkup, "field");
+                var columnAxis = def.Child(WorksheetMarkup, "colFields").Children(WorksheetMarkup, "field");
+                var pageAxis = def.Child(WorksheetMarkup, "pageFields").Children(WorksheetMarkup, "pageField");
+                var sourceSheet = worksheetSource.Attribute("sheet");
+                var sourceRange = worksheetSource.Attribute("ref");
+
+                var rowFields = ResolveFieldNames(rowAxis, cacheFields);
+                var columnFields = ResolveFieldNames(columnAxis, cacheFields);
+                var pageFields = ResolvePageFieldNames(pageAxis, cacheFields);
+                var dataFields = ResolveDataFields(def.Child(WorksheetMarkup, "dataFields").Children(WorksheetMarkup, "dataField"), cacheFields, numberFormatCodes);
+                var cacheFieldItems = BuildCacheFieldItems(cacheDef);
+                var selectedPageItems = ResolveSelectedPageItems(pageAxis, cacheFieldItems);
+                var fieldInfos = ResolveFieldInfos(def.Child(WorksheetMarkup, "pivotFields").Children(WorksheetMarkup, "pivotField"), cacheFields, cacheFieldItems, selectedPageItems, numberFormatCodes);
+                var filterInfos = ResolvePivotFilterInfos(def.Child(WorksheetMarkup, "filters").Children(WorksheetMarkup, "filter"), cacheFields, dataFields);
+                var calculatedFieldInfos = ResolveCalculatedFieldInfos(cacheDef, numberFormatCodes);
+                var groupingInfos = ResolvePivotGroupingInfos(cacheDef, cacheFields);
+                var rowAxisIndices = ResolvePivotAxisIndices(rowAxis);
+                var columnAxisIndices = ResolvePivotAxisIndices(columnAxis);
+                int valuesFieldCount = rowAxisIndices.Count(f => f == -2) + columnAxisIndices.Count(f => f == -2);
+                ExcelPivotTableAxis? valuesAxis = valuesFieldCount == 1
+                    ? rowAxisIndices.Contains(-2) ? ExcelPivotTableAxis.AxisRow : ExcelPivotTableAxis.AxisColumn : null;
+
+                var layout = ResolveLayout(def.BooleanAttribute("compactData"), def.BooleanAttribute("outlineData"));
+
+                list.Add(new ExcelPivotTableInfo(
+                    name: def.Attribute("name") ?? string.Empty,
+                    cacheId: cacheId,
+                    location: def.Child(WorksheetMarkup, "location").Attribute("ref"),
+                    sourceSheet: sourceSheet,
+                    sourceRange: sourceRange,
+                    sheetName: sheetName,
+                    sheetIndex: sheetIndex,
+                    pivotStyle: def.Attribute("pivotTableStyle"),
+                    layout: layout,
+                    dataOnRows: def.BooleanAttribute("dataOnRows"),
+                    showHeaders: def.BooleanAttribute("showHeaders"),
+                    showEmptyRows: def.BooleanAttribute("showEmptyRow"),
+                    showEmptyColumns: def.BooleanAttribute("showEmptyCol"),
+                    showDrill: def.BooleanAttribute("showDrill"),
+                    rowGrandTotals: def.BooleanAttribute("rowGrandTotals"),
+                    columnGrandTotals: def.BooleanAttribute("colGrandTotals"),
+                    rowHeaderCaption: def.Attribute("rowHeaderCaption"),
+                    columnHeaderCaption: def.Attribute("colHeaderCaption"),
+                    grandTotalCaption: def.Attribute("grandTotalCaption"),
+                    missingCaption: def.Attribute("missingCaption"),
+                    errorCaption: def.Attribute("errorCaption"),
+                    showDataDropDown: def.BooleanAttribute("showDataDropDown"),
+                    showDropZones: def.BooleanAttribute("showDropZones"),
+                    showDataTips: def.BooleanAttribute("showDataTips"),
+                    showMemberPropertyTips: def.BooleanAttribute("showMemberPropertyTips"),
+                    fieldListSortAscending: def.BooleanAttribute("fieldListSortAscending"),
+                    customListSort: def.BooleanAttribute("customListSort"),
+                    rowFields: rowFields,
+                    columnFields: columnFields,
+                    pageFields: pageFields,
+                    dataFields: dataFields,
+                    fields: fieldInfos,
+                    filters: filterInfos,
+                    calculatedFields: calculatedFieldInfos,
+                    groupings: groupingInfos,
+                    refreshOnOpen: cacheDef.BooleanAttribute("refreshOnLoad"),
+                    saveSourceData: cacheDef.BooleanAttribute("saveData"),
+                    preserveFormatting: def.BooleanAttribute("preserveFormatting"),
+                    enableDrill: def.BooleanAttribute("enableDrill"),
+                    hasValuesAxisField: valuesFieldCount > 0) {
+                    RowSourceFields = ResolveFieldNames(rowAxis, cacheFields, sourceFieldsOnly: true),
+                    ColumnSourceFields = ResolveFieldNames(columnAxis, cacheFields, sourceFieldsOnly: true),
+                    ValuesAxis = valuesAxis,
+                    ValuesAxisPosition = valuesAxis.HasValue ? Array.IndexOf(valuesAxis == ExcelPivotTableAxis.AxisRow ? rowAxisIndices : columnAxisIndices, -2) : null
+                });
+            }
+            return list;
+        }
+
+        private static Dictionary<uint, OfficeXmlNode> BuildPivotCacheMap(OfficeXmlNode workbook, Func<string, OfficeXmlNode> readCache) {
+            var map = new Dictionary<uint, OfficeXmlNode>();
+            foreach (OfficeXmlNode cache in workbook.Child(WorksheetMarkup, "pivotCaches").Children(WorksheetMarkup, "pivotCache")) {
+                string? id = cache.Attribute(OfficeXmlNamespaces.Relationships, "id");
+                if (string.IsNullOrEmpty(id) || cache.UInt32Attribute("cacheId") is not uint cacheId) continue;
+                OfficeXmlNode definition = readCache(id!);
+                if (definition.Is(WorksheetMarkup, "pivotCacheDefinition")) map[cacheId] = definition;
             }
             return map;
         }
 
-        private static List<string> BuildCacheFieldNames(PivotCacheDefinition? cacheDef) {
+        private static OfficeXmlNode.ChildList ReadCacheFields(OfficeXmlNode definition) =>
+            definition.Child(WorksheetMarkup, "cacheFields").Children(WorksheetMarkup, "cacheField");
+
+        private static List<string> BuildCacheFieldNames(OfficeXmlNode cacheDef) {
             var names = new List<string>();
-            if (cacheDef?.CacheFields == null) return names;
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int i = 0;
-            foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
-                var name = field.Name?.Value ?? $"Field{i + 1}";
-                if (string.IsNullOrWhiteSpace(name)) name = $"Field{i + 1}";
-                name = EnsureUniqueName(name, used);
+            foreach (OfficeXmlNode field in ReadCacheFields(cacheDef)) {
+                string? name = field.Attribute("name");
+                if (string.IsNullOrWhiteSpace(name)) name = $"Field{names.Count + 1}";
+                name = EnsureUniqueName(name!, used);
                 used.Add(name);
                 names.Add(name);
-                i++;
             }
             return names;
         }
 
-        private static Dictionary<uint, string> BuildNumberFormatCodeMap(WorkbookPart workbookPart) {
+        private static Dictionary<uint, string> BuildNumberFormatCodeMap(OfficeXmlNode styles) {
             var map = new Dictionary<uint, string>();
-            foreach (var builtInFormat in ExcelBuiltInNumberFormats.Codes) {
-                map[builtInFormat.Key] = builtInFormat.Value;
+            foreach (var builtInFormat in ExcelBuiltInNumberFormats.Codes) map[builtInFormat.Key] = builtInFormat.Value;
+            foreach (OfficeXmlNode format in styles.Child(WorksheetMarkup, "numFmts").Children(WorksheetMarkup, "numFmt")) {
+                if (format.UInt32Attribute("numFmtId") is uint id && format.Attribute("formatCode") is string code) map[id] = code;
             }
-
-            var numberingFormats = workbookPart.WorkbookStylesPart?.Stylesheet?.NumberingFormats;
-            if (numberingFormats == null) return map;
-
-            foreach (var format in numberingFormats.Elements<NumberingFormat>()) {
-                if (format.NumberFormatId?.Value is uint id && format.FormatCode?.Value is string code) {
-                    map[id] = code;
-                }
-            }
-
             return map;
         }
 
-        private static List<IReadOnlyList<string>> BuildCacheFieldItems(PivotCacheDefinition? cacheDef) {
+        private static List<IReadOnlyList<string>> BuildCacheFieldItems(OfficeXmlNode cacheDef) {
             var fields = new List<IReadOnlyList<string>>();
-            if (cacheDef?.CacheFields == null) return fields;
-
-            foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
-                var values = new List<string>();
-                OpenXmlCompositeElement? items = field.FieldGroup?.GetFirstChild<GroupItems>();
-                items ??= field.SharedItems;
-                if (items != null) {
-                    foreach (OpenXmlElement item in items.ChildElements) {
-                        string? text = item switch {
-                            StringItem stringItem => stringItem.Val?.Value,
-                            NumberItem numberItem => numberItem.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                            DateTimeItem dateItem => dateItem.Val?.Value.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-                            BooleanItem booleanItem => booleanItem.Val?.Value.ToString(),
-                            MissingItem => string.Empty,
-                            _ => item.InnerText
-                        };
-                        values.Add(text ?? string.Empty);
-                    }
-                }
-
-                fields.Add(values);
+            foreach (OfficeXmlNode field in ReadCacheFields(cacheDef)) {
+                OfficeXmlNode items = GroupItems(field);
+                if (items.IsNone) items = field.Child(WorksheetMarkup, "sharedItems");
+                fields.Add(ResolveGroupItems(items, includeDateGroup: false));
             }
-
             return fields;
         }
 
-        private static List<string> ResolveFieldNames(IEnumerable<Field>? fields, IReadOnlyList<string> cacheFields, bool sourceFieldsOnly = false) {
+        private static int[] ResolvePivotAxisIndices(OfficeXmlNode.ChildList fields) {
+            var indices = new List<int>();
+            foreach (OfficeXmlNode field in fields) indices.Add(field.Int32Attribute("x") ?? int.MinValue);
+            return indices.ToArray();
+        }
+
+        private static List<string> ResolveFieldNames(OfficeXmlNode.ChildList fields, IReadOnlyList<string> cacheFields, bool sourceFieldsOnly = false) {
             var list = new List<string>();
-            if (fields == null) return list;
-            foreach (var field in fields) {
-                if (field.Index == null) continue;
-                if (sourceFieldsOnly && field.Index.Value < 0) continue;
-                list.Add(ResolveFieldName(field.Index.Value, cacheFields));
+            foreach (OfficeXmlNode field in fields) {
+                if (field.Int32Attribute("x") is int index && (!sourceFieldsOnly || index >= 0)) list.Add(ResolveFieldName(index, cacheFields));
             }
             return list;
         }
 
-        private static List<string> ResolvePageFieldNames(IEnumerable<PageField>? fields, IReadOnlyList<string> cacheFields) {
+        private static List<string> ResolvePageFieldNames(OfficeXmlNode.ChildList fields, IReadOnlyList<string> cacheFields) {
             var list = new List<string>();
-            if (fields == null) return list;
-            foreach (var field in fields) {
-                if (field.Field == null) continue;
-                list.Add(ResolveFieldName(field.Field.Value, cacheFields));
+            foreach (OfficeXmlNode field in fields) {
+                if (field.Int32Attribute("fld") is int index) list.Add(ResolveFieldName(index, cacheFields));
             }
             return list;
         }
 
-        private static Dictionary<int, string> ResolveSelectedPageItems(IEnumerable<PageField>? fields, IReadOnlyList<IReadOnlyList<string>> cacheFieldItems) {
+        private static Dictionary<int, string> ResolveSelectedPageItems(OfficeXmlNode.ChildList fields, IReadOnlyList<IReadOnlyList<string>> cacheFieldItems) {
             var map = new Dictionary<int, string>();
-            if (fields == null) return map;
-
-            foreach (var field in fields) {
-                if (field.Field == null || field.Item == null) continue;
-                int fieldIndex = field.Field.Value;
-                int itemIndex = (int)field.Item.Value;
-                if (fieldIndex < 0 || fieldIndex >= cacheFieldItems.Count) continue;
-
-                var items = cacheFieldItems[fieldIndex];
-                if (itemIndex >= 0 && itemIndex < items.Count) {
-                    map[fieldIndex] = items[itemIndex];
+            foreach (OfficeXmlNode field in fields) {
+                if (field.Int32Attribute("fld") is int index && index >= 0 && index < cacheFieldItems.Count
+                    && field.UInt32Attribute("item") is uint item && item < cacheFieldItems[index].Count) {
+                    map[index] = cacheFieldItems[index][(int)item];
                 }
             }
-
             return map;
         }
 
-        private static List<ExcelPivotFieldInfo> ResolveFieldInfos(IEnumerable<PivotField>? fields, IReadOnlyList<string> cacheFields,
-            IReadOnlyList<IReadOnlyList<string>> cacheFieldItems,
-            IReadOnlyDictionary<int, string> selectedPageItems,
+        private static List<ExcelPivotFieldInfo> ResolveFieldInfos(OfficeXmlNode.ChildList fields, IReadOnlyList<string> cacheFields,
+            IReadOnlyList<IReadOnlyList<string>> cacheFieldItems, IReadOnlyDictionary<int, string> selectedPageItems,
             IReadOnlyDictionary<uint, string> numberFormatCodes) {
             var list = new List<ExcelPivotFieldInfo>();
-            if (fields == null) return list;
-            int index = 0;
-            foreach (var field in fields) {
+            foreach (OfficeXmlNode field in fields) {
+                int index = list.Count;
                 IReadOnlyList<string> itemValues = index < cacheFieldItems.Count ? cacheFieldItems[index] : Array.Empty<string>();
                 selectedPageItems.TryGetValue(index, out string? selectedItem);
-                uint? numberFormatId = field.NumberFormatId?.Value;
+                uint? numberFormatId = field.UInt32Attribute("numFmtId");
+                OfficeXmlNode items = field.Child(WorksheetMarkup, "items");
                 list.Add(new ExcelPivotFieldInfo(
                     fieldName: ResolveFieldName(index, cacheFields),
-                    axis: field.Axis?.Value.ToOfficeEnum(),
-                    sortType: field.SortType?.Value.ToOfficeEnum(),
+                    axis: PivotValue<ExcelPivotTableAxis>(field, "axis", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue),
+                    sortType: PivotValue<ExcelPivotFieldSort>(field, "sortType", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue),
                     numberFormatId: numberFormatId,
-                    showAll: field.ShowAll?.Value,
-                    defaultSubtotal: field.DefaultSubtotal?.Value,
-                    subtotalTop: field.SubtotalTop?.Value,
-                    insertBlankRow: field.InsertBlankRow?.Value,
-                    insertPageBreak: field.InsertPageBreak?.Value,
-                    compact: field.Compact?.Value,
-                    outline: field.Outline?.Value,
-                    showDropDowns: field.ShowDropDowns?.Value,
-                    multipleItemSelectionAllowed: field.MultipleItemSelectionAllowed?.Value,
-                    includeNewItemsInFilter: field.IncludeNewItemsInFilter?.Value,
-                    subtotalCaption: field.SubtotalCaption?.Value,
-                    hiddenItems: ResolveHiddenItems(field.Items, itemValues),
+                    showAll: field.BooleanAttribute("showAll"),
+                    defaultSubtotal: field.BooleanAttribute("defaultSubtotal"),
+                    subtotalTop: field.BooleanAttribute("subtotalTop"),
+                    insertBlankRow: field.BooleanAttribute("insertBlankRow"),
+                    insertPageBreak: field.BooleanAttribute("insertPageBreak"),
+                    compact: field.BooleanAttribute("compact"),
+                    outline: field.BooleanAttribute("outline"),
+                    showDropDowns: field.BooleanAttribute("showDropDowns"),
+                    multipleItemSelectionAllowed: field.BooleanAttribute("multipleItemSelectionAllowed"),
+                    includeNewItemsInFilter: field.BooleanAttribute("includeNewItemsInFilter"),
+                    subtotalCaption: field.Attribute("subtotalCaption"),
+                    hiddenItems: ResolvePivotItems(items, itemValues, hidden: true),
                     selectedItem: selectedItem,
-                    visibleItems: ResolveVisibleItems(field.Items, itemValues),
+                    visibleItems: ResolvePivotItems(items, itemValues, hidden: false),
                     numberFormatCode: ResolveNumberFormatCode(numberFormatId, numberFormatCodes)));
-                index++;
             }
-
             return list;
         }
 
-        private static IReadOnlyList<string> ResolveHiddenItems(Items? items, IReadOnlyList<string> values) {
-            if (items == null || values.Count == 0) return Array.Empty<string>();
-            var hidden = new List<string>();
-            foreach (var item in items.Elements<Item>()) {
-                if (item.Hidden?.Value != true || item.Index == null) continue;
-                int idx = (int)item.Index.Value;
-                if (idx >= 0 && idx < values.Count) {
-                    hidden.Add(values[idx]);
+        private static IReadOnlyList<string> ResolvePivotItems(OfficeXmlNode items, IReadOnlyList<string> values, bool hidden) {
+            if (items.IsNone || values.Count == 0) return Array.Empty<string>();
+            var result = new List<string>();
+            foreach (OfficeXmlNode item in items.Children(WorksheetMarkup, "item")) {
+                if ((item.BooleanAttribute("h") == true) == hidden && item.UInt32Attribute("x") is uint index && index < values.Count) {
+                    result.Add(values[(int)index]);
                 }
             }
-
-            return hidden;
+            return result;
         }
 
-        private static IReadOnlyList<string> ResolveVisibleItems(Items? items, IReadOnlyList<string> values) {
-            if (items == null || values.Count == 0) return Array.Empty<string>();
-            var visible = new List<string>();
-            foreach (var item in items.Elements<Item>()) {
-                if (item.Index == null || item.Hidden?.Value == true) continue;
-                int idx = (int)item.Index.Value;
-                if (idx >= 0 && idx < values.Count) {
-                    visible.Add(values[idx]);
-                }
-            }
-
-            return visible;
-        }
-
-        private static List<ExcelPivotDataFieldInfo> ResolveDataFields(IEnumerable<DataField>? fields, IReadOnlyList<string> cacheFields,
+        private static List<ExcelPivotDataFieldInfo> ResolveDataFields(OfficeXmlNode.ChildList fields, IReadOnlyList<string> cacheFields,
             IReadOnlyDictionary<uint, string> numberFormatCodes) {
             var list = new List<ExcelPivotDataFieldInfo>();
-            if (fields == null) return list;
-            foreach (var field in fields) {
-                int idx = field.Field?.Value is uint u ? (int)u : 0;
-                var name = ResolveFieldName(idx, cacheFields);
-                var fn = (field.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum();
-                var display = field.Name?.Value;
-                uint? numberFormatId = field.NumberFormatId?.Value;
-                list.Add(new ExcelPivotDataFieldInfo(name, fn, display, numberFormatId,
-                    ResolveNumberFormatCode(numberFormatId, numberFormatCodes),
-                    field.ShowDataAs?.Value.ToOfficeEnum(),
-                    field.BaseField?.Value,
-                    field.BaseItem?.Value));
+            foreach (OfficeXmlNode field in fields) {
+                int index = unchecked((int)(field.UInt32Attribute("fld") ?? 0U));
+                uint? format = field.UInt32Attribute("numFmtId");
+                list.Add(new ExcelPivotDataFieldInfo(ResolveFieldName(index, cacheFields),
+                    PivotValue<ExcelPivotDataFunction>(field, "subtotal", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue) ?? ExcelPivotDataFunction.Sum,
+                    field.Attribute("name"), format, ResolveNumberFormatCode(format, numberFormatCodes),
+                    PivotValue<ExcelPivotShowDataAs>(field, "showDataAs", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue),
+                    field.Int32Attribute("baseField"), field.UInt32Attribute("baseItem")));
             }
             return list;
         }
 
-        private static List<ExcelPivotFilterInfo> ResolvePivotFilterInfos(IEnumerable<PivotFilter>? filters,
-            IReadOnlyList<string> cacheFields,
-            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields) {
+        private static List<ExcelPivotFilterInfo> ResolvePivotFilterInfos(OfficeXmlNode.ChildList filters,
+            IReadOnlyList<string> cacheFields, IReadOnlyList<ExcelPivotDataFieldInfo> dataFields) {
             var list = new List<ExcelPivotFilterInfo>();
-            if (filters == null) return list;
-
-            foreach (var filter in filters) {
-                int fieldIndex = filter.Field?.Value is uint field ? (int)field : -1;
-                string fieldName = ResolveFieldName(fieldIndex, cacheFields);
+            foreach (OfficeXmlNode filter in filters) {
+                int index = unchecked((int)(filter.UInt32Attribute("fld") ?? uint.MaxValue));
                 string? dataFieldName = null;
-                if (filter.MeasureField?.Value is uint measureField && measureField < dataFields.Count) {
-                    var dataField = dataFields[(int)measureField];
-                    dataFieldName = dataField.DisplayName ?? dataField.FieldName;
+                if (filter.UInt32Attribute("iMeasureFld") is uint measure && measure < dataFields.Count) {
+                    var data = dataFields[(int)measure];
+                    dataFieldName = data.DisplayName ?? data.FieldName;
                 }
 
-                var top10 = filter.AutoFilter?
-                    .Elements<FilterColumn>()
-                    .Select(column => column.GetFirstChild<Top10>())
-                    .FirstOrDefault(element => element != null);
-
-                list.Add(new ExcelPivotFilterInfo(
-                    fieldName,
-                    filter.Type?.Value.ToOfficeEnum(),
-                    filter.StringValue1?.Value ?? FormatOpenXmlDouble(top10?.Val?.Value),
-                    filter.StringValue2?.Value,
-                    dataFieldName,
-                    filter.Name?.Value,
-                    filter.Description?.Value,
-                    top10?.Top?.Value,
-                    top10?.Percent?.Value,
-                    FormatOpenXmlDouble(top10?.FilterValue?.Value),
-                    IsMaterializedPivotFixedDateFilter(filter) && QualifiedPivotWholeDay(filter)));
+                OfficeXmlNode top10 = default;
+                foreach (OfficeXmlNode column in filter.Child(WorksheetMarkup, "autoFilter").Children(WorksheetMarkup, "filterColumn")) {
+                    top10 = column.Child(WorksheetMarkup, "top10");
+                    if (top10.Exists) break;
+                }
+                ExcelPivotFilterType? type = PivotValue<ExcelPivotFilterType>(filter, "type", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+                list.Add(new ExcelPivotFilterInfo(ResolveFieldName(index, cacheFields), type,
+                    filter.Attribute("stringValue1") ?? FormatOpenXmlDouble(top10.DoubleAttribute("val")),
+                    filter.Attribute("stringValue2"), dataFieldName, filter.Attribute("name"), filter.Attribute("description"),
+                    top10.BooleanAttribute("top"), top10.BooleanAttribute("percent"), FormatOpenXmlDouble(top10.DoubleAttribute("filterVal")),
+                    IsMaterializedPivotFixedDateFilter(type) && QualifiedPivotWholeDay(filter)));
             }
-
             return list;
         }
 
-        private static List<ExcelPivotCalculatedFieldInfo> ResolveCalculatedFieldInfos(PivotCacheDefinition? cacheDef,
+        private static List<ExcelPivotCalculatedFieldInfo> ResolveCalculatedFieldInfos(OfficeXmlNode cacheDef,
             IReadOnlyDictionary<uint, string> numberFormatCodes) {
             var list = new List<ExcelPivotCalculatedFieldInfo>();
-            if (cacheDef?.CacheFields == null) return list;
-
-            foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
-                string? formula = field.Formula?.Value;
+            foreach (OfficeXmlNode field in ReadCacheFields(cacheDef)) {
+                string? formula = field.Attribute("formula");
                 if (string.IsNullOrWhiteSpace(formula)) continue;
-                uint? numberFormatId = field.NumberFormatId?.Value;
-
-                list.Add(new ExcelPivotCalculatedFieldInfo(
-                    field.Name?.Value ?? string.Empty,
-                    formula!,
-                    field.Caption?.Value,
-                    numberFormatId,
-                    ResolveNumberFormatCode(numberFormatId, numberFormatCodes)));
+                uint? format = field.UInt32Attribute("numFmtId");
+                list.Add(new ExcelPivotCalculatedFieldInfo(field.Attribute("name") ?? string.Empty, formula!, field.Attribute("caption"),
+                    format, ResolveNumberFormatCode(format, numberFormatCodes)));
             }
-
             return list;
         }
 
-        private static string? ResolveNumberFormatCode(uint? numberFormatId, IReadOnlyDictionary<uint, string> numberFormatCodes) {
-            return numberFormatId.HasValue && numberFormatCodes.TryGetValue(numberFormatId.Value, out string? code) ? code : null;
-        }
+        private static string? ResolveNumberFormatCode(uint? format, IReadOnlyDictionary<uint, string> numberFormatCodes) =>
+            format.HasValue && numberFormatCodes.TryGetValue(format.Value, out string? code) ? code : null;
 
-        private static List<ExcelPivotGroupingInfo> ResolvePivotGroupingInfos(PivotCacheDefinition? cacheDef, IReadOnlyList<string> cacheFields) {
+        private static List<ExcelPivotGroupingInfo> ResolvePivotGroupingInfos(OfficeXmlNode cacheDef, IReadOnlyList<string> cacheFields) {
             var list = new List<ExcelPivotGroupingInfo>();
-            if (cacheDef?.CacheFields == null) return list;
-
             int index = 0;
-            foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
-                RangeProperties? range = field.FieldGroup?.GetFirstChild<RangeProperties>();
-                if (range != null || field.FieldGroup?.GetFirstChild<DiscreteProperties>() != null) {
-                    list.Add(new ExcelPivotGroupingInfo(
-                        ResolveFieldName(index, cacheFields),
-                        range?.GroupBy?.Value.ToOfficeEnum(),
-                        range?.StartDate?.Value,
-                        range?.EndDate?.Value,
-                        range?.StartNumber?.Value,
-                        range?.EndNum?.Value,
-                        range?.GroupInterval?.Value,
-                        range?.AutoStart?.Value,
-                        range?.AutoEnd?.Value,
-                        ResolveGroupItems(field.FieldGroup?.GetFirstChild<GroupItems>()),
-                        field.FieldGroup?.Base?.Value,
-                        field.FieldGroup?.ParentId?.Value));
+            foreach (OfficeXmlNode field in ReadCacheFields(cacheDef)) {
+                OfficeXmlNode group = field.Child(WorksheetMarkup, "fieldGroup");
+                OfficeXmlNode range = group.Child(WorksheetMarkup, "rangePr");
+                if (range.Exists || group.Child(WorksheetMarkup, "discretePr").Exists) {
+                    list.Add(new ExcelPivotGroupingInfo(ResolveFieldName(index, cacheFields),
+                        PivotValue<ExcelPivotGroupBy>(range, "groupBy", ExcelOpenXmlValueTypeExtensions.TryParseOpenXmlValue),
+                        ReadPivotDate(range.Attribute("startDate")), ReadPivotDate(range.Attribute("endDate")),
+                        range.DoubleAttribute("startNum"), range.DoubleAttribute("endNum"), range.DoubleAttribute("groupInterval"),
+                        range.BooleanAttribute("autoStart"), range.BooleanAttribute("autoEnd"), ResolveGroupItems(GroupItems(field), includeDateGroup: true),
+                        group.UInt32Attribute("base"), group.UInt32Attribute("par")));
                 }
-
                 index++;
             }
-
             return list;
         }
 
-        private static IReadOnlyList<string> ResolveGroupItems(GroupItems? groupItems) {
-            if (groupItems == null) return Array.Empty<string>();
+        private static OfficeXmlNode GroupItems(OfficeXmlNode field) => field.Child(WorksheetMarkup, "fieldGroup").Child(WorksheetMarkup, "groupItems");
 
+        private static IReadOnlyList<string> ResolveGroupItems(OfficeXmlNode items, bool includeDateGroup) {
+            if (items.IsNone) return Array.Empty<string>();
             var values = new List<string>();
-            foreach (OpenXmlElement item in groupItems.ChildElements) {
-                string? text = item switch {
-                    StringItem stringItem => stringItem.Val?.Value,
-                    NumberItem numberItem => numberItem.Val?.Value.ToString(CultureInfo.InvariantCulture),
-                    DateTimeItem dateItem => dateItem.Val?.Value.ToString("O", CultureInfo.InvariantCulture),
-                    BooleanItem booleanItem => booleanItem.Val?.Value.ToString(),
-                    DateGroupItem dateGroupItem => FormatDateGroupItem(dateGroupItem),
-                    MissingItem => string.Empty,
+            foreach (OfficeXmlNode item in items.Children()) {
+                if (item.IsExtensionMarkup()) continue;
+                string? value = item.NamespaceId == WorksheetMarkup ? item.LocalName switch {
+                    "s" => item.Attribute("v"),
+                    "n" => item.DoubleAttribute("v")?.ToString(CultureInfo.InvariantCulture),
+                    "d" => ReadPivotDate(item.Attribute("v"))?.ToString("O", CultureInfo.InvariantCulture),
+                    "b" => item.BooleanAttribute("v")?.ToString(),
+                    "dateGroupItem" when includeDateGroup => FormatDateGroupItem(item),
+                    "m" => string.Empty,
                     _ => item.InnerText
-                };
-                values.Add(text ?? string.Empty);
+                } : item.InnerText;
+                values.Add(value ?? string.Empty);
             }
-
             return values;
         }
 
-        private static string FormatDateGroupItem(DateGroupItem item) {
-            var grouping = item.DateTimeGrouping?.Value.ToString() ?? "Date";
+        private static string FormatDateGroupItem(OfficeXmlNode item) {
+            string grouping = item.Attribute("dateTimeGrouping") ?? "Date";
             var parts = new List<string>();
-            if (item.Year?.Value is ushort year) parts.Add(year.ToString(CultureInfo.InvariantCulture));
-            if (item.Month?.Value is ushort month) parts.Add(month.ToString(CultureInfo.InvariantCulture));
-            if (item.Day?.Value is ushort day) parts.Add(day.ToString(CultureInfo.InvariantCulture));
-            if (item.Hour?.Value is ushort hour) parts.Add(hour.ToString(CultureInfo.InvariantCulture));
-            if (item.Minute?.Value is ushort minute) parts.Add(minute.ToString(CultureInfo.InvariantCulture));
-            if (item.Second?.Value is ushort second) parts.Add(second.ToString(CultureInfo.InvariantCulture));
+            foreach (string attribute in new[] { "year", "month", "day", "hour", "minute", "second" }) {
+                if (item.UInt32Attribute(attribute) is uint number && number <= ushort.MaxValue) parts.Add(number.ToString(CultureInfo.InvariantCulture));
+            }
             return parts.Count == 0 ? grouping : $"{grouping}:{string.Join("-", parts)}";
         }
 
-        private static string? FormatOpenXmlDouble(double? value) {
-            return value.HasValue ? InvariantNumberText.Get(value.Value) : null;
+        private static DateTime? ReadPivotDate(string? value) =>
+            value == null ? (DateTime?)null : XmlConvert.ToDateTime(value, XmlDateTimeSerializationMode.RoundtripKind);
+
+        private delegate bool TryParsePivotValue<T>(string token, out T result) where T : struct;
+        private static T? PivotValue<T>(OfficeXmlNode element, string attribute, TryParsePivotValue<T> parse) where T : struct {
+            string? token = element.Attribute(attribute);
+            if (token == null) return null;
+            if (parse(token, out T result)) return result;
+            throw new FormatException($"Invalid pivot {attribute} value '{token}'.");
         }
 
-        private static string ResolveFieldName(int index, IReadOnlyList<string> cacheFields) {
-            if (index >= 0 && index < cacheFields.Count) return cacheFields[index];
-            return $"Field{index + 1}";
-        }
+        private static string? FormatOpenXmlDouble(double? value) => value.HasValue ? InvariantNumberText.Get(value.Value) : null;
 
-        private int ResolveSheetIndex(WorkbookPart workbookPart) {
-            var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
-            var sheets = workbook.Sheets?.OfType<Sheet>().ToList();
-            if (sheets == null) return -1;
-            for (int i = 0; i < sheets.Count; i++) {
-                if (ReferenceEquals(sheets[i], _sheet)) return i;
-            }
-            return -1;
-        }
+        private static string ResolveFieldName(int index, IReadOnlyList<string> cacheFields) =>
+            index >= 0 && index < cacheFields.Count ? cacheFields[index] : $"Field{index + 1}";
 
-        private static ExcelPivotLayout ResolveLayout(BooleanValue? compactData, BooleanValue? outlineData) {
-            if (outlineData != null && outlineData.Value) return ExcelPivotLayout.Outline;
-            if (compactData != null && compactData.Value) return ExcelPivotLayout.Compact;
-            return ExcelPivotLayout.Tabular;
-        }
+        private static ExcelPivotLayout ResolveLayout(bool? compactData, bool? outlineData) =>
+            outlineData == true ? ExcelPivotLayout.Outline : compactData == true ? ExcelPivotLayout.Compact : ExcelPivotLayout.Tabular;
     }
 }

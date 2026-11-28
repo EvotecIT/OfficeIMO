@@ -1,8 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
-using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -49,47 +45,43 @@ namespace OfficeIMO.Excel {
             ArgumentException.ThrowIfNullOrWhiteSpace(dataRange);
             ArgumentException.ThrowIfNullOrWhiteSpace(locationRange);
 
+            string typeName = SparklineTypeName(type);
+            IReadOnlyList<SparklineReference> references = BuildSparklineReferences(dataRange, locationRange);
             ExcelSparklineGroup? created = null;
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var groups = GetOrCreateSparklineGroups(ws);
-
-                var group = new SparklineGroup { Type = type.ToOpenXml() };
-                if (displayMarkers) group.Markers = true;
+            EditWorksheetObject(worksheet => {
+                OfficeXmlNode groups = GetOrCreateSparklineGroups(worksheet);
+                OfficeXmlNode group = AppendSparklineElement(groups, "sparklineGroup");
+                group.SetAttribute("type", typeName);
+                if (displayMarkers) group.SetBooleanAttribute("markers", true);
                 if (displayHighLow) {
-                    group.High = true;
-                    group.Low = true;
+                    group.SetBooleanAttribute("high", true);
+                    group.SetBooleanAttribute("low", true);
                 }
                 if (displayFirstLast) {
-                    group.First = true;
-                    group.Last = true;
+                    group.SetBooleanAttribute("first", true);
+                    group.SetBooleanAttribute("last", true);
                 }
-                if (displayNegative) group.Negative = true;
-                if (displayAxis) group.DisplayXAxis = true;
+                if (displayNegative) group.SetBooleanAttribute("negative", true);
+                if (displayAxis) group.SetBooleanAttribute("displayXAxis", true);
 
-                ApplyColor(seriesColor, rgb => group.SeriesColor = new SeriesColor { Rgb = rgb });
-                ApplyColor(axisColor, rgb => group.AxisColor = new AxisColor { Rgb = rgb });
-                ApplyColor(negativeColor, rgb => group.NegativeColor = new NegativeColor { Rgb = rgb });
-                ApplyColor(markersColor, rgb => group.MarkersColor = new MarkersColor { Rgb = rgb });
-                ApplyColor(highColor, rgb => group.HighMarkerColor = new HighMarkerColor { Rgb = rgb });
-                ApplyColor(lowColor, rgb => group.LowMarkerColor = new LowMarkerColor { Rgb = rgb });
-                ApplyColor(firstColor, rgb => group.FirstMarkerColor = new FirstMarkerColor { Rgb = rgb });
-                ApplyColor(lastColor, rgb => group.LastMarkerColor = new LastMarkerColor { Rgb = rgb });
+                ApplySparklineColor(group, "colorSeries", seriesColor);
+                ApplySparklineColor(group, "colorNegative", negativeColor);
+                ApplySparklineColor(group, "colorAxis", axisColor);
+                ApplySparklineColor(group, "colorMarkers", markersColor);
+                ApplySparklineColor(group, "colorFirst", firstColor);
+                ApplySparklineColor(group, "colorLast", lastColor);
+                ApplySparklineColor(group, "colorHigh", highColor);
+                ApplySparklineColor(group, "colorLow", lowColor);
 
-                var sparklines = new Sparklines();
-                foreach (var sparklineReference in BuildSparklineReferences(dataRange, locationRange)) {
-                    var sparkline = new Sparkline {
-                        Formula = new OfficeFormula(sparklineReference.Formula),
-                        ReferenceSequence = new OfficeReferenceSequence(sparklineReference.Location)
-                    };
-                    sparklines.Append(sparkline);
+                OfficeXmlNode sparklines = AppendSparklineElement(group, "sparklines");
+                foreach (SparklineReference reference in references) {
+                    OfficeXmlNode sparkline = AppendSparklineElement(sparklines, "sparkline");
+                    AppendSparklineText(sparkline, "f", reference.Formula);
+                    AppendSparklineText(sparkline, "sqref", reference.Location);
                 }
-                group.Append(sparklines);
-                groups.Append(group);
-                created = new ExcelSparklineGroup(this, group);
-
-                ws.Save();
-            });
+                created = new ExcelSparklineGroup(this, group, references[0].Formula, references[0].Location, type);
+                return true;
+            }, save: true);
             return created!;
         }
 
@@ -146,8 +138,8 @@ namespace OfficeIMO.Excel {
                 lastColor);
         }
 
-        private static void ApplyColor(OfficeColor? color, Action<HexBinaryValue> assign) {
-            if (color.HasValue) assign(new HexBinaryValue(color.Value.Resolve(OfficeTheme.Default).ToArgbHex()));
+        private static void ApplySparklineColor(OfficeXmlNode group, string name, OfficeColor? color) {
+            if (color.HasValue) AppendSparklineElement(group, name).SetAttribute("rgb", color.Value.Resolve(OfficeTheme.Default).ToArgbHex());
         }
 
         private static IReadOnlyList<SparklineReference> BuildSparklineReferences(string dataRange, string locationRange) {
@@ -226,29 +218,87 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static SparklineGroups GetOrCreateSparklineGroups(Worksheet ws) {
-            const string SparklineUri = "{05C60535-1F16-4fd2-B633-F4F36F0B64E0}";
+        private const string SparklineExtensionUri = "{05C60535-1F16-4fd2-B633-F4F36F0B64E0}";
+        private const string SparklineNamespace = "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main";
+        private const string ExcelFormulaNamespace = "http://schemas.microsoft.com/office/excel/2006/main";
 
-            var extList = ws.Elements<DocumentFormat.OpenXml.Spreadsheet.ExtensionList>().FirstOrDefault();
-            if (extList == null) {
-                extList = new DocumentFormat.OpenXml.Spreadsheet.ExtensionList();
-                ws.Append(extList);
+        private static OfficeXmlNode AppendSparklineElement(OfficeXmlNode parent, string name) =>
+            parent.Append(parent.CreateElement(SparklineNamespace, name, "x14"));
+
+        private static void AppendSparklineText(OfficeXmlNode parent, string name, string text) =>
+            parent.Append(parent.CreateElement(ExcelFormulaNamespace, name, "xm")).SetInnerText(text);
+
+        private static OfficeXmlNode FindSparklineExtension(OfficeXmlNode extensionList) {
+            foreach (OfficeXmlNode extension in extensionList.Children(WorksheetMarkup, "ext")) {
+                if (string.Equals(extension.Attribute("uri"), SparklineExtensionUri, StringComparison.OrdinalIgnoreCase)) return extension;
             }
+            return default;
+        }
 
-            var ext = extList.Elements<DocumentFormat.OpenXml.Spreadsheet.Extension>()
-                .FirstOrDefault(e => string.Equals(e.Uri?.Value, SparklineUri, StringComparison.OrdinalIgnoreCase));
-            if (ext == null) {
-                ext = new DocumentFormat.OpenXml.Spreadsheet.Extension { Uri = SparklineUri };
-                extList.Append(ext);
+        private static OfficeXmlNode GetOrCreateSparklineGroups(OfficeXmlNode worksheet) {
+            OfficeXmlNode list = AddWorksheetObject(worksheet, "extLst");
+            OfficeXmlNode extension = FindSparklineExtension(list);
+            if (extension.IsNone) {
+                extension = list.Append(list.CreateElement(WorksheetMarkup, "ext"));
+                extension.SetAttribute("uri", SparklineExtensionUri);
             }
+            OfficeXmlNode groups = extension.Child(SparklineNamespace, "sparklineGroups");
+            return groups.IsNone ? AppendSparklineElement(extension, "sparklineGroups") : groups;
+        }
 
-            var groups = ext.GetFirstChild<SparklineGroups>();
-            if (groups == null) {
-                groups = new SparklineGroups();
-                ext.Append(groups);
+        private static IEnumerable<OfficeXmlNode> FindSparklineGroups(OfficeXmlNode worksheet) {
+            OfficeXmlNode list = worksheet.Child(WorksheetMarkup, "extLst");
+            foreach (OfficeXmlNode extension in list.Children(WorksheetMarkup, "ext")) {
+                if (!string.Equals(extension.Attribute("uri"), SparklineExtensionUri, StringComparison.OrdinalIgnoreCase)) continue;
+                OfficeXmlNode groups = extension.Child(SparklineNamespace, "sparklineGroups");
+                foreach (OfficeXmlNode group in groups.Children()) {
+                    if (group.Is(SparklineNamespace, "sparklineGroup")) yield return group;
+                }
             }
+        }
 
-            return groups;
+        private static IEnumerable<OfficeXmlNode> FindSparklines(OfficeXmlNode group) {
+            foreach (OfficeXmlNode sparkline in group.Child(SparklineNamespace, "sparklines").Children()) {
+                if (sparkline.Is(SparklineNamespace, "sparkline")) yield return sparkline;
+            }
+        }
+
+        internal static string SparklineTypeName(ExcelSparklineType type) => type switch {
+            ExcelSparklineType.Line => "line",
+            ExcelSparklineType.Column => "column",
+            ExcelSparklineType.Stacked => "stacked",
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        internal static ExcelSparklineType ReadSparklineType(OfficeXmlNode group) => group.Attribute("type") switch {
+            "column" => ExcelSparklineType.Column,
+            "stacked" => ExcelSparklineType.Stacked,
+            _ => ExcelSparklineType.Line
+        };
+
+        internal ExcelSparklineType ReadSparklineGroupType(string formula, string location, ExcelSparklineType previous) =>
+            ReadWorksheetObject(worksheet => {
+                OfficeXmlNode group = FindSparklineByReference(worksheet, formula, location);
+                return group.IsNone ? previous : ReadSparklineType(group);
+            });
+
+        internal void EditSparklineGroupType(string formula, string location, string type) =>
+            EditWorksheetObject(worksheet => {
+                OfficeXmlNode group = FindSparklineByReference(worksheet, formula, location);
+                if (group.IsNone) return false;
+                group.SetAttribute("type", type);
+                return true;
+            });
+
+        private static OfficeXmlNode FindSparklineByReference(OfficeXmlNode worksheet, string formula, string location) {
+            OfficeXmlNode match = default;
+            foreach (OfficeXmlNode group in FindSparklineGroups(worksheet)) {
+                foreach (OfficeXmlNode sparkline in FindSparklines(group)) {
+                    if (sparkline.Child(ExcelFormulaNamespace, "f").InnerText == formula &&
+                        sparkline.Child(ExcelFormulaNamespace, "sqref").InnerText == location) match = group;
+                }
+            }
+            return match;
         }
 
         private readonly struct SparklineReference {

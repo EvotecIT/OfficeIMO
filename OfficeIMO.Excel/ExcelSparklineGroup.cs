@@ -1,23 +1,33 @@
-using DocumentFormat.OpenXml.Office2010.Excel;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel;
 
 /// <summary>A group of worksheet sparklines sharing display settings.</summary>
 public sealed class ExcelSparklineGroup {
-    private readonly SparklineGroup _group;
-    internal ExcelSparklineGroup(ExcelSheet sheet, SparklineGroup group) {
+    private readonly OfficeXmlNode _liveGroup;
+    private readonly string _formula;
+    private readonly string _location;
+    private ExcelSparklineType _type;
+
+    internal ExcelSparklineGroup(ExcelSheet sheet, OfficeXmlNode group, string formula, string location, ExcelSparklineType type) {
         Sheet = sheet;
-        _group = group;
+        _liveGroup = group.IsSdk ? group : default;
+        _formula = formula;
+        _location = location;
+        _type = type;
     }
+
     /// <summary>Gets the worksheet containing the sparklines.</summary>
     public ExcelSheet Sheet { get; }
+
     /// <summary>Gets or sets the rendering type for every sparkline in the group.</summary>
     public ExcelSparklineType Type {
-        get => _group.Type?.Value.ToOfficeEnum() ?? ExcelSparklineType.Line;
+        get => _liveGroup.IsNone ? Sheet.ReadSparklineGroupType(_formula, _location, _type) : ExcelSheet.ReadSparklineType(_liveGroup);
         set {
-            if (value != ExcelSparklineType.Line && value != ExcelSparklineType.Column && value != ExcelSparklineType.Stacked)
-                throw new ArgumentOutOfRangeException(nameof(value));
-            Sheet.RangeEdit(() => _group.Type = value.ToOpenXml());
+            string typeName = ExcelSheet.SparklineTypeName(value);
+            if (_liveGroup.IsNone) Sheet.EditSparklineGroupType(_formula, _location, typeName);
+            else Sheet.RangeEdit(() => _liveGroup.SetAttribute("type", typeName));
+            _type = value;
         }
     }
 }

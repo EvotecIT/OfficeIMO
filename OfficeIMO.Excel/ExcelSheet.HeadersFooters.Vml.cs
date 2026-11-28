@@ -1,13 +1,11 @@
-using DocumentFormat.OpenXml.Packaging;
 using System.Globalization;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static XDocument LoadOrCreateHeaderFooterVmlDocument(VmlDrawingPart vmlPart) {
+        private static XDocument LoadOrCreateHeaderFooterVmlDocument(Stream? stream) {
             try {
-                using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
-                if (!stream.CanSeek || stream.Length > 0) {
+                if (stream != null && (!stream.CanSeek || stream.Length > 0)) {
                     XDocument existing = LoadVmlXDocument(stream);
                     if (existing.Root != null) {
                         EnsureHeaderFooterVmlNamespaces(existing.Root);
