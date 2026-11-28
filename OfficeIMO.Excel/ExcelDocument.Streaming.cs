@@ -189,7 +189,9 @@ public partial class ExcelDocument {
                         throw new InvalidOperationException("Write at least one table before disposing the writer; a workbook needs a worksheet.");
                     if (!_failed) {
                         var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options, _styles);
-                        if (_format == ExcelFileFormat.Xlsx) DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive!, model, _theme);
+                        if (_format == ExcelFileFormat.Xlsx) {
+                            DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive!, model, _theme, _options.DocumentProperties);
+                        }
                         else _binary!.Complete(_output, _sheets.Select(sheet => sheet.SheetName).ToArray());
                     }
                 } finally { try { _archive?.Dispose(); } finally { _binary?.Dispose(); } }

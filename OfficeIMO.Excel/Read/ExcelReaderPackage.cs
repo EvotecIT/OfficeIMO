@@ -8,14 +8,12 @@ namespace OfficeIMO.Excel {
     /// <summary>Workbook metadata and part access shared by read-only opens and editable workbook snapshots.</summary>
     internal sealed class ExcelReaderPackage : IDisposable {
         private const int Spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
-        private readonly Func<Stream> _openSource;
         private readonly OfficeOpcPackage _package;
         private readonly string _workbookName;
         private readonly object _relationsGate = new();
 
-        private ExcelReaderPackage(Func<Stream> openSource, OfficeOpcPackage package, string workbookName,
+        private ExcelReaderPackage(OfficeOpcPackage package, string workbookName,
             OfficeXmlNode workbook, OpenXmlPackagePartBufferReader parts) {
-            _openSource = openSource;
             _package = package;
             _workbookName = workbookName;
             Workbook = workbook;
@@ -26,7 +24,7 @@ namespace OfficeIMO.Excel {
 
         internal OpenXmlPackagePartBufferReader Parts { get; }
 
-        internal static ExcelReaderPackage Open(Func<Stream> openSource, OpenXmlPackagePartBufferReader parts,
+        internal static ExcelReaderPackage Open(OpenXmlPackagePartBufferReader parts,
             ExcelReaderOptions? limits = null) {
             IReadOnlyCollection<string> names = parts.IndexedPartNames;
             OfficeOpcPackage package = OfficeOpcPackage.OpenFromParts(names, names.Count,
@@ -66,14 +64,12 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                return new ExcelReaderPackage(openSource, package, workbookName, workbook, parts);
+                return new ExcelReaderPackage(package, workbookName, workbook, parts);
             } catch {
                 package.Dispose();
                 throw;
             }
         }
-
-        internal Stream OpenSource() => _openSource();
 
         internal (string? Type, string? Target, bool External) FindWorkbookRelationship(string id) {
             lock (_relationsGate) {
@@ -141,9 +137,11 @@ namespace OfficeIMO.Excel {
         }
 
         internal static OfficeXmlNode ReadPartRoot(Stream stream, CancellationToken cancellationToken, int? maximumBytes = null,
-            bool validateMarkup = false) {
+            bool validateMarkup = false, bool allowEmpty = false) {
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, maximumBytes);
-            return ParseRoot(bytes, new OfficeXmlNamespaces.Table(), cancellationToken, validateMarkup);
+            return allowEmpty && bytes.Length == 0
+                ? default
+                : ParseRoot(bytes, new OfficeXmlNamespaces.Table(), cancellationToken, validateMarkup);
         }
 
         private static OfficeXmlNode ParseRoot(byte[] bytes, OfficeXmlNamespaces.Table namespaces, CancellationToken cancellationToken,
@@ -207,17 +205,42 @@ namespace OfficeIMO.Excel {
             return lower.Slice(0, name.Length).SequenceEqual("utf-8"u8) || lower.Slice(0, name.Length).SequenceEqual("utf8"u8);
         }
 
-        internal IReadOnlyList<string> GetWorksheetTablePartNames(string worksheetName) {
-            const string tableRelationship = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "table";
+        internal IReadOnlyList<(string RelationshipId, string PartName)> GetWorksheetRelationships() {
+            lock (_relationsGate) {
+                var worksheets = new List<(string, string)>();
+                foreach (OfficeOpcRelationship relation in _package.GetRelationships(_workbookName)) {
+                    if (relation.Type != ExcelReadWorkbookParts.WorksheetRelationship || relation.TargetPartName is not string target) continue;
+                    ValidateWorksheetContentType(target);
+                    worksheets.Add((relation.Id, target));
+                }
+                return worksheets;
+            }
+        }
+
+        internal IReadOnlyList<string> GetWorksheetTablePartNames(string worksheetName, bool validate = false) {
             lock (_relationsGate) {
                 var names = new List<string>();
                 foreach (OfficeOpcRelationship relation in _package.GetRelationships(worksheetName)) {
-                    if (relation.Type == tableRelationship && relation.TargetPartName is string target && PartExists(target)) {
+                    if (relation.Type != ExcelTablePart.TableRelationshipType || relation.TargetPartName is not string target) continue;
+                    if (validate) {
+                        _package.RequireContentType(target, "application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml");
+                        names.Add(target);
+                    } else if (PartExists(target)) {
                         names.Add(target);
                     }
                 }
                 return names;
             }
+        }
+
+        internal OfficeXmlNode ReadTableRoot(string name, ExcelReaderOptions options) {
+            using Stream stream = Parts.OpenPart(name, options.MaxMetadataPartBytes, options.CancellationToken,
+                limitName: nameof(ExcelReaderOptions.MaxMetadataPartBytes));
+            OfficeXmlNode root = ReadPartRoot(stream, options.CancellationToken, options.MaxMetadataPartBytes, allowEmpty: true);
+            if (root.Exists && !root.Is(Spreadsheet, "table")) {
+                throw new InvalidDataException($"The table part '{name}' has an unexpected XML root '{root.LocalName}'.");
+            }
+            return root;
         }
 
         internal bool PartExists(string name) => _package.PartExists(name);

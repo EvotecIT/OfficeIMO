@@ -65,7 +65,51 @@ public sealed class ExcelPartMarkupAndNameVariantTests {
         }
     }
 
-    private static byte[] CreatePackage(string p, string beforeRoot, string insideRoot, string worksheetPart, string tablePart) {
+    [Fact]
+    public void TableCatalogIgnoresMetadataInExtensionsAndUnprocessedAlternateContent() {
+        const string alternate = """
+            <mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:future="urn:future">
+              <mc:Choice Requires="future"><tableStyleInfo name="DecoyChoice" /></mc:Choice>
+              <mc:Fallback><tableStyleInfo name="DecoyFallback" /></mc:Fallback>
+            </mc:AlternateContent>
+            """;
+        const string extension = """
+            <extLst><ext uri="{CC7BAA82-25DE-40CE-8FA7-82D7F8675300}">
+              <tableColumns count="1"><tableColumn id="99" name="Decoy" /></tableColumns>
+              <tableStyleInfo name="DecoyExtension" />
+            </ext></extLst>
+            """;
+        const string totalsAttributes = """
+             xmlns:future="urn:future" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="future" future:totalsRowFunction="sum" totalsRowFunction="max"
+            """;
+        byte[] package = CreatePackage("", "", "", "xl/worksheets/sheet1.xml", "xl/tables/table1.xml",
+            alternate, extension, totalsAttributes);
+
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(package);
+        ExcelTableInfo info = Assert.Single(reader.GetTables());
+        Assert.Equal("TableStyleMedium2", info.StyleName);
+        Assert.Equal(new[] { "Name", "Amount", "When" }, info.Columns.Select(column => column.Name));
+        Assert.Equal("max", info.Columns[0].TotalsRowFunction);
+        Assert.True(info.HasAutoFilter);
+        Assert.Equal("Alpha", reader.ReadTableAsDataTable("Items").Rows[0]["Name"]);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("<wrong />", true)]
+    public void TableCatalogDistinguishesEmptyPartsFromWrongRootElements(string tableMarkup, bool invalid) {
+        byte[] package = CreatePackage("", "", "", "xl/worksheets/sheet1.xml", "xl/tables/table1.xml", tableMarkup: tableMarkup);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(package);
+        if (invalid) {
+            Assert.Throws<InvalidDataException>(() => reader.GetTables());
+        } else {
+            Assert.Empty(reader.GetTables());
+        }
+    }
+
+    private static byte[] CreatePackage(string p, string beforeRoot, string insideRoot, string worksheetPart, string tablePart,
+        string tableStart = "", string tableEnd = "", string firstColumnAttributes = "", string? tableMarkup = null) {
         const string declaration = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n";
         const string relationshipsStart = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">";
         string ns = p.Length == 0 ? $"xmlns=\"{MainNamespace}\"" : $"xmlns:{p.TrimEnd(':')}=\"{MainNamespace}\"";
@@ -108,9 +152,9 @@ public sealed class ExcelPartMarkupAndNameVariantTests {
                 + $"<{p}cellStyleXfs count=\"1\"><{p}xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></{p}cellStyleXfs>"
                 + $"<{p}cellXfs count=\"2\"><{p}xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>"
                 + $"<{p}xf numFmtId=\"14\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></{p}cellXfs></{p}styleSheet>"),
-            (tablePart, head + $"<{p}table {ns} id=\"1\" name=\"Items\" displayName=\"Items\" ref=\"A1:C3\">{insideRoot}<{p}autoFilter ref=\"A1:C3\"/>"
-                + $"<{p}tableColumns count=\"3\"><{p}tableColumn id=\"1\" name=\"Name\"/><{p}tableColumn id=\"2\" name=\"Amount\"/><{p}tableColumn id=\"3\" name=\"When\"/></{p}tableColumns>"
-                + $"<{p}tableStyleInfo name=\"TableStyleMedium2\" showRowStripes=\"1\"/></{p}table>")
+            (tablePart, tableMarkup ?? (head + $"<{p}table {ns} id=\"1\" name=\"Items\" displayName=\"Items\" ref=\"A1:C3\">{insideRoot}{tableStart}<{p}autoFilter ref=\"A1:C3\"/>"
+                + $"<{p}tableColumns count=\"3\"><{p}tableColumn id=\"1\" name=\"Name\"{firstColumnAttributes}/><{p}tableColumn id=\"2\" name=\"Amount\"/><{p}tableColumn id=\"3\" name=\"When\"/></{p}tableColumns>"
+                + $"<{p}tableStyleInfo name=\"TableStyleMedium2\" showRowStripes=\"1\"/>{tableEnd}</{p}table>"))
         };
 
         using var output = new MemoryStream();

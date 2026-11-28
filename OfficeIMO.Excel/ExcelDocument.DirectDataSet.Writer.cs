@@ -86,7 +86,8 @@ namespace OfficeIMO.Excel {
                 ExcelPackageArchive archive,
                 DirectDataSetWorkbookModel model,
                 DirectStylePlan stylePlan,
-                bool includeSharedStrings, string? themeXml = null, OfficeTheme? theme = null) {
+                bool includeSharedStrings, string? themeXml = null, OfficeTheme? theme = null,
+                (string? Core, string? Application) properties = default) {
                 WriteContentTypes(archive, model.Sheets, includeSharedStrings, themeXml != null);
                 WriteTextEntry(archive, "_rels/.rels",
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
@@ -95,8 +96,8 @@ namespace OfficeIMO.Excel {
                     "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>" +
                     "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
                     "</Relationships>");
-                WriteCoreProperties(archive);
-                WriteAppProperties(archive);
+                WriteCoreProperties(archive, properties.Core);
+                WriteAppProperties(archive, properties.Application);
                 WriteWorkbook(archive, model);
                 WriteWorkbookRelationships(archive, model.Sheets.Count, includeSharedStrings, themeXml != null);
                 WriteStyles(archive, stylePlan, theme);
@@ -298,8 +299,8 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "xl/_rels/workbook.xml.rels", builder.ToString());
             }
 
-            private static void WriteCoreProperties(ExcelPackageArchive archive) {
-                WriteTextEntry(archive, "docProps/core.xml",
+            private static void WriteCoreProperties(ExcelPackageArchive archive, string? xml) {
+                WriteTextEntry(archive, "docProps/core.xml", xml ??
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" " +
                     "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " +
@@ -308,8 +309,8 @@ namespace OfficeIMO.Excel {
                     "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>");
             }
 
-            private static void WriteAppProperties(ExcelPackageArchive archive) {
-                WriteTextEntry(archive, "docProps/app.xml",
+            private static void WriteAppProperties(ExcelPackageArchive archive, string? xml) {
+                WriteTextEntry(archive, "docProps/app.xml", xml ??
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" " +
                     "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">" +

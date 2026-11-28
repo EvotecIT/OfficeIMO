@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         internal StylesCacheProvider Styles { get; }
 
         internal static ExcelPackageReadSnapshot? TryOpen(byte[] bytes, StylesCache? styles = null) =>
-            TryOpen(bytes, () => new MemoryStream(bytes, writable: false), OpenXmlPackagePartBufferReader.TryOpen(bytes, ignoreWhitespaceNames: true), null, styles);
+            TryOpen(bytes, OpenXmlPackagePartBufferReader.TryOpen(bytes, ignoreWhitespaceNames: true), null, styles);
 
         /// <summary>Copies a file-backed package before the editable workbook can rewrite its underlying file.</summary>
         internal static ExcelPackageReadSnapshot? TryOpenCopy(Stream package, object identity, CancellationToken cancellationToken) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 file = SharedReadOnlyFileSnapshot.Adopt(copy);
                 copy = null;
                 SharedReadOnlyFileSnapshot opened = file;
-                ExcelPackageReadSnapshot? snapshot = TryOpen(identity, () => opened.CreateView(),
+                ExcelPackageReadSnapshot? snapshot = TryOpen(identity,
                     OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1), ignoreWhitespaceNames: true), opened, styles: null);
                 if (snapshot != null) file = null;
                 return snapshot;
@@ -55,11 +55,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static ExcelPackageReadSnapshot? TryOpen(object identity, Func<Stream> openSource,
-            OpenXmlPackagePartBufferReader? parts, IDisposable? ownedFile, StylesCache? styles) {
+        private static ExcelPackageReadSnapshot? TryOpen(object identity, OpenXmlPackagePartBufferReader? parts, IDisposable? ownedFile, StylesCache? styles) {
             if (parts == null) return null;
             try {
-                return new ExcelPackageReadSnapshot(identity, ExcelReaderPackage.Open(openSource, parts), ownedFile, styles);
+                return new ExcelPackageReadSnapshot(identity, ExcelReaderPackage.Open(parts), ownedFile, styles);
             } catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException
                 or System.Xml.XmlException or NotSupportedException or ArgumentException) {
                 parts.Dispose();
