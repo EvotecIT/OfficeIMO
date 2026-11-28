@@ -1,6 +1,5 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -13,8 +12,7 @@ internal sealed partial class WordMl2003Projection {
     private readonly Dictionary<string, string> _hyperlinkRelationships = new(StringComparer.Ordinal);
     private int _relationshipCount;
     private int _packageEntryCount = 1; // [Content_Types].xml
-    private readonly HashSet<OpenXmlPartContainer> _relationshipOwners = new();
-    private bool _corePropertiesReserved;
+    private readonly HashSet<string?> _relationshipOwners = new();
     private static readonly HashSet<string> VmlElements = Names("shape shapetype imagedata stroke formulas f path fill");
     private const int MaximumVmlFormulasPerGroup = 128;
     private static readonly Dictionary<string, string> VmlAttributes = new(StringComparer.Ordinal) {
@@ -26,10 +24,10 @@ internal sealed partial class WordMl2003Projection {
         ["f"] = "eqn", ["formulas"] = "", ["fill"] = "on color color2 opacity opacity2 type angle focus focusposition focussize method"
     };
     private long _remainingReconstructionBytes;
-    private OfficePackageSecurityOptions _resourcePolicy = null!;
+    private readonly OfficePackageSecurityOptions _resourcePolicy;
 
     private void IndexImages(XElement root) {
-        foreach (XElement data in root.Descendants(Word + "binData")) {
+        foreach (XElement data in SourceDescendants(root).Where(element => element.Name == Word + "binData")) {
             CheckAttributes(data, "name");
             string? name = (string?)data.Attribute(Word + "name");
             if (name == null || name.Length == 0 || data.HasElements || _binarySources.ContainsKey(name))
@@ -38,32 +36,34 @@ internal sealed partial class WordMl2003Projection {
         }
     }
 
-    private void AppendHyperlink(OpenXmlCompositeElement target, XElement source) {
+    private void AppendHyperlink(int target, XElement source) {
         CheckAttributes(source, "dest bookmark screenTip target");
         string? destination = (string?)source.Attribute(Word + "dest");
         string? anchor = (string?)source.Attribute(Word + "bookmark");
-        var hyperlink = new Hyperlink {
-            Anchor = anchor, Tooltip = (string?)source.Attribute(Word + "screenTip"),
-            TargetFrame = (string?)source.Attribute(Word + "target")
-        };
+        OfficeXmlTree tree = _story.Tree;
+        int hyperlink = tree.CreateElement(W, "hyperlink");
+        tree.SetAttribute(hyperlink, W, "anchor", anchor ?? string.Empty);
+        tree.SetAttribute(hyperlink, W, "tooltip", (string?)source.Attribute(Word + "screenTip") ?? string.Empty);
+        tree.SetAttribute(hyperlink, W, "tgtFrame", (string?)source.Attribute(Word + "target") ?? string.Empty);
         if (!string.IsNullOrEmpty(destination)) {
             if (!Uri.TryCreate(destination, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                 Omit(source, "invalid hyperlink destination");
             } else {
-                string key = _story.Uri.OriginalString + "|" + destination;
+                string key = _story.PartName + "|" + destination;
                 if (!_hyperlinkRelationships.TryGetValue(key, out string? id)) {
-                    ReserveRelationship(_story);
-                    id = _story.AddHyperlinkRelationship(uri, true).Id;
+                    ReserveRelationship(_story.PartName);
+                    id = _package.AddRelationship(_story.PartName, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "hyperlink",
+                        uri.OriginalString, external: true);
                     _hyperlinkRelationships.Add(key, id);
                 }
-                hyperlink.Id = id;
+                tree.SetAttribute(hyperlink, R, "id", id);
             }
         }
         foreach (XElement child in source.Elements()) AppendInline(hyperlink, child);
-        target.AppendChild(hyperlink);
+        tree.Append(target, hyperlink);
     }
 
-    private Picture? ProjectPicture(XElement source) {
+    private XElement? ProjectPicture(XElement source) {
         CheckAttributes(source, "");
         var picture = new XElement(ModernWord + "pict");
         picture.SetAttributeValue(XNamespace.Xmlns + "w", ModernWord.NamespaceName);
@@ -79,7 +79,7 @@ internal sealed partial class WordMl2003Projection {
         }
         if (!picture.Elements(Vml + "shape").Any()) return null;
         CheckVmlIdentifiers(picture);
-        return new Picture(picture.ToString(SaveOptions.DisableFormatting));
+        return picture;
     }
 
     private XElement? ProjectVml(XElement source) {
@@ -106,7 +106,7 @@ internal sealed partial class WordMl2003Projection {
                 Omit(source, "picture without an embedded binary resource");
                 return null;
             }
-            string key = _story.Uri.OriginalString + "|" + name;
+            string key = _story.PartName + "|" + name;
             if (!_imageRelationships.TryGetValue(key, out string? id)) {
                 if (!_decodedImages.TryGetValue(name, out var image)) {
                     string encoded = data.Value;
@@ -129,19 +129,9 @@ internal sealed partial class WordMl2003Projection {
                 }
                 if (image.Bytes.LongLength > _remainingReconstructionBytes)
                     throw new InvalidDataException("WordML 2003 exceeds the written image resource limit.");
-                ReserveRelationship(_story, createsPart: true);
+                ReserveRelationship(_story.PartName, createsPart: true);
                 _remainingReconstructionBytes -= image.Bytes.LongLength;
-                ImagePart part = _story switch {
-                    MainDocumentPart main => main.AddImagePart(image.ContentType),
-                    HeaderPart header => header.AddImagePart(image.ContentType),
-                    FooterPart footer => footer.AddImagePart(image.ContentType),
-                    FootnotesPart footnotes => footnotes.AddImagePart(image.ContentType),
-                    EndnotesPart endnotes => endnotes.AddImagePart(image.ContentType),
-                    _ => throw new InvalidDataException("WordML image story has no supported package owner.")
-                };
-                using var input = new MemoryStream(image.Bytes, writable: false);
-                part.FeedData(input);
-                id = _story.GetIdOfPart(part);
+                id = AddImage(image.Bytes, image.ContentType);
                 _imageRelationships.Add(key, id);
             }
             result.SetAttributeValue(Relationships + "id", id);
@@ -167,7 +157,7 @@ internal sealed partial class WordMl2003Projection {
         return parent == Vml + "formulas" && child == Vml + "f";
     }
 
-    private void ReserveRelationship(OpenXmlPartContainer owner, bool createsPart = false) {
+    private void ReserveRelationship(string? owner, bool createsPart = false) {
         bool firstRelationship = !_relationshipOwners.Contains(owner);
         int entries = (createsPart ? 1 : 0) + (firstRelationship ? 1 : 0);
         if (_relationshipCount >= _resourcePolicy.MaxRelationships ||

@@ -1,6 +1,6 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -11,41 +11,50 @@ internal sealed partial class WordMl2003Projection {
     private static readonly XNamespace ModernWord = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     private readonly CancellationToken _token;
     private readonly Dictionary<string, OfficeDiagnostic> _omissions = new(StringComparer.Ordinal);
-    private MainDocumentPart _main = null!;
-    private OpenXmlPart _story = null!;
-
-    private WordMl2003Projection(CancellationToken token) => _token = token;
+    private WordMl2003Projection(OfficeOpcEditablePackage package, OfficePackageSecurityOptions policy, CancellationToken token) {
+        _package = package;
+        _resourcePolicy = policy;
+        _token = token;
+    }
 
     internal static IReadOnlyList<OfficeDiagnostic> WritePackage(XElement root, Stream destination,
         OfficePackageSecurityOptions policy, CancellationToken token) {
-        var projection = new WordMl2003Projection(token) { _resourcePolicy = policy };
         XElement? body = root.Element(Word + "body");
         if (body == null || body.ElementsAfterSelf(Word + "body").Any())
             throw new InvalidDataException("WordML 2003 must contain exactly one Word body.");
+
+        using var package = OfficeOpcEditablePackage.Create();
+        var projection = new WordMl2003Projection(package, policy, token);
         projection.ValidateDocumentSingletons(root);
         projection.InitializeReconstructionLimits(root, policy);
         projection.AdmitSource(root, policy);
-        using var document = WordprocessingDocument.Create(destination, WordprocessingDocumentType.Document);
-        projection.ReserveRelationship(document, createsPart: true);
-        projection._main = document.AddMainDocumentPart();
-        projection._story = projection._main;
+        projection.ReserveRelationship(null, createsPart: true);
+        package.AddRelationship(null, OfficeOpcPackage.OfficeDocumentRelationshipType, MainPart);
+        OfficeXmlTree document = package.CreateXmlPart(MainPart, WordPartContentTypePrefix + "document.main+xml", W, "document");
+        projection._story = new Story(MainPart, document);
         projection.ReadDocumentParts(root);
-        var output = new Body();
-        SectionProperties? pendingSection = null;
-        foreach (OpenXmlElement block in projection.ProjectBlocks(body)) {
-            if (pendingSection != null) {
-                var paragraph = output.LastChild as Paragraph;
-                if (paragraph == null || paragraph.ParagraphProperties?.SectionProperties != null)
-                    paragraph = output.AppendChild(new Paragraph());
-                (paragraph.ParagraphProperties ??= new ParagraphProperties()).SectionProperties = pendingSection;
-                pendingSection = null;
+        int output = AppendWord(document, document.Root, "body");
+        int pendingSection = NoNode;
+        foreach (int block in projection.ProjectBlocks(body)) {
+            if (pendingSection != NoNode) {
+                int paragraph = document.LastChildOf(output);
+                int properties = paragraph == NoNode ? NoNode : document.FindChild(paragraph, W, "pPr");
+                if (paragraph == NoNode || !document.IsElement(paragraph, W, "p") ||
+                    properties != NoNode && document.FindChild(properties, W, "sectPr") != NoNode) {
+                    paragraph = AppendWord(document, output, "p");
+                    properties = NoNode;
+                }
+                if (properties == NoNode) properties = document.GetOrInsertChild(paragraph, W, "pPr", WPView.Order);
+                document.InsertOrdered(properties, pendingSection, WPPrView.Order);
+                pendingSection = NoNode;
             }
-            if (block is SectionProperties section) pendingSection = section;
-            else output.AppendChild(block);
+            if (document.IsElement(block, W, "sectPr")) pendingSection = block;
+            else document.Append(output, block);
         }
-        if (pendingSection != null) output.AppendChild(pendingSection);
-        if (!output.HasChildren) output.AppendChild(new Paragraph());
-        projection._main.Document = new Document(output);
+        if (pendingSection != NoNode) document.Append(output, pendingSection);
+        if (document.FirstChildOf(output) == NoNode) AppendWord(document, output, "p");
+        token.ThrowIfCancellationRequested();
+        package.Save(destination);
         return projection._omissions.Values.ToArray();
     }
 
@@ -66,7 +75,34 @@ internal sealed partial class WordMl2003Projection {
         }
     }
 
-    private IEnumerable<OpenXmlElement> ProjectBlocks(XElement container, bool inTableCell = false) {
+    // Word 2003 XML projects the legacy vocabulary only. Extensions and alternate branches
+    // are opaque to the projection, including when they contain familiar resource declarations.
+    private static IEnumerable<XElement> SourceDescendants(XElement root) {
+        XElement? node = root.Elements().FirstOrDefault();
+        while (node != null) {
+            XElement? child = null;
+            if (node.Name.LocalName != "extLst" && node.Name != MarkupCompatibility + "AlternateContent") {
+                yield return node;
+                child = node.Elements().FirstOrDefault();
+            }
+            if (child != null) {
+                node = child;
+                continue;
+            }
+            while (node != root && node != null && NextElement(node) == null) node = node.Parent;
+            node = node == root || node == null ? null : NextElement(node);
+        }
+
+        static XElement? NextElement(XElement element) {
+            XNode? sibling = element.NextNode;
+            while (sibling != null && sibling is not XElement) sibling = sibling.NextNode;
+            return (XElement?)sibling;
+        }
+    }
+
+    private static readonly XNamespace MarkupCompatibility = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+
+    private IEnumerable<int> ProjectBlocks(XElement container, bool inTableCell = false) {
         CheckAttributes(container, container.Name == Word + "hdr" || container.Name == Word + "ftr" ? "type" :
             container.Name == Word + "footnote" || container.Name == Word + "endnote" ? "type suppressRef" : "");
         foreach (XElement child in container.Elements()) {
@@ -74,131 +110,127 @@ internal sealed partial class WordMl2003Projection {
             if (child.Name == Word + "p") yield return ProjectParagraph(child, inTableCell);
             else if (child.Name == Word + "tbl") yield return ProjectTable(child);
             else if (child.Name == Auxiliary + "sect" || child.Name == Auxiliary + "sub-section") {
-                foreach (OpenXmlElement block in ProjectBlocks(child, inTableCell)) yield return block;
+                foreach (int block in ProjectBlocks(child, inTableCell)) yield return block;
             } else if (child.Name == Word + "sectPr") {
-                if (inTableCell || _story != _main)
+                if (inTableCell || _story.PartName != MainPart)
                     Omit(child, inTableCell ? "section properties inside a table cell" : "section properties inside a header or footer");
                 else yield return ProjectSectionProperties(child);
-            } else if (inTableCell && child.Name == Word + "tcPr") {
-                // Cell properties are projected by the containing table.
-            } else Omit(child, "block content");
+            } else if (!inTableCell || child.Name != Word + "tcPr") {
+                Omit(child, "block content");
+            }
         }
     }
 
-    private Paragraph ProjectParagraph(XElement source, bool inTableCell) {
+    private int ProjectParagraph(XElement source, bool inTableCell) {
         CheckAttributes(source, "");
-        var paragraph = new Paragraph();
+        OfficeXmlTree tree = _story.Tree;
+        int paragraph = tree.CreateElement(W, "p");
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "pPr") {
-                XElement mapped = MapProperties(child, "pPr", parent: "p")!;
-                XElement? section = child.Element(Word + "sectPr");
-                string mappedXml = mapped.ToString(SaveOptions.DisableFormatting);
-                var properties = NormalizeMappedProperties(new ParagraphProperties(mappedXml), mappedXml);
-                if (section != null) {
-                    if (inTableCell || _story != _main)
+                int properties = ProjectProperties(tree, child, "pPr", parent: "p");
+                if (child.Element(Word + "sectPr") is { } section) {
+                    if (inTableCell || _story.PartName != MainPart)
                         Omit(section, inTableCell ? "section properties inside a table cell" : "section properties inside a header or footer");
-                    else properties.SectionProperties = ProjectSectionProperties(section);
+                    else tree.InsertOrdered(properties, ProjectSectionProperties(section), WPPrView.Order);
                 }
-                if (properties.HasChildren) paragraph.ParagraphProperties = properties;
+                if (tree.FirstChildOf(properties) != NoNode) ReplaceWordChild(tree, paragraph, properties, WPView.Order);
             } else AppendInline(paragraph, child);
         }
         return paragraph;
     }
 
-    private void AppendInline(OpenXmlCompositeElement target, XElement source) {
+    private void AppendInline(int target, XElement source) {
         _token.ThrowIfCancellationRequested();
         if (source.Name == Word + "hlink") {
             AppendHyperlink(target, source);
         } else if (source.Name == Word + "r") {
             CheckAttributes(source, "");
-            var run = new Run();
+            OfficeXmlTree tree = _story.Tree;
+            int run = tree.CreateElement(W, "r");
             foreach (XElement child in source.Elements()) {
                 if (child.Name == Word + "t" && !child.HasElements) {
                     CheckAttributes(child, "");
-                    run.AppendChild(new Text(child.Value) { Space = SpaceProcessingModeValues.Preserve });
+                    AppendText(tree, run, "t", child.Value);
                 } else if (child.Name == Word + "tab") {
                     CheckAttributes(child, "");
-                    run.AppendChild(new TabChar());
-                } else if (child.Name == Word + "br") {
-                    XElement? mapped = MapProperties(child, "br");
-                    if (mapped == null) continue;
-                    var parsed = new Run(new XElement(ModernWord + "r", mapped).ToString(SaveOptions.DisableFormatting));
-                    run.AppendChild(parsed.GetFirstChild<Break>()!.CloneNode(true));
+                    AppendWord(tree, run, "tab");
+                } else if (child.Name == Word + "br" || child.Name == Word + "fldChar") {
+                    XElement? mapped = MapProperties(child, child.Name.LocalName);
+                    if (mapped != null) AppendMapped(tree, run, mapped);
                 } else if (child.Name == Word + "rPr") {
-                    string mappedXml = MapProperties(child, "rPr")!.ToString(SaveOptions.DisableFormatting);
-                    run.RunProperties = NormalizeMappedProperties(new RunProperties(mappedXml), mappedXml);
+                    ReplaceWordChild(tree, run, ProjectProperties(tree, child, "rPr"), WRView.Order);
                 } else if (child.Name == Word + "footnote" || child.Name == Word + "endnote") {
                     AppendNote(run, child);
                 } else if (child.Name == Word + "footnoteRef") {
                     AppendNoteMark(run, child);
                 } else if (child.Name == Word + "pict") {
-                    Picture? picture = ProjectPicture(child);
-                    if (picture != null) run.AppendChild(picture);
+                    XElement? picture = ProjectPicture(child);
+                    if (picture != null) AppendMapped(tree, run, picture);
                 } else if (child.Name == Word + "instrText" && !child.HasElements) {
                     CheckAttributes(child, "");
-                    run.AppendChild(new FieldCode(child.Value) { Space = SpaceProcessingModeValues.Preserve });
-                } else if (child.Name == Word + "fldChar") {
-                    XElement? mapped = MapProperties(child, "fldChar");
-                    if (mapped != null) run.AppendChild(new FieldChar(mapped.ToString(SaveOptions.DisableFormatting)));
+                    AppendText(tree, run, "instrText", child.Value);
                 } else Omit(child, "run content");
             }
-            target.AppendChild(run);
+            tree.Append(target, run);
         } else Omit(source, "inline content");
     }
 
-    private Table ProjectTable(XElement source) {
+    private int ProjectTable(XElement source) {
         CheckAttributes(source, "");
+        OfficeXmlTree tree = _story.Tree;
         XElement? sourceGrid = source.Element(Word + "tblGrid");
         int columns = AdmitTableGrid(source, sourceGrid);
-        var table = new Table();
+        int table = tree.CreateElement(W, "tbl");
         XElement? properties = source.Element(Word + "tblPr");
-        table.AppendChild(properties == null ? new TableProperties() :
-            NormalizeMappedProperties(new TableProperties(MapProperties(properties, "tblPr")!.ToString(SaveOptions.DisableFormatting))));
-        var grid = sourceGrid == null ? new TableGrid() :
-            NormalizeMappedProperties(new TableGrid(MapProperties(sourceGrid, "tblGrid")!.ToString(SaveOptions.DisableFormatting)));
-        table.AppendChild(grid);
+        tree.Append(table, properties == null ? tree.CreateElement(W, "tblPr") : ProjectProperties(tree, properties, "tblPr"));
+        int grid = sourceGrid == null ? tree.CreateElement(W, "tblGrid") : ProjectProperties(tree, sourceGrid, "tblGrid");
+        tree.Append(table, grid);
         foreach (XElement child in source.Elements()) {
             if (child.Name == Word + "tblPr" || child.Name == Word + "tblGrid") continue;
             if (child.Name != Word + "tr") { Omit(child, "table content"); continue; }
             CheckAttributes(child, "");
-            var row = new TableRow();
+            int row = tree.CreateElement(W, "tr");
+            bool hasCell = false;
             foreach (XElement cell in child.Elements()) {
-                if (cell.Name == Word + "trPr") {
-                    row.AppendChild(NormalizeMappedProperties(new TableRowProperties(MapProperties(cell, "trPr")!.ToString(SaveOptions.DisableFormatting))));
-                } else if (cell.Name == Word + "tblPrEx") {
-                    row.AppendChild(NormalizeMappedProperties(new TablePropertyExceptions(MapProperties(cell, "tblPrEx")!.ToString(SaveOptions.DisableFormatting))));
+                if (cell.Name == Word + "trPr" || cell.Name == Word + "tblPrEx") {
+                    tree.Append(row, ProjectProperties(tree, cell, cell.Name.LocalName));
                 } else if (cell.Name == Word + "tc") {
-                    var outputCell = new TableCell();
-                    XElement? cellProperties = cell.Element(Word + "tcPr");
-                    if (cellProperties != null)
-                        outputCell.AppendChild(NormalizeMappedProperties(new TableCellProperties(MapProperties(cellProperties, "tcPr")!.ToString(SaveOptions.DisableFormatting))));
-                    if (outputCell.TableCellProperties?.GridSpan?.Val?.Value == 0)
-                        outputCell.TableCellProperties.GridSpan.Val = 1;
-                    outputCell.Append(ProjectBlocks(cell, inTableCell: true));
-                    if (outputCell.LastChild is not Paragraph) outputCell.AppendChild(new Paragraph());
-                    row.AppendChild(outputCell);
+                    int outputCell = AppendWord(tree, row, "tc");
+                    if (cell.Element(Word + "tcPr") is { } cellProperties) {
+                        int mapped = ProjectProperties(tree, cellProperties, "tcPr");
+                        tree.Append(outputCell, mapped);
+                        int span = tree.FindChild(mapped, W, "gridSpan");
+                        if (span != NoNode && OfficeXmlViewValues.ReadInt32(tree, span, W, "val") == 0)
+                            tree.SetAttribute(span, W, "val", "1");
+                    }
+                    foreach (int block in ProjectBlocks(cell, inTableCell: true)) tree.Append(outputCell, block);
+                    int last = tree.LastChildOf(outputCell);
+                    if (last == NoNode || !tree.IsElement(last, W, "p")) AppendWord(tree, outputCell, "p");
+                    hasCell = true;
                 } else Omit(cell, "row content");
             }
-            if (row.Elements<TableCell>().Any()) table.AppendChild(row);
+            if (hasCell) tree.Append(table, row);
             else Omit(child, "table row without supported cells");
         }
-        if (!table.Elements<TableRow>().Any()) {
+        if (tree.FindChild(table, W, "tr") == NoNode) {
             Omit(source, "table without supported cells");
-            table.AppendChild(new TableRow(new TableCell(new Paragraph())));
+            int row = AppendWord(tree, table, "tr");
+            int cell = AppendWord(tree, row, "tc");
+            AppendWord(tree, cell, "p");
         }
-        if (!grid.HasChildren) {
-            for (int i = 0; i < columns; i++) grid.AppendChild(new GridColumn());
+        if (tree.FirstChildOf(grid) == NoNode) {
+            for (int i = 0; i < columns; i++) AppendWord(tree, grid, "gridCol");
         }
         return table;
     }
 
-    private SectionProperties ProjectSectionProperties(XElement source) {
+    private int ProjectSectionProperties(XElement source) {
         var stories = new HashSet<(XName Name, string? Type)>();
         foreach (XElement child in source.Elements().Where(element => element.Name == Word + "hdr" || element.Name == Word + "ftr")) {
             if (!stories.Add((child.Name, (string?)child.Attribute(Word + "type"))))
                 throw new InvalidDataException("WordML 2003 contains a duplicate header or footer type in a section.");
         }
-        var properties = NormalizeMappedProperties(new SectionProperties(MapProperties(source, "sectPr")!.ToString(SaveOptions.DisableFormatting)));
+        int properties = ProjectProperties(_story.Tree, source, "sectPr");
         foreach (XElement child in source.Elements().Where(element => element.Name == Word + "hdr" || element.Name == Word + "ftr"))
             AppendHeaderFooter(properties, child);
         return properties;

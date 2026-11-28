@@ -1,20 +1,40 @@
 using System.Globalization;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word;
 
 internal sealed partial class WordMl2003Projection {
     private int _remainingGeneratedElements;
-    private readonly Dictionary<OpenXmlPart, long> _storyGridMarkupBytes = new();
+    private readonly Dictionary<string, long> _storyGridMarkupBytes = new();
 
     private void InitializeReconstructionLimits(XElement root, OfficePackageSecurityOptions policy) {
         _remainingGeneratedElements = WordXmlInterchange.MaximumXmlElements;
-        foreach (XElement unused in root.DescendantsAndSelf()) {
+        int depth = 0;
+        XElement? element = root;
+        while (element != null) {
             _token.ThrowIfCancellationRequested();
             if (_remainingGeneratedElements == 0)
                 throw new InvalidDataException("WordML 2003 exceeds the XML element reconstruction limit.");
             _remainingGeneratedElements--;
+            if (depth > 128)
+                throw new InvalidDataException("WordML 2003 exceeds the XML depth reconstruction limit.");
+
+            if (element.Elements().FirstOrDefault() is { } first) {
+                element = first;
+                depth++;
+                continue;
+            }
+            XElement? next = null;
+            while (element != root && element != null && next == null) {
+                for (XNode? sibling = element.NextNode; sibling != null; sibling = sibling.NextNode) {
+                    if (sibling is XElement following) { next = following; break; }
+                }
+                if (next == null) {
+                    element = element.Parent;
+                    depth--;
+                }
+            }
+            element = next;
         }
         _remainingReconstructionBytes = Math.Min(WordXmlInterchange.MaximumXmlBytes, policy.MaxTotalUncompressedBytes);
     }
@@ -53,12 +73,12 @@ internal sealed partial class WordMl2003Projection {
         long minimumMarkup = (long)reserved * 10;
         long partLimit = Math.Min(WordXmlInterchange.MaximumXmlBytes,
             Math.Min(_resourcePolicy.MaxPartUncompressedBytes, _resourcePolicy.MaxXmlCharactersInPart));
-        _storyGridMarkupBytes.TryGetValue(_story, out long used);
+        _storyGridMarkupBytes.TryGetValue(_story.PartName, out long used);
         if (minimumMarkup > partLimit || used > partLimit - minimumMarkup || minimumMarkup > _remainingReconstructionBytes)
             throw TableGridLimit();
         if (generated) _remainingGeneratedElements -= reserved;
         _remainingReconstructionBytes -= minimumMarkup;
-        _storyGridMarkupBytes[_story] = used + minimumMarkup;
+        _storyGridMarkupBytes[_story.PartName] = used + minimumMarkup;
         return columns;
     }
 

@@ -252,13 +252,34 @@ public sealed class WordMlPropertyContextTests {
     }
 
     [Fact]
-    public void MappedPropertyValidationRejectsACappedInvalidGroupBeforePartialEmission() {
+    public void SettingsUseDestinationOrderAndUnderlineColorAllowsAnAbsentStyle() {
+        const string body = """<w:p><w:r><w:rPr><w:u w:color="FF0000"/></w:rPr><w:t>Retained</w:t></w:r></w:p>""";
+        const string settings = """<w:docPr><w:mirrorMargins/><w:doNotEmbedSystemFonts w:val="off"/></w:docPr>""";
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(Source(body, settings)));
+        using WordDocument document = WordDocument.Load(input, new WordLoadOptions { FailOnLoss = true });
+        using var bytes = new MemoryStream(document.ToBytes());
+        using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(saved));
+        MainDocumentPart main = saved.MainDocumentPart!;
+        Assert.Equal(new[] { "embedSystemFonts", "mirrorMargins" }, main.DocumentSettingsPart!.Settings!.ChildElements.Select(item => item.LocalName));
+        Underline underline = Assert.Single(main.Document!.Descendants<Underline>());
+        Assert.Equal("FF0000", underline.Color!.Value);
+        Assert.Null(underline.Val);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MappedPropertyValidationRejectsACappedInvalidGroupBeforePartialEmission(bool multipleErrorsPerElement) {
         int count = new OpenXmlValidator(FileFormatVersions.Microsoft365).MaxNumberOfErrors + 1;
         string grid = string.Concat(Enumerable.Repeat("<w:gridCol w:w=\"invalid\"/>", count));
-        string xml = Source("<w:tbl><w:tblGrid>" + grid + "</w:tblGrid><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>");
+        string xml = multipleErrorsPerElement
+            ? Source("<w:p><w:pPr><w:tabs>" + string.Concat(Enumerable.Repeat("<w:tab w:pos=\"bad\"/>", count / 2)) +
+                "</w:tabs></w:pPr></w:p>")
+            : Source("<w:tbl><w:tblGrid>" + grid + "</w:tblGrid><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>");
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => WordDocument.Load(input));
-        Assert.Contains("SDK validation error limit", error.Message);
+        Assert.Contains("property validation error limit", error.Message);
         Assert.True(input.CanRead);
     }
 
