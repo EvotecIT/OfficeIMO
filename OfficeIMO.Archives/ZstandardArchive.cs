@@ -36,19 +36,29 @@ public sealed class ZstandardDictionary {
     public int ContentLength => Data.Content.Length;
 
     /// <summary>Parses a dictionary, such as one written by <c>zstd --train</c>. Bytes without the dictionary magic
-    /// number are used as raw content, which must be at least 8 bytes.</summary>
+    /// number are used as raw content, which must be at least 8 bytes. The content is held to
+    /// <see cref="ArchiveReadOptions.MaxWindowBytes"/> of <paramref name="options"/> before it is copied.</summary>
     /// <exception cref="ArchiveCorruptionException">The dictionary header or tables are malformed.</exception>
-    public static ZstandardDictionary Load(byte[] dictionary) {
+    /// <exception cref="OfficeInspectionResourceLimitException">The content is larger than the window limit.</exception>
+    public static ZstandardDictionary Load(byte[] dictionary, ArchiveReadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(dictionary);
-        return new ZstandardDictionary(ZstandardDictionaryData.Parse(dictionary));
+        return new ZstandardDictionary(ZstandardDictionaryData.Parse(dictionary, MaxContent(options)));
     }
 
     /// <summary>Uses <paramref name="content"/> as a raw-content dictionary, even when it starts with the dictionary magic
-    /// number, as <c>zstd</c>'s raw dictionary mode does. Raw content must be at least 8 bytes and has dictionary ID zero.</summary>
+    /// number, as <c>zstd</c>'s raw dictionary mode does. Raw content must be at least 8 bytes and has dictionary ID zero.
+    /// It is held to <see cref="ArchiveReadOptions.MaxWindowBytes"/> of <paramref name="options"/> before it is copied.</summary>
     /// <exception cref="ArchiveCorruptionException"><paramref name="content"/> is shorter than 8 bytes.</exception>
-    public static ZstandardDictionary LoadRaw(byte[] content) {
+    /// <exception cref="OfficeInspectionResourceLimitException">The content is larger than the window limit.</exception>
+    public static ZstandardDictionary LoadRaw(byte[] content, ArchiveReadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(content);
-        return new ZstandardDictionary(ZstandardDictionaryData.Raw(content));
+        return new ZstandardDictionary(ZstandardDictionaryData.Raw(content, MaxContent(options)));
+    }
+
+    private static long MaxContent(ArchiveReadOptions? options) {
+        long maximum = options?.MaxWindowBytes ?? ArchiveReadOptions.DefaultMaxWindowBytes;
+        if (maximum <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
+        return maximum;
     }
 }
 

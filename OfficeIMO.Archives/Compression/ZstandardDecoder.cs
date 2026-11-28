@@ -331,6 +331,8 @@ internal sealed class ZstandardDecoder {
         if (produced > 0) {
             _destination.Write(_history, start, produced);
             _checksum.Append(_history, start, produced);
+            // The destination can request cancellation as it writes; report that before any frame-level check.
+            _settings.CancellationToken.ThrowIfCancellationRequested();
         }
         _frameProduced += produced;
     }
@@ -663,16 +665,22 @@ internal sealed class ZstandardDictionaryData {
     internal ZstandardFseTable? MatchLengths { get; }
     internal bool HasEntropyTables => Huffman != null;
 
-    internal static ZstandardDictionaryData Raw(byte[] bytes) {
+    internal static ZstandardDictionaryData Raw(byte[] bytes, long maxContent) {
         // RFC 8878 section 5: raw-content dictionaries must be at least 8 bytes.
+        CheckContent(bytes.Length, maxContent);
         if (bytes.Length < 8) throw new ArchiveCorruptionException(FormatName, bytes.Length, "at least 8 bytes of raw dictionary content");
         return new ZstandardDictionaryData(0, (byte[])bytes.Clone(), new[] { 1, 4, 8 }, null, null, null, null);
     }
 
-    internal static ZstandardDictionaryData Parse(byte[] bytes) {
+    /// <summary>Dictionary content becomes history in every frame, so it is held to the window limit before it is copied.</summary>
+    private static void CheckContent(long length, long maxContent) {
+        if (length > maxContent) throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), maxContent);
+    }
+
+    internal static ZstandardDictionaryData Parse(byte[] bytes, long maxContent) {
         if (bytes.Length >= 4 && Read32(bytes, 0) == DictionaryMagic && bytes.Length < 8)
             throw new ArchiveCorruptionException(FormatName, 4, "a 4-byte dictionary ID after the dictionary magic");
-        if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) return Raw(bytes);
+        if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) return Raw(bytes, maxContent);
         uint id = Read32(bytes, 4);
         if (id == 0) throw new ArchiveCorruptionException(FormatName, 4, "a non-zero dictionary ID");
         int position = 8;
@@ -691,6 +699,7 @@ internal sealed class ZstandardDictionaryData {
                 repeats[index] = (int)value;
             }
             position += 12;
+            CheckContent(contentLength, maxContent);
             var content = new byte[contentLength];
             Buffer.BlockCopy(bytes, position, content, 0, contentLength);
             return new ZstandardDictionaryData(id, content, repeats, huffman, literalLengths, offsets, matchLengths);

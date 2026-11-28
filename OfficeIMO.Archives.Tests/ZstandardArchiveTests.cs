@@ -419,6 +419,17 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void DictionaryContentIsHeldToTheWindowLimitWhenLoaded() {
+        var options = new ArchiveReadOptions { MaxWindowBytes = 64 };
+        Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardDictionary.Load(ReadFixture("raw-content.dict"), options)).LimitName);
+        Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardDictionary.LoadRaw(ReadFixture("raw-content.dict"), options)).LimitName);
+        Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardDictionary.Load(ReadFixture("trained.dict"), options)).LimitName);
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
