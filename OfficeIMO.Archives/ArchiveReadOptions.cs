@@ -34,7 +34,7 @@ public sealed class ArchiveReadOptions {
     public Func<string, bool>? IncludeFile { get; set; }
 
     internal ArchiveLimits Limits() => new(new ArchiveExtractionOptions {
-        OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
+        OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, MaxWindowBytes = MaxWindowBytes, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
         MaxExpandedBytes = MaxExpandedBytes, MaxDecompressionWorkBytes = MaxDecompressionWorkBytes, MaxPathDepth = MaxPathDepth, MaxPathLength = MaxPathLength,
         IncludeFile = IncludeFile
     });

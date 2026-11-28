@@ -44,8 +44,8 @@ public sealed partial class ArchiveInspection : IDisposable {
             throw new NotSupportedException("Use ArchiveReader.ListSevenZip, ArchiveReader.ReadSevenZip or ArchiveExtractor.Extract for 7z archives.");
         if (format == ArchiveFormat.Rar5)
             throw new NotSupportedException("Use ArchiveReader.ListRar5, ArchiveReader.ReadRar5 or ArchiveExtractor.Extract for RAR5 archives.");
-        if (format == ArchiveFormat.Tar || format == ArchiveFormat.TarGZip || format == ArchiveFormat.GZip)
-            throw new NotSupportedException("TAR and gzip packages are not inventoried by ArchiveInspector; use ArchiveReader.ListTar, ArchiveReader.ReadTar or ArchiveExtractor.Extract.");
+        if (format == ArchiveFormat.Tar || StreamCodecs.Of(format) != StreamCodec.None)
+            throw new NotSupportedException("TAR and single compressed files are not inventoried by ArchiveInspector; use ArchiveReader.ListTar, ArchiveReader.ReadTar or ArchiveExtractor.Extract.");
     }
 
     /// <summary>Takes ownership of an immutable, seekable ZIP snapshot without rematerializing its bytes.</summary>

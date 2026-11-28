@@ -5,7 +5,7 @@ using OfficeIMO.Archives;
 namespace OfficeIMO.Reader.Zip;
 
 /// <summary>
-/// ZIP, TAR, .tar.gz and gzip ingestion adapter for <see cref="OfficeDocumentReader"/>.
+/// ZIP, TAR (plain or compressed) and single compressed file ingestion adapter for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 internal static partial class ZipReaderAdapter {
     private static readonly HashSet<string> TextLikeExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {

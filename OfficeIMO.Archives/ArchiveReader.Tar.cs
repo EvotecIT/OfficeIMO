@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives;
 
 public static partial class ArchiveReader {
-    /// <summary>Reads the selected regular files of a TAR or gzip-compressed TAR (.tar.gz) from bytes, with the same path
+    /// <summary>Reads the selected regular files of a TAR, plain or compressed with gzip, Zstandard, xz or lzip (.tar.gz, .tar.zst, .tar.xz, .tar.lz), from bytes, with the same path
     /// safety, collision and limit checks as extraction. Links, devices and directories are not returned; use
     /// <see cref="ListTar(Stream, ArchiveReadOptions?, CancellationToken)"/> for their metadata.</summary>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
@@ -19,7 +19,7 @@ public static partial class ArchiveReader {
         return ReadTar(source, limits, cancellationToken);
     }
 
-    /// <summary>Reads the selected regular files of a TAR or .tar.gz from the stream's current position to EOF.
+    /// <summary>Reads the selected regular files of a plain or compressed TAR from the stream's current position to EOF.
     /// Supports nonseekable streams, leaves the caller's stream open and advances it by the bytes read.</summary>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
     /// <exception cref="InvalidDataException">The archive is corrupt, truncated or unsafe.</exception>
@@ -32,7 +32,7 @@ public static partial class ArchiveReader {
         return ReadTar(snapshot, limits, cancellationToken);
     }
 
-    /// <summary>Lists every member of a TAR or .tar.gz, including directories, symbolic and hard links with their authored
+    /// <summary>Lists every member of a plain or compressed TAR, including directories, symbolic and hard links with their authored
     /// targets, and device records, without reading file content or validating names as output paths.
     /// Reads from the stream's current position to EOF and leaves the stream open.</summary>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
@@ -97,14 +97,14 @@ public static partial class ArchiveReader {
     }
 }
 
-/// <summary>A seekable, uncompressed TAR stream over a plain or gzip-compressed input.</summary>
+/// <summary>A seekable, uncompressed TAR stream over a plain input or one compressed with gzip, Zstandard, xz or lzip.</summary>
 internal sealed class TarSource : IDisposable {
     private readonly ArchiveSpillStream? _decompressed;
     private TarSource(Stream stream, ArchiveSpillStream? decompressed) { Stream = stream; _decompressed = decompressed; }
     internal Stream Stream { get; }
     internal bool Compressed => _decompressed != null;
 
-    /// <summary>Opens a seekable input positioned at its start. Gzip input is decompressed into private staging, bounded by
+    /// <summary>Opens a seekable input positioned at its start. Compressed input is decompressed into private staging, bounded by
     /// MaxExpandedBytes plus 8 KiB of header, extended-header and padding allowance per permitted entry and 1 MiB for the
     /// end-of-archive record.</summary>
     internal static TarSource Open(Stream source, ArchiveLimits limits, CancellationToken token) {
@@ -112,19 +112,21 @@ internal sealed class TarSource : IDisposable {
         var head = new byte[1024];
         int length = Fill(source, head);
         source.Position = 0;
-        if (GZipContent.HasSignature(head, length)) {
+        StreamCodec codec = StreamCodecs.Detect(head, length);
+        if (codec != StreamCodec.None) {
             long cap = Saturating(Saturating(limits.Expanded, 8192L * limits.Entries), 1024L * 1024);
             var staged = new ArchiveSpillStream();
             try {
-                GZipContent.Decompress(source, staged, cap, limits, nameof(ArchiveExtractionOptions.MaxExpandedBytes), token);
+                StreamCodecs.Decompress(codec, source, staged, cap, limits, nameof(ArchiveExtractionOptions.MaxExpandedBytes), selected: false, token);
                 staged.Position = 0;
                 length = Fill(staged, head);
                 staged.Position = 0;
-                if (!ArchiveExtractor.LooksLikeTar(head, length)) throw new NotSupportedException("The gzip content is not a TAR archive.");
+                if (!ArchiveExtractor.LooksLikeTar(head, length)) throw new NotSupportedException("The compressed content is not a TAR archive.");
                 return new TarSource(staged, staged);
             } catch { staged.Dispose(); throw; }
         }
-        if (!ArchiveExtractor.LooksLikeTar(head, length)) throw new NotSupportedException("A TAR or gzip-compressed TAR archive is required.");
+        if (!ArchiveExtractor.LooksLikeTar(head, length))
+            throw new NotSupportedException("A TAR archive is required, plain or compressed with gzip, Zstandard, xz or lzip.");
         return new TarSource(source, null);
     }
 

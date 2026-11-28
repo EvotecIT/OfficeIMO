@@ -17,7 +17,19 @@ public enum ArchiveFormat {
     /// <summary>A 7z archive.</summary>
     SevenZip,
     /// <summary>A RAR 5.0 container.</summary>
-    Rar5
+    Rar5,
+    /// <summary>A TAR archive compressed with Zstandard (.tar.zst, .tzst).</summary>
+    TarZstandard,
+    /// <summary>A single file compressed with Zstandard (.zst) whose content is not a TAR archive.</summary>
+    Zstandard,
+    /// <summary>A TAR archive compressed with xz (.tar.xz, .txz).</summary>
+    TarXz,
+    /// <summary>A single file compressed with xz (.xz) whose content is not a TAR archive.</summary>
+    Xz,
+    /// <summary>A TAR archive compressed with lzip (.tar.lz, .tlz).</summary>
+    TarLzip,
+    /// <summary>A single file compressed with lzip (.lz) whose content is not a TAR archive.</summary>
+    Lzip
 }
 
 /// <summary>A verified file published by an extraction operation.</summary>

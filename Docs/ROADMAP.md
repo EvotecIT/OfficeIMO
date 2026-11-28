@@ -635,7 +635,7 @@ The [archive codecs and containers design](officeimo.archives-codecs-design.md) 
 
 - [ ] Report corruption in the existing ZIP, 7z, CAB, MSI, TAR and gzip readers through `ArchiveCorruptionException` with offsets, and add one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
 - [ ] Read encrypted ZIP members: traditional ZipCrypto (PKWARE APPNOTE) and WinZip AES (AE-1 and AE-2), with the password supplied through options. Encrypted members are rejected today.
-- [ ] Read and write TAR wrapped in Zstandard, xz, lzip, LZ4 and Brotli (and bzip2 after the specification decision) alongside gzip, as each decoder and encoder lands, with content-based detection in `ArchiveExtractor` and `ArchiveReader.ReadTar`.
+- [ ] Read TAR wrapped in LZ4 and Brotli (and bzip2 after the specification decision) as those decoders land, and write `.tar.zst`, `.tar.xz` and `.tar.lz` once the encoders exist.
 - [ ] Rename `OfficeIMO.Reader.Zip` to `OfficeIMO.Reader.Archives` for 4.0 (`AddArchiveHandler`, `ReaderArchiveOptions`) and read 7z, CAB and RAR stored entries automatically like ZIP, TAR and gzip, with MSI opt-in. Nested archives of any supported kind use the same nested path and limits, and each new TAR wrapper is picked up as it lands.
 - [ ] Decode and encode LZ4 blocks and frames, including content checksums and linked blocks, as single streams and `.tar.lz4`.
 - [ ] Decode Brotli (RFC 7932) in managed code on every target, so WOFF2 fonts and Brotli CSV files no longer require .NET 8.

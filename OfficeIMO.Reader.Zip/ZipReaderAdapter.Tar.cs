@@ -4,17 +4,19 @@ using OfficeIMO.Archives;
 namespace OfficeIMO.Reader.Zip;
 
 internal static partial class ZipReaderAdapter {
-    /// <summary>Whether a seekable source is a TAR, .tar.gz or single-file gzip package rather than a ZIP.</summary>
+    /// <summary>Whether a seekable source is a TAR, plain or compressed, or a single gzip, Zstandard, xz or lzip file
+    /// rather than a ZIP.</summary>
     private static bool IsTarOrGZip(Stream source, CancellationToken token) {
         try {
             ArchiveFormat format = ArchiveExtractor.Detect(source, token);
-            return format == ArchiveFormat.Tar || format == ArchiveFormat.TarGZip || format == ArchiveFormat.GZip;
+            return format == ArchiveFormat.Tar || StreamCodecs.Of(format) != StreamCodec.None;
         } catch (NotSupportedException) {
             return false;
         }
     }
 
-    /// <summary>Reads the supported documents of a TAR, .tar.gz or single-file gzip. Members are verified and
+    /// <summary>Reads the supported documents of a TAR (plain, .tar.gz, .tar.zst, .tar.xz or .tar.lz) or of a single gzip,
+    /// Zstandard, xz or lzip file. Members are verified and
     /// path-checked by OfficeIMO.Archives; links, devices and directories are never read. Nested archives are not traversed.</summary>
     private static IEnumerable<ReaderChunk> ReadTarOrGZip(Stream source, ArchiveSourceMetadata archiveSource, string archivePath,
         ReaderOptions readerOptions, ArchiveTraversalOptions zipOptions, WarningCounter warningCounter, CancellationToken token) {
@@ -29,10 +31,17 @@ internal static partial class ZipReaderAdapter {
         IReadOnlyList<(string Path, long Length, byte[]? Data)> members;
         source.Position = 0;
         try {
-            if (ArchiveExtractor.Detect(source, token) == ArchiveFormat.GZip) {
+            ArchiveFormat format = ArchiveExtractor.Detect(source, token);
+            if (format is ArchiveFormat.GZip or ArchiveFormat.Zstandard or ArchiveFormat.Xz or ArchiveFormat.Lzip) {
                 using var output = new MemoryStream();
-                GZipReadResult result = GZipArchive.Decompress(source, output, options, token);
-                string name = !string.IsNullOrEmpty(result.FileName) ? Path.GetFileName(result.FileName) : InnerGZipName(archivePath);
+                string? storedName = null;
+                switch (format) {
+                    case ArchiveFormat.GZip: storedName = GZipArchive.Decompress(source, output, options, token).FileName; break;
+                    case ArchiveFormat.Zstandard: ZstandardArchive.Decompress(source, output, options, token); break;
+                    case ArchiveFormat.Xz: XzArchive.Decompress(source, output, options, token); break;
+                    default: LzipArchive.Decompress(source, output, options, token); break;
+                }
+                string name = !string.IsNullOrEmpty(storedName) ? Path.GetFileName(storedName) : InnerName(archivePath, StreamCodecs.Suffix(StreamCodecs.Of(format)));
                 byte[] data = output.ToArray();
                 members = !ShouldAttemptRead(name) ? Array.Empty<(string, long, byte[]?)>()
                     : new[] { (name, data.LongLength, Admit(data.LongLength, readerOptions) ? data : null) };
@@ -79,9 +88,9 @@ internal static partial class ZipReaderAdapter {
         }
     }
 
-    private static string InnerGZipName(string archivePath) {
+    private static string InnerName(string archivePath, string suffix) {
         string name = Path.GetFileName(archivePath.Replace('\\', '/').Split(new[] { "::" }, StringSplitOptions.None).Last());
-        return name.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) && name.Length > 3 ? name.Substring(0, name.Length - 3) : "content";
+        return name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && name.Length > suffix.Length ? name.Substring(0, name.Length - suffix.Length) : "content";
     }
 
     /// <summary>Returns false for a member over MaxInputBytes (reported as a warning); otherwise reserves Reader capacity for it.</summary>

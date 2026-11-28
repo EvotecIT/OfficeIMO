@@ -12,7 +12,7 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
     public const string HandlerId = "officeimo.reader.zip";
 
     /// <summary>
-    /// Adds ZIP, TAR, .tar.gz and single-file gzip ingestion to an isolated reader builder.
+    /// Adds ZIP and TAR ingestion, with TAR plain or compressed with gzip, Zstandard, xz or lzip, and single compressed files, to an isolated reader builder.
     /// </summary>
     public static OfficeDocumentReaderBuilder AddZipHandler(
         this OfficeDocumentReaderBuilder builder,
@@ -33,9 +33,9 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "ZIP Reader Adapter",
-            Description = "Modular archive adapter that traverses ZIP, TAR, .tar.gz and gzip inputs and emits Reader chunks.",
+            Description = "Modular archive adapter that traverses ZIP, plain and compressed TAR, and single gzip, Zstandard, xz and lzip inputs and emits Reader chunks.",
             Kind = ReaderInputKind.Zip,
-            Extensions = new[] { ".zip", ".tar", ".tgz", ".gz" },
+            Extensions = new[] { ".zip", ".tar", ".tgz", ".gz", ".tzst", ".zst", ".txz", ".xz", ".tlz", ".lz" },
             ReadPath = (path, readerOptions, ct) => ZipReaderAdapter.Read(
                 zipPath: path,
                 readerOptions: readerOptions,

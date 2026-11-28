@@ -26,7 +26,7 @@ public static partial class ArchiveExtractor {
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
         ArchiveLimits.Check(source.Length, limits.Input, nameof(ArchiveExtractionOptions.MaxInputBytes));
         limits.Operation.AdmitInput(source.Length);
-        ArchiveFormat format = Detect(source, cancellationToken);
+        ArchiveFormat format = Detect(source, limits.Window, cancellationToken);
         return Publish(output, limits, format, cancellationToken, ExtractInto);
 
         long ExtractInto(string staging, List<ExtractedArchiveFile> files) {
@@ -38,8 +38,14 @@ public static partial class ArchiveExtractor {
                 case ArchiveFormat.Rar5: total = StageRar5(Rar5Archive.Open(source, limits, cancellationToken), staging, limits, files, cancellationToken); break;
                 case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Tar:
-                case ArchiveFormat.TarGZip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.TarGZip:
+                case ArchiveFormat.TarZstandard:
+                case ArchiveFormat.TarXz:
+                case ArchiveFormat.TarLzip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.GZip: ExtractGZip(source, package, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Zstandard:
+                case ArchiveFormat.Xz:
+                case ArchiveFormat.Lzip: ExtractCompressedFile(StreamCodecs.Of(format), source, package, staging, limits, files, ref total, cancellationToken); break;
                 default: throw new NotSupportedException("Unsupported archive format.");
             }
             return total;
@@ -84,25 +90,29 @@ public static partial class ArchiveExtractor {
             throw new IOException("Extraction requires an absent or empty destination directory.");
     }
     /// <summary>Detects a seekable container from its initial bytes and restores the caller's stream position.
-    /// Gzip input is classified as TAR when its first decompressed block is a TAR header.</summary>
-    internal static ArchiveFormat Detect(Stream source, CancellationToken token) {
+    /// Gzip, Zstandard, xz and lzip input is classified as TAR when its first decompressed block is a TAR header.</summary>
+    internal static ArchiveFormat Detect(Stream source, CancellationToken token) => Detect(source, ArchiveReadOptions.DefaultMaxWindowBytes, token);
+
+    internal static ArchiveFormat Detect(Stream source, long maximumWindow, CancellationToken token) {
         long originalPosition = source.Position;
         try {
             source.Position = 0;
             // Read only the 8-byte magic first; TAR detection needs the whole first header block.
             var header = new byte[1024];
             int headerLength = Fill(source, header, 8, token);
-            if (GZipContent.HasSignature(header, headerLength)) {
+            StreamCodec codec = StreamCodecs.Detect(header, headerLength);
+            if (codec != StreamCodec.None) {
                 source.Position = 0;
                 var peek = new byte[1024];
-                return LooksLikeTar(peek, GZipContent.Peek(source, peek, peek.Length, token)) ? ArchiveFormat.TarGZip : ArchiveFormat.GZip;
+                return LooksLikeTar(peek, StreamCodecs.Peek(codec, source, peek, peek.Length, maximumWindow, token))
+                    ? StreamCodecs.TarFormat(codec) : StreamCodecs.FileFormat(codec);
             }
             if (TryDetectMagic(header, headerLength, out ArchiveFormat format)) return format;
             if (headerLength == 8) headerLength = Fill(source, header, header.Length, token, start: 8);
             if (TarArchiveContent.IsHeader(header, headerLength)) return ArchiveFormat.Tar;
             if (headerLength >= 8 && Rar5Signature.TryFind(source, token)) return ArchiveFormat.Rar5;
             if (LooksLikeEmptyTar(header, headerLength)) return ArchiveFormat.Tar;
-            throw new NotSupportedException("The package is not a supported ZIP, 7z, RAR5, Cabinet, Windows Installer, TAR or gzip container.");
+            throw new NotSupportedException("The package is not a supported ZIP, 7z, RAR5, Cabinet, Windows Installer, TAR, gzip, Zstandard, xz or lzip container.");
         } finally {
             source.Position = originalPosition;
         }
