@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            WordFootNote? footnote = artifactElement.IsW("footnoteReference")
+            WordFootNote? footnote = artifactElement.IsW("footnoteReference") && artifactElement.IsModelElement()
                 ? run.FootNoteForReference(artifactElement)
                 : artifactElement.IsNone ? run.FootNote : null;
             if (options.ExportFootnotes && footnote != null) {
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            WordEndNote? endnote = artifactElement.IsW("endnoteReference")
+            WordEndNote? endnote = artifactElement.IsW("endnoteReference") && artifactElement.IsModelElement()
                 ? run.EndNoteForReference(artifactElement)
                 : artifactElement.IsNone ? run.EndNote : null;
             if (options.ExportEndnotes && endnote != null) {
@@ -183,7 +183,7 @@ namespace OfficeIMO.Word.Html {
                             continue;
                         IEnumerable<OfficeXmlNode> children = run.VisibleRunSourceChildNodes() ?? run.RunNode().Elements();
                         foreach (OfficeXmlNode child in children) {
-                            foreach (OfficeXmlNode reference in child.IsW("footnoteReference")
+                            foreach (OfficeXmlNode reference in child.IsW("footnoteReference") && child.IsModelElement()
                                 ? new[] { child } : child.ModelDescendants("footnoteReference")) {
                                 if (!options.ExportFootnotes) continue;
                                 var note = run.FootNoteForReference(reference);
@@ -193,7 +193,7 @@ namespace OfficeIMO.Word.Html {
                                 footnoteMap.Add(id, number);
                                 footnotes.Add((number, note));
                             }
-                            foreach (OfficeXmlNode reference in child.IsW("endnoteReference")
+                            foreach (OfficeXmlNode reference in child.IsW("endnoteReference") && child.IsModelElement()
                                 ? new[] { child } : child.ModelDescendants("endnoteReference")) {
                                 if (!options.ExportEndnotes) continue;
                                 var note = run.EndNoteForReference(reference);

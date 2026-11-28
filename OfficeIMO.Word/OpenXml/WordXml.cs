@@ -239,6 +239,8 @@ internal static class WordXml {
                     return WordContentControlLevel.None;
             }
         }
+        // Run-level conflict marks from merged revisions hold runs, so the SDK types their controls as SdtRun too.
+        if (parent.Is(W14, "conflictIns") || parent.Is(W14, "conflictDel")) return WordContentControlLevel.Run;
         if (parent.NamespaceId != W) return WordContentControlLevel.None;
         switch (parent.LocalName) {
             case "p": case "hyperlink": case "fldSimple": case "dir": case "bdo":

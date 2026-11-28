@@ -208,7 +208,7 @@ namespace OfficeIMO.Word.Html {
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
                 AppendAdditionalBookmarkAnchors(parent, para, options);
                 var runs = para.GetRuns().ToList();
-                var paragraphChildren = para.Node().Elements().ToList();
+                List<OfficeXmlNode> paragraphChildren = WordConverterNodes.EquationChildSequence(para.Node());
                 IReadOnlyList<WordEquationOccurrence> equations = para._document.EquationOccurrences(para.Node());
                 List<INode> nodes = new();
                 int nextEquation = 0;

@@ -477,6 +477,13 @@ internal static class WordConverterNodes {
     internal static IReadOnlyList<WordEquationOccurrence> EquationOccurrences(this WordDocument document, OfficeXmlNode paragraph) =>
         WordEquation.GetOccurrences(document, (W.Paragraph)paragraph.SdkElement!);
 
+    /// <summary>
+    /// The children of <paramref name="paragraph"/> that <see cref="WordEquationOccurrence.StartChildIndex"/> counts,
+    /// XML comments and processing instructions included, so an index taken from an occurrence finds its element.
+    /// </summary>
+    internal static List<OfficeXmlNode> EquationChildSequence(OfficeXmlNode paragraph) =>
+        ((W.Paragraph)paragraph.SdkElement!).ChildElements.Select(child => Wrap(child)).ToList();
+
     /// <summary>Whether the element backs the equation, as <see cref="WordEquation.IsBackingElement"/>.</summary>
     internal static bool IsBackingNode(this WordEquation equation, OfficeXmlNode element) =>
         element.SdkElement is OpenXmlElement sdk && equation.IsBackingElement(sdk);
