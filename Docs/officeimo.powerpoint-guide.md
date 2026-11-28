@@ -227,7 +227,7 @@ OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
 streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` opens one
 payload directly. Keep the presentation open while requesting reads; returned
 complete read-only streams are caller-owned and survive presentation disposal.
-The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+The [Core payload contract](officeimo.core-guide.md#bounded-embedded-payload-reads)
 defines count, member, aggregate and cumulative work limits, unknown lengths and
 optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
 relationship without reading binary module content, with
@@ -779,7 +779,7 @@ Supported point appearances survive save/reopen, shared data updates, snapshots,
 PDF export, and PowerPoint semantic HTML round trips. Static pie and doughnut legends use
 the same colours and styles as the slices. Per-point area styling is retained in native
 files but static export reports an approximation and uses the series fill.
-See the [shared point-style example](../OfficeIMO.Core/README.md#style-individual-chart-points)
+See the [shared point-style example](officeimo.core-guide.md#style-individual-chart-points)
 for an outlined unknown-status slice and a hatched slice.
 
 ### Pie and doughnut geometry
@@ -894,7 +894,7 @@ presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide 
 `GetVbaProjectBytes()`, `SetVbaProject(byte[], ...)`, and `RemoveVbaProject()` handle
 validated, bounded compound-storage content. `ReadVbaProject()` and the typed
 `SetVbaProject(OfficeVbaProject, ...)` overload use the
-[shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects):
+[shared native VBA source model](officeimo.core-guide.md#native-vba-projects):
 
 ```csharp
 using OfficeIMO;
