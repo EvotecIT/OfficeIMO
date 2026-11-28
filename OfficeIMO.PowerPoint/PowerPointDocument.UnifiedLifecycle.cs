@@ -139,7 +139,7 @@ public sealed partial class PowerPointDocument {
             properties.Restore(document);
         }
         if (processMarkupCompatibility && _sdkDocument != null) {
-            ApplyMarkupCompatibility(package, start, _sdkDocument.MarkupCompatibilityProcessSettings);
+            ApplyMarkupCompatibility(package, start, _sdkDocument.MarkupCompatibilityProcessSettings, _maximumSlideXmlCharacters);
         }
     }
 
@@ -214,10 +214,11 @@ public sealed partial class PowerPointDocument {
     // document's processing settings and every XML part is loaded, which saves the processed markup into the copy only.
     // The document and its own saves keep the markup as stored.
     private static void ApplyMarkupCompatibility(Stream package, long start,
-        DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessSettings settings) {
+        DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessSettings settings, long maximumCharactersInPart) {
         if (settings.ProcessMode == DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessMode.NoProcess) return;
         package.Position = start;
-        var openSettings = new OpenSettings { MarkupCompatibilityProcessSettings = settings };
+        // The part limit applies before processing drops a branch, as it does when the document reads the part.
+        var openSettings = new OpenSettings { MarkupCompatibilityProcessSettings = settings, MaxCharactersInPart = maximumCharactersInPart };
         using (PresentationDocument copy = PresentationDocument.Open(package, true, openSettings)) {
             // The save that writes the processed parts must not change the core properties part.
             CoreFilePropertiesPart? corePart = copy.CoreFilePropertiesPart;
