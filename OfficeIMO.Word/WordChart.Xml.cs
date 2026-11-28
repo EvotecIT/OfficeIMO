@@ -53,33 +53,59 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// The relationship id of the chart a drawing shows: the <c>c:chart</c> of the drawing's own frame, at
-        /// wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart, including a frame in an <c>mc:AlternateContent</c>
-        /// branch of the drawing. A chart anywhere else, such as in vendor or extension markup, is not.
+        /// The relationship id of the chart a drawing shows: the <c>c:chart</c> at
+        /// wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart of the drawing's own frame. An <c>mc:AlternateContent</c>
+        /// at any step contributes the branch a first-edition consumer selects. A chart anywhere else, such as in vendor
+        /// or extension markup, is not.
         /// </summary>
         private static string? ChartReferenceId(OfficeXmlNode drawing) {
-            if (drawing.IsNone) return null;
-            for (OfficeXmlNode child = drawing.FirstChild; !child.IsNone; child = child.NextSibling) {
-                OfficeXmlNode reference = FrameChart(child);
-                if (!reference.IsNone) return reference.Attribute(NsR, "id");
-                if (!child.Is(NsMc, "AlternateContent")) continue;
-                for (OfficeXmlNode branch = child.FirstChild; !branch.IsNone; branch = branch.NextSibling) {
-                    if (!branch.Is(NsMc, "Choice") && !branch.Is(NsMc, "Fallback")) continue;
-                    for (OfficeXmlNode frame = branch.FirstChild; !frame.IsNone; frame = frame.NextSibling) {
-                        reference = FrameChart(frame);
-                        if (!reference.IsNone) return reference.Attribute(NsR, "id");
-                    }
-                }
-            }
-            return null;
+            OfficeXmlNode graphic = SelectedChild(DrawingFrame(drawing), NsA, "graphic");
+            OfficeXmlNode reference = SelectedChild(SelectedChild(graphic, NsA, "graphicData"), NsC, "chart");
+            return reference.IsNone ? null : reference.Attribute(NsR, "id");
         }
 
-        /// <summary>The <c>c:chart</c> at a:graphic/a:graphicData/c:chart of a wp:inline or wp:anchor frame, or none.</summary>
-        private static OfficeXmlNode FrameChart(OfficeXmlNode frame) {
-            if (!frame.Is(NsWp, "inline") && !frame.Is(NsWp, "anchor")) return default;
-            OfficeXmlNode graphic = frame.Child(NsA, "graphic");
-            OfficeXmlNode data = graphic.IsNone ? default : graphic.Child(NsA, "graphicData");
-            return data.IsNone ? default : data.Child(NsC, "chart");
+        /// <summary>The drawing's wp:inline or wp:anchor frame, looking through <c>mc:AlternateContent</c>; or none.</summary>
+        private static OfficeXmlNode DrawingFrame(OfficeXmlNode drawing) {
+            for (OfficeXmlNode child = drawing.IsNone ? default : drawing.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (child.Is(NsWp, "inline") || child.Is(NsWp, "anchor")) return child;
+                if (!child.Is(NsMc, "AlternateContent")) continue;
+                OfficeXmlNode frame = DrawingFrame(SelectedBranch(child));
+                if (!frame.IsNone) return frame;
+            }
+            return default;
+        }
+
+        /// <summary>The first child with this name, looking through <c>mc:AlternateContent</c>; or none.</summary>
+        private static OfficeXmlNode SelectedChild(OfficeXmlNode parent, int namespaceId, string localName) {
+            for (OfficeXmlNode child = parent.IsNone ? default : parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (child.Is(namespaceId, localName)) return child;
+                if (!child.Is(NsMc, "AlternateContent")) continue;
+                OfficeXmlNode found = SelectedChild(SelectedBranch(child), namespaceId, localName);
+                if (!found.IsNone) return found;
+            }
+            return default;
+        }
+
+        /// <summary>
+        /// The branch of an <c>mc:AlternateContent</c> a first-edition consumer selects: the first <c>mc:Choice</c> whose
+        /// <c>Requires</c> namespaces are all ECMA-376 namespaces, otherwise the <c>mc:Fallback</c>; or none.
+        /// </summary>
+        private static OfficeXmlNode SelectedBranch(OfficeXmlNode alternate) {
+            for (OfficeXmlNode branch = alternate.FirstChild; !branch.IsNone; branch = branch.NextSibling) {
+                if (branch.Is(NsMc, "Choice") && RequirementsUnderstood(branch)) return branch;
+                if (branch.Is(NsMc, "Fallback")) return branch;
+            }
+            return default;
+        }
+
+        private static bool RequirementsUnderstood(OfficeXmlNode choice) {
+            string? requires = choice.Attribute(OfficeXmlNamespaces.None, "Requires");
+            if (string.IsNullOrWhiteSpace(requires)) return false;
+            foreach (string prefix in requires!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string? uri = choice.LookupNamespaceUri(prefix);
+                if (uri == null || !OfficeXmlNamespaces.TryGetKnownId(uri, out _)) return false;
+            }
+            return true;
         }
 
         /// <summary>

@@ -5,16 +5,8 @@ using OfficeIMO.OpenXml.Internal;
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
-    /// <summary>The drawing's <c>wp:docPr</c>, or none.</summary>
-    private OfficeXmlNode DrawingProperties {
-        get {
-            // The frame's own properties: w:drawing/wp:inline or wp:anchor/wp:docPr.
-            for (OfficeXmlNode frame = _drawing.IsNone ? default : _drawing.FirstChild; !frame.IsNone; frame = frame.NextSibling) {
-                if (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor")) return frame.Child(NsWp, "docPr");
-            }
-            return default;
-        }
-    }
+    /// <summary>The drawing frame's <c>wp:docPr</c>, looking through <c>mc:AlternateContent</c>; or none.</summary>
+    private OfficeXmlNode DrawingProperties => SelectedChild(DrawingFrame(_drawing), NsWp, "docPr");
 
     /// <summary>Gets or sets the native drawing name without changing chart data.</summary>
     public string? Name {
