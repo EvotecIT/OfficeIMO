@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -12,66 +12,39 @@ namespace OfficeIMO.Excel {
             ValidateZoom(options.ZoomScale, nameof(options.ZoomScale));
             ValidateZoom(options.ZoomScaleNormal, nameof(options.ZoomScaleNormal));
 
-            _excelDocument.MaterializeDeferredDataSetImport();
-            WriteLock(() => {
-                SheetView sheetView = GetOrCreatePrimarySheetViewForViewOptions();
+            WriteWorksheetView(worksheet => {
+                OfficeXmlNode sheetView = GetOrCreateSheetView(worksheet);
 
                 if (options.ShowGridlines.HasValue) {
-                    sheetView.ShowGridLines = options.ShowGridlines.Value;
+                    sheetView.SetBooleanAttribute("showGridLines", options.ShowGridlines.Value);
                 }
 
                 if (options.RightToLeft.HasValue) {
-                    sheetView.RightToLeft = options.RightToLeft.Value;
+                    sheetView.SetBooleanAttribute("rightToLeft", options.RightToLeft.Value);
                 }
 
                 if (options.ZoomScale.HasValue) {
-                    sheetView.ZoomScale = options.ZoomScale.Value;
+                    sheetView.SetUInt32Attribute("zoomScale", options.ZoomScale.Value);
                 }
 
                 if (options.ZoomScaleNormal.HasValue) {
-                    sheetView.ZoomScaleNormal = options.ZoomScaleNormal.Value;
+                    sheetView.SetUInt32Attribute("zoomScaleNormal", options.ZoomScaleNormal.Value);
                 }
 
                 if (options.View.HasValue) {
-                    sheetView.View = ToOpenXmlSheetView(options.View.Value);
+                    sheetView.SetAttribute("view", FormatViewKind(options.View.Value));
                 }
 
-                _excelDocument.MarkPackageDirty();
+                return true;
             });
         }
 
-        private SheetView GetOrCreatePrimarySheetViewForViewOptions() {
-            var worksheet = WorksheetRoot;
-            SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
-            if (sheetViews == null) {
-                sheetViews = new SheetViews();
-                var sheetData = worksheet.GetFirstChild<SheetData>();
-                if (sheetData != null) {
-                    worksheet.InsertBefore(sheetViews, sheetData);
-                } else {
-                    worksheet.Append(sheetViews);
-                }
-            }
-
-            SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
-            if (sheetView == null) {
-                sheetView = new SheetView { WorkbookViewId = 0U };
-                sheetViews.Append(sheetView);
-            } else if (sheetView.WorkbookViewId == null) {
-                sheetView.WorkbookViewId = 0U;
-            }
-
-            return sheetView;
-        }
-
-        private static SheetViewValues ToOpenXmlSheetView(ExcelWorksheetViewKind view) {
-            return view switch {
-                ExcelWorksheetViewKind.Normal => SheetViewValues.Normal,
-                ExcelWorksheetViewKind.PageBreakPreview => SheetViewValues.PageBreakPreview,
-                ExcelWorksheetViewKind.PageLayout => SheetViewValues.PageLayout,
-                _ => throw new ArgumentOutOfRangeException(nameof(view), view, "Unsupported worksheet view kind."),
-            };
-        }
+        private static string FormatViewKind(ExcelWorksheetViewKind view) => view switch {
+            ExcelWorksheetViewKind.Normal => "normal",
+            ExcelWorksheetViewKind.PageBreakPreview => "pageBreakPreview",
+            ExcelWorksheetViewKind.PageLayout => "pageLayout",
+            _ => throw new ArgumentOutOfRangeException(nameof(view), view, "Unsupported worksheet view kind.")
+        };
 
         private static void ValidateZoom(uint? zoom, string parameterName) {
             if (!zoom.HasValue) {

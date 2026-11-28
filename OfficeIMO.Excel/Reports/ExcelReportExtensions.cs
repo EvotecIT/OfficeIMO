@@ -1,5 +1,4 @@
 using System.Data;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Excel.Reports {
     /// <summary>
@@ -180,7 +179,7 @@ namespace OfficeIMO.Excel.Reports {
             if (preset.HideLegend) {
                 chart.HideLegend();
             } else {
-                chart.SetLegend(preset.LegendPosition.ToOfficeEnum());
+                chart.SetLegend(preset.LegendPosition);
             }
 
             if (preset.ShowDataLabels) {
@@ -190,7 +189,7 @@ namespace OfficeIMO.Excel.Reports {
                     showSeriesName: false,
                     showLegendKey: false,
                     showPercent: preset.ShowDataLabelPercent,
-                    position: preset.DataLabelPosition.ToOfficeEnum(),
+                    position: preset.DataLabelPosition,
                     numberFormat: null);
             }
 
@@ -208,7 +207,7 @@ namespace OfficeIMO.Excel.Reports {
                         heightPixels: 320,
                         styleId: 252,
                         colorStyleId: 11,
-                        C.LegendPositionValues.Bottom,
+                        OfficeChartLegendPosition.Bottom,
                         hideLegend: false,
                         showDataLabels: false,
                         showDataLabelValues: false,
@@ -222,13 +221,13 @@ namespace OfficeIMO.Excel.Reports {
                         heightPixels: 360,
                         styleId: 253,
                         colorStyleId: 12,
-                        C.LegendPositionValues.Right,
+                        OfficeChartLegendPosition.Right,
                         hideLegend: false,
                         showDataLabels: true,
                         showDataLabelValues: false,
                         showDataLabelCategories: true,
                         showDataLabelPercent: true,
-                        dataLabelPosition: C.DataLabelPositionValues.BestFit);
+                        dataLabelPosition: OfficeChartDataLabelPosition.BestFit);
                 case ExcelDashboardChartPreset.CompactComparison:
                     return new ResolvedDashboardChartPreset(
                         OfficeChartType.BarClustered,
@@ -236,13 +235,13 @@ namespace OfficeIMO.Excel.Reports {
                         heightPixels: 260,
                         styleId: 251,
                         colorStyleId: 10,
-                        C.LegendPositionValues.Bottom,
+                        OfficeChartLegendPosition.Bottom,
                         hideLegend: true,
                         showDataLabels: true,
                         showDataLabelValues: true,
                         showDataLabelCategories: false,
                         showDataLabelPercent: false,
-                        dataLabelPosition: C.DataLabelPositionValues.OutsideEnd);
+                        dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
                 default:
                     return new ResolvedDashboardChartPreset(
                         OfficeChartType.ColumnClustered,
@@ -250,7 +249,7 @@ namespace OfficeIMO.Excel.Reports {
                         heightPixels: 360,
                         styleId: 251,
                         colorStyleId: 10,
-                        C.LegendPositionValues.Bottom,
+                        OfficeChartLegendPosition.Bottom,
                         hideLegend: false,
                         showDataLabels: false,
                         showDataLabelValues: false,
@@ -267,13 +266,13 @@ namespace OfficeIMO.Excel.Reports {
                 int heightPixels,
                 int styleId,
                 int colorStyleId,
-                C.LegendPositionValues legendPosition,
+                OfficeChartLegendPosition legendPosition,
                 bool hideLegend,
                 bool showDataLabels,
                 bool showDataLabelValues,
                 bool showDataLabelCategories,
                 bool showDataLabelPercent,
-                C.DataLabelPositionValues? dataLabelPosition) {
+                OfficeChartDataLabelPosition? dataLabelPosition) {
                 ChartType = chartType;
                 WidthPixels = widthPixels;
                 HeightPixels = heightPixels;
@@ -293,13 +292,13 @@ namespace OfficeIMO.Excel.Reports {
             internal int HeightPixels { get; }
             internal int StyleId { get; }
             internal int ColorStyleId { get; }
-            internal C.LegendPositionValues LegendPosition { get; }
+            internal OfficeChartLegendPosition LegendPosition { get; }
             internal bool HideLegend { get; }
             internal bool ShowDataLabels { get; }
             internal bool ShowDataLabelValues { get; }
             internal bool ShowDataLabelCategories { get; }
             internal bool ShowDataLabelPercent { get; }
-            internal C.DataLabelPositionValues? DataLabelPosition { get; }
+            internal OfficeChartDataLabelPosition? DataLabelPosition { get; }
         }
     }
 }

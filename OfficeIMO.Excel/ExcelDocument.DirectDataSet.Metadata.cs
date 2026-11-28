@@ -105,21 +105,13 @@ namespace OfficeIMO.Excel {
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
         }
 
-        internal bool TryApplyDirectWorksheetFreezeMetadata(ExcelSheet sheet, int topRows, int leftCols) {
-            ArgumentNullException.ThrowIfNull(sheet);
-            ArgumentOutOfRangeException.ThrowIfNegative(topRows);
-            ArgumentOutOfRangeException.ThrowIfNegative(leftCols);
-            if (!ReferenceEquals(sheet.Document, this)) {
-                return false;
-            }
-
+        internal bool TryEditDirectWorksheetView(ExcelSheet sheet, Func<string?, string?> edit) {
             return TryUpdateDeferredDirectWorksheetMetadata(
                 sheet,
                 requireWorksheetTable: null,
                 metadata => {
                     var baseMetadata = metadata ?? DirectWorksheetMetadata.Empty;
-                    string sheetViewsXml = CreateFrozenSheetViewsXml(topRows, leftCols, baseMetadata.SheetViewsXml);
-                    return baseMetadata.WithSheetViewsXml(sheetViewsXml);
+                    return baseMetadata.WithSheetViewsXml(edit(baseMetadata.SheetViewsXml));
                 },
                 mergeCapturedMetadata: true);
         }
@@ -194,126 +186,6 @@ namespace OfficeIMO.Excel {
             _unchangedPackageBytes = null;
             _requiresSavePreflight = false;
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
-        }
-
-        private static string CreateFrozenSheetViewsXml(int topRows, int leftCols, string? existingSheetViewsXml) {
-            if (string.IsNullOrEmpty(existingSheetViewsXml)) {
-                return CreateFrozenSheetViewsXml(topRows, leftCols);
-            }
-
-            string existingXml = existingSheetViewsXml!;
-            var sheetViews = new SheetViews(existingXml);
-            SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
-            if (sheetView == null) {
-                sheetView = new SheetView { WorkbookViewId = 0U };
-                sheetViews.Append(sheetView);
-            } else if (sheetView.WorkbookViewId == null) {
-                sheetView.WorkbookViewId = 0U;
-            }
-
-            ApplyFrozenPaneToSheetView(sheetView, topRows, leftCols);
-            return sheetViews.OuterXml;
-        }
-
-        private static string CreateFrozenSheetViewsXml(int topRows, int leftCols) {
-            if (topRows == 0 && leftCols == 0) return ExcelSheet.DefaultSheetViewsXml;
-            string topLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
-            string escapedTopLeftCell = EscapeXmlAttribute(topLeftCell);
-            var builder = new StringBuilder(256);
-            builder.Append("<sheetViews xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetView workbookViewId=\"0\"><pane");
-            if (leftCols > 0) {
-                builder.Append(" xSplit=\"");
-                builder.Append(leftCols.ToString(CultureInfo.InvariantCulture));
-                builder.Append('"');
-            }
-
-            if (topRows > 0) {
-                builder.Append(" ySplit=\"");
-                builder.Append(topRows.ToString(CultureInfo.InvariantCulture));
-                builder.Append('"');
-            }
-
-            builder.Append(" topLeftCell=\"");
-            builder.Append(escapedTopLeftCell);
-            builder.Append("\" activePane=\"");
-            string activePane = topRows > 0 && leftCols > 0
-                ? "bottomRight"
-                : topRows > 0
-                    ? "bottomLeft"
-                    : "topRight";
-            builder.Append(activePane);
-            builder.Append("\" state=\"frozen\"/>");
-
-            if (topRows > 0 && leftCols > 0) {
-                AppendFrozenSelectionXml(builder, "topRight", escapedTopLeftCell);
-                AppendFrozenSelectionXml(builder, "bottomLeft", escapedTopLeftCell);
-                AppendFrozenSelectionXml(builder, "bottomRight", escapedTopLeftCell);
-            } else if (topRows > 0) {
-                AppendFrozenSelectionXml(builder, "bottomLeft", escapedTopLeftCell);
-            } else {
-                AppendFrozenSelectionXml(builder, "topRight", escapedTopLeftCell);
-            }
-
-            builder.Append("<selection activeCell=\"A1\" sqref=\"A1\"/></sheetView></sheetViews>");
-            return builder.ToString();
-        }
-
-        private static void ApplyFrozenPaneToSheetView(SheetView sheetView, int topRows, int leftCols) {
-            sheetView.RemoveAllChildren<Pane>();
-            sheetView.RemoveAllChildren<Selection>();
-            if (topRows == 0 && leftCols == 0) return;
-
-            string topLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
-            var pane = new Pane {
-                State = PaneStateValues.Frozen,
-                TopLeftCell = topLeftCell
-            };
-            if (leftCols > 0) {
-                pane.HorizontalSplit = leftCols;
-            }
-
-            if (topRows > 0) {
-                pane.VerticalSplit = topRows;
-            }
-
-            if (topRows > 0 && leftCols > 0) {
-                pane.ActivePane = PaneValues.BottomRight;
-                sheetView.Append(pane);
-                AppendFrozenSelection(sheetView, PaneValues.TopRight, topLeftCell);
-                AppendFrozenSelection(sheetView, PaneValues.BottomLeft, topLeftCell);
-                AppendFrozenSelection(sheetView, PaneValues.BottomRight, topLeftCell);
-            } else if (topRows > 0) {
-                pane.ActivePane = PaneValues.BottomLeft;
-                sheetView.Append(pane);
-                AppendFrozenSelection(sheetView, PaneValues.BottomLeft, topLeftCell);
-            } else {
-                pane.ActivePane = PaneValues.TopRight;
-                sheetView.Append(pane);
-                AppendFrozenSelection(sheetView, PaneValues.TopRight, topLeftCell);
-            }
-
-            sheetView.Append(new Selection {
-                ActiveCell = "A1",
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
-            });
-        }
-
-        private static void AppendFrozenSelection(SheetView sheetView, PaneValues pane, string topLeftCell) {
-            sheetView.Append(new Selection {
-                Pane = pane,
-                ActiveCell = topLeftCell,
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = topLeftCell }
-            });
-        }
-
-        private static void AppendFrozenSelectionXml(StringBuilder builder, string pane, string escapedTopLeftCell) {
-            builder.Append("<selection pane=\"");
-            builder.Append(pane);
-            builder.Append("\" activeCell=\"");
-            builder.Append(escapedTopLeftCell);
-            builder.Append("\" sqref=\"");
-            builder.Append(escapedTopLeftCell);
-            builder.Append("\"/>");
         }
 
         private static string EscapeXmlAttribute(string value) {

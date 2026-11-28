@@ -1,142 +1,86 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
-using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        internal void CleanupSheetViewArtifacts() {
-            var worksheet = WorksheetRoot;
-            var sheetViews = worksheet.GetFirstChild<SheetViews>();
-            if (sheetViews == null) {
-                return;
-            }
+        internal void CleanupSheetViewArtifacts() => CleanupSheetViewArtifacts(ViewWorksheetRoot);
 
-            foreach (var sheetView in sheetViews.Elements<SheetView>().ToList()) {
-                CleanupSheetView(sheetView);
-            }
+        internal static void CleanupSheetViewArtifacts(OfficeXmlNode worksheet) {
+            OfficeXmlNode views = worksheet.Child(OfficeXmlNamespaces.SpreadsheetML, "sheetViews");
+            if (views.IsNone) return;
 
-            if (!sheetViews.Elements<SheetView>().Any()) {
-                worksheet.RemoveChild(sheetViews);
-            }
+            var sheetViews = views.Children(OfficeXmlNamespaces.SpreadsheetML, "sheetView").ToList();
+            foreach (OfficeXmlNode view in sheetViews) CleanupSheetView(view);
+            if (sheetViews.Count == 0) views.Remove();
         }
 
-        private void CleanupSheetView(SheetView sheetView) {
-            sheetView.WorkbookViewId ??= 0U;
+        private static void CleanupSheetView(OfficeXmlNode view) {
+            if (!view.HasAttribute("workbookViewId")) view.SetUInt32Attribute("workbookViewId", 0U);
 
-            var pane = sheetView.GetFirstChild<Pane>();
-            List<PaneValues> expectedFrozenPanes = new();
+            OfficeXmlNode pane = view.Child(OfficeXmlNamespaces.SpreadsheetML, "pane");
+            string[] frozenPanes = Array.Empty<string>();
             string paneCell = "A1";
-
-            if (pane != null && IsFrozenPaneState(pane.State?.Value)) {
-                int frozenRows = NormalizeFrozenSplit(pane.VerticalSplit);
-                int frozenColumns = NormalizeFrozenSplit(pane.HorizontalSplit);
-
-                if (frozenRows <= 0) {
-                    pane.VerticalSplit = null;
-                } else {
-                    pane.VerticalSplit = frozenRows;
-                }
-
-                if (frozenColumns <= 0) {
-                    pane.HorizontalSplit = null;
-                } else {
-                    pane.HorizontalSplit = frozenColumns;
-                }
+            string? state = pane.Attribute("state");
+            if (state is "frozen" or "frozenSplit") {
+                int frozenRows = NormalizeFrozenSplit(pane.DoubleAttribute("ySplit"));
+                int frozenColumns = NormalizeFrozenSplit(pane.DoubleAttribute("xSplit"));
+                pane.SetInt32Attribute("ySplit", frozenRows > 0 ? frozenRows : null);
+                pane.SetInt32Attribute("xSplit", frozenColumns > 0 ? frozenColumns : null);
 
                 if (frozenRows <= 0 && frozenColumns <= 0) {
                     pane.Remove();
-                    pane = null;
                 } else {
                     paneCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1);
-                    pane.TopLeftCell = paneCell;
-
-                    if (frozenRows > 0 && frozenColumns > 0) {
-                        expectedFrozenPanes.Add(PaneValues.TopRight);
-                        expectedFrozenPanes.Add(PaneValues.BottomLeft);
-                        expectedFrozenPanes.Add(PaneValues.BottomRight);
-                        pane.ActivePane = PaneValues.BottomRight;
-                    } else if (frozenRows > 0) {
-                        expectedFrozenPanes.Add(PaneValues.BottomLeft);
-                        pane.ActivePane = PaneValues.BottomLeft;
-                    } else {
-                        expectedFrozenPanes.Add(PaneValues.TopRight);
-                        pane.ActivePane = PaneValues.TopRight;
-                    }
+                    pane.SetAttribute("topLeftCell", paneCell);
+                    frozenPanes = frozenRows > 0
+                        ? frozenColumns > 0 ? new[] { "topRight", "bottomLeft", "bottomRight" } : new[] { "bottomLeft" }
+                        : new[] { "topRight" };
+                    pane.SetAttribute("activePane", frozenPanes[frozenPanes.Length - 1]);
                 }
-            } else if (pane != null) {
-                if (!IsValidCellReference(pane.TopLeftCell?.Value)) {
-                    pane.TopLeftCell = "A1";
-                }
-                paneCell = pane.TopLeftCell?.Value ?? "A1";
+            } else if (pane.Exists && !IsValidCellReference(pane.Attribute("topLeftCell"))) {
+                pane.SetAttribute("topLeftCell", "A1");
             }
 
-            if (pane == null) {
-                foreach (var selection in sheetView.Elements<Selection>().Where(selection => selection.Pane != null).ToList()) {
-                    selection.Remove();
-                }
-            }
-
-            var seenKeys = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var selection in sheetView.Elements<Selection>().ToList()) {
-                string key = selection.Pane?.Value.ToString() ?? "<default>";
-                if (!seenKeys.Add(key)) {
-                    selection.Remove();
-                    continue;
-                }
-
-                if (selection.Pane != null) {
-                    if (pane == null || !expectedFrozenPanes.Contains(selection.Pane.Value)) {
+            var seenPanes = new HashSet<string>(StringComparer.Ordinal);
+            bool hasUnqualifiedSelection = false;
+            foreach (OfficeXmlNode selection in view.Children(OfficeXmlNamespaces.SpreadsheetML, "selection").ToList()) {
+                string? selectionPane = selection.Attribute("pane");
+                if (selectionPane == null) {
+                    if (hasUnqualifiedSelection) {
                         selection.Remove();
-                        continue;
+                    } else {
+                        hasUnqualifiedSelection = true;
+                        NormalizeSelection(selection, "A1");
                     }
-
-                    string frozenCell = pane?.TopLeftCell?.Value ?? paneCell;
-                    NormalizeSelection(selection, frozenCell);
+                } else if (!frozenPanes.Contains(selectionPane) || !seenPanes.Add(selectionPane)) {
+                    selection.Remove();
                 } else {
-                    NormalizeSelection(selection, "A1");
+                    NormalizeSelection(selection, paneCell);
                 }
             }
 
-            if (pane != null && expectedFrozenPanes.Count > 0) {
-                foreach (var paneValue in expectedFrozenPanes) {
-                    if (sheetView.Elements<Selection>().Any(selection => selection.Pane?.Value == paneValue)) {
-                        continue;
-                    }
-
-                    sheetView.Append(CreateSelection(paneValue, pane.TopLeftCell?.Value ?? paneCell));
-                }
+            foreach (string frozenPane in frozenPanes) {
+                if (!seenPanes.Contains(frozenPane)) AddSelection(view, frozenPane, paneCell, paneCell);
             }
-
-            if (!sheetView.Elements<Selection>().Any(selection => selection.Pane == null)) {
-                sheetView.Append(CreateSelection(null, "A1"));
-            }
+            if (!hasUnqualifiedSelection) AddSelection(view, null, "A1", "A1");
         }
 
-        private static bool IsFrozenPaneState(PaneStateValues? state) {
-            return state == PaneStateValues.Frozen || state == PaneStateValues.FrozenSplit;
-        }
-
-        private static int NormalizeFrozenSplit(DoubleValue? split) {
-            if (split?.Value == null || split.Value <= 0) {
-                return 0;
-            }
-
-            return (int)Math.Truncate(split.Value);
-        }
+        private static int NormalizeFrozenSplit(double? split) =>
+            split is > 0D ? (int)Math.Truncate(split.Value) : 0;
 
         private static bool IsValidCellReference(string? reference) {
             var (row, column) = ExcelA1.ParseCellRef(reference ?? string.Empty);
             return row > 0 && column > 0;
         }
 
-        private static void NormalizeSelection(Selection selection, string defaultCell) {
-            if (!IsValidCellReference(selection.ActiveCell?.Value)) {
-                selection.ActiveCell = defaultCell;
+        private static void NormalizeSelection(OfficeXmlNode selection, string defaultCell) {
+            if (!IsValidCellReference(selection.Attribute("activeCell"))) {
+                selection.SetAttribute("activeCell", defaultCell);
             }
 
-            string sqref = selection.SequenceOfReferences?.InnerText ?? string.Empty;
+            string sqref = selection.Attribute("sqref") ?? string.Empty;
             if (!IsValidSelectionReferenceList(sqref)) {
-                selection.SequenceOfReferences = new ListValue<StringValue> { InnerText = selection.ActiveCell?.Value ?? defaultCell };
+                selection.SetAttribute("sqref", selection.Attribute("activeCell") ?? defaultCell);
             }
         }
 
@@ -160,17 +104,5 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static Selection CreateSelection(PaneValues? paneValue, string cellReference) {
-            var selection = new Selection {
-                ActiveCell = cellReference,
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = cellReference }
-            };
-
-            if (paneValue != null) {
-                selection.Pane = paneValue.Value;
-            }
-
-            return selection;
-        }
     }
 }
