@@ -26,7 +26,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptPartView part = view.Presentation.RelatedPart(
                 LegacyPptPackageView.VbaProjectRelationshipType);
             if (part.IsNone) return true;
-            if (part.Relationships.Any(relationship => !relationship.IsExternal)) {
+            // Hyperlinks are references, not related signature or data parts.
+            if (part.Relationships.Any(relationship => !relationship.IsExternal
+                    && !relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType))) {
                 reason = "Related VBA signature or data parts do not have a PowerPoint 97-2003 representation.";
                 return false;
             }

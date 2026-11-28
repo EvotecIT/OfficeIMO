@@ -139,9 +139,15 @@ public sealed partial class PowerPointDocument {
             properties.Restore(document);
         }
         if (processMarkupCompatibility && _sdkDocument != null) {
-            ApplyMarkupCompatibility(package, start, _sdkDocument.MarkupCompatibilityProcessSettings, _maximumSlideXmlCharacters);
+            ApplyMarkupCompatibility(package, start, _sdkDocument.MarkupCompatibilityProcessSettings, ConfiguredPartCharacterLimit);
         }
     }
+
+    /// <summary>
+    /// The part character limit the caller set when loading, as the SDK applies it to the parts it reads; 0 when none
+    /// was set, which the SDK treats as no limit.
+    /// </summary>
+    internal long ConfiguredPartCharacterLimit => _sdkDocument?.MaxCharactersInPart ?? _deferredOpenSettings?.MaxCharactersInPart ?? 0;
 
     /// <summary>The core package property values, to put back after an SDK operation rewrites them.</summary>
     private sealed class CorePropertyValues {

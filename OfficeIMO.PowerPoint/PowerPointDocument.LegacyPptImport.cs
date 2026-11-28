@@ -15,9 +15,6 @@ namespace OfficeIMO.PowerPoint {
     /// with the relationship ids the markup already names.
     /// </summary>
     public sealed partial class PowerPointDocument {
-        /// <summary>The most characters a package part may hold when it is read, from the load settings.</summary>
-        internal long MaximumPartXmlCharacters => _maximumSlideXmlCharacters;
-
         internal const string LegacyThemeContentType = "application/vnd.openxmlformats-officedocument.theme+xml";
         internal const string LegacyThemeOverrideContentType = "application/vnd.openxmlformats-officedocument.themeOverride+xml";
         internal const string LegacySlideLayoutContentType = "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml";

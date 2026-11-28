@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal OfficeXmlNode RootOf(string partName) {
             if (!IsXml(partName)) return default;
-            if (_document != null) EnsureWithinCharacterLimit(partName, _document.MaximumPartXmlCharacters);
+            if (_document is { ConfiguredPartCharacterLimit: > 0 and long limit }) EnsureWithinCharacterLimit(partName, limit);
             OfficeXmlTree tree = _package.GetXml(partName);
             return new OfficeXmlNode(tree, tree.Root);
         }
