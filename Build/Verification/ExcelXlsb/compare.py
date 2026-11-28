@@ -390,8 +390,17 @@ def compare(output):
             status, details = result
             counts[status] = counts.get(status, 0) + 1
             results[name][key] = {"status": status, "differences": details, "baselineError": baseline_error}
+    baseline_creations = json.loads((baseline_dir / "creations.json").read_text())
+    candidate_creations = json.loads((candidate_dir / "creations.json").read_text())
+    if baseline_creations.keys() != candidate_creations.keys():
+        raise ValueError("The revisions did not create the same set of new workbooks")
+    for name, path in baseline_creations.items():
+        status, details = compare_packages(baseline_dir / path, candidate_dir / candidate_creations[name],
+                                           allow_markup_equivalence=True)
+        counts[status] = counts.get(status, 0) + 1
+        results["generated/" + name] = {"CreatedXlsb": {"status": status, "differences": details}}
     (output / "comparison.json").write_text(json.dumps({"counts": counts, "results": results}, indent=2) + "\n")
-    print(json.dumps({"inputs": len(results), "outputs": counts, "report": str(output / "comparison.json")}))
+    print(json.dumps({"inputs": len(baseline), "created": len(baseline_creations), "outputs": counts, "report": str(output / "comparison.json")}))
     return 1 if counts.get("different") else 0
 
 

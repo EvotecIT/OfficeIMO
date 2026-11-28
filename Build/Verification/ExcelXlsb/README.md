@@ -3,7 +3,8 @@
 Run from the OfficeIMO checkout. The comparison uses separate worktrees for both
 revisions. It copies tracked XLSB fixtures from the baseline and captures the
 workbooks that the baseline XLSB tests save and reopen. It applies the same
-operations to both revisions and writes a per-workbook report to
+operations to both revisions, compares fresh scalar and styled XLSB workbooks
+from both writers, and writes a per-workbook report to
 `comparison.json`. Supply `--corpus` to repeat the comparison with the same
 inputs.
 
