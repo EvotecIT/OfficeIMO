@@ -4,7 +4,7 @@ using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private Dictionary<string, int>? _packageSoundSequence;
+        private Dictionary<string, int>? _packageMediaSequence;
 
         internal bool TryAddPackageTransitionSound(string slide, Stream audio, string contentType,
             string extension, out string relationshipId) {
@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlTree relationships = package.GetRelationships(slide);
             long nextRelationship = 1;
             string id = ReserveSlideRelationshipId(ReadPackageRelationshipIds(relationships), ref nextRelationship);
-            string part = NextPackageSoundPart(package, contentType, suffix);
+            string part = NextPackageMediaPart(package, contentType, suffix);
 
             package.CreateBinaryPart(part, contentType, data);
             try {
@@ -38,16 +38,16 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private string NextPackageSoundPart(OfficeOpcEditablePackage package, string contentType, string suffix) {
-            _packageSoundSequence ??= new Dictionary<string, int>(StringComparer.Ordinal);
-            _packageSoundSequence.TryGetValue(contentType, out int last);
+        private string NextPackageMediaPart(OfficeOpcEditablePackage package, string contentType, string suffix) {
+            _packageMediaSequence ??= new Dictionary<string, int>(StringComparer.Ordinal);
+            _packageMediaSequence.TryGetValue(contentType, out int last);
             string part;
             do {
                 last++;
                 // The SDK uses an absolute media part name and writes the supplied suffix without a dot.
                 part = "/media/mediadata" + (last == 1 ? string.Empty : last.ToString(CultureInfo.InvariantCulture)) + suffix;
             } while (package.PartExists(part));
-            _packageSoundSequence[contentType] = last;
+            _packageMediaSequence[contentType] = last;
             return part;
         }
     }

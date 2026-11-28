@@ -3,14 +3,20 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an embedded audio or video media frame on a slide.
     /// </summary>
     public partial class PowerPointMedia : PowerPointImage {
+        private const string PlaybackMediaNamespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
+        internal const string PlaybackMediaRelationshipType = "http://schemas.microsoft.com/office/2007/relationships/media";
+        internal const string MediaExtensionUri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}";
+        // Match the decoded ZIP member limit of the owned package reader.
+        internal const long MaximumOwnedPayloadBytes = 1L << 30;
+
         internal PowerPointMedia(PowerPointSlide slide, OfficeXmlTree tree, int node, PowerPointMediaKind kind) : base(slide, tree, node) {
             Kind = kind;
         }
@@ -29,6 +35,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? MediaContentType {
             get {
+                if (TryGetPackageElement(out _, out _)) return GetPackageMediaPart().ContentType;
                 MediaDataPart? mediaPart = GetMediaDataPart();
                 return mediaPart?.ContentType;
             }
@@ -39,6 +46,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? MediaReferenceId {
             get {
+                if (TryGetPackageElement(out _, out _)) {
+                    string element = Kind == PowerPointMediaKind.Audio ? "audioFile" : "videoFile";
+                    return MediaApplicationProperties.Child(OfficeXmlNamespaces.DrawingML, element).Attribute(OfficeXmlNamespaces.Relationships, "link");
+                }
                 Picture picture = (Picture)Element;
                 ApplicationNonVisualDrawingProperties? properties =
                     picture.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties;
@@ -53,23 +64,47 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? PlaybackReferenceId {
             get {
-                Picture picture = (Picture)Element;
-                P14.Media? media = picture.NonVisualPictureProperties?
-                    .ApplicationNonVisualDrawingProperties?
-                    .Descendants<P14.Media>()
-                    .FirstOrDefault();
-                return media?.Embed?.Value ?? media?.Link?.Value;
+                const int p = OfficeXmlNamespaces.PresentationML;
+                foreach (OfficeXmlNode extension in MediaApplicationProperties.Child(p, "extLst").Children(p, "ext")) {
+                    if (!string.Equals(extension.Attribute("uri"), MediaExtensionUri, StringComparison.OrdinalIgnoreCase)) continue;
+                    OfficeXmlNode metadata = extension.Child(PlaybackMediaNamespace, "media");
+                    if (metadata.Exists)
+                        return metadata.Attribute(OfficeXmlNamespaces.Relationships, "embed") ?? metadata.Attribute(OfficeXmlNamespaces.Relationships, "link");
+                }
+                return null;
             }
         }
 
         /// <summary>Returns the exact embedded audio or video payload.</summary>
         public byte[] GetData() {
+            if (TryGetPackageElement(out _, out _)) {
+                PowerPointPartRef part = GetPackageMediaPart();
+                if (part.IsNone) throw new InvalidOperationException("The media shape has no embedded data relationship.");
+                if (part.Document?.ReadablePackage is not { } package || !package.TryGetBinaryLength(part.Name, out long length)) return part.ReadBytes();
+                if (length <= MaximumOwnedPayloadBytes) {
+                    using OfficePooledBytes content = package.ReadPart(part.Name);
+                    byte[] payload = new byte[content.Length];
+                    Buffer.BlockCopy(content.Array, 0, payload, 0, payload.Length);
+                    return payload;
+                }
+            }
             MediaDataPart mediaPart = GetMediaDataPart()
                 ?? throw new InvalidOperationException(
                     "The media shape has no embedded data relationship.");
             using Stream stream = mediaPart.GetStream(FileMode.Open,
                 FileAccess.Read);
             return OfficeStreamReader.ReadAllBytes(stream);
+        }
+
+        private OfficeXmlNode MediaApplicationProperties => XmlElement.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr")
+            .Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+
+        private PowerPointPartRef GetPackageMediaPart() {
+            if (MediaReferenceId is not { Length: > 0 } id || !SlidePartRef.TryGetRelationship(id, out PowerPointRelationship relationship)
+                || relationship.IsExternal) return default;
+            return relationship.Type is PlaybackMediaRelationshipType
+                or OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "audio"
+                or OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "video" ? relationship.TargetPart : default;
         }
 
         /// <summary>Replaces the embedded audio or video payload.</summary>

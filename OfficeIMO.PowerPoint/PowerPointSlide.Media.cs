@@ -1,9 +1,5 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -87,23 +83,26 @@ namespace OfficeIMO.PowerPoint {
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked media URI must be absolute.", nameof(source));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+            if (TryAddPackageMedia(null, null, null, source, kind, left, top, width, height, null, OfficeImageFormat.Png) is { } packageMedia) return packageMedia;
             uint shapeId = AllocateShapeId();
-            string relationshipId = GetNextRelationshipId(SlidePart);
+            SlidePart slidePart = SlidePart;
+            string relationshipId = GetNextRelationshipId(slidePart);
             string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" +
                 (kind == PowerPointMediaKind.Audio ? "audio" : "video");
-            SlidePart.AddExternalRelationship(relationshipType, source, relationshipId);
-            ImagePart poster = AddGeneratedMediaPoster(kind);
-            string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Linked Audio" : "Linked Video");
-            Picture picture = CreateMediaPicture(kind, shapeId, name,
-                relationshipId, relationshipId, SlidePart.GetIdOfPart(poster),
-                left, top, width, height);
-            P14.Media metadata = picture.Descendants<P14.Media>().Single();
-            metadata.Embed = null;
-            metadata.Link = relationshipId;
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            (data.ShapeTree ??= new ShapeTree()).Append(picture);
-            EnsureMediaTiming(shapeId, kind);
-            return TrackShape(new PowerPointMedia(picture, SlidePart, kind));
+            var part = PartRef;
+            uint timingId = GetNewMediaTimingId(part.Root);
+            ExternalRelationship link = slidePart.AddExternalRelationship(relationshipType, source, relationshipId);
+            ImagePart? poster = null;
+            try {
+                poster = AddGeneratedMediaPoster(kind);
+                string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Linked Audio" : "Linked Video");
+                return AppendMediaFrame(part, kind, shapeId, name, relationshipId, relationshipId, slidePart.GetIdOfPart(poster),
+                    true, left, top, width, height, timingId);
+            } catch {
+                if (poster != null) slidePart.DeletePart(poster);
+                slidePart.DeleteReferenceRelationship(link);
+                throw;
+            }
         }
 
         private PowerPointMedia AddMedia(Stream media, string contentType, string extension, PowerPointMediaKind kind,
@@ -123,32 +122,33 @@ namespace OfficeIMO.PowerPoint {
             if (normalizedPoster != null)
                 return AddMedia(media, contentType, extension, kind, left, top, width, height, normalizedPoster, OfficeImageFormat.Png);
 
+            if (posterImage is { CanRead: false }) throw new ArgumentException("Image stream must be readable.", "image");
+            if (TryAddPackageMedia(media, contentType, extension, null, kind, left, top, width, height, posterImage, posterImageType) is { } packageMedia) return packageMedia;
             uint shapeId = AllocateShapeId();
+            SlidePart slidePart = SlidePart;
+            var part = PartRef;
+            uint timingId = GetNewMediaTimingId(part.Root);
             MediaDataPart mediaPart = CreateMediaDataPart(media, contentType, extension);
-            string fileReferenceId = GetNextRelationshipId(SlidePart);
-            if (kind == PowerPointMediaKind.Audio) {
-                SlidePart.AddAudioReferenceRelationship(mediaPart, fileReferenceId);
-            } else {
-                SlidePart.AddVideoReferenceRelationship(mediaPart, fileReferenceId);
+            DataPartReferenceRelationship? fileReference = null;
+            MediaReferenceRelationship? playbackReference = null;
+            ImagePart? posterPart = null;
+            try {
+                string fileId = GetNextRelationshipId(slidePart);
+                fileReference = kind == PowerPointMediaKind.Audio
+                    ? slidePart.AddAudioReferenceRelationship(mediaPart, fileId)
+                    : slidePart.AddVideoReferenceRelationship(mediaPart, fileId);
+                playbackReference = slidePart.AddMediaReferenceRelationship(mediaPart, GetNextRelationshipId(slidePart));
+                posterPart = posterImage == null ? AddGeneratedMediaPoster(kind) : AddImagePartFromStream(posterImage, posterImageType);
+                string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Audio" : "Video");
+                return AppendMediaFrame(part, kind, shapeId, name, fileId, playbackReference.Id, slidePart.GetIdOfPart(posterPart),
+                    false, left, top, width, height, timingId);
+            } catch {
+                if (posterPart != null) slidePart.DeletePart(posterPart);
+                if (playbackReference != null) slidePart.DeleteReferenceRelationship(playbackReference);
+                if (fileReference != null) slidePart.DeleteReferenceRelationship(fileReference);
+                ((PresentationDocument)slidePart.OpenXmlPackage).DeletePart(mediaPart);
+                throw;
             }
-            string playbackReferenceId = GetNextRelationshipId(SlidePart);
-            SlidePart.AddMediaReferenceRelationship(mediaPart, playbackReferenceId);
-
-            ImagePart posterPart = posterImage == null
-                ? AddGeneratedMediaPoster(kind)
-                : AddImagePartFromStream(posterImage, posterImageType);
-            string posterRelationshipId = SlidePart.GetIdOfPart(posterPart);
-
-            string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Audio" : "Video");
-            Picture picture = CreateMediaPicture(kind, shapeId, name, fileReferenceId, playbackReferenceId,
-                posterRelationshipId, left, top, width, height);
-
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(picture);
-            EnsureMediaTiming(shapeId, kind);
-
-            return TrackShape(new PowerPointMedia(picture, SlidePart, kind));
         }
 
         private MediaDataPart CreateMediaDataPart(Stream media, string contentType, string extension) {
@@ -158,11 +158,14 @@ namespace OfficeIMO.PowerPoint {
 
             string normalizedExtension = extension.Trim().TrimStart('.');
             MediaDataPart mediaPart = document.CreateMediaDataPart(contentType, normalizedExtension);
-            if (media.CanSeek) {
-                media.Position = 0;
+            try {
+                if (media.CanSeek) media.Position = 0;
+                mediaPart.FeedData(media);
+                return mediaPart;
+            } catch {
+                document.DeletePart(mediaPart);
+                throw;
             }
-            mediaPart.FeedData(media);
-            return mediaPart;
         }
 
         private ImagePart AddGeneratedMediaPoster(PowerPointMediaKind kind) {
@@ -213,78 +216,15 @@ namespace OfficeIMO.PowerPoint {
                 SlidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
-            if (image.CanSeek) {
-                image.Position = 0;
+            try {
+                if (image.CanSeek) image.Position = 0;
+                imagePart.FeedData(image);
+                return imagePart;
+            } catch {
+                SlidePart.DeletePart(imagePart);
+                throw;
             }
-            imagePart.FeedData(image);
-            return imagePart;
         }
-
-        private static Picture CreateMediaPicture(PowerPointMediaKind kind, uint shapeId, string name,
-            string fileReferenceId, string playbackReferenceId, string posterRelationshipId,
-            long left, long top, long width, long height) {
-            ApplicationNonVisualDrawingProperties appProperties = new();
-            if (kind == PowerPointMediaKind.Audio) {
-                appProperties.Append(new A.AudioFromFile { Link = fileReferenceId });
-            } else {
-                appProperties.Append(new A.VideoFromFile { Link = fileReferenceId });
-            }
-
-            P14.Media media = new() { Embed = playbackReferenceId };
-            media.AddNamespaceDeclaration("p14", P14Namespace);
-            ApplicationNonVisualDrawingPropertiesExtension extension =
-                new() { Uri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}" };
-            extension.Append(media);
-            appProperties.Append(new ApplicationNonVisualDrawingPropertiesExtensionList(extension));
-
-            NonVisualDrawingProperties drawingProperties = new() { Id = shapeId, Name = name };
-            drawingProperties.Append(new A.HyperlinkOnClick { Id = string.Empty, Action = "ppaction://media" });
-
-            return new Picture(
-                new NonVisualPictureProperties(
-                    drawingProperties,
-                    new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
-                    appProperties),
-                new BlipFill(
-                    new A.Blip { Embed = posterRelationshipId },
-                    new A.Stretch(new A.FillRectangle())),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
-        }
-
-        private void EnsureMediaTiming(uint shapeId, PowerPointMediaKind kind) {
-            Timing timing = SlideRoot.Timing ??= new Timing();
-            TimeNodeList timeNodeList = timing.GetFirstChild<TimeNodeList>() ?? timing.AppendChild(new TimeNodeList());
-            ParallelTimeNode rootParallel = timeNodeList.GetFirstChild<ParallelTimeNode>() ?? timeNodeList.AppendChild(new ParallelTimeNode());
-            CommonTimeNode rootTimeNode = rootParallel.GetFirstChild<CommonTimeNode>() ??
-                rootParallel.AppendChild(new CommonTimeNode {
-                    Id = 1U,
-                    Duration = "indefinite",
-                    Restart = TimeNodeRestartValues.Never,
-                    NodeType = TimeNodeValues.TmingRoot
-                });
-            ChildTimeNodeList childNodes = rootTimeNode.GetFirstChild<ChildTimeNodeList>() ??
-                rootTimeNode.AppendChild(new ChildTimeNodeList());
-
-            OpenXmlCompositeElement mediaNode = kind == PowerPointMediaKind.Audio
-                ? new Audio()
-                : new Video();
-            mediaNode.Append(
-                new CommonMediaNode(
-                    new CommonTimeNode(
-                        new StartConditionList(new Condition { Delay = "indefinite" })) {
-                        Id = GetNextTimingId(),
-                        Fill = TimeNodeFillValues.Hold,
-                        Display = false
-                    },
-                    new TargetElement(new ShapeTarget { ShapeId = shapeId.ToString(System.Globalization.CultureInfo.InvariantCulture) })) {
-                    Volume = 80000
-                });
-            childNodes.Append(mediaNode);
-        }
-
-
 
         private static string GetAudioContentType(string mediaPath) {
             return Path.GetExtension(mediaPath).ToLowerInvariant() switch {

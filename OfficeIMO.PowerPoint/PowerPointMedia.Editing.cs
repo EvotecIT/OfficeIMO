@@ -1,6 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
@@ -42,6 +43,11 @@ namespace OfficeIMO.PowerPoint {
             get {
                 string? id = MediaReferenceId;
                 if (string.IsNullOrWhiteSpace(id)) return PowerPointMediaSourceKind.Broken;
+                if (TryGetPackageElement(out _, out _)) {
+                    if (!GetPackageMediaPart().IsNone) return PowerPointMediaSourceKind.Embedded;
+                    return TryGetPackageMediaLink(id!, out _)
+                        ? PowerPointMediaSourceKind.Linked : PowerPointMediaSourceKind.Broken;
+                }
                 if (GetMediaDataPart() != null) return PowerPointMediaSourceKind.Embedded;
                 return SlidePart.ExternalRelationships.Any(item => item.Id == id)
                     ? PowerPointMediaSourceKind.Linked : PowerPointMediaSourceKind.Broken;
@@ -52,9 +58,16 @@ namespace OfficeIMO.PowerPoint {
         public Uri? LinkUri {
             get {
                 string? id = MediaReferenceId;
+                if (TryGetPackageElement(out _, out _))
+                    return id != null && TryGetPackageMediaLink(id, out PowerPointRelationship link)
+                        && Uri.TryCreate(link.Target, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
                 return SlidePart.ExternalRelationships.FirstOrDefault(item => item.Id == id)?.Uri;
             }
         }
+
+        private bool TryGetPackageMediaLink(string id, out PowerPointRelationship relationship) =>
+            SlidePartRef.TryGetRelationship(id, out relationship) && relationship.IsExternal
+            && relationship.Type != PowerPointPartRef.HyperlinkRelationshipType;
 
         /// <summary>Updates a linked media URI without rewriting the frame or timing tree.</summary>
         public PowerPointMedia UpdateLink(Uri uri) {
