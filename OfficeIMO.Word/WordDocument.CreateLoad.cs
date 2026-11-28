@@ -354,7 +354,6 @@ namespace OfficeIMO.Word {
         private static void InitializeNewDocumentFacade(WordDocument word) {
             // Settings are created on first use; the default package already has a settings part, so parsing it
             // here only made every new document load and rewrite settings.xml.
-            new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
             new WordBuiltinDocumentProperties(word);
             if (word._ownedSections != null) word.LoadSections();
@@ -397,7 +396,6 @@ namespace OfficeIMO.Word {
             new WordBibliography(this);
             new WordBackground(this);
             new WordDocumentStatistics(this);
-            new WordCompatibilitySettings(this);
             //CustomProperties customDocumentProperties = new CustomProperties(this);
             LoadSections();
         }

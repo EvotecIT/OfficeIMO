@@ -8,6 +8,7 @@ param(
     [Parameter(Mandatory)] [string] $GeneratorName,
     [System.Collections.IDictionary] $MemberNames = @{},
     [switch] $SkipMappings,
+    [string[]] $TokenOnlyTypes = @(),
     # Also emit TryParseOpenXmlValue and ToOpenXmlToken methods that map between XML tokens and the OfficeIMO enum,
     # for code that reads or writes markup without loading the Open XML SDK.
     [switch] $EmitTokenParsers
@@ -89,18 +90,20 @@ if (-not $SkipMappings) {
     }
     [void] $builder.AppendLine('    };')
     [void] $builder.AppendLine()
-    [void] $builder.AppendLine("    internal static $($model.OpenXmlType) ToOpenXml(this $($model.OfficeType) value) =>")
-    [void] $builder.AppendLine("        new(GetToken(value, $tokenField));")
-    [void] $builder.AppendLine()
-    [void] $builder.AppendLine("    internal static $($model.OpenXmlType)? ToOpenXml(this $($model.OfficeType)? value) =>")
-    [void] $builder.AppendLine('        value.HasValue ? value.Value.ToOpenXml() : null;')
-    [void] $builder.AppendLine()
-    [void] $builder.AppendLine("    internal static $($model.OfficeType) ToOfficeEnum(this $($model.OpenXmlType) value) =>")
-    [void] $builder.AppendLine("        ($($model.OfficeType))FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, $tokenField, nameof($($model.OfficeType)));")
-    [void] $builder.AppendLine()
-    [void] $builder.AppendLine("    internal static $($model.OfficeType)? ToOfficeEnum(this $($model.OpenXmlType)? value) =>")
-    [void] $builder.AppendLine('        value.HasValue ? value.Value.ToOfficeEnum() : null;')
-    [void] $builder.AppendLine()
+    if ($model.OfficeType -notin $TokenOnlyTypes) {
+        [void] $builder.AppendLine("    internal static $($model.OpenXmlType) ToOpenXml(this $($model.OfficeType) value) =>")
+        [void] $builder.AppendLine("        new(GetToken(value, $tokenField));")
+        [void] $builder.AppendLine()
+        [void] $builder.AppendLine("    internal static $($model.OpenXmlType)? ToOpenXml(this $($model.OfficeType)? value) =>")
+        [void] $builder.AppendLine('        value.HasValue ? value.Value.ToOpenXml() : null;')
+        [void] $builder.AppendLine()
+        [void] $builder.AppendLine("    internal static $($model.OfficeType) ToOfficeEnum(this $($model.OpenXmlType) value) =>")
+        [void] $builder.AppendLine("        ($($model.OfficeType))FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, $tokenField, nameof($($model.OfficeType)));")
+        [void] $builder.AppendLine()
+        [void] $builder.AppendLine("    internal static $($model.OfficeType)? ToOfficeEnum(this $($model.OpenXmlType)? value) =>")
+        [void] $builder.AppendLine('        value.HasValue ? value.Value.ToOfficeEnum() : null;')
+        [void] $builder.AppendLine()
+    }
     if ($EmitTokenParsers) {
         [void] $builder.AppendLine("    internal static bool TryParseOpenXmlValue(string token, out $($model.OfficeType) value) {")
         [void] $builder.AppendLine("        int index = Array.IndexOf($tokenField, token);")

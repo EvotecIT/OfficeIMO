@@ -18,6 +18,15 @@ public partial class WordDocument {
     // followed by _defaultPackageAppendedStyle when one was appended.
     private StyleDefinitionsPart? _defaultPackageStylesPart;
     private string? _defaultPackageAppendedStyle;
+    // An owned edit can change the part before any SDK reader has loaded its root.
+    private bool _documentDefaultsEdited;
+
+    internal void MarkDocumentDefaultsEdited() {
+        _documentDefaultsEdited = true;
+        if (_ownedModel is not { } model) return;
+        model.InvalidateOwnedStyles();
+        model.MarkChanged();
+    }
 
     /// <summary>Style IDs and dependencies of a cached default package, and its parsed style catalog to clone.</summary>
     private sealed class DefaultPackageStyles {
@@ -49,7 +58,7 @@ public partial class WordDocument {
     /// <summary>Returns the default package's style catalog while this document's style part is still that unparsed copy.</summary>
     private DefaultPackageStyles? GetUnparsedDefaultPackageStyles() {
         StyleDefinitionsPart? part = _defaultPackageStylesPart;
-        if (part == null || part.IsRootElementLoaded ||
+        if (_documentDefaultsEdited || part == null || part.IsRootElementLoaded ||
             !ReferenceEquals(_wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart, part)) {
             return null;
         }

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
 
 namespace OfficeIMO.Word;
@@ -30,6 +31,12 @@ internal sealed class WordStyleCatalog {
     /// <summary>The catalog last read for one part.</summary>
     private sealed class PartState {
         internal WordStyleCatalog? Catalog;
+        internal StreamedDefaults? Defaults;
+    }
+
+    private sealed class StreamedDefaults {
+        internal StreamedDefaults(OfficeXmlNode node) => Node = node;
+        internal OfficeXmlNode Node { get; }
     }
 
     private WordStyleCatalog(Styles? loaded, WordStyleDefinitionsReader.StyleDefinitionSet? streamed) {
@@ -55,6 +62,21 @@ internal sealed class WordStyleCatalog {
 
     /// <summary>Returns the catalog of the styles part of the package that owns <paramref name="mainPart"/>.</summary>
     internal static WordStyleCatalog For(MainDocumentPart? mainPart) => For(mainPart?.StyleDefinitionsPart);
+
+    /// <summary>Reads defaults alone when the live styles part can be streamed.</summary>
+    internal static OfficeXmlNode ReadDocumentDefaults(StylesPart? part) {
+        if (part == null) return default;
+        if (WordStyleDefinitionsReader.CanStream(part)) {
+            PartState state = Parts.GetValue(part, _ => new PartState());
+            StreamedDefaults? cached = Volatile.Read(ref state.Defaults);
+            if (cached != null) return cached.Node;
+            if (WordStyleDefinitionsReader.TryReadDocumentDefaults(part, out OfficeXmlNode defaults)) {
+                Volatile.Write(ref state.Defaults, new StreamedDefaults(defaults));
+                return defaults;
+            }
+        }
+        return OfficeXmlNode.FromSdk(part.Styles?.DocDefaults);
+    }
 
     /// <summary>
     /// Returns the catalog of <paramref name="part"/>, which may be the styles or the styles-with-effects part,
@@ -82,7 +104,9 @@ internal sealed class WordStyleCatalog {
 
     /// <summary>Forgets the catalog read from <paramref name="part"/> after OfficeIMO replaced the part's content.</summary>
     internal static void Invalidate(StylesPart? part) {
-        if (part != null && Parts.TryGetValue(part, out PartState? state)) Volatile.Write(ref state.Catalog, null);
+        if (part == null || !Parts.TryGetValue(part, out PartState? state)) return;
+        Volatile.Write(ref state.Catalog, null);
+        Volatile.Write(ref state.Defaults, null);
     }
 
     /// <summary>A catalog over a <see cref="Styles"/> element the caller already holds, such as one being edited.</summary>

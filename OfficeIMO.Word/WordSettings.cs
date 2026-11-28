@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -8,54 +8,52 @@ namespace OfficeIMO.Word {
     /// fonts and view options.
     /// </summary>
     public partial class WordSettings {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
         private readonly WordDocument _document;
 
-        /// <summary>
-        /// Remove protection from document (if it's set).
-        /// </summary>
-        public void RemoveProtection() {
-            if (ProtectionType != null) {
-                DocumentProtection? documentProtection = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings?
-                    .OfType<DocumentProtection>().FirstOrDefault();
-                documentProtection?.Remove();
-            }
+        /// <summary>Initializes a settings manager for the specified document.</summary>
+        /// <param name="document">Document whose settings are managed.</param>
+        public WordSettings(WordDocument document) {
+            ArgumentNullException.ThrowIfNull(document);
+            if (document.FileOpenAccess != FileAccess.Read) _ = document.GetSettingsRoot(create: true);
+            _document = document;
+            document.Settings = this;
         }
 
-        /// <summary>
-        /// Get or set Protection Type for the document
-        /// </summary>
-        public WordDocumentProtectionType? ProtectionType {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings != null) {
-                    DocumentProtection? documentProtection = settings
-                        .OfType<DocumentProtection>()
-                        .FirstOrDefault();
-                    if (documentProtection != null) {
-                        return documentProtection.Edit?.Value.ToOfficeEnum();
-                    }
-                }
+        /// <summary>Removes the document's editing protection.</summary>
+        public void RemoveProtection() {
+            if (ProtectionType.HasValue) RemoveSetting("documentProtection");
+        }
 
-                return null;
-            }
+        /// <summary>Gets or sets the editing restrictions for the document.</summary>
+        public WordDocumentProtectionType? ProtectionType {
+            get => ReadSetting("documentProtection").WAttr("edit") switch {
+                "none" => WordDocumentProtectionType.None,
+                "readOnly" => WordDocumentProtectionType.ReadOnly,
+                "comments" => WordDocumentProtectionType.Comments,
+                "trackedChanges" => WordDocumentProtectionType.TrackedChanges,
+                "forms" => WordDocumentProtectionType.Forms,
+                null => null,
+                _ => throw InvalidEnumeration()
+            };
             set {
-                var settingsPart = _document._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart;
-                if (settingsPart == null) {
-                    return;
-                }
-                if (settingsPart.Settings == null) {
-                    settingsPart.Settings = new Settings();
-                }
-                DocumentProtection? documentProtection = settingsPart.Settings
-                    .OfType<DocumentProtection>()
-                    .FirstOrDefault();
-                if (documentProtection != null) {
-                    documentProtection.Edit = value?.ToOpenXml();
-                } else {
+                OfficeXmlNode settings = _document.GetSettingsRoot();
+                if (settings.IsNone) return;
+                OfficeXmlNode protection = settings.WChild("documentProtection");
+                if (protection.IsNone) {
                     throw new InvalidOperationException("Please first set password using 'ProtectionPassword' property before setting up encryption type.");
                 }
+                string? token = value switch {
+                    WordDocumentProtectionType.None => "none",
+                    WordDocumentProtectionType.ReadOnly => "readOnly",
+                    WordDocumentProtectionType.Comments => "comments",
+                    WordDocumentProtectionType.TrackedChanges => "trackedChanges",
+                    WordDocumentProtectionType.Forms => "forms",
+                    null => null,
+                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown document protection type.")
+                };
+                protection.SetAttribute(W, "edit", token);
+                MarkChanged();
             }
         }
 
@@ -65,582 +63,167 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        /// <summary>
-        /// Set a Protection Password for the document
-        /// </summary>
+        /// <summary>Sets the password for the document's editing restrictions.</summary>
         public string ProtectionPassword {
             set {
-                Security.ProtectWordDoc(_document._wordprocessingDocument, value);
+                OfficeXmlNode settings = _document.GetSettingsRoot();
+                if (settings.IsNone) return;
+                if (_document.FileOpenAccess == FileAccess.Read) throw new IOException("Cannot change document protection on a read-only document.");
+                OfficeXmlNode protection = settings.CreateElement(W, "documentProtection");
+                Security.ProtectWordDoc(protection, value);
+                WordSettingsXml.SetChild(settings, protection, WordSettingsXml.SettingsOrder);
+                MarkChanged();
             }
         }
 
-        /// <summary>
-        /// Get or set Zoom Preset for the document
-        /// </summary>
+        /// <summary>Gets or sets the zoom preset.</summary>
         public WordZoomPreset? ZoomPreset {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings?.Zoom?.Val == null) {
-                    return null;
-                }
-                return settings.Zoom.Val.Value.ToOfficeEnum();
-
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                if (settings.Zoom == null) {
-                    settings.Zoom = new Zoom();
-                }
-                settings.Zoom.Val = value?.ToOpenXml();
-            }
+            get => ReadSetting("zoom").WVal() is { } token
+                ? WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordZoomPreset value) ? value : throw InvalidEnumeration()
+                : null;
+            set => SetSettingAttribute("zoom", "val", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Get or set Character Spacing Control
-        /// </summary>
+        /// <summary>Gets or sets character spacing control.</summary>
         public WordCharacterSpacing? CharacterSpacingControl {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var characterSpacingControl = settings?
-                    .OfType<CharacterSpacingControl>()
-                    .FirstOrDefault();
-                if (characterSpacingControl == null) {
-                    return null;
-                }
-
-                return characterSpacingControl.Val?.Value.ToOfficeEnum();
-
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var characterSpacingControl = settings
-                    .OfType<CharacterSpacingControl>()
-                    .FirstOrDefault();
-                if (characterSpacingControl == null) {
-                    characterSpacingControl = new CharacterSpacingControl();
-                    settings.AddChild(characterSpacingControl, true);
-                }
-                characterSpacingControl.Val = value?.ToOpenXml();
-            }
+            get => ReadSetting("characterSpacingControl").WVal() is { } token
+                ? WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordCharacterSpacing value) ? value : throw InvalidEnumeration()
+                : null;
+            set => SetSettingAttribute("characterSpacingControl", "val", value?.ToOpenXmlToken());
         }
 
-
-        /// <summary>
-        /// Get or set Default Tab Stop for the document
-        /// </summary>
+        /// <summary>Gets or sets the default tab stop, in twentieths of a point.</summary>
         public int DefaultTabStop {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var defaultStop = settings?
-                    .OfType<DefaultTabStop>()
-                    .FirstOrDefault();
-                if (defaultStop?.Val == null) {
-                    return 0;
-                }
-                return defaultStop.Val;
-
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var defaultStop = settings
-                    .OfType<DefaultTabStop>()
-                    .FirstOrDefault();
-                if (defaultStop == null) {
-                    defaultStop = new DefaultTabStop();
-                    settings.AddChild(defaultStop, true);
-                }
-                defaultStop.Val = (Int16Value)value;
-            }
+            get => ReadSetting("defaultTabStop").WVal() is { } value ? short.Parse(value, CultureInfo.InvariantCulture) : 0;
+            set => SetSettingAttribute("defaultTabStop", "val", unchecked((short)value).ToString(CultureInfo.InvariantCulture));
         }
 
-        /// <summary>
-        /// Get or Set Zoome Percentage for the document
-        /// </summary>
+        /// <summary>Gets or sets the zoom percentage.</summary>
         public int? ZoomPercentage {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var percent = settings?.Zoom?.Percent;
-                if (percent == null) {
-                    return null;
-                }
-                return int.Parse(percent!, CultureInfo.InvariantCulture);
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                if (settings.Zoom == null) {
-                    settings.Zoom = new Zoom();
-                }
-                settings.Zoom.Percent = value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : null;
-            }
+            get => ReadSetting("zoom").WAttr("percent") is { } percent ? int.Parse(percent, CultureInfo.InvariantCulture) : null;
+            set => SetSettingAttribute("zoom", "percent", value?.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
-        /// Tell Word to update fields when opening word.
-        /// Without this option the document fields won't be refreshed until manual intervention.
+        /// Tells Word to update fields when opening the document.
+        /// Without this option the document fields require a manual refresh.
         /// </summary>
         public bool UpdateFieldsOnOpen {
-            get {
-                if (_document._ownedModel is { } model) return WordTableOfContent.ReadOwnedUpdateSetting(model);
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var updateFieldsOnOpen = settings?
-                    .GetFirstChild<UpdateFieldsOnOpen>();
-                if (updateFieldsOnOpen == null) {
-                    return false;
-                }
-                return updateFieldsOnOpen.Val?.Value ?? false;
-            }
+            get => ReadSetting("updateFields").WVal() is "true" or "1" or "on";
             set {
-                if (_document._ownedModel is { } model && WordTableOfContent.TrySetOwnedUpdateSetting(model, value)) {
+                if (SetSettingAttribute("updateFields", "val", value ? "true" : "false")) {
                     _document.ReleaseTableOfContentUpdateFieldsOnOpen();
-                    return;
                 }
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var updateFieldsOnOpen = settings.GetFirstChild<UpdateFieldsOnOpen>();
-                if (updateFieldsOnOpen == null) {
-                    updateFieldsOnOpen = new UpdateFieldsOnOpen();
-                    settings.AddChild(updateFieldsOnOpen, true);
-                }
-                updateFieldsOnOpen.Val = value;
-                // An explicit write makes the value the caller's, so table-of-contents refresh no longer clears it.
-                _document.ReleaseTableOfContentUpdateFieldsOnOpen();
             }
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WordSettings"/> class for the specified document.
-        /// </summary>
-        /// <param name="document">Document whose settings are managed.</param>
-        public WordSettings(WordDocument document) {
-            ArgumentNullException.ThrowIfNull(document);
-            if (document.FileOpenAccess != FileAccess.Read && document._ownedModel?.HasSettings != true) {
-                var mainPart = document._wordprocessingDocument.MainDocumentPart;
-                if (mainPart == null) {
-                    throw new InvalidOperationException("MainDocumentPart is missing.");
-                }
-                var documentSettingsPart = mainPart.DocumentSettingsPart;
-                if (documentSettingsPart == null) {
-                    documentSettingsPart = mainPart.AddNewPart<DocumentSettingsPart>();
-                }
-
-                var settings = documentSettingsPart.Settings;
-                if (settings == null) {
-                    settings = new Settings();
-                    settings.Save(documentSettingsPart);
-                }
-            }
-            _document = document;
-            document.Settings = this;
-        }
-
-        // Read-only: getters inspect the document defaults through the style catalog.
-        private RunPropertiesBaseStyle? GetDefaultStyleProperties() =>
-            WordStyleCatalog.For(_document).DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
-
-        private RunPropertiesBaseStyle? SetDefaultStyleProperties() {
-            _document.EnsureStyleDefinitionsInitialized();
-            var styles = _document._wordprocessingDocument.MainDocumentPart?
-                .StyleDefinitionsPart?.Styles;
-            if (styles == null) {
-                return null;
-            }
-
-            if (styles.DocDefaults == null) {
-                styles.DocDefaults = new DocDefaults();
-            }
-
-            if (styles.DocDefaults.RunPropertiesDefault == null) {
-                styles.DocDefaults.RunPropertiesDefault = new RunPropertiesDefault();
-            }
-
-            if (styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle == null) {
-                styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle = new RunPropertiesBaseStyle();
-            }
-
-            return styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle;
-        }
-
-        /// <summary>
-        /// Gets or Sets default font size for the whole document. Default is 11.
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? FontSize {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    var fontSize = runPropertiesBaseStyle.FontSize?.Val;
-                    if (fontSize != null) {
-                        return global::OfficeIMO.OfficeLength.Emus((long)int.Parse(fontSize!, CultureInfo.InvariantCulture) * 6350);
-                    }
-                }
-                return null;
-            }
+        /// <summary>Gets or sets the default background color. Automatic color reads as <see langword="null"/>.</summary>
+        public OfficeColor? BackgroundColor {
+            get => Helpers.ParseNativeColor(_document.SettingsDocumentRoot.WChild("background").WAttr("color"));
             set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.FontSize == null) {
-                        runPropertiesBaseStyle.FontSize = new FontSize();
-                    }
-                    runPropertiesBaseStyle.FontSize.Val = value.HasValue ? checked((int)value.Value.ToHalfPoints()).ToString(CultureInfo.InvariantCulture) : null;
-                } else {
-                    throw new InvalidOperationException("Could not set font size. Styles not found.");
+                OfficeXmlNode settings = _document.GetSettingsRoot();
+                if (settings.IsNone) return;
+                WordSettingsXml.SetChild(settings, settings.CreateElement(W, "displayBackgroundShape"), WordSettingsXml.SettingsOrder);
+                OfficeXmlNode document = _document.SettingsDocumentRoot;
+                if (document.Exists) {
+                    WordSettingsXml.EnsureChild(document, "background", WDocumentView.Order)
+                        .SetAttribute(W, "color", value?.ToRgbHex());
                 }
+                MarkChanged();
             }
         }
 
-        /// <summary>
-        /// Gets or Sets default font size complex script for the whole document. Default is 11.
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? FontSizeComplexScript {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    var fontSize = runPropertiesBaseStyle.FontSizeComplexScript?.Val;
-                    if (fontSize != null) {
-                        return global::OfficeIMO.OfficeLength.Emus((long)int.Parse(fontSize!, CultureInfo.InvariantCulture) * 6350);
-                    }
-                }
-                return null;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.FontSizeComplexScript == null) {
-                        runPropertiesBaseStyle.FontSizeComplexScript = new FontSizeComplexScript();
-                    }
-                    runPropertiesBaseStyle.FontSizeComplexScript.Val = value.HasValue ? checked((int)value.Value.ToHalfPoints()).ToString(CultureInfo.InvariantCulture) : null;
-                } else {
-                    throw new InvalidOperationException("Could not set font size complex script. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default font family for the whole document.
-        /// </summary>
-        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
-        public string? FontFamily {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                return runPropertiesBaseStyle?.RunFonts?.Ascii;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.RunFonts == null) {
-                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
-                    }
-                    runPropertiesBaseStyle.RunFonts.AsciiTheme = null;
-                    runPropertiesBaseStyle.RunFonts.Ascii = value;
-                    runPropertiesBaseStyle.RunFonts.HighAnsi = value;
-                    runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
-                    runPropertiesBaseStyle.RunFonts.EastAsia = value;
-                    runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
-                    runPropertiesBaseStyle.RunFonts.ComplexScript = value;
-                    runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
-                } else {
-                    throw new InvalidOperationException("Could not set font family. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default font family for the whole document in HighAnsi.
-        /// </summary>
-        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
-        public string? FontFamilyHighAnsi {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                return runPropertiesBaseStyle?.RunFonts?.HighAnsi;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.RunFonts == null) {
-                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
-                    }
-                    if (string.IsNullOrEmpty(value)) {
-                        runPropertiesBaseStyle.RunFonts.HighAnsi = null;
-                    } else {
-                        runPropertiesBaseStyle.RunFonts.HighAnsi = value;
-                    }
-                    runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
-                } else {
-                    throw new InvalidOperationException("Could not set font family. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default font family for the whole document in EastAsia.
-        /// </summary>
-        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
-        public string? FontFamilyEastAsia {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                return runPropertiesBaseStyle?.RunFonts?.EastAsia;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.RunFonts == null) {
-                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
-                    }
-                    if (string.IsNullOrEmpty(value)) {
-                        runPropertiesBaseStyle.RunFonts.EastAsia = null;
-                    } else {
-                        runPropertiesBaseStyle.RunFonts.EastAsia = value;
-                    }
-                    runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
-                } else {
-                    throw new InvalidOperationException("Could not set font family. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default font family for the whole document in ComplexScript.
-        /// </summary>
-        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
-        public string? FontFamilyComplexScript {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                return runPropertiesBaseStyle?.RunFonts?.ComplexScript;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.RunFonts == null) {
-                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
-                    }
-                    if (string.IsNullOrEmpty(value)) {
-                        runPropertiesBaseStyle.RunFonts.ComplexScript = null;
-                    } else {
-                        runPropertiesBaseStyle.RunFonts.ComplexScript = value;
-                    }
-                    runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
-                } else {
-                    throw new InvalidOperationException("Could not set font family. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default language for the whole document. Default is en-Us.
-        /// </summary>
-        public string? Language {
-            get {
-                var runPropertiesBaseStyle = GetDefaultStyleProperties();
-                return runPropertiesBaseStyle?.Languages?.Val;
-            }
-            set {
-                var runPropertiesBaseStyle = SetDefaultStyleProperties();
-                if (runPropertiesBaseStyle != null) {
-                    if (runPropertiesBaseStyle.Languages == null) {
-                        runPropertiesBaseStyle.Languages = new Languages();
-                    }
-                    runPropertiesBaseStyle.Languages.Val = value;
-                } else {
-                    throw new InvalidOperationException("Could not set language. Styles not found.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets default Background Color for the whole document; automatic colour reads as <see langword="null"/>.
-        /// </summary>
-        public OfficeIMO.OfficeColor? BackgroundColor {
-            get {
-                var background = _document._wordprocessingDocument.MainDocumentPart?
-                    .Document?.DocumentBackground;
-                return Helpers.ParseNativeColor(background?.Color?.Value);
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                settings.DisplayBackgroundShape = new DisplayBackgroundShape();
-                var document = _document._wordprocessingDocument.MainDocumentPart?.Document;
-                if (document == null) {
-                    return;
-                }
-                if (document.DocumentBackground == null) {
-                    document.DocumentBackground = new DocumentBackground();
-                }
-                document.DocumentBackground.Color = value?.ToRgbHex();
-            }
-        }
-        /// <summary>
-        /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/> value.
-        /// </summary>
+        /// <summary>Sets the document's background color.</summary>
         /// <param name="backgroundColor">Color value.</param>
         /// <returns>The current <see cref="WordSettings"/> instance.</returns>
-        public WordSettings SetBackgroundColor(OfficeIMO.OfficeColor backgroundColor) {
+        public WordSettings SetBackgroundColor(OfficeColor backgroundColor) {
             BackgroundColor = backgroundColor;
             return this;
         }
 
-        /// <summary>
-        /// Sets property in document recommending user to open the document as read only
-        /// User can choose to do so, or ignore this recommendation
-        /// </summary>
+        /// <summary>Gets or sets whether Word recommends opening the document as read-only.</summary>
         public bool? ReadOnlyRecommended {
             get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings?.WriteProtection?.Recommended == null) {
-                    return false;
-                }
-                var recommended = settings.WriteProtection.Recommended;
-                if (recommended.Value == true && (recommended.InnerText == "1" || string.IsNullOrEmpty(recommended.InnerText))) {
-                    return true;
-                }
-                return false;
+                string? value = ReadSetting("writeProtection").WAttr("recommended");
+                return WordXml.ParseOnOff(value) == true && value == "1";
             }
             set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                if (settings.WriteProtection == null && value != null && value != false) {
-                    settings.WriteProtection = new WriteProtection();
-                }
-                if (settings.WriteProtection != null) {
-                    if (value == null || value == false) {
-                        settings.WriteProtection.Recommended = null;
-                        if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
-                            settings.WriteProtection.Remove();
-                        }
-                    } else {
-                        var onOff = new DocumentFormat.OpenXml.OnOffValue(true) { InnerText = "1" };
-                        settings.WriteProtection.Recommended = onOff;
-                    }
+                if (value == true) {
+                    SetSettingAttribute("writeProtection", "recommended", "1");
+                } else {
+                    OfficeXmlNode protection = ReadSetting("writeProtection");
+                    if (protection.IsNone) return;
+                    if (string.IsNullOrEmpty(protection.WAttr("hash"))) protection.Remove();
+                    else protection.RemoveAttribute(W, "recommended");
+                    MarkChanged();
                 }
             }
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the document is marked as
-        /// final. When set to <c>true</c>, Word notifies users that the
-        /// document is finalized and should be treated as read-only.
+        /// Gets or sets whether the document is marked as final.
+        /// Word notifies users that a finalized document should be treated as read-only.
         /// </summary>
         public bool FinalDocument {
-            get {
-                if (_document.CustomProperties.TryGetValue("_MarkAsFinal", out var markFinalProperty)) {
-                    if (markFinalProperty?.Value is string valueString) {
-                        return string.Equals(valueString, "1", StringComparison.Ordinal);
-                    }
-                }
-                return false;
-            }
+            get => _document.CustomProperties.TryGetValue("_MarkAsFinal", out var property) && property?.Value is "1";
             set {
                 string newValue = value ? "1" : "0";
-                if (_document.CustomProperties.ContainsKey("_MarkAsFinal")) {
-                    _document.CustomProperties["_MarkAsFinal"].Value = newValue;
+                if (_document.CustomProperties.TryGetValue("_MarkAsFinal", out var property)) {
+                    property.Value = newValue;
                 } else {
                     _document.CustomProperties.Add("_MarkAsFinal", new WordCustomProperty(newValue));
                 }
             }
         }
 
-        /// <summary>
-        /// Enable or disable tracking of revisions in the document.
-        /// </summary>
+        /// <summary>Gets or sets whether Word tracks revisions.</summary>
         public bool TrackRevisions {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                return settings?.GetFirstChild<TrackRevisions>() != null;
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var track = settings.GetFirstChild<TrackRevisions>();
-                if (value) {
-                    if (track == null) {
-                        settings.AddChild(new TrackRevisions(), true);
-                    }
-                } else {
-                    track?.Remove();
-                }
-            }
+            get => ReadSetting("trackRevisions").Exists;
+            set => SetSettingPresence("trackRevisions", value);
         }
 
-        /// <summary>
-        /// Enable or disable tracking of formatting changes.
-        /// </summary>
+        /// <summary>Gets or sets whether Word tracks formatting changes.</summary>
         public bool TrackFormatting {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                return settings?.GetFirstChild<DoNotTrackFormatting>() == null;
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var formatting = settings.GetFirstChild<DoNotTrackFormatting>();
-                if (value) {
-                    formatting?.Remove();
-                } else if (formatting == null) {
-                    settings.AddChild(new DoNotTrackFormatting(), true);
-                }
-            }
+            get => ReadSetting("doNotTrackFormatting").IsNone;
+            set => SetSettingPresence("doNotTrackFormatting", !value);
         }
 
-        /// <summary>
-        /// Enable or disable tracking of move operations.
-        /// </summary>
+        /// <summary>Gets or sets whether Word tracks move operations.</summary>
         public bool TrackMoves {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                return settings?.GetFirstChild<DoNotTrackMoves>() == null;
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var moves = settings.GetFirstChild<DoNotTrackMoves>();
-                if (value) {
-                    moves?.Remove();
-                } else if (moves == null) {
-                    settings.AddChild(new DoNotTrackMoves(), true);
-                }
-            }
+            get => ReadSetting("doNotTrackMoves").IsNone;
+            set => SetSettingPresence("doNotTrackMoves", !value);
         }
+
+        private OfficeXmlNode ReadSetting(string name) => _document.GetSettingsRoot().WChild(name);
+
+        private bool SetSettingAttribute(string name, string attributeName, string? value) {
+            OfficeXmlNode settings = _document.GetSettingsRoot();
+            if (settings.IsNone) return false;
+            WordSettingsXml.EnsureChild(settings, name, WordSettingsXml.SettingsOrder).SetAttribute(W, attributeName, value);
+            MarkChanged();
+            return true;
+        }
+
+        private void SetSettingPresence(string name, bool present) {
+            if (!present) {
+                RemoveSetting(name);
+                return;
+            }
+            OfficeXmlNode settings = _document.GetSettingsRoot();
+            if (settings.IsNone || settings.WChild(name).Exists) return;
+            WordSettingsXml.AddChild(settings, name, WordSettingsXml.SettingsOrder);
+            MarkChanged();
+        }
+
+        private void RemoveSetting(string name) {
+            OfficeXmlNode setting = ReadSetting(name);
+            if (setting.IsNone) return;
+            setting.Remove();
+            MarkChanged();
+        }
+
+        private void MarkChanged() => _document._ownedModel?.MarkChanged();
+
+        private static FormatException InvalidEnumeration() => new("The text value is not a valid enumeration value.");
     }
 }

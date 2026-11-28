@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -35,72 +35,45 @@ namespace OfficeIMO.Word {
     /// reading or changing the compatibility mode and layout options.
     /// </summary>
     public partial class WordCompatibilitySettings {
-        private readonly WordprocessingDocument _wordprocessingDocument;
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
+        private const string CompatibilityModeName = "compatibilityMode";
+        private const string CompatibilityModeUri = "http://schemas.microsoft.com/office/word";
         private readonly WordDocument _document;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="WordCompatibilitySettings"/>
-        /// for the specified document.
+        /// Initializes a new instance of <see cref="WordCompatibilitySettings"/>.
         /// </summary>
         /// <param name="document">Word document associated with the settings.</param>
         public WordCompatibilitySettings(WordDocument document) {
             ArgumentNullException.ThrowIfNull(document);
-
             _document = document;
-            _wordprocessingDocument = document._wordprocessingDocument ?? throw new InvalidOperationException("The document does not contain an associated WordprocessingDocument instance.");
             document.CompatibilitySettings = this;
         }
 
-        /// <summary>
-        /// Gets or sets compatibility mode of a Word Document
-        /// </summary>
+        /// <summary>Gets or sets the document's Word compatibility mode.</summary>
         public WordCompatibilityMode CompatibilityMode {
             get {
-                Settings settings = GetSettings();
-                Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
-                if (compatibility == null) {
-                    return WordCompatibilityMode.None;
-                }
-                foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
-                    if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
-                        string? valueText = setting.Val?.Value ?? setting.Val;
-                        if (int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int modeValue) && Enum.IsDefined(typeof(WordCompatibilityMode), modeValue)) {
-                            return (WordCompatibilityMode)modeValue;
-                        }
-                        break;
-                    }
-                }
-
-                return WordCompatibilityMode.None;
+                OfficeXmlNode setting = FindMode(_document.GetSettingsRoot(create: true).WChild("compat"));
+                string? value = setting.WVal();
+                return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int mode)
+                    && Enum.IsDefined(typeof(WordCompatibilityMode), mode)
+                    ? (WordCompatibilityMode)mode
+                    : WordCompatibilityMode.None;
             }
             set {
-                Settings settings = GetSettings();
-                Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
-                if (compatibility == null) {
-                    compatibility = new Compatibility();
-                    settings.AddChild(compatibility, true);
-                }
-
-                foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
-                    if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
-                        if (value == WordCompatibilityMode.None) {
-                            setting.Remove();
-                        } else {
-                            setting.Val = ((int)value).ToString(CultureInfo.InvariantCulture);
-                            setting.Uri = "http://schemas.microsoft.com/office/word";
-                        }
-
-                        return;
+                OfficeXmlNode compatibility = EnsureCompatibility();
+                OfficeXmlNode setting = FindMode(compatibility);
+                if (value == WordCompatibilityMode.None) {
+                    if (setting.Exists) setting.Remove();
+                } else {
+                    if (setting.IsNone) {
+                        setting = WordSettingsXml.AddChild(compatibility, "compatSetting", WordSettingsXml.CompatibilityOrder);
+                        setting.SetAttribute(W, "name", CompatibilityModeName);
                     }
+                    setting.SetAttribute(W, "uri", CompatibilityModeUri);
+                    setting.SetAttribute(W, "val", ((int)value).ToString(CultureInfo.InvariantCulture));
                 }
-
-                if (value != WordCompatibilityMode.None) {
-                    compatibility.Append(new CompatibilitySetting {
-                        Name = CompatSettingNameValues.CompatibilityMode,
-                        Uri = "http://schemas.microsoft.com/office/word",
-                        Val = ((int)value).ToString(CultureInfo.InvariantCulture)
-                    });
-                }
+                _document._ownedModel?.MarkChanged();
             }
         }
 
@@ -113,37 +86,36 @@ namespace OfficeIMO.Word {
         /// Word 2013 layout mode ignores the option when rendering columns.
         /// </remarks>
         public bool DoNotBalanceTextColumns {
-            get {
-                NoColumnBalance? setting = _wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>()?
-                    .GetFirstChild<NoColumnBalance>();
-                return setting != null && (setting.Val?.Value ?? true);
-            }
-            set {
-                Compatibility? compatibility = _wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>();
-                if (!value) {
-                    compatibility?.GetFirstChild<NoColumnBalance>()?.Remove();
-                    return;
-                }
-                if (compatibility == null) {
-                    compatibility = new Compatibility();
-                    GetSettings().AddChild(compatibility, true);
-                }
-                NoColumnBalance? setting = compatibility.GetFirstChild<NoColumnBalance>();
-                if (setting == null) {
-                    setting = new NoColumnBalance();
-                    compatibility.AddChild(setting, true);
-                }
-                setting.Val = true;
-            }
+            get => ReadOption("noColumnBalance");
+            set => SetOption("noColumnBalance", value ? true : null);
         }
 
-        private Settings GetSettings() {
-            MainDocumentPart mainPart = _wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
-            DocumentSettingsPart settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
-            settingsPart.Settings ??= new Settings();
-            return settingsPart.Settings;
+        private static OfficeXmlNode FindMode(OfficeXmlNode compatibility) {
+            foreach (OfficeXmlNode setting in compatibility.Children(W, "compatSetting")) {
+                if (setting.WAttr("name") == CompatibilityModeName) return setting;
+            }
+            return default;
+        }
+
+        private bool ReadOption(string name) => _document.GetSettingsRoot().WChild("compat").WChild(name).IsOn();
+
+        private void SetOption(string name, bool? enabled) {
+            if (enabled.HasValue) {
+                OfficeXmlNode compatibility = EnsureCompatibility();
+                WordSettingsXml.EnsureChild(compatibility, name, WordSettingsXml.CompatibilityOrder)
+                    .SetAttribute(W, "val", enabled.Value ? "true" : "false");
+            } else {
+                OfficeXmlNode setting = _document.GetSettingsRoot().WChild("compat").WChild(name);
+                if (setting.IsNone) return;
+                setting.Remove();
+            }
+            _document._ownedModel?.MarkChanged();
+        }
+
+        private OfficeXmlNode EnsureCompatibility() {
+            OfficeXmlNode settings = _document.GetSettingsRoot(create: true);
+            if (settings.IsNone) throw new InvalidOperationException("The document does not contain a main document part.");
+            return WordSettingsXml.EnsureChild(settings, "compat", WordSettingsXml.SettingsOrder);
         }
     }
 }
