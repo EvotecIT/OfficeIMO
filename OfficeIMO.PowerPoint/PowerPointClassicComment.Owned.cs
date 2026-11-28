@@ -39,6 +39,10 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
+        private bool TryReassignOwnedComment(PowerPointCommentAuthor author) =>
+            TryGetEditableComment(out OfficeXmlNode comment) &&
+            _presentation.TryReassignPackageClassicComment(_slide, _ownedComments!.PartName, comment, author);
+
         private bool TryRemoveOwnedComment() =>
             TryGetEditableComment(out OfficeXmlNode comment) &&
             _presentation.TryRemovePackageClassicComment(_slide, _ownedComments!.PartName, comment);

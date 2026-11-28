@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
             string? newAuthorsRelId = null;
             string? newCommentTarget = null;
             bool foundSlide = false;
-            OfficeXmlNode authors, comments = default, matching = default;
+            OfficeXmlNode authors, comments = default, matching;
             uint authorId;
             (uint Next, uint Last) indexes;
             try {
@@ -45,22 +45,7 @@ namespace OfficeIMO.PowerPoint {
                     !TryReadClassicCommentMutationPart(package, slides.Main, ClassicAuthorsRelationship, "cmAuthorLst",
                         out var mainLinks, out authorsPart, out authors)) return null;
                 main = slides.Main;
-                var usedAuthorIds = new HashSet<uint>();
-                foreach (OfficeXmlNode entry in authors.Children(ClassicCommentNamespace, "cmAuthor")) {
-                    if (!HasTransitionalClassicCommentName(entry)) return null;
-                    uint? id = ReadClassicUnsigned(entry, "id");
-                    if (id.HasValue) usedAuthorIds.Add(id.Value);
-                    if (matching.IsNone && entry.Attribute("name") == author.Name && entry.Attribute("initials") == author.ClassicInitials) {
-                        matching = entry;
-                    }
-                }
-                if (matching.IsNone) {
-                    authorId = FindAvailableUInt32Id(usedAuthorIds, 0U, "classic-comment-author");
-                } else {
-                    uint? found = ReadClassicUnsigned(matching, "id");
-                    if (!found.HasValue) return null;
-                    authorId = found.Value;
-                }
+                if (!TryFindClassicCommentAuthor(authors, author, out matching, out authorId)) return null;
 
                 var usedIndexes = new HashSet<uint>();
                 var linkedParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
@@ -111,17 +96,8 @@ namespace OfficeIMO.PowerPoint {
                 authors = CreateClassicCommentPart(package, main, authorsPart!, ClassicAuthorContentType,
                     ClassicAuthorsRelationship, "cmAuthorLst", newAuthorsRelId);
             }
-            if (matching.IsNone) {
-                matching = authors.CreateElement(ClassicCommentNamespace, "cmAuthor");
-                matching.SetUInt32Attribute("id", authorId);
-                matching.SetAttribute("name", author.Name);
-                matching.SetAttribute("initials", author.ClassicInitials);
-                matching.SetUInt32Attribute("lastIdx", indexes.Last);
-                matching.SetUInt32Attribute("clrIdx", authorId);
-                authors.Append(matching);
-            } else {
-                matching.SetUInt32Attribute("lastIdx", indexes.Last);
-            }
+            if (matching.IsNone) AppendClassicCommentAuthor(authors, author, authorId, indexes.Last);
+            else matching.SetUInt32Attribute("lastIdx", indexes.Last);
             if (newCommentsRelId != null) {
                 comments = CreateClassicCommentPart(package, slideName, commentPart!, ClassicCommentContentType,
                     ClassicCommentsRelationship, "cmLst", newCommentsRelId);
@@ -144,6 +120,42 @@ namespace OfficeIMO.PowerPoint {
             MarkPackageEdited();
             var binding = new PowerPointClassicCommentListBinding(this, slide, commentPart!, new[] { comment });
             return new PowerPointClassicComment(this, slide, binding, 0);
+        }
+
+        private static bool TryFindClassicCommentAuthor(OfficeXmlNode authors, PowerPointCommentAuthor identity,
+            out OfficeXmlNode matching, out uint authorId) {
+            matching = default;
+            authorId = 0U;
+            var usedIds = new HashSet<uint>();
+            foreach (OfficeXmlNode entry in authors.Children(ClassicCommentNamespace, "cmAuthor")) {
+                if (!HasTransitionalClassicCommentName(entry)) return false;
+                uint? id = ReadClassicUnsigned(entry, "id");
+                if (id.HasValue) usedIds.Add(id.Value);
+                if (matching.IsNone && entry.Attribute("name") == identity.Name && entry.Attribute("initials") == identity.ClassicInitials) {
+                    matching = entry;
+                }
+            }
+
+            if (matching.IsNone) {
+                authorId = FindAvailableUInt32Id(usedIds, 0U, "classic-comment-author");
+            } else {
+                uint? id = ReadClassicUnsigned(matching, "id");
+                if (!id.HasValue) return false;
+                authorId = id.Value;
+            }
+            return true;
+        }
+
+        private static void AppendClassicCommentAuthor(OfficeXmlNode authors, PowerPointCommentAuthor author, uint id, uint lastIndex) {
+            OfficeXmlTree tree = authors.Tree!;
+            string authorNamespace = tree.Namespaces.GetUriById(tree.UriIdOf(authors.Node));
+            OfficeXmlNode entry = authors.CreateElement(authorNamespace, "cmAuthor", "p");
+            entry.SetUInt32Attribute("id", id);
+            entry.SetAttribute("name", author.Name);
+            entry.SetAttribute("initials", author.ClassicInitials);
+            entry.SetUInt32Attribute("lastIdx", lastIndex);
+            entry.SetUInt32Attribute("clrIdx", id);
+            authors.Append(entry);
         }
 
         private bool TryReadClassicCommentMutationPart(OfficeOpcEditablePackage package, string owner, string relationship,

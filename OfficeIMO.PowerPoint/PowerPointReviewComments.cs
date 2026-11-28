@@ -196,6 +196,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
             ArgumentNullException.ThrowIfNull(author);
+            if (TryReassignOwnedComment(author)) return;
             P.Comment attached = RequireAttached();
             uint? previousAuthorId = attached.AuthorId?.Value;
             P.CommentAuthor target = _presentation.GetOrCreateClassicCommentAuthor(author);

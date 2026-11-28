@@ -866,6 +866,120 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReassigningClassicCommentReconcilesBothAuthorsAndIgnoresExtensionDecoys() {
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            const string commentType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "comments";
+            const string authorType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "commentAuthors";
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide first = original.AddSlide();
+            PowerPointSlide second = original.AddSlide();
+            var alice = new PowerPointCommentAuthor("Alice", "A");
+            var bob = new PowerPointCommentAuthor("Bob", "B");
+            original.AddClassicComment(first, alice, "Earlier Alice");
+            original.AddClassicComment(first, bob, "Earlier Bob");
+            original.AddClassicComment(second, alice, "Reassign me");
+
+            byte[] bytes = original.ToBytes();
+            using var input = OfficeOpcPackage.Open(new MemoryStream(bytes, writable: false));
+            using var package = OfficeOpcEditablePackage.Open(new MemoryStream(bytes, writable: false));
+            string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slide = input.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            string comments = input.GetRelatedPartName(slide, commentType)!;
+            string authors = input.GetRelatedPartName(main, authorType)!;
+            OfficeXmlTree commentTree = package.GetXml(comments);
+            int extensionList = PowerPointDocument.Append(commentTree, commentTree.Root, ns, "extLst");
+            int extension = PowerPointDocument.Append(commentTree, extensionList, ns, "ext");
+            commentTree.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "{D1527B36-157C-4F24-A551-DC8198B5AF6D}");
+            int decoy = PowerPointDocument.Append(commentTree, extension, ns, "cm");
+            commentTree.SetAttribute(decoy, OfficeXmlNamespaces.None, "authorId", "1");
+            commentTree.SetAttribute(decoy, OfficeXmlNamespaces.None, "idx", "999");
+            using var source = new MemoryStream();
+            package.Save(source);
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(source.ToArray(), writable: false));
+            PowerPointClassicComment held = Assert.Single(actual.GetClassicComments(actual.Slides[1]));
+            held.SetAuthor(bob);
+            held.SetAuthor(bob);
+            Assert.Equal("Bob", held.Author.Name);
+            Assert.Equal(2U, held.Index);
+            Assert.Equal("Reassign me", held.Text);
+            using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(actual.ToBytes(), writable: false));
+            Assert.False(actual.IsSdkLoaded);
+
+            OfficeXmlTree authorTree = saved.GetXml(authors);
+            int firstAuthor = authorTree.FindChild(authorTree.Root, ns, "cmAuthor");
+            int secondAuthor = authorTree.FindNextSibling(firstAuthor, ns, "cmAuthor");
+            Assert.Equal("Alice", authorTree.GetAttribute(firstAuthor, OfficeXmlNamespaces.None, "name"));
+            Assert.Equal("1", authorTree.GetAttribute(firstAuthor, OfficeXmlNamespaces.None, "lastIdx"));
+            Assert.Equal("Bob", authorTree.GetAttribute(secondAuthor, OfficeXmlNamespaces.None, "name"));
+            Assert.Equal("2", authorTree.GetAttribute(secondAuthor, OfficeXmlNamespaces.None, "lastIdx"));
+            OfficeXmlTree savedComments = saved.GetXml(comments);
+            Assert.NotEqual(OfficeXmlTree.NoNode, savedComments.FindChild(savedComments.Root, ns, "extLst"));
+
+            _ = actual.OpenXmlDocument;
+            Assert.Equal("Bob", held.Author.Name);
+            held.Text = "Changed after handoff";
+            Assert.Equal("Changed after handoff", Assert.Single(actual.GetClassicComments(actual.Slides[1])).Text);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReassigningClassicCommentCreatesNewAuthorAndPrunesUnusedAuthor(bool declareStrictAlias) {
+            using var original = PowerPointDocument.Create();
+            original.AddClassicComment(original.AddSlide(), new PowerPointCommentAuthor("Original", "O"), "Preserved text");
+
+            byte[] source = original.ToBytes();
+            if (declareStrictAlias) {
+                using var input = OfficeOpcPackage.Open(new MemoryStream(source, writable: false));
+                string main = input.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+                string authorPart = input.GetRelatedPartName(main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "commentAuthors")!;
+                using var package = OfficeOpcEditablePackage.Open(new MemoryStream(source, writable: false));
+                OfficeXmlTree authors = package.GetXml(authorPart);
+                authors.DeclareNamespace(authors.Root, "strict", "http://purl.oclc.org/ooxml/presentationml/main");
+                using var changed = new MemoryStream();
+                package.Save(changed);
+                source = changed.ToArray();
+            }
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            PowerPointClassicComment held = Assert.Single(actual.GetClassicComments(actual.Slides[0]));
+            held.SetAuthor(new PowerPointCommentAuthor("New", "N"));
+            byte[] saved = actual.ToBytes();
+            Assert.False(actual.IsSdkLoaded);
+            Assert.Equal("New", held.Author.Name);
+            Assert.Equal("N", held.Author.Initials);
+            Assert.Equal(1U, held.Index);
+            Assert.Equal("Preserved text", held.Text);
+
+            using var stream = new MemoryStream(saved, writable: false);
+            using PresentationDocument reopened = PresentationDocument.Open(stream, isEditable: false);
+            P.CommentAuthor author = Assert.Single(reopened.PresentationPart!.CommentAuthorsPart!.CommentAuthorList!.Elements<P.CommentAuthor>());
+            Assert.Equal("New", author.Name!.Value);
+            Assert.Equal(1U, author.Id!.Value);
+            Assert.Equal(1U, author.ColorIndex!.Value);
+            Assert.Equal(1U, author.LastIndex!.Value);
+            using var owned = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            Assert.Equal("New", Assert.Single(owned.GetClassicComments(owned.Slides[0])).Author.Name);
+            Assert.False(owned.IsSdkLoaded);
+        }
+
+        [Fact]
+        public void ReassigningClassicCommentToItsPreviouslyUnlistedAuthorKeepsItsIndex() {
+            using var original = PowerPointDocument.Create();
+            original.AddClassicComment(original.AddSlide(), new PowerPointCommentAuthor("Original"), "Stored comment");
+            PresentationPart main = original.OpenXmlDocument.PresentationPart!;
+            main.DeletePart(main.CommentAuthorsPart!);
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(original.ToBytes(), writable: false));
+            PowerPointClassicComment held = Assert.Single(actual.GetClassicComments(actual.Slides[0]));
+            held.SetAuthor(new PowerPointCommentAuthor("Replacement"));
+            Assert.Equal("Replacement", held.Author.Name);
+            Assert.Equal(1U, held.Index);
+            Assert.Equal(0U, GetClassicAuthor(actual, "Replacement").LastIndex!.Value);
+        }
+
+        [Fact]
         public void ClassicComments_CreateEditReassignRemove_AndRoundTripPpt() {
             byte[] binary;
             using (PowerPointDocument presentation = PowerPointDocument.Create()) {
