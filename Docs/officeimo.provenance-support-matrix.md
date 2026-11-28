@@ -17,7 +17,7 @@ OfficeIMO separates bounded structural inspection and selective removal from opt
 | Format | C2PA carrier | IPTC Digital Source Type | Removal behavior |
 | --- | --- | --- | --- |
 | JPEG | Ordered APP11 JUMBF segments | Standard and Extended XMP APP1 packets | Removes an unambiguous, structurally valid manifest; removes only AI-source declarations from valid XMP |
-| PNG | `caBX` before the contiguous `IDAT` sequence | UTF-8 XMP `iTXt` | Preserves invalid CRC, duplicate, misplaced, or structurally ambiguous carriers by default |
+| PNG | `caBX` before the contiguous `IDAT` sequence | UTF-8 XMP `iTXt`; AI tool settings in text chunks | Preserves invalid CRC, duplicate, misplaced, or structurally ambiguous carriers by default; drops AI tool text chunks whole; other chunks are copied unchanged unless another selected removal rewrites them, such as an XMP `iTXt` with an AI digital source type |
 | WebP | Final `C2PA` chunk in a valid extended RIFF container | Advertised `XMP ` chunk after image payloads | Rewrites the RIFF size and preserves unrelated chunks |
 | GIF89a | `C2PA_GIF` application extension | XMP application extension | Requires one complete image and an exact trailer; GIF87a provenance applications are preserved as unsupported carriers |
 | TIFF / BigTIFF | Primary-IFD C2PA tag | XMP tag 700 | Preserves overlapping IFD, pixel, strip, tile, JPEG, and shared-value storage |
@@ -95,7 +95,7 @@ The browser provenance tool processes files locally in the tab. Its host limits 
 | `OfficeIMO.Markdown` | Structured-text carriers | String APIs require valid Unicode; file APIs accept and preserve strict UTF-8 or BOM-marked UTF-16 LE/BE and UTF-32 LE/BE; preserves unrelated Markdown text |
 | `OfficeIMO.OpenDocument` | Native ODF manifest entry and supported package images | Inspection accepts encrypted packages; mutation requires valid ODF identity and an unencrypted package, and explicit cleanup removes owned signature entries and manifest declarations |
 | `OfficeIMO.Epub` | Native EPUB manifest entry and supported package images | Requires valid EPUB identity and OPF ownership; removal detects native signatures and explicit cleanup removes only EPUB-owned signature entries |
-| `OfficeIMO.Pdf` | C2PA manifest attachments with `application/c2pa` and `/AFRelationship /C2PA_Manifest` | Rewrites bounded object graphs only when the attachment has no active structural role; signed, encrypted, ambiguous, or unsupported-filter documents are preserved |
+| `OfficeIMO.Pdf` | C2PA manifest attachments with `application/c2pa` and `/AFRelationship /C2PA_Manifest`; AI source declarations in catalog and image XMP and in the Info `Creator`/`Producer`; every carrier inside JPEG (`DCTDecode`) image streams | Rewrites bounded object graphs only when the attachment has no active structural role; signed, encrypted, ambiguous, or unsupported-filter documents are preserved |
 
 ## AI labels and generator metadata
 
@@ -108,12 +108,14 @@ Removal follows the rules of the rest of this matrix: edit the container in plac
 | Label kind | Where producers put it | Supported today |
 | --- | --- | --- |
 | C2PA Content Credentials | Embedded manifest stores (JPEG APP11 JUMBF, PNG `caBX`, WebP/GIF/TIFF/SVG carriers, `META-INF/content_credential.c2pa`, PDF associated files) and external references (XMP `dcterms:provenance`, HTML links, text wrappers) | Detected and removed for the formats in [Core file carriers](#core-file-carriers) and the [package adapters](#package-owned-adapters) |
-| IPTC Digital Source Type | XMP `Iptc4xmpExt:DigitalSourceType` with values such as `trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`, `algorithmicMedia` and `compositeSynthetic` | Detected and removed from image XMP. Not read from PDF document XMP or from XMP outside images |
-| Generator fields | EXIF `Software`, `ImageDescription`, `Artist` and `UserComment`; XMP `xmp:CreatorTool`, `dc:description`, `photoshop:Credit` and vendor namespaces; TIFF tags 270 and 305; JPEG `COM` and GIF comment extensions; PDF `Producer`/`Creator`; Office and ODF application and generator properties | Not recognized as AI labels. For embedded images, `ImageMetadata` hidden-data cleanup removes EXIF except orientation, XMP except the digital source type while provenance is kept, and IPTC, so these fields go only together with everything else. JPEG `COM` segments, GIF comments and PNG text chunks stay, and images that keep Content Credentials are skipped |
-| AI tool parameters | PNG `tEXt`/`zTXt`/`iTXt` chunks written by image generators: `parameters` (Stable Diffusion WebUI), `prompt` and `workflow` (ComfyUI JSON graphs), and similar keys holding prompts, seeds and model names; the same text in JPEG/WebP EXIF `UserComment` or XMP | Not recognized. PNG text chunks other than XMP are not inspected by provenance |
+| IPTC Digital Source Type | XMP `Iptc4xmpExt:DigitalSourceType` with values such as `trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`, `algorithmicMedia` and `compositeSynthetic` | Detected in image XMP and in PDF catalog and image XMP, and reported with its classification. `RemoveAiSourceMetadata` removes only the trained-algorithmic values (`trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`, `compositeSynthetic`); `algorithmicMedia`, capture and other values are reported and kept |
+| Generator fields | EXIF `Software`, `ImageDescription`, `Artist` and `UserComment`; XMP `xmp:CreatorTool`, `dc:description`, `photoshop:Credit` and vendor namespaces; TIFF tags 270 and 305; JPEG `COM` and GIF comment extensions; PDF `Producer`/`Creator`; Office and ODF application and generator properties | EXIF `Software`, XMP `xmp:CreatorTool`/`tiff:Software` and the PDF Info `Creator`/`Producer` are reported as `AiGeneratorMetadata` when the value names a generative AI product, and removed with `RemoveAiSourceMetadata`, in JPEG, PNG, WebP and TIFF EXIF, in XMP of every image format and PDF catalog XMP, including images embedded in documents. An EXIF `UserComment` settings record is recognized as described in the next row; the other fields in this row are not recognized yet. For embedded images, `ImageMetadata` hidden-data cleanup removes IPTC, EXIF except orientation and density, and XMP. While provenance is kept, it keeps the AI source declarations: the digital source type and the generator fields above, reduced to the named product, and an EXIF `UserComment` settings record. JPEG `COM` segments, GIF comments and PNG text chunks stay, and images that keep Content Credentials are skipped |
+| AI tool parameters | PNG `tEXt`/`zTXt`/`iTXt` chunks written by image generators: `parameters` (Stable Diffusion web UIs), `prompt` and `workflow` (ComfyUI JSON graphs), `invokeai_metadata`, `invokeai_graph` and `sd-metadata` (InvokeAI), holding prompts, seeds and model names; the same text in JPEG/WebP EXIF `UserComment` or XMP | PNG: reported as `AiGeneratorMetadata` with the chunk keyword and removed with `RemoveAiSourceMetadata`, including PNGs embedded in documents. Keywords match exactly; other text chunks are left alone, and other chunks change only when another selected removal applies to them. In JPEG, WebP, PNG and TIFF, an EXIF `UserComment` holding a settings record is reported and removed the same way. Settings copied into XMP are not recognized yet |
 | Regulatory implicit labels | China's TC260 `AIGC` implicit label (a JSON value naming the label, producer and content IDs) in XMP or file text fields | Not recognized |
 | Structural visible disclosures | A generator comment or meta tag that is part of the file structure, such as an HTML `<meta name="generator">`, an SVG comment or a Markdown front-matter key | Not recognized. Body text, captions and visible stamps are content, not metadata, and stay out of scope |
 | Invisible Unicode text marks | Zero-width characters, variation-selector payloads, Unicode tags | Detected with exact offsets by `OfficeTextIntegrityInspector`; removed only when the caller selects each finding |
+
+A generator field counts only when its value names a generative AI product from a short list: Midjourney, DALL·E, ChatGPT and OpenAI, Adobe Firefly, Stable Diffusion and its user interfaces (AUTOMATIC1111, ComfyUI, InvokeAI, Fooocus, NovelAI), Google Gemini and Imagen, Bing Image Creator and Microsoft Designer, Leonardo.Ai, Ideogram, FLUX.1 and Recraft. Names match case-insensitively as whole words, so `Adobe Photoshop` or a camera called `Firefly` are left alone. An EXIF `UserComment` counts when it holds a "Steps: …, Sampler: …, Seed: …" settings record or names one of these products. EXIF entries are deleted from their IFD in place and their text is cleared, so no other offset moves and the segment or chunk keeps its size.
 
 ### Gap matrix by format
 
@@ -121,18 +123,18 @@ Removal follows the rules of the rest of this matrix: edit the container in plac
 
 | Format | C2PA | IPTC source type | Generator fields | AI tool parameters | Embedded images and attachments |
 | --- | --- | --- | --- | --- | --- |
-| JPEG | Yes | Yes | Gap | Gap (EXIF `UserComment`, XMP) | No |
-| PNG | Yes | Yes | Gap (`Software`, `Comment`, `Description` text chunks; EXIF `eXIf`) | Gap (`parameters`, `prompt`, `workflow`) | No |
-| WebP | Yes | Yes | Gap (`EXIF` chunk, XMP) | Gap | No |
-| GIF | Yes | Yes | Gap (comment extension) | Gap | No |
-| TIFF / BigTIFF | Yes | Yes | Gap (tags 270, 305) | Gap | No |
-| SVG | Yes | Yes | Gap (metadata and generator comments) | No | Gap (embedded `data:` images) |
+| JPEG | Yes | Yes | Yes (EXIF `Software`, XMP) | Yes (EXIF `UserComment`) | No |
+| PNG | Yes | Yes | Partial: EXIF `eXIf` and XMP; `Software`, `Comment` and `Description` text chunks are a gap | Yes | No |
+| WebP | Yes | Yes | Yes (`EXIF` chunk, XMP) | Yes (EXIF `UserComment`) | No |
+| GIF | Yes | Yes | Partial: XMP; comment extension is a gap | No | No |
+| TIFF / BigTIFF | Yes | Yes | Yes (tag 305, XMP); tag 270 is a gap | Yes (EXIF `UserComment`) | No |
+| SVG | Yes | Yes | Partial: XMP; generator comments are a gap | No | Gap (embedded `data:` images) |
 | HEIC / AVIF | No: BMFF stays outside provenance until an OfficeIMO owner reads and writes it | | | | |
-| Word, Excel, PowerPoint, Visio | Yes | Yes (embedded images) | Partial: `DocumentProperties` removes authors, not the application name | Gap (embedded images) | Yes for images; Gap for embedded OLE packages and attached files |
-| OpenDocument | Yes | Yes (embedded images) | Partial: generator string removed with `DocumentProperties` | Gap (embedded images) | Yes for package images |
-| EPUB | Yes | Yes (manifest images) | Gap (`dc:contributor`/generator `meta`) | Gap (manifest images) | Yes for manifest images |
-| PDF | Yes (associated files) | Gap (document and image XMP) | Partial: `Creator` and `xmp:CreatorTool` removed with `DocumentProperties`, `Producer` kept | Gap | Gap (image XObjects, embedded files) |
-| HTML | Yes | Yes (embedded images) | Gap (`<meta name="generator">`) | Gap (embedded images) | Yes for embedded images |
+| Word, Excel, PowerPoint, Visio | Yes | Yes (embedded images) | Partial: `DocumentProperties` removes authors, not the application name; embedded images as for JPEG | Yes for embedded images | Yes for images; Gap for embedded OLE packages and attached files |
+| OpenDocument | Yes | Yes (embedded images) | Partial: generator string removed with `DocumentProperties`; embedded images as for JPEG | Yes for embedded images | Yes for package images |
+| EPUB | Yes | Yes (manifest images) | Partial: embedded images as for JPEG; `dc:contributor`/generator `meta` is a gap | Yes for manifest images | Yes for manifest images |
+| PDF | Yes (associated files and JPEG images) | Yes (catalog and image XMP, JPEG images) | Yes (XMP `CreatorTool`/`tiff:Software` and Info `Creator`/`Producer` naming an AI product; JPEG images as for JPEG) | Yes for JPEG images | Partial: JPEG image streams and image XMP; embedded files are a gap |
+| HTML | Yes | Yes (embedded images) | Partial: embedded images as for JPEG; `<meta name="generator">` is a gap | Yes for embedded images | Yes for embedded images |
 | Markdown and structured text | Yes | No | Gap (front-matter generator keys) | No | No |
 | RTF | Gap | Gap | Gap (`\info` generator) | Gap | Gap (`\pict` images, `\object` data) |
 | XPS | Gap | Gap | Gap (package properties) | Gap | Gap (package images) |

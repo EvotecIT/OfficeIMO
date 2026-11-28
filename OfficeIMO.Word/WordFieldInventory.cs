@@ -179,35 +179,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        // Walk the story in document order. Compatibility wrappers expose only their selected
-        // branch, and extension lists are opaque even when they contain WordprocessingML.
-        internal static IEnumerable<OfficeXmlNode> EnumerateFieldContent(OfficeXmlNode root, bool reserveInactiveCompatibilityIds = false) {
-            const int Mc = OfficeXmlNamespaces.MarkupCompatibility;
-            if (root.LocalName == "extLst") yield break;
-            if (!reserveInactiveCompatibilityIds && root.Is(Mc, "AlternateContent"))
-                root = WordAlternateContentResolver.SelectBranch(root);
-            OfficeXmlNode node = root.FirstChild;
-            while (node.Exists) {
-                OfficeXmlNode next = default;
-                if (!reserveInactiveCompatibilityIds && node.Is(Mc, "AlternateContent")) {
-                    next = WordAlternateContentResolver.SelectBranch(node).FirstChild;
-                } else if (node.LocalName != "extLst") {
-                    yield return node;
-                    next = node.FirstChild;
-                }
-
-                if (next.IsNone) {
-                    for (OfficeXmlNode up = node; up.Exists && up != root; up = up.Parent) {
-                        // Returning from a selected branch resumes after AlternateContent.
-                        if (!reserveInactiveCompatibilityIds && (up.Is(Mc, "Choice") || up.Is(Mc, "Fallback"))) continue;
-                        next = up.NextSibling;
-                        if (next.Exists) break;
-                    }
-                }
-                node = next;
-            }
-        }
-
         /// <summary>A field root read through <see cref="WordPartView"/>, with the part that holds it.</summary>
         internal sealed class NodeFieldRoot {
             internal NodeFieldRoot(OfficeXmlNode root, WordFieldLocationKind locationKind, string partUri, WordPartView part) {

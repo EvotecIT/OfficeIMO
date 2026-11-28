@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -19,32 +20,31 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            RequireSdkWorksheetPart();
+            RequireGeneralProjection();
             ct.ThrowIfCancellationRequested();
-            Worksheet worksheet = SdkWorksheetPart.Worksheet
-                ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
-            foreach (Cell cell in EnumerateOwnedSdkWorksheetCells(worksheet)) {
+            OfficeXmlNode worksheet = WorksheetRoot;
+            if (worksheet.IsNone) throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
+            foreach (ReaderCell cell in EnumerateWorksheetCells(worksheet)) {
                 ct.ThrowIfCancellationRequested();
-                var reference = new XmlCoordinateReference(cell.CellReference?.Value);
-                if (cell.StyleIndex is { } style) {
-                    if (style.HasValue) {
-                        ValidateCellStyleReference(style.Value, reference);
-                    } else if (string.IsNullOrEmpty(style.InnerText)) {
+                var reference = new XmlCoordinateReference(cell.Reference);
+                if (cell.StyleAttribute is string style) {
+                    if (OfficeIMO.Core.Internal.OpenXml.OfficeXmlViewValues.ParseUInt32(style) is uint styleIndex) {
+                        ValidateCellStyleReference(styleIndex, reference);
+                    } else if (style.Length == 0) {
                         ReportEmptyCellStyleRepair(reference);
                     } else {
                         throw CreateInvalidCellStyleException(reference);
                     }
                 }
-                if (cell.DataType?.Value == CellValues.SharedString) {
-                    ValidateSharedStringReference(cell.CellValue?.Text, reference);
+                if (cell.Type == ExcelCellValueType.SharedString) {
+                    ValidateSharedStringReference(cell.Value, reference);
                 }
 
-                CellFormula? formula = cell.CellFormula;
-                if (formula?.FormulaType?.Value != CellFormulaValues.Shared
-                    || !string.IsNullOrWhiteSpace(formula?.Text)) {
+                OfficeXmlNode formula = cell.Formula;
+                if (formula.Attribute("t") != "shared" || !string.IsNullOrWhiteSpace(formula.InnerText)) {
                     continue;
                 }
-                if (_opt.UseCachedFormulaResult && cell.CellValue is not null) {
+                if (_opt.UseCachedFormulaResult && cell.Value != null) {
                     continue;
                 }
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested);
             // Table-backed dimensions can intentionally include empty cells.
             // Otherwise reuse this complete validation scan to discover actual bounds.
-            var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !SdkWorksheetPart.TableDefinitionParts.Any())
+            var bounds = _usedRangeA1 == null && (!_hasLiveWorksheetPart || _worksheetPart.FirstPartOfKind(ExcelPartKind.Table).IsNone)
                 ? new WorksheetRangeAccumulator() : null;
             var coordinates = bounds != null && Volatile.Read(ref _implicitXmlRowIndexes) == null
                 ? new ImplicitXmlRowIndexBuilder() : null;
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
                         if (nodeType == XmlNodeType.Element && reader.Depth == 0
                             && !SpreadsheetXmlContent.IsSpreadsheetElement(reader, "worksheet")) {
                             bounds = null;
-                        } else if (!_hasSdkWorksheetPart && worksheetRows.IsWorksheetChildElement(reader, "tableParts")) {
+                        } else if (!_hasLiveWorksheetPart && worksheetRows.IsWorksheetChildElement(reader, "tableParts")) {
                             // Table extents may include intentional empty rows and
                             // columns; their discovery retains the SDK owner.
                             bounds = null;
@@ -146,7 +146,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 int cellDepth = reader.Depth;
-                while (reader.Read()) {
+                bool advance = true;
+                while (advance ? reader.Read() : !reader.EOF) {
+                    advance = true;
                     ct.ThrowIfCancellationRequested();
                     if (reader.NodeType == XmlNodeType.EndElement
                         && reader.Depth == cellDepth
@@ -163,6 +165,10 @@ namespace OfficeIMO.Excel {
                             sharedStringReference = reader.IsEmptyElement
                                 ? string.Empty
                                 : ReadSimpleElementText(reader, ct, reference, textBudget);
+                        } else if (!reader.IsEmptyElement && !ct.CanBeCanceled) {
+                            // Only shared-string indexes need their text during the validation pass.
+                            reader.Skip();
+                            advance = false;
                         }
                         continue;
                     }

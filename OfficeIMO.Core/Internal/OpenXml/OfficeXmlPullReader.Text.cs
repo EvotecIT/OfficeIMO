@@ -201,6 +201,25 @@ internal sealed partial class OfficeXmlPullReader {
         return -1;
     }
 
+    private void SkipComment() {
+        int start = _position + 4;
+        int end = IndexOf(start, "--");
+        if (end < 0 || end + 2 >= _end || _data[end + 2] != (byte)'>') {
+            throw Malformed("A comment contains an invalid double hyphen or is not closed.");
+        }
+        ValidateLiteralCharacters(start, end);
+        _position = end + 3;
+    }
+
+    private void ValidateLiteralCharacters(int start, int end) {
+        for (int index = start; index < end; index++) {
+            byte value = _data[index];
+            if (value < 0x20 && value != (byte)'\t' && value != (byte)'\n' && value != (byte)'\r' || value == 0xEF) {
+                RejectNonCharacter(index);
+            }
+        }
+    }
+
     private void SkipPast(string terminator, int offset) {
         int index = IndexOf(_position + offset, terminator);
         if (index < 0) throw Malformed("Markup is not closed.");

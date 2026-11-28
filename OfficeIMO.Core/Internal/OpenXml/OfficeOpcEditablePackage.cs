@@ -215,6 +215,18 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         return part is { Tree: null, Content: null, FromSource: true } && _zip!.TryGetLength(part.Member, out length);
     }
 
+    /// <summary>The length of a part held as bytes, whether newly written, replaced or stored in the ZIP.</summary>
+    internal bool TryGetBinaryLength(string partName, out long length) {
+        length = 0;
+        Part? part = Find(partName);
+        if (part == null || part.Tree != null) return false;
+        if (part.Content != null) {
+            length = part.ContentLength;
+            return true;
+        }
+        return part.FromSource && _zip!.TryGetLength(part.Member, out length);
+    }
+
     /// <summary>Whether a part is still the one stored in the package that was opened, neither replaced nor given new content.</summary>
     internal bool IsStoredPart(string partName) => Find(partName) is { FromSource: true, Content: null };
 

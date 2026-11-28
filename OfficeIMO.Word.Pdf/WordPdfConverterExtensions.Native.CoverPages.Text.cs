@@ -1,36 +1,33 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static IReadOnlyList<PdfCore.PdfTextRun> GetNativeVmlTextRuns(WordDocument document, OpenXmlElement element) {
+        private static IReadOnlyList<PdfCore.PdfTextRun> GetNativeVmlTextRuns(WordDocument document, OfficeXmlNode element) {
             var runs = new List<PdfCore.PdfTextRun>();
             bool hasParagraph = false;
-            foreach (W.Paragraph paragraph in element.Descendants<W.Paragraph>()) {
+            foreach (OfficeXmlNode paragraph in element.ModelDescendants("p")) {
                 if (hasParagraph) {
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
                 hasParagraph = true;
-                foreach (W.Run run in paragraph.Descendants<W.Run>()) {
-                    W.RunProperties? properties = run.RunProperties;
+                foreach (OfficeXmlNode run in paragraph.ModelDescendants("r")) {
+                    OfficeXmlNode properties = run.WChild("rPr");
                     NativeResolvedTextStyle style = ResolveNativeTextRunStyle(
-                        new WordParagraph(document, paragraph, run));
-                    foreach (OpenXmlElement child in run.ChildElements) {
-                        if (child is W.Text text) {
-                            AddNativeVmlTextRun(runs, document, run, properties, text, style);
-                        } else if (child is W.Break) {
+                        WordConverterNodes.RunView(document, paragraph, run));
+                    foreach (OfficeXmlNode child in run.Elements()) {
+                        if (child.IsW("t")) {
+                            AddNativeVmlTextRun(runs, document, run, properties, child, style);
+                        } else if (child.IsW("br")) {
                             runs.Add(CreateNativeVmlTextRun("\n", properties, style));
-                        } else if (child is W.TabChar) {
+                        } else if (child.IsW("tab")) {
                             runs.Add(style.ApplyTo(PdfCore.PdfTextRun.Tab()));
                         } else {
-                            foreach (W.Text nestedText in child.Descendants<W.Text>()) {
+                            foreach (OfficeXmlNode nestedText in child.Descendants(WordXml.W, "t")) {
                                 AddNativeVmlTextRun(runs, document, run, properties, nestedText, style);
                             }
                         }
@@ -51,7 +48,7 @@ namespace OfficeIMO.Word.Pdf {
             return runs;
         }
 
-        private static void AddNativeVmlTextRun(List<PdfCore.PdfTextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text, NativeResolvedTextStyle style) {
+        private static void AddNativeVmlTextRun(List<PdfCore.PdfTextRun> runs, WordDocument document, OfficeXmlNode run, OfficeXmlNode properties, OfficeXmlNode text, NativeResolvedTextStyle style) {
             string value = ResolveNativeVmlRunText(document, run, text);
             if (string.IsNullOrEmpty(value)) {
                 return;
@@ -61,25 +58,25 @@ namespace OfficeIMO.Word.Pdf {
                 runs.Add(CreateNativeVmlTextRun(segment.Text, properties, segment.Style));
         }
 
-        private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, W.RunProperties? properties, NativeResolvedTextStyle style) =>
+        private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, OfficeXmlNode properties, NativeResolvedTextStyle style) =>
             style.ApplyTo(new PdfCore.PdfTextRun(
                 value,
-                bold: HasNativeOnOff(properties?.Bold),
-                underline: HasNativeVmlUnderline(properties?.Underline),
-                color: ParseNativeColor(properties?.Color?.Val?.Value),
-                italic: HasNativeOnOff(properties?.Italic),
-                strike: HasNativeOnOff(properties?.Strike),
+                bold: HasNativeOnOff(properties.WChild("b")),
+                underline: HasNativeVmlUnderline(properties.WChild("u")),
+                color: ParseNativeColor(properties.WChild("color").WVal()),
+                italic: HasNativeOnOff(properties.WChild("i")),
+                strike: HasNativeOnOff(properties.WChild("strike")),
                 fontSize: ((double?)(style.FontSize ?? (style.SmallCaps && !style.AllCaps
                     ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties))) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 standardFont: GetNativeVmlRunFont(properties)));
 
-        private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
-            foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {
-                if (textPath.On != null && textPath.On.Value == false) {
+        private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OfficeXmlNode element) {
+            foreach (OfficeXmlNode textPath in element.Descendants(WordXml.V, "textpath")) {
+                if (textPath.Attr("on") is "f" or "false") {
                     continue;
                 }
 
-                string? raw = textPath.String?.Value;
+                string? raw = textPath.Attr("string");
                 if (string.IsNullOrWhiteSpace(raw)) {
                     continue;
                 }
@@ -101,16 +98,16 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static double? GetNativeVmlTextPathFontSize(V.TextPath textPath) {
-            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Style?.Value);
+        private static double? GetNativeVmlTextPathFontSize(OfficeXmlNode textPath) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Attr("style"));
             double? fontSize = ResolveNativeVmlLength(style.TryGetValue("font-size", out string? value) ? value : null, 1D, 1D);
             return fontSize.HasValue && fontSize.Value > 0D && fontSize.Value <= MaxNativeVmlTextPathFontSizePoints
                 ? fontSize
                 : null;
         }
 
-        private static PdfCore.PdfStandardFont? GetNativeVmlTextPathFont(V.TextPath textPath) {
-            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Style?.Value);
+        private static PdfCore.PdfStandardFont? GetNativeVmlTextPathFont(OfficeXmlNode textPath) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Attr("style"));
             if (!style.TryGetValue("font-family", out string? family)) {
                 return null;
             }
@@ -121,8 +118,8 @@ namespace OfficeIMO.Word.Pdf {
                 : null;
         }
 
-        private static string ResolveNativeVmlRunText(WordDocument document, W.Run run, W.Text textElement) {
-            string text = WordParagraph.ReadVisibleText(textElement);
+        private static string ResolveNativeVmlRunText(WordDocument document, OfficeXmlNode run, OfficeXmlNode textElement) {
+            string text = textElement.VisibleText();
             string value = ResolveNativeBuiltInPropertyPlaceholders(document, text);
             string? propertyValue = GetNativeBuiltInPropertyValue(document, GetNativeVmlRunSdtProperties(textElement, run));
             if (!string.IsNullOrWhiteSpace(propertyValue) &&
@@ -133,14 +130,23 @@ namespace OfficeIMO.Word.Pdf {
             return value;
         }
 
-        private static W.SdtProperties? GetNativeVmlRunSdtProperties(W.Text textElement, W.Run run) {
-            W.SdtRun? runSdt = textElement.Ancestors<W.SdtRun>().FirstOrDefault() ?? run.Ancestors<W.SdtRun>().FirstOrDefault();
-            if (runSdt?.SdtProperties != null) {
-                return runSdt.SdtProperties;
+        private static OfficeXmlNode GetNativeVmlRunSdtProperties(OfficeXmlNode textElement, OfficeXmlNode run) {
+            OfficeXmlNode runSdt = FindNativeVmlContentControl(textElement, WordContentControlLevel.Run);
+            if (runSdt.IsNone) runSdt = FindNativeVmlContentControl(run, WordContentControlLevel.Run);
+            if (runSdt.WChild("sdtPr").Exists) {
+                return runSdt.WChild("sdtPr");
             }
 
-            W.SdtBlock? blockSdt = textElement.Ancestors<W.SdtBlock>().FirstOrDefault() ?? run.Ancestors<W.SdtBlock>().FirstOrDefault();
-            return blockSdt?.SdtProperties;
+            OfficeXmlNode blockSdt = FindNativeVmlContentControl(textElement, WordContentControlLevel.Block);
+            if (blockSdt.IsNone) blockSdt = FindNativeVmlContentControl(run, WordContentControlLevel.Block);
+            return blockSdt.WChild("sdtPr");
+        }
+
+        private static OfficeXmlNode FindNativeVmlContentControl(OfficeXmlNode element, WordContentControlLevel level) {
+            foreach (OfficeXmlNode ancestor in element.Ancestors()) {
+                if (ancestor.ContentControlLevel() == level) return ancestor;
+            }
+            return default;
         }
 
         private static bool IsNativeVmlPlaceholderText(string text) {
@@ -162,7 +168,7 @@ namespace OfficeIMO.Word.Pdf {
             return sourceText.Substring(0, leading) + value + sourceText.Substring(sourceText.Length - trailing, trailing);
         }
 
-        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(WordDocument document, OpenXmlElement element, IReadOnlyList<PdfCore.PdfTextRun> runs) {
+        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(WordDocument document, OfficeXmlNode element, IReadOnlyList<PdfCore.PdfTextRun> runs) {
             var style = new PdfCore.PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
@@ -178,8 +184,8 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
-        private static bool HasNativeOnOff(OpenXmlElement? element) {
-            if (element == null) {
+        private static bool HasNativeOnOff(OfficeXmlNode element) {
+            if (element.IsNone) {
                 return false;
             }
 
@@ -189,16 +195,16 @@ namespace OfficeIMO.Word.Pdf {
                    value.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool HasNativeVmlUnderline(W.Underline? underline) {
-            if (underline == null) {
+        private static bool HasNativeVmlUnderline(OfficeXmlNode underline) {
+            if (underline.IsNone) {
                 return false;
             }
 
-            if (underline.Val != null && underline.Val.Value == W.UnderlineValues.None) {
+            if (underline.WVal() == "none") {
                 return false;
             }
 
-            string value = underline.Val?.Value.ToString() ?? string.Empty;
+            string value = underline.WVal() ?? string.Empty;
             if (value.Length == 0) {
                 return true;
             }
@@ -208,24 +214,24 @@ namespace OfficeIMO.Word.Pdf {
                    !value.Equals("false", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static double? GetNativeVmlRunFontSize(W.RunProperties? properties) {
-            string? value = properties?.FontSize?.Val?.Value;
+        private static double? GetNativeVmlRunFontSize(OfficeXmlNode properties) {
+            string? value = properties.WChild("sz").WVal();
             return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                 ? halfPoints / 2D
                 : null;
         }
 
-        private static PdfCore.PdfStandardFont? GetNativeVmlRunFont(W.RunProperties? properties) {
-            W.RunFonts? fonts = properties?.RunFonts;
-            if (fonts == null) {
+        private static PdfCore.PdfStandardFont? GetNativeVmlRunFont(OfficeXmlNode properties) {
+            OfficeXmlNode fonts = properties.WChild("rFonts");
+            if (fonts.IsNone) {
                 return null;
             }
 
             foreach (string? family in new[] {
-                fonts.Ascii?.Value,
-                fonts.HighAnsi?.Value,
-                fonts.EastAsia?.Value,
-                fonts.ComplexScript?.Value
+                fonts.WAttr("ascii"),
+                fonts.WAttr("hAnsi"),
+                fonts.WAttr("eastAsia"),
+                fonts.WAttr("cs")
             }) {
                 if (TryResolveNativeMappedFont(family, nativeFontMap: null, out PdfCore.PdfStandardFont font)) {
                     return font;
@@ -246,18 +252,20 @@ namespace OfficeIMO.Word.Pdf {
             return max > 0D ? max : 11D;
         }
 
-        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(WordDocument document, OpenXmlElement element) {
-            W.Justification? justification = element.Descendants<W.Justification>().FirstOrDefault();
-            W.Paragraph? source = justification?.Ancestors<W.Paragraph>().FirstOrDefault() ?? element.Descendants<W.Paragraph>().FirstOrDefault();
+        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(WordDocument document, OfficeXmlNode element) {
+            // Paragraph justification sits in a w:pPr; a w:jc in table or row properties is a different setting.
+            OfficeXmlNode justification = element.DescendantElements().FirstOrDefault(node => node.IsW("jc") && node.Parent.IsW("pPr") && node.IsModelElement());
+            OfficeXmlNode source = justification.Ancestor(WordXml.W, "p");
+            if (source.IsNone) source = element.ModelDescendants("p").FirstOrDefault();
             // The frame takes its paragraph's resolved alignment and direction: direct, style and document defaults.
-            W.JustificationValues? value = source == null ? justification?.Val?.Value
-                : ResolveNativeUnjustifiedJustification(new WordParagraph(document, source));
-            if (value == W.JustificationValues.Center) return global::OfficeIMO.OfficeAlignment.Center;
-            if (value == W.JustificationValues.Right) return global::OfficeIMO.OfficeAlignment.Right;
+            string? value = source.IsNone ? justification.WVal()
+                : ResolveNativeUnjustifiedJustification(WordConverterNodes.ParagraphView(document, source));
+            if (value == "center") return global::OfficeIMO.OfficeAlignment.Center;
+            if (value == "right") return global::OfficeIMO.OfficeAlignment.Right;
             return global::OfficeIMO.OfficeAlignment.Left;
         }
 
-        private static PdfCore.PdfVerticalAlign GetNativeVmlVerticalAlign(OpenXmlElement element) {
+        private static PdfCore.PdfVerticalAlign GetNativeVmlVerticalAlign(OfficeXmlNode element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             if (style.TryGetValue("v-text-anchor", out string? anchor)) {
                 if (anchor.Equals("middle", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfVerticalAlign.Middle;
@@ -267,9 +275,9 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfVerticalAlign.Top;
         }
 
-        private static void ApplyNativeVmlTextBoxInset(PdfCore.PdfCanvasTextBoxStyle style, OpenXmlElement element) {
-            OpenXmlElement? textBox = element.Descendants().FirstOrDefault(child => child.NamespaceUri == "urn:schemas-microsoft-com:vml" && child.LocalName == "textbox");
-            string? inset = textBox == null ? null : GetNativeOpenXmlAttribute(textBox, "inset");
+        private static void ApplyNativeVmlTextBoxInset(PdfCore.PdfCanvasTextBoxStyle style, OfficeXmlNode element) {
+            OfficeXmlNode textBox = element.DescendantElements().FirstOrDefault(child => child.NamespaceUri == "urn:schemas-microsoft-com:vml" && child.LocalName == "textbox");
+            string? inset = textBox.IsNone ? null : GetNativeOpenXmlAttribute(textBox, "inset");
             if (string.IsNullOrWhiteSpace(inset)) {
                 style.PaddingX = global::OfficeIMO.OfficeLength.Points(0D);
                 style.PaddingY = global::OfficeIMO.OfficeLength.Points(0D);

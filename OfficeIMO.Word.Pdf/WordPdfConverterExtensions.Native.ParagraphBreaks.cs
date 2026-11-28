@@ -1,5 +1,3 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 
 namespace OfficeIMO.Word.Pdf;
 
@@ -8,7 +6,7 @@ public static partial class WordPdfConverterExtensions {
         INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker,
         System.Func<WordParagraph, (int Level, string Marker)?> getMarker,
         NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options,
-        IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
+        IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap,
         WordParagraph? nextParagraph) {
         // Each split clones the remaining suffix. Bound the number of visible boundaries
@@ -18,14 +16,12 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordParagraph run in GetNativeRuns(paragraph)) {
             options?.CancellationToken.ThrowIfCancellationRequested();
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
-            foreach (W.Break boundary in children.OfType<W.Break>()) {
-                if ((boundary.Type?.Value == W.BreakValues.Page || boundary.Type?.Value == W.BreakValues.Column)
-                    && ++flowBreaks > maximumFlowBreaks)
+            foreach (OfficeXmlNode boundary in run.ProjectedRunChildNodes()) {
+                if (IsNativeFlowBreak(boundary) && ++flowBreaks > maximumFlowBreaks)
                     throw new NotSupportedException("A paragraph has more visible page or column breaks than PDF conversion supports.");
             }
         }
-        if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after)) return false;
+        if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out string breakType, out WordParagraph? before, out WordParagraph? after)) return false;
 
         // Splitting can leave no renderable fragment. Diagnose the authored frame
         // once, then keep its synthetic fragments out of the diagnostic count.
@@ -35,14 +31,16 @@ public static partial class WordPdfConverterExtensions {
                 omitted: before == null && after == null);
         }
         if (HasNativePageBreakBefore(paragraph)) RenderNativePageBreakBefore(pdf, paragraph);
-        if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
-            headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
+        OfficeXmlNode source = paragraph.Node();
+        if (source.Exists && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
+            headingDestinations.TryGetValue(source, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
         while (true) {
             options?.CancellationToken.ThrowIfCancellationRequested();
             if (before != null) {
-                if (before._paragraph != null) {
-                    options?.DiagnosedFrameParagraphs.Add(before._paragraph);
-                    options?.DiagnosedBarTabElements.Add(before._paragraph);
+                OfficeXmlNode beforeNode = before.Node();
+                if (beforeNode.Exists) {
+                    options?.DiagnosedFrameParagraphs.Add(beforeNode);
+                    options?.DiagnosedBarTabElements.Add(beforeNode);
                 }
                 before.PageBreakBeforeOverride = false;
                 before.KeepWithNextOverride = false;
@@ -51,37 +49,41 @@ public static partial class WordPdfConverterExtensions {
                     options, headingDestinations, nativeDefaults, nativeFontMap, null);
                 marker = null;
             }
-            if (breakType == W.BreakValues.Column) pdf.ColumnBreak();
+            if (breakType == "column") pdf.ColumnBreak();
             else pdf.PageBreak(preserveEmptyPage: true);
             // Word moves the paragraph mark after a column break into the next column,
             // where it takes an empty line; after a page break it stays on the previous page.
-            if (after == null && (breakType == W.BreakValues.Column || breakType == W.BreakValues.Page &&
+            if (after == null && (breakType == "column" || breakType == "page" &&
                 !UsesModernNativeWordLayout(paragraph._document) &&
                 paragraph._document.CompatibilitySettings.SplitPageBreakAndParagraphMark)) {
-                var mark = new W.Paragraph();
-                if (paragraph._paragraph?.ParagraphProperties is W.ParagraphProperties markProperties) {
-                    mark.Append((W.ParagraphProperties)markProperties.CloneNode(true));
-                    mark.ParagraphProperties!.SectionProperties?.Remove();
+                OfficeXmlNode mark = CreateNativeDetachedBodyElement(paragraph._document, "p");
+                OfficeXmlNode markProperties = source.WChild("pPr");
+                if (markProperties.Exists) {
+                    OfficeXmlNode copiedProperties = mark.Append(markProperties.Clone());
+                    OfficeXmlNode sectionProperties = copiedProperties.WChild("sectPr");
+                    if (sectionProperties.Exists) sectionProperties.Remove();
                 }
-                after = new WordParagraph(paragraph._document, mark);
+                after = WordConverterNodes.ParagraphView(paragraph._document, mark);
             }
             if (after == null) return true;
-            if (after._paragraph != null) {
-                options?.DiagnosedFrameParagraphs.Add(after._paragraph);
-                options?.DiagnosedBarTabElements.Add(after._paragraph);
+            OfficeXmlNode afterNode = after.Node();
+            if (afterNode.Exists) {
+                options?.DiagnosedFrameParagraphs.Add(afterNode);
+                options?.DiagnosedBarTabElements.Add(afterNode);
             }
             after.PageBreakBeforeOverride = false;
             after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
-            W.ParagraphProperties properties = after._paragraph!.ParagraphProperties ??= new W.ParagraphProperties();
+            OfficeXmlNode properties = after.Node().GetOrPrependChild(WordXml.W, "pPr");
             // The continuation is the same paragraph, so it has no space before; an explicit
             // off also stops a style or document default from turning automatic spacing back on.
-            if (properties.GetFirstChild<W.SpacingBetweenLines>() is { } continuationSpacing) continuationSpacing.BeforeAutoSpacing = false;
-            W.Indentation indentation = properties.GetFirstChild<W.Indentation>() ?? new W.Indentation();
-            if (indentation.Parent == null) properties.AddChild(indentation, true);
-            indentation.FirstLine = "0";
-            indentation.FirstLineChars = null;
-            indentation.Hanging = null;
-            indentation.HangingChars = null;
+            OfficeXmlNode continuationSpacing = properties.WChild("spacing");
+            if (continuationSpacing.Exists) continuationSpacing.SetAttribute(WordXml.W, "beforeAutospacing", "0");
+            OfficeXmlNode indentation = properties.WChild("ind");
+            if (indentation.IsNone) indentation = properties.InsertOrdered(properties.CreateElement(WordXml.W, "ind"), WPPrView.Order);
+            indentation.SetAttribute(WordXml.W, "firstLine", "0");
+            indentation.SetAttribute(WordXml.W, "firstLineChars", null);
+            indentation.SetAttribute(WordXml.W, "hanging", null);
+            indentation.SetAttribute(WordXml.W, "hangingChars", null);
             if (!TrySplitNativeParagraphAtVisibleFlowBreak(after, out breakType, out before, out WordParagraph? remaining)) {
                 RenderNativeParagraph(pdf, after, marker, getMarker, System.Array.Empty<int>(), footnoteNumbersById,
                     options, headingDestinations, nativeDefaults, nativeFontMap, nextParagraph);
@@ -91,63 +93,80 @@ public static partial class WordPdfConverterExtensions {
         }
     }
 
-    private static bool TrySplitNativeParagraphAtVisibleFlowBreak(WordParagraph paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after) {
+    /// <summary>Whether the element is a <c>w:br</c> that ends a page or a column.</summary>
+    private static bool IsNativeFlowBreak(OfficeXmlNode element) {
+        if (!element.IsW("br")) return false;
+        string? type = element.WAttr("type");
+        return type == "page" || type == "column";
+    }
+
+    /// <summary>
+    /// A new, detached element of the main story, such as a <c>w:p</c> or <c>w:tbl</c>, made as the body's own child
+    /// so it reads like any other element of that kind.
+    /// </summary>
+    private static OfficeXmlNode CreateNativeDetachedBodyElement(WordDocument document, string localName) {
+        OfficeXmlNode body = document.BodyNode();
+        if (body.IsNone) throw new InvalidOperationException("The document has no body to create content for.");
+        return body.CreateElement(WordXml.W, localName);
+    }
+
+    private static bool TrySplitNativeParagraphAtVisibleFlowBreak(WordParagraph paragraph, out string breakType, out WordParagraph? before, out WordParagraph? after) {
         foreach (WordParagraph run in GetNativeRuns(paragraph)) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
-            W.Break? boundary = children.OfType<W.Break>().FirstOrDefault(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column);
-            if (boundary?.Type?.Value is W.BreakValues type) {
-                breakType = type;
-                return TrySplitNativeParagraphAtVisibleBreak(paragraph, type, out before, out after);
+            OfficeXmlNode boundary = run.ProjectedRunChildNodes().FirstOrDefault(IsNativeFlowBreak);
+            if (boundary.Exists) {
+                breakType = boundary.WAttr("type")!;
+                return TrySplitNativeParagraphAtVisibleBreak(paragraph, breakType, out before, out after);
             }
         }
-        breakType = W.BreakValues.Page; before = null; after = null;
+        breakType = "page"; before = null; after = null;
         return false;
     }
 
-    private static bool TrySplitNativeParagraphAtVisibleBreak(WordParagraph paragraph, W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after) {
+    private static bool TrySplitNativeParagraphAtVisibleBreak(WordParagraph paragraph, string breakType, out WordParagraph? before, out WordParagraph? after) {
         before = null;
         after = null;
-        if (paragraph._paragraph?.Descendants<W.Break>().Any(wordBreak => wordBreak.Type?.Value == breakType) != true) return false;
-        var visibleBreaks = new HashSet<W.Break>();
+        if (!paragraph.Node().DescendantElements(WordXml.W, "br").Any(wordBreak => wordBreak.WAttr("type") == breakType)) return false;
+        var visibleBreaks = new HashSet<OfficeXmlNode>();
         foreach (WordParagraph run in GetNativeRuns(paragraph)) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> visibleChildren = run._visibleRunSourceChildren ?? run._run!.ChildElements;
-            foreach (W.Break wordBreak in visibleChildren.OfType<W.Break>()) {
-                if (wordBreak.Type?.Value == breakType) visibleBreaks.Add(wordBreak);
+            foreach (OfficeXmlNode wordBreak in run.ProjectedRunChildNodes()) {
+                if (wordBreak.IsW("br") && wordBreak.WAttr("type") == breakType) visibleBreaks.Add(wordBreak);
             }
         }
         if (visibleBreaks.Count == 0) { before = null; after = null; return false; }
         return TrySplitNativeParagraphAtBreak(paragraph, breakType, visibleBreaks, out before, out after);
     }
-    private static bool TrySplitNativeParagraphAtBreak(WordParagraph paragraph, W.BreakValues breakType,
-        HashSet<W.Break>? visibleBreaks, out WordParagraph? before, out WordParagraph? after) {
+    private static bool TrySplitNativeParagraphAtBreak(WordParagraph paragraph, string breakType,
+        HashSet<OfficeXmlNode>? visibleBreaks, out WordParagraph? before, out WordParagraph? after) {
         before = null;
         after = null;
-        if (paragraph._paragraph == null) {
+        OfficeXmlNode source = paragraph.Node();
+        if (source.IsNone) {
             return false;
         }
 
-        var beforeParagraph = new W.Paragraph();
-        var afterParagraph = new W.Paragraph();
-        if (paragraph._paragraph.ParagraphProperties != null) {
-            beforeParagraph.Append((W.ParagraphProperties)paragraph._paragraph.ParagraphProperties.CloneNode(true));
-            afterParagraph.Append((W.ParagraphProperties)paragraph._paragraph.ParagraphProperties.CloneNode(true));
+        OfficeXmlNode beforeParagraph = CreateNativeDetachedBodyElement(paragraph._document, "p");
+        OfficeXmlNode afterParagraph = CreateNativeDetachedBodyElement(paragraph._document, "p");
+        OfficeXmlNode sourceProperties = source.WChild("pPr");
+        if (sourceProperties.Exists) {
+            beforeParagraph.Append(sourceProperties.Clone());
+            afterParagraph.Append(sourceProperties.Clone());
         }
 
         bool sawBreak = false;
-        foreach (DocumentFormat.OpenXml.OpenXmlElement child in paragraph._paragraph.ChildElements) {
-            if (child is W.ParagraphProperties) {
+        foreach (OfficeXmlNode child in source.Elements()) {
+            if (child.IsW("pPr")) {
                 continue;
             }
 
             if (!sawBreak &&
-                TrySplitNativeOpenXmlAtBreak(child, breakType, visibleBreaks, out DocumentFormat.OpenXml.OpenXmlElement? beforeChild, out DocumentFormat.OpenXml.OpenXmlElement? afterChild)) {
-                if (beforeChild != null) {
+                TrySplitNativeOpenXmlAtBreak(child, breakType, visibleBreaks, out OfficeXmlNode beforeChild, out OfficeXmlNode afterChild)) {
+                if (beforeChild.Exists) {
                     beforeParagraph.Append(beforeChild);
                 }
 
-                if (afterChild != null) {
+                if (afterChild.Exists) {
                     afterParagraph.Append(afterChild);
                 }
 
@@ -156,9 +175,9 @@ public static partial class WordPdfConverterExtensions {
             }
 
             if (sawBreak) {
-                afterParagraph.Append(child.CloneNode(true));
+                afterParagraph.Append(child.Clone());
             } else {
-                beforeParagraph.Append(child.CloneNode(true));
+                beforeParagraph.Append(child.Clone());
             }
         }
 
@@ -166,61 +185,57 @@ public static partial class WordPdfConverterExtensions {
             return false;
         }
 
-        W.Break boundary = paragraph._paragraph.Descendants<W.Break>().First(wordBreak =>
-            wordBreak.Type?.Value == breakType && (visibleBreaks == null || visibleBreaks.Contains(wordBreak)));
-        WordComplexFieldRunVisibility.PreserveFragmentContext(paragraph._paragraph, beforeParagraph, afterParagraph, boundary);
+        OfficeXmlNode boundary = source.DescendantElements(WordXml.W, "br").First(wordBreak =>
+            wordBreak.WAttr("type") == breakType && (visibleBreaks == null || visibleBreaks.Contains(wordBreak)));
+        WordConverterNodes.PreserveFragmentContext(source, beforeParagraph, afterParagraph, boundary);
 
         if (HasNativeRenderableOpenXmlContent(beforeParagraph)) {
-            before = new WordParagraph(paragraph._document, beforeParagraph) {
-                _bookmarkStart = beforeParagraph.Elements<W.BookmarkStart>().FirstOrDefault()
-            };
+            before = WordConverterNodes.ParagraphView(paragraph._document, beforeParagraph, beforeParagraph.Child(WordXml.W, "bookmarkStart"));
         }
 
         if (HasNativeRenderableOpenXmlContent(afterParagraph)) {
-            after = new WordParagraph(paragraph._document, afterParagraph) {
-                _bookmarkStart = afterParagraph.Elements<W.BookmarkStart>().FirstOrDefault()
-            };
+            after = WordConverterNodes.ParagraphView(paragraph._document, afterParagraph, afterParagraph.Child(WordXml.W, "bookmarkStart"));
         }
 
         return true;
     }
 
     private static bool TrySplitNativeOpenXmlAtBreak(
-        DocumentFormat.OpenXml.OpenXmlElement element,
-        W.BreakValues breakType,
-        HashSet<W.Break>? visibleBreaks,
-        out DocumentFormat.OpenXml.OpenXmlElement? before,
-        out DocumentFormat.OpenXml.OpenXmlElement? after) {
-        before = null;
-        after = null;
-        if (element is W.Break wordBreak && wordBreak.Type?.Value == breakType &&
-            (visibleBreaks == null || visibleBreaks.Contains(wordBreak))) {
+        OfficeXmlNode element,
+        string breakType,
+        HashSet<OfficeXmlNode>? visibleBreaks,
+        out OfficeXmlNode before,
+        out OfficeXmlNode after) {
+        before = default;
+        after = default;
+        if (element.IsW("br") && element.WAttr("type") == breakType &&
+            (visibleBreaks == null || visibleBreaks.Contains(element))) {
             return true;
         }
 
-        if (!element.HasChildren) {
+        if (!element.HasChildren()) {
             return false;
         }
 
-        DocumentFormat.OpenXml.OpenXmlElement beforeElement = element.CloneNode(false);
-        DocumentFormat.OpenXml.OpenXmlElement afterElement = element.CloneNode(false);
+        OfficeXmlNode beforeElement = element.CloneShallow();
+        OfficeXmlNode afterElement = element.CloneShallow();
         bool sawBreak = false;
         bool containsBreak = false;
-        foreach (DocumentFormat.OpenXml.OpenXmlElement child in element.ChildElements) {
+        foreach (OfficeXmlNode child in element.Elements()) {
             // Run/control properties apply to both fragments of their container.
-            if (child is W.RunProperties or W.SdtProperties or W.SdtEndCharProperties) {
-                beforeElement.Append(child.CloneNode(true));
-                afterElement.Append(child.CloneNode(true));
+            if (child.IsW("rPr") || child.IsW("sdtPr") || child.IsW("sdtEndPr")) {
+                beforeElement.Append(child.Clone());
+                afterElement.Append(child.Clone());
                 continue;
             }
             if (!sawBreak &&
-                TrySplitNativeOpenXmlAtBreak(child, breakType, visibleBreaks, out DocumentFormat.OpenXml.OpenXmlElement? beforeChild, out DocumentFormat.OpenXml.OpenXmlElement? afterChild)) {
+                TrySplitNativeOpenXmlAtBreak(child, breakType, visibleBreaks, out OfficeXmlNode beforeChild, out OfficeXmlNode afterChild)) {
                 containsBreak = true;
-                if (beforeChild != null) {
+                if (beforeChild.Exists) {
                     beforeElement.Append(beforeChild);
                 }
 
-                if (afterChild != null) {
+                if (afterChild.Exists) {
                     afterElement.Append(afterChild);
                 }
 
@@ -229,9 +244,9 @@ public static partial class WordPdfConverterExtensions {
             }
 
             if (sawBreak) {
-                afterElement.Append(child.CloneNode(true));
+                afterElement.Append(child.Clone());
             } else {
-                beforeElement.Append(child.CloneNode(true));
+                beforeElement.Append(child.Clone());
             }
         }
 
@@ -250,19 +265,27 @@ public static partial class WordPdfConverterExtensions {
         return true;
     }
 
-    private static bool HasNativeRenderableOpenXmlContent(DocumentFormat.OpenXml.OpenXmlElement element) {
-        if (element.Descendants<W.Text>().Any(text => !string.IsNullOrEmpty(text.Text)) ||
-            element.Descendants<W.BookmarkStart>().Any() ||
-            element.Descendants<W.TabChar>().Any() ||
-            element.Descendants<W.Drawing>().Any() ||
-            element.Descendants<W.FootnoteReference>().Any() ||
-            element.Descendants<W.EndnoteReference>().Any() ||
-            element.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() ||
-            element.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any()) {
-            return true;
+    private static bool HasNativeRenderableOpenXmlContent(OfficeXmlNode element) {
+        foreach (OfficeXmlNode node in element.DescendantElements()) {
+            if (node.Is(WordXml.W, "t")) {
+                if (!string.IsNullOrEmpty(node.InnerText)) return true;
+            } else if (node.Is(WordXml.W, "tab")) {
+                // A tab character, not a tab stop of the paragraph properties.
+                if (!node.Parent.IsW("tabs")) return true;
+            } else if (node.Is(WordXml.W, "bookmarkStart") || node.Is(WordXml.W, "drawing") ||
+                       node.Is(WordXml.W, "footnoteReference") || node.Is(WordXml.W, "endnoteReference") ||
+                       node.Is(WordXml.W, "br") || node.Is(WordXml.M, "oMath") || node.Is(WordXml.V, "shape")) {
+                return true;
+            }
         }
 
-        return element.Descendants<W.Break>().Any();
+        return false;
     }
+
+    // ---- SDK shims: the members below bridge to files still keyed by SDK elements, and go when those are ported. ----
+
+
+
+
 
 }

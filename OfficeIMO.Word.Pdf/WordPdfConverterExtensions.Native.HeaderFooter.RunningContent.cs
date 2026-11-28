@@ -1,22 +1,27 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
-        (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
+        (story.Node().Elements().Any(element => element.IsW("tbl") || element.ModelDescendants("tbl").Any()) ||
         EnumerateNativeRunningFootnoteReferences(story).Any() ||
         NativeRunningStoryUsesSectionPageCount(story) ||
-        story.ChildElements.Any(element => element.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
-            .Any(data => data.Uri?.Value == "http://schemas.openxmlformats.org/drawingml/2006/diagram")));
+        story.Node().Elements().Any(element => element.DescendantsSkippingExtLst(WordXml.A, "graphicData")
+            .Any(data => data.Attr("uri") == "http://schemas.openxmlformats.org/drawingml/2006/diagram")));
+
+    /// <summary>The story's paragraphs: each top-level paragraph, then the paragraphs inside it or inside other top-level content.</summary>
+    private static IEnumerable<OfficeXmlNode> EnumerateNativeRunningStoryParagraphs(WordHeaderFooter story) {
+        foreach (OfficeXmlNode element in story.Node().Elements()) {
+            if (element.IsW("p")) yield return element;
+            foreach (OfficeXmlNode paragraph in element.ModelDescendants("p")) yield return paragraph;
+        }
+    }
 
     private static bool NativeRunningStoryUsesSectionPageCount(WordHeaderFooter? story) => story != null &&
-        story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-            ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())
-            .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
+        EnumerateNativeRunningStoryParagraphs(story)
+            .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(story.Document.ParagraphView(paragraph))
                 .Any(item => item.IsField && item.Text == "{sectionpages}"));
 
     private static IEnumerable<WordHeaderFooter> EnumerateNativeActiveRunningStories(WordSection section) =>
@@ -50,37 +55,36 @@ public static partial class WordPdfConverterExtensions {
         double width = GetNativePageSize(section, options).Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
         foreach (WordHeaderFooter? story in variants) {
             if (story == null) continue;
-            hasParagraph |= !story.ChildElements.Any();
+            hasParagraph |= !story.Node().HasChildren();
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
-            ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph ||
-                element is W.SdtBlock block && IsNativeParagraphOnlyRunningBlock(block));
+            ordinaryStoriesSupported &= story.Node().Elements().All(element => element.IsW("p") ||
+                element.IsW("sdt") && IsNativeParagraphOnlyRunningBlock(element));
             // Without a required table/field story, retain the established simple
             // projection unless every text box can keep its own anchored frame.
             // It preserves its distinct presentation override contract.
-            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any()) &&
+            if (story.Node().Elements().Any(element => element.HasDescendant(WordXml.W, "txbxContent")) &&
                 !CanPlaceNativeRunningStoryTextBoxes(story, section, options)) return false;
-            foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+            foreach (OfficeXmlNode source in EnumerateNativeRunningStoryParagraphs(story)) {
                 // Text-box paragraphs flow inside their own frames.
-                if (source.Ancestors<W.TextBoxContent>().Any()) continue;
-                var paragraph = new WordParagraph(story.Document, source);
+                if (source.Ancestor(WordXml.W, "txbxContent").Exists) continue;
+                WordParagraph paragraph = story.Document.ParagraphView(source);
                 hasParagraph = true;
                 // Inline pictures retain their measured line height; supported
                 // qualified anchors retain paragraph/page placement without
                 // reserving their paint frame as flowing header/footer content.
                 // Anchored shape groups keep their own placement in the story's drawing layers.
                 bool placedGroups = CanPlaceNativeRunningShapeGroups(GetNativePageSize(section, options), paragraph, options);
-                ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
+                ordinaryStoriesSupported &= source.Descendants(WordXml.W, "drawing")
                     .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins) ||
                         placedGroups && IsNativeShapeGroupDrawing(drawing)) &&
-                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture) ||
+                    source.Descendants(WordXml.W, "pict").All(picture => IsNativePlacedRunningTextBoxFallback(picture) ||
+                        IsNativeRunningVmlPicture(picture) ||
                         placedGroups && IsNativeShapeGroupFallback(picture)) &&
-                    !source.Descendants<W.EmbeddedObject>().Any() &&
-                    source.Descendants<AlternateContent>().All(alternate => IsNativePlacedRunningTextBoxAlternate(alternate) ||
+                    !source.HasDescendant(WordXml.W, "object") &&
+                    source.Descendants(WordXml.Mc, "AlternateContent").All(alternate => IsNativePlacedRunningTextBoxAlternate(alternate) ||
                         placedGroups && IsNativeShapeGroupAlternate(alternate)) && !HasNativePageBreakBefore(paragraph) &&
-                    !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
-                        item.Type?.Value == W.BreakValues.Column);
+                    !source.Descendants(WordXml.W, "br").Any(item => item.WAttr("type") is "page" or "column");
                 WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
                 hasNumberedParagraph |= info?.MarkerVisible == true;
                 var style = CreateNativeParagraphStyle(paragraph);
@@ -116,14 +120,13 @@ public static partial class WordPdfConverterExtensions {
     /// <summary>Every text box of the story is anchored with a frame the placed route reproduces.</summary>
     private static bool CanPlaceNativeRunningStoryTextBoxes(WordHeaderFooter story, WordSection section, WordPdfExportOptions? options) {
         PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
-        foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-            ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+        foreach (OfficeXmlNode source in EnumerateNativeRunningStoryParagraphs(story)) {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            bool insideBox = source.Ancestors<W.TextBoxContent>().Any();
-            if (!source.Descendants<W.TextBoxContent>().Any()) continue;
+            bool insideBox = source.Ancestor(WordXml.W, "txbxContent").Exists;
+            if (!source.HasDescendant(WordXml.W, "txbxContent")) continue;
             // Nested boxes and boxes anchored in table cells keep the bounded flow.
-            if (insideBox || source.Ancestors<W.TableCell>().Any()) return false;
-            var paragraph = new WordParagraph(story.Document, source);
+            if (insideBox || source.Ancestor(WordXml.W, "tc").Exists) return false;
+            WordParagraph paragraph = story.Document.ParagraphView(source);
             if (!TryCollectNativePlacedRunningTextBoxes(pageSize, paragraph, GetNativeRuns(paragraph), section, options, out _, out _))
                 return false;
         }
@@ -135,12 +138,12 @@ public static partial class WordPdfConverterExtensions {
     /// Groups that would flow or cannot be drawn keep the story on its established simple projection.
     /// </summary>
     private static bool CanPlaceNativeRunningShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph, WordPdfExportOptions? options) {
-        if (!paragraph._paragraph.Descendants<W.Drawing>().Any(IsNativeShapeGroupDrawing)) return false;
+        if (!paragraph.Node().Descendants(WordXml.W, "drawing").Any(IsNativeShapeGroupDrawing)) return false;
         List<WordParagraph> runs = GetNativeRuns(paragraph);
         // Hidden groups are neither painted nor counted, so they never block placement. A VML group
         // keeps the simple route, which reports it as not drawn before the conversion report is taken.
         List<NativeShapeGroupSource> sources = EnumerateNativeVisibleShapeGroups(paragraph, runs).ToList();
-        if (sources.Any(source => source.Legacy != null)) return false;
+        if (sources.Any(source => source.Legacy.Exists)) return false;
         int groups = sources.Count;
         var style = new PdfCore.PdfParagraphStyle();
         int imageCount = 0;
@@ -167,11 +170,11 @@ public static partial class WordPdfConverterExtensions {
         }
 
         void Record(WordHeaderFooter? story, string source) {
-            OpenXmlElement? root = (OpenXmlElement?)story?._header ?? story?._footer;
-            if (root == null) return;
+            OfficeXmlNode root = story?.Node() ?? default;
+            if (root.IsNone) return;
             int groups = 0;
-            foreach (W.Paragraph element in root.Descendants<W.Paragraph>()) {
-                var paragraph = new WordParagraph(story!.Document, element);
+            foreach (OfficeXmlNode element in root.ModelDescendants("p")) {
+                WordParagraph paragraph = story!.Document.ParagraphView(element);
                 // The groups the rich route would paint; the selected branch holds one copy of each.
                 groups += EnumerateNativeVisibleShapeGroups(paragraph, GetNativeRuns(paragraph)).Count();
             }
@@ -182,47 +185,52 @@ public static partial class WordPdfConverterExtensions {
         }
     }
 
-    private static bool IsNativeShapeGroupDrawing(W.Drawing drawing) =>
-        drawing.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>().Any(data => data.ChildElements
+    private static bool IsNativeShapeGroupDrawing(OfficeXmlNode drawing) =>
+        drawing.DescendantsSkippingExtLst(WordXml.A, "graphicData").Any(data => data.Elements()
             .Any(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
 
+
     // Word stores a VML copy of a DrawingML group as the compatibility fallback.
-    private static bool IsNativeShapeGroupFallback(W.Picture picture) =>
-        picture.Ancestors<AlternateContentFallback>().FirstOrDefault()?.Parent is AlternateContent alternate && IsNativeShapeGroupAlternate(alternate);
+    private static bool IsNativeShapeGroupFallback(OfficeXmlNode picture) =>
+        picture.Ancestor(WordXml.Mc, "Fallback").Parent is { Exists: true } alternate &&
+        alternate.Is(WordXml.Mc, "AlternateContent") && IsNativeShapeGroupAlternate(alternate);
 
-    private static bool IsNativeShapeGroupAlternate(AlternateContent alternate) =>
-        alternate.Elements<AlternateContentChoice>().Any() &&
-        alternate.Elements<AlternateContentChoice>().All(choice => choice.Descendants<W.Drawing>().Any() &&
-            choice.Descendants<W.Drawing>().All(IsNativeShapeGroupDrawing));
+    private static bool IsNativeShapeGroupAlternate(OfficeXmlNode alternate) =>
+        alternate.Elements(WordXml.Mc, "Choice").Any() &&
+        alternate.Elements(WordXml.Mc, "Choice").All(choice => choice.HasDescendant(WordXml.W, "drawing") &&
+            choice.Descendants(WordXml.W, "drawing").All(IsNativeShapeGroupDrawing));
 
-    private static bool IsNativePlacedRunningTextBoxDrawing(W.Drawing drawing) =>
-        drawing.Descendants<W.TextBoxContent>().Any() || drawing.Ancestors<W.TextBoxContent>().Any();
+    private static bool IsNativePlacedRunningTextBoxDrawing(OfficeXmlNode drawing) =>
+        drawing.HasDescendant(WordXml.W, "txbxContent") || drawing.Ancestor(WordXml.W, "txbxContent").Exists;
 
     // Word stores a VML copy of each text box as the compatibility fallback.
-    private static bool IsNativePlacedRunningTextBoxFallback(W.Picture picture) =>
-        picture.Ancestors<AlternateContentFallback>().Any() && picture.Descendants<W.TextBoxContent>().Any() ||
-        picture.Ancestors<W.TextBoxContent>().Any();
+    private static bool IsNativePlacedRunningTextBoxFallback(OfficeXmlNode picture) =>
+        picture.Ancestor(WordXml.Mc, "Fallback").Exists && picture.HasDescendant(WordXml.W, "txbxContent") ||
+        picture.Ancestor(WordXml.W, "txbxContent").Exists;
 
-    private static bool IsNativePlacedRunningTextBoxAlternate(AlternateContent alternate) =>
-        alternate.Descendants<W.TextBoxContent>().Any() &&
-        alternate.Elements<AlternateContentChoice>().All(choice => choice.Descendants<W.Drawing>().All(IsNativePlacedRunningTextBoxDrawing));
+    private static bool IsNativePlacedRunningTextBoxAlternate(OfficeXmlNode alternate) =>
+        alternate.HasDescendant(WordXml.W, "txbxContent") &&
+        alternate.Elements(WordXml.Mc, "Choice").All(choice => choice.Descendants(WordXml.W, "drawing").All(IsNativePlacedRunningTextBoxDrawing));
 
     // Word's page-number galleries wrap the footer paragraph in a block content
     // control. Its paragraphs flow like direct story paragraphs.
-    private static bool IsNativeParagraphOnlyRunningBlock(W.SdtBlock block) =>
-        block.SdtContentBlock is { } content && content.ChildElements.Any() &&
-        content.ChildElements.All(child => child is W.Paragraph ||
-            child is W.SdtBlock nested && IsNativeParagraphOnlyRunningBlock(nested));
+    private static bool IsNativeParagraphOnlyRunningBlock(OfficeXmlNode block) =>
+        block.WChild("sdtContent") is { Exists: true } content && content.HasChildren() &&
+        content.Elements().All(child => child.IsW("p") ||
+            child.IsW("sdt") && IsNativeParagraphOnlyRunningBlock(child));
 
-    private static bool IsNativeRunningPictureDrawing(W.Drawing drawing, WordSection section,
+    private static bool IsNativeRunningPictureDrawing(OfficeXmlNode drawing, WordSection section,
         WordPdfExportOptions? options, PdfCore.PdfPageMargins margins) {
-        var graphicData = drawing.Inline?.Graphic?.GraphicData ??
-            drawing.Anchor?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Graphic>()?.GraphicData;
-        if (graphicData?.Uri?.Value != "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
-            graphicData.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1 ||
-            drawing.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) return false;
-        if (drawing.Inline != null) return drawing.Anchor == null;
-        if (!WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutInfo layout)) return false;
+        OfficeXmlNode inline = drawing.Child(WordXml.Wp, "inline");
+        OfficeXmlNode anchor = drawing.Child(WordXml.Wp, "anchor");
+        OfficeXmlNode graphicData = inline.Child(WordXml.A, "graphic").Child(WordXml.A, "graphicData");
+        if (graphicData.IsNone) graphicData = anchor.Child(WordXml.A, "graphic").Child(WordXml.A, "graphicData");
+        if (graphicData.Attr("uri") != "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
+            graphicData.Elements(WordXml.Pic, "pic").Count() != 1 ||
+            drawing.Ancestors().Any(ancestor => ancestor.ContentControlLevel() == WordContentControlLevel.Run &&
+                IsNativePictureControl(ancestor))) return false;
+        if (inline.Exists) return anchor.IsNone;
+        if (!WordConverterNodes.TryReadDrawingLayout(drawing, out WordDrawingLayoutInfo layout)) return false;
         if (layout.Wrap == WordDrawingWrapKind.None)
             return TryResolveNativeAnchoredImagePlacement(layout, section, GetNativePageSize(section, options), margins,
                 layout.WidthPoints, layout.HeightPoints, out _);
@@ -299,10 +307,9 @@ public static partial class WordPdfConverterExtensions {
         // Running callbacks are evaluated while the PDF is written, after the
         // operation report is captured. Discover approximation diagnostics now.
         if (story != null)
-            foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
-                if (source.Ancestors<W.TextBoxContent>().Any()) continue;
-                var paragraph = new WordParagraph(story.Document, source);
+            foreach (OfficeXmlNode source in EnumerateNativeRunningStoryParagraphs(story)) {
+                if (source.Ancestor(WordXml.W, "txbxContent").Exists) continue;
+                WordParagraph paragraph = story.Document.ParagraphView(source);
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
                 // Box frames are qualified from geometry and paint, not from the
                 // paragraph's text, so field results cannot change the decision.
@@ -331,12 +338,12 @@ public static partial class WordPdfConverterExtensions {
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)) { SupportsPositionedTables = true }, preserveInitialSpacingBefore: true);
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
-            if (story != null && !story.ChildElements.Any())
+            if (story != null && !story.Node().HasChildren())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
             NativeNoteNumbering notes = defaults.NoteNumbering?.CreateRunningReferenceSnapshot(section)
                 ?? new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
-            var destinations = new Dictionary<W.Paragraph, string>();
+            var destinations = new Dictionary<OfficeXmlNode, string>();
             int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
@@ -417,21 +424,19 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static List<WordParagraph> GetNativeRunningContentRuns(WordParagraph paragraph, PdfCore.PdfRunningContentContext? context) {
-        if (context == null || paragraph._paragraph == null) return GetNativeRuns(paragraph);
-        var serialized = new List<(W.Run Run, string Text, bool IsField, OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>();
+        if (context == null || paragraph.Node().IsNone) return GetNativeRuns(paragraph);
+        var serialized = new List<(OfficeXmlNode Run, string Text, bool IsField, OfficeXmlNode SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>();
         if (!TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serialized)) return GetNativeRuns(paragraph);
         var runs = new List<WordParagraph>(serialized.Count);
         foreach (var item in serialized) {
-            var source = new WordParagraph(paragraph._document,
-                item.Run.Ancestors<W.Paragraph>().FirstOrDefault() ?? paragraph._paragraph, item.Run) {
-                _hyperlink = item.Run.Ancestors<W.Hyperlink>().FirstOrDefault()
-            };
+            OfficeXmlNode sourceParagraph = item.Run.Ancestor(WordXml.W, "p");
+            WordParagraph source = paragraph._document.RunView(sourceParagraph.Exists ? sourceParagraph : paragraph.Node(),
+                item.Run, item.Run.Ancestor(WordXml.W, "hyperlink"));
             if (item.IsField) {
                 string text = FormatNativeRunningPageTokens(item.Text, context, item.FieldStyle);
-                runs.Add(CreateNativeRunContentView(source, new OpenXmlElement[] {
-                    new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }
-                }));
-            } else if (item.SourceChild != null) {
+                OfficeXmlNode textNode = WordConverterNodes.CreateDetachedPreservedText(text);
+                runs.Add(CreateNativeRunContentView(source, new[] { textNode }));
+            } else if (item.SourceChild.Exists) {
                 runs.Add(CreateNativeRunContentView(source, new[] { item.SourceChild }));
             }
         }

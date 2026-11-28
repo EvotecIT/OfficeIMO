@@ -1,25 +1,23 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         // The paragraph whose content is currently being built inside a painted shading panel, and that fill.
         // Set by the renderer that paints the panel, so automatic text follows the route actually taken.
-        [ThreadStatic] private static W.Paragraph? _nativePaintedPanelParagraph;
+        [ThreadStatic] private static OfficeXmlNode _nativePaintedPanelParagraph;
         [ThreadStatic] private static global::OfficeIMO.OfficeColor? _nativePaintedPanelFill;
 
         /// <summary>Marks the paragraph fill painted behind content built until the scope is disposed.</summary>
         private static NativePaintedPanelScope EnterNativePaintedPanel(WordParagraph paragraph, global::OfficeIMO.OfficeColor? fill) {
             var scope = new NativePaintedPanelScope(_nativePaintedPanelParagraph, _nativePaintedPanelFill);
-            _nativePaintedPanelParagraph = paragraph._paragraph;
+            _nativePaintedPanelParagraph = paragraph.Node();
             _nativePaintedPanelFill = fill;
             return scope;
         }
 
         private readonly struct NativePaintedPanelScope : IDisposable {
-            private readonly W.Paragraph? _paragraph;
+            private readonly OfficeXmlNode _paragraph;
             private readonly global::OfficeIMO.OfficeColor? _fill;
 
-            internal NativePaintedPanelScope(W.Paragraph? paragraph, global::OfficeIMO.OfficeColor? fill) {
+            internal NativePaintedPanelScope(OfficeXmlNode paragraph, global::OfficeIMO.OfficeColor? fill) {
                 _paragraph = paragraph;
                 _fill = fill;
             }
@@ -36,13 +34,13 @@ namespace OfficeIMO.Word.Pdf {
         /// fill and <see langword="null"/> (the ordinary black default) otherwise.
         /// </summary>
         private static global::OfficeIMO.OfficeColor? ResolveNativeAutomaticTextColor(WordParagraph paragraph) {
-            global::OfficeIMO.OfficeColor? background = paragraph._paragraph != null &&
-                ReferenceEquals(paragraph._paragraph, _nativePaintedPanelParagraph)
+            OfficeXmlNode node = paragraph.Node();
+            global::OfficeIMO.OfficeColor? background = !node.IsNone && node.Equals(_nativePaintedPanelParagraph)
                     ? _nativePaintedPanelFill
                     : null;
             if (!background.HasValue && paragraph._document != null) {
-                W.Shading? cellShading = WordRunFormatting.ResolveContainingTableCellShading(paragraph);
-                background = cellShading == null ? null : ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(cellShading, paragraph._document));
+                OfficeXmlNode cellShading = paragraph.ContainingTableCellShadingNode();
+                background = cellShading.IsNone ? null : ParseNativeColor(WordConverterNodes.ResolveShadingFillColorHex(cellShading, paragraph._document));
             }
 
             return background is { } fill ? ResolveNativeAutomaticTextColor(fill) : null;

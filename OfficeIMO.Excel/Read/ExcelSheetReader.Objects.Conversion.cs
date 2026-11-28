@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Runtime.Serialization;
 using System.Collections.Concurrent;
 using System.Xml;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -39,7 +38,7 @@ namespace OfficeIMO.Excel {
                 // A duration or time of day comes from the stored serial rather than its date carrier.
                 if (value is DateTime && binding.DestinationType != typeof(DateTime)
                     && rawFallback is CellRaw serialRaw && !serialRaw.CustomValueHandled
-                    && serialRaw.TypeHint != CellValues.Date
+                    && serialRaw.TypeHint != ExcelCellValueType.Date
                     && (binding.DestinationType == typeof(TimeSpan) || IsTimeOnly(binding.DestinationType))
                     && TryParseInvariantDouble(serialRaw.RawText, out double serial)) value = serial;
                 return ConvertTemporal(value, binding, culture);
@@ -61,7 +60,7 @@ namespace OfficeIMO.Excel {
 #endif
 
         private bool TryConvertCellForBinding<TTarget>(
-            DocumentFormat.OpenXml.Spreadsheet.Cell cell,
+            ReaderCell cell,
             TypedPropertyBinding<TTarget> binding,
             out object? converted) {
             converted = null;
@@ -77,13 +76,13 @@ namespace OfficeIMO.Excel {
                 return converted is not null || binding.IsNullable;
             }
 
-            CellValues? typeHint = cell.DataType?.Value;
-            GetCellChildren(cell, out var formula, out var cellValue, out var inlineString);
+            ExcelCellValueType? typeHint = cell.Type;
+            cell.GetChildren(out var formula, out var cellValue, out var inlineString);
             bool hasFormula = formula is not null;
-            string? formulaText = formula?.Text;
+            string? formulaText = formula;
             bool preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
-            string? rawText = preferFormulaText ? null : cellValue?.InnerText;
-            string? inlineText = preferFormulaText ? null : ExtractInlineString(inlineString, typeHint);
+            string? rawText = preferFormulaText ? null : cellValue;
+            string? inlineText = preferFormulaText ? null : ExtractInlineString(inlineString);
 
             if (rawText == null && inlineText == null && formulaText == null && !CellHasExplicitBlank(cell)) {
                 return binding.IsNullable;
@@ -103,7 +102,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (typeHint == CellValues.SharedString) {
+            if (typeHint == ExcelCellValueType.SharedString) {
                 string? text = rawText;
                 if (TryParseSharedStringIndex(rawText, out int sstIndex)) {
                     text = GetSharedString(sstIndex);
@@ -116,7 +115,7 @@ namespace OfficeIMO.Excel {
                 return TryConvertCellForBindingFallback(cell, binding, out converted);
             }
 
-            if (typeHint == CellValues.Boolean && rawText != null) {
+            if (typeHint == ExcelCellValueType.Boolean && rawText != null) {
                 if (ReturnBindingConversion(TryConvertBooleanForBinding(ExcelBooleanCellText.IsTrue(rawText), binding, out converted), binding, converted)) {
                     return true;
                 }
@@ -124,7 +123,7 @@ namespace OfficeIMO.Excel {
                 return TryConvertCellForBindingFallback(cell, binding, out converted);
             }
 
-            if (typeHint == CellValues.String || typeHint == CellValues.InlineString) {
+            if (typeHint == ExcelCellValueType.String || typeHint == ExcelCellValueType.InlineString) {
                 if (ReturnBindingConversion(TryConvertStringForBinding(rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText, binding, out converted), binding, converted)) {
                     return true;
                 }
@@ -132,7 +131,7 @@ namespace OfficeIMO.Excel {
                 return TryConvertCellForBindingFallback(cell, binding, out converted);
             }
 
-            if (typeHint == CellValues.Date && rawText != null) {
+            if (typeHint == ExcelCellValueType.Date && rawText != null) {
                 bool isoDate = ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt);
                 RejectedDateCellBinding rejected = ClassifyDateCell(rawText, isoDate, binding);
                 if (rejected != RejectedDateCellBinding.NotRejected) return TryConvertRejectedDateCell(rejected, rawText, out converted);
@@ -154,7 +153,7 @@ namespace OfficeIMO.Excel {
 
             uint? styleIndex = null;
             if (_opt.TreatDatesUsingNumberFormat && binding.NeedsDateStyleConversion) {
-                styleIndex = cell.StyleIndex?.Value;
+                styleIndex = cell.Style;
                 if (styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if ((TryParseInvariantDouble(rawText, out var oa)
                             || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
@@ -178,7 +177,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryConvertCellForBindingFallback<TTarget>(
-            DocumentFormat.OpenXml.Spreadsheet.Cell cell,
+            ReaderCell cell,
             TypedPropertyBinding<TTarget> binding,
             out object? converted) {
             converted = null;
@@ -238,7 +237,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="ClassifyDateCell{TTarget}(string?, bool, TypedPropertyBinding{TTarget})"/>
         private RejectedDateCellBinding ClassifyDateCell<TTarget>(CellRaw raw, TypedPropertyBinding<TTarget> binding) =>
-            ClassifyDateCell(raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date ? raw.RawText : null, binding);
+            ClassifyDateCell(raw.TypeHint == ExcelCellValueType.Date ? raw.RawText : null, binding);
 
         /// <summary>Applies a rejected-date decision for a converting path: only text is a successful conversion.</summary>
         private static bool TryConvertRejectedDateCell(RejectedDateCellBinding rejected, string storedText, out object? converted) {
@@ -282,7 +281,7 @@ namespace OfficeIMO.Excel {
                 return TryConvertStringForBinding(raw.InlineText, binding, out converted);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
+            if (raw.TypeHint == ExcelCellValueType.SharedString) {
                 if (!TryParseSharedStringIndex(raw.RawText, out int sstIndex)) {
                     return TryConvertStringForBinding(raw.RawText, binding, out converted);
                 }
@@ -290,16 +289,16 @@ namespace OfficeIMO.Excel {
                 return TryConvertStringForBinding(GetSharedString(sstIndex), binding, out converted);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean && raw.RawText != null) {
+            if (raw.TypeHint == ExcelCellValueType.Boolean && raw.RawText != null) {
                 return TryConvertBooleanForBinding(ExcelBooleanCellText.IsTrue(raw.RawText), binding, out converted);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
-                || raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+            if (raw.TypeHint == ExcelCellValueType.String
+                || raw.TypeHint == ExcelCellValueType.InlineString) {
                 return TryConvertStringForBinding(raw.RawText != null ? Utilities.ExcelSanitizer.DecodeXString(raw.RawText) : raw.InlineText, binding, out converted);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
+            if (raw.TypeHint == ExcelCellValueType.Date && raw.RawText != null) {
                 bool isoDate = ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt);
                 RejectedDateCellBinding rejected = ClassifyDateCell(raw.RawText, isoDate, binding);
                 if (rejected != RejectedDateCellBinding.NotRejected) return TryConvertRejectedDateCell(rejected, raw.RawText, out converted);
@@ -408,7 +407,7 @@ namespace OfficeIMO.Excel {
                 return TrySetRawCellForBindingFallback(raw, binding, target);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
+            if (raw.TypeHint == ExcelCellValueType.SharedString) {
                 string? text = TryParseSharedStringIndex(raw.RawText, out int sstIndex)
                     ? GetSharedString(sstIndex)
                     : raw.RawText;
@@ -419,7 +418,7 @@ namespace OfficeIMO.Excel {
                 return TrySetRawCellForBindingFallback(raw, binding, target);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean && raw.RawText != null) {
+            if (raw.TypeHint == ExcelCellValueType.Boolean && raw.RawText != null) {
                 bool boolValue = ExcelBooleanCellText.IsTrue(raw.RawText);
                 if (binding.SetBoolean != null && binding.BindingKind == TypedBindingKind.Boolean) {
                     binding.SetBoolean(target, boolValue);
@@ -434,8 +433,8 @@ namespace OfficeIMO.Excel {
                 return TrySetRawCellForBindingFallback(raw, binding, target);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
-                || raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+            if (raw.TypeHint == ExcelCellValueType.String
+                || raw.TypeHint == ExcelCellValueType.InlineString) {
                 if (TrySetStringTextBinding(raw.RawText != null ? Utilities.ExcelSanitizer.DecodeXString(raw.RawText) : raw.InlineText, binding, target)) {
                     return true;
                 }
@@ -443,7 +442,7 @@ namespace OfficeIMO.Excel {
                 return TrySetRawCellForBindingFallback(raw, binding, target);
             }
 
-            if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
+            if (raw.TypeHint == ExcelCellValueType.Date && raw.RawText != null) {
                 bool isoDate = ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue);
                 if (ApplyRejectedDateCell(ClassifyDateCell(raw.RawText, isoDate, binding), raw.RawText, binding, target)) return true;
 

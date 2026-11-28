@@ -164,7 +164,7 @@ state from the extracted text.
 
 Package inspection reads the loader's source bytes and retains inert payload/VBA
 descriptors. Loaded-content safety inspection does not reopen or serialize the
-document. [Reader Core](../OfficeIMO.Reader.Core/README.md#inspect-review-and-saved-content)
+document. [Reader guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.reader.md#inspect-review-and-saved-content)
 defines the shared record/character ceilings and terminal resource failures.
 
 ## Targets and dependencies

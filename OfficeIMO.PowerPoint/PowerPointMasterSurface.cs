@@ -76,31 +76,21 @@ namespace OfficeIMO.PowerPoint {
                 ThrowIfRemoved();
                 OfficeXmlNode tree = ShapeTree;
                 var shapes = new List<PowerPointShape>();
-                if (tree.Tree == null || ContainsChart(tree)) {
-                    // Charts on a master or layout read through the SDK, as every shape of an SDK-held part does.
+                if (tree.Tree == null) {
                     return Document.CreateSdkSurfaceShapes(this);
                 }
                 foreach (OfficeXmlNode element in tree.Children()) {
-                    if (CreatePackageShape(element) is { } shape) shapes.Add(shape);
+                    if (CreatePackageShape(_part, element) is { } shape) shapes.Add(shape);
                 }
 
                 return shapes;
             }
         }
 
-        // Whether the shape tree holds a chart frame, which only reads through the SDK.
-        private static bool ContainsChart(OfficeXmlNode tree) {
-            foreach (OfficeXmlNode frame in tree.Children(P, "graphicFrame")) {
-                if (!frame.Child(D, "graphic").Child(D, "graphicData").Child(OfficeXmlNamespaces.Chart, "chart").IsNone) return true;
-            }
-            return false;
-        }
-
         // A shape wrapper for an element of the part's package tree, as the SDK model lists a master's or layout's shapes:
         // diagrams and embedded objects only belong to slides.
-        private PowerPointShape? CreatePackageShape(OfficeXmlNode element) {
+        internal static PowerPointShape? CreatePackageShape(PowerPointPartRef part, OfficeXmlNode element) {
             if (element.NamespaceId != P) return null;
-            PowerPointPartRef part = _part;
             OfficeXmlTree tree = element.Tree!;
             int node = element.Node;
             switch (element.LocalName) {
@@ -113,7 +103,9 @@ namespace OfficeIMO.PowerPoint {
                 case "grpSp":
                     return new PowerPointGroupShape(part, tree, node);
                 case "graphicFrame":
-                    return element.Child(D, "graphic").Child(D, "graphicData").Child(D, "tbl").IsNone ? null : new PowerPointTable(part, tree, node);
+                    OfficeXmlNode data = element.Child(D, "graphic").Child(D, "graphicData");
+                    if (data.Child(D, "tbl").Exists) return new PowerPointTable(part, tree, node);
+                    return data.Child(OfficeXmlNamespaces.Chart, "chart").Exists ? new PowerPointChart(part, tree, node) : null;
                 default:
                     return null;
             }
@@ -121,7 +113,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The wrapper for a shape element of this surface.</summary>
         internal PowerPointShape WrapShape(OfficeXmlNode element) =>
-            element.Tree != null ? CreatePackageShape(element)! : Document.CreateSdkSurfaceShape(this, element);
+            element.Tree != null ? CreatePackageShape(_part, element)! : Document.CreateSdkSurfaceShape(this, element);
 
         /// <summary>A text box wrapper for a placeholder shape, with or without a text body, of this surface.</summary>
         internal PowerPointTextBox WrapTextBox(OfficeXmlNode element) =>

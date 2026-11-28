@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Globalization;
 using System.Xml;
@@ -21,14 +19,13 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
-            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) continue;
                 if (rowIndex > r2) continue;
 
@@ -40,12 +37,12 @@ namespace OfficeIMO.Excel {
 
                 object?[]? values = null;
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -203,30 +200,29 @@ namespace OfficeIMO.Excel {
             needsStyles = false;
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
-            int inferredRowIndex = 0;
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
+                var rIndex = row.Index;
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     var raw = SnapshotCell(cell, rIndex, cIndex);
 
                     if (raw.RawText != null || raw.InlineText != null || raw.FormulaText != null || CellHasExplicitBlank(cell) || _opt.FillBlanksInRanges) {
                         buffer.Add(raw);
-                        if (!needsSharedStrings && raw.TypeHint == CellValues.SharedString) {
+                        if (!needsSharedStrings && raw.TypeHint == ExcelCellValueType.SharedString) {
                             needsSharedStrings = true;
                         }
 
@@ -243,14 +239,13 @@ namespace OfficeIMO.Excel {
             int width = result.GetLength(1);
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
-            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
+                var rIndex = row.Index;
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
@@ -258,12 +253,12 @@ namespace OfficeIMO.Excel {
                 if ((uint)rr >= (uint)height) continue;
 
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -281,7 +276,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();

@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     // A hidden paragraph mark removes the boundary, while each source run retains
@@ -124,14 +124,15 @@ public static partial class WordPdfConverterExtensions {
     private static bool CanJoinNativeTextParagraph(WordParagraph paragraph,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
         NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
-        W.Paragraph source = paragraph._paragraph;
-        if (IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null ||
+        OfficeXmlNode source = paragraph.Node();
+        OfficeXmlNode properties = source.WChild("pPr");
+        if (IsSectionMarkOnly(paragraph.Node()) || properties.WChild("sectPr").Exists ||
             getMarker(paragraph) != null || GetHeadingLevel(paragraph) > 0 || HasNativeParagraphBarTabs(paragraph) ||
-            source.ParagraphProperties?.GetFirstChild<W.ParagraphBorders>() != null ||
-            source.ParagraphProperties?.GetFirstChild<W.Shading>() != null ||
-            source.Descendants<W.Drawing>().Any() || source.Descendants<W.Picture>().Any() ||
-            source.Descendants<W.EmbeddedObject>().Any() ||
-            WordEquation.GetOccurrences(paragraph._document, source).Count > 0 ||
+            properties.WChild("pBdr").Exists ||
+            properties.WChild("shd").Exists ||
+            source.HasDescendant(WordXml.W, "drawing") || source.HasDescendant(WordXml.W, "pict") ||
+            source.HasDescendant(WordXml.W, "object") ||
+            paragraph._document.EquationOccurrences(source).Count > 0 ||
             GetNativeCheckBoxControls(paragraph).Count > 0 || GetNativeFormFieldControls(paragraph).Count > 0 ||
             GetNativeRepeatingSectionControls(paragraph).Count > 0) return false;
         PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
@@ -140,9 +141,8 @@ public static partial class WordPdfConverterExtensions {
             CreateNativeBottomBorderRuleStyle(paragraph, style) != null) return false;
         foreach (WordParagraph run in GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext)) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
-            if (children.OfType<W.Break>().Any(boundary => boundary.Type?.Value == W.BreakValues.Page ||
-                boundary.Type?.Value == W.BreakValues.Column)) return false;
+            IEnumerable<OfficeXmlNode> children = run.VisibleRunSourceChildNodes() ?? run.RunNode().Elements();
+            if (children.Any(boundary => boundary.IsW("br") && boundary.WAttr("type") is "page" or "column")) return false;
         }
         return true;
     }

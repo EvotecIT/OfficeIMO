@@ -1,6 +1,5 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>
@@ -16,9 +15,9 @@ public static partial class WordPdfConverterExtensions {
             firstIndex != lastIndex || lastIndex != elements.Count - 1 || firstIndex == 0 ||
             elements[firstIndex - 1] is not WordTable)
             return false;
-        W.Paragraph source = paragraph._paragraph;
-        if (source.ChildElements.Any(child => child is not W.ParagraphProperties) ||
-            source.ParagraphProperties?.SectionProperties != null || HasNativePageBreakBefore(paragraph) ||
+        OfficeXmlNode source = paragraph.Node();
+        if (source.Elements().Any(child => !child.IsW("pPr")) ||
+            source.WChild("pPr").WChild("sectPr").Exists || HasNativePageBreakBefore(paragraph) ||
             IsSectionMarkOnly(source) || getMarker?.Invoke(paragraph) != null ||
             WordDocumentTraversal.GetListInfo(paragraph) != null || GetHeadingLevel(paragraph) > 0 ||
             HasNativeParagraphBarTabs(paragraph) || HasNativeParagraphFrame(paragraph) ||

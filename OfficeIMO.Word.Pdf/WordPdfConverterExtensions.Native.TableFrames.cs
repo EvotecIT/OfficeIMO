@@ -1,25 +1,25 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static void ApplyNativeTableBorderFrame(WordTable table, TableLayout layout,
             PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
             if (!UsesNativeSeparateTableCellBorders(table, style, defaults) ||
                 style.Position != null || !style.ConsumesVerticalFlow) return;
-            W.TableBorders? authored = ResolveNativeTableBorderColors(table._tableProperties?.TableBorders, table.Document);
-            W.TableBorders? borders = authored?.HasChildren == true
+            OfficeXmlNode authored = ResolveNativeTableBorderColors(table.PropertiesNode().WChild("tblBorders"), table.Document);
+            OfficeXmlNode borders = authored.HasChildren()
                 ? MergeNativeTableBorders(defaults.Borders, authored) : defaults.Borders;
             var border = new PdfCore.PdfCellBorder {
                 Color = null, Width = global::OfficeIMO.OfficeLength.Points(0D),
-                Top = HasNativeBorder(borders?.TopBorder?.Val?.Value),
-                Right = HasNativeBorder(borders?.RightBorder?.Val?.Value),
-                Bottom = HasNativeBorder(borders?.BottomBorder?.Val?.Value),
-                Left = HasNativeBorder(borders?.LeftBorder?.Val?.Value),
-                TopBorder = CreateNativeCellBorderSide(borders?.TopBorder),
-                RightBorder = CreateNativeCellBorderSide(borders?.RightBorder),
-                BottomBorder = CreateNativeCellBorderSide(borders?.BottomBorder),
-                LeftBorder = CreateNativeCellBorderSide(borders?.LeftBorder)
+                Top = HasNativeBorder(borders.WChild("top").WVal()),
+                Right = HasNativeBorder(borders.WChild("right").WVal()),
+                Bottom = HasNativeBorder(borders.WChild("bottom").WVal()),
+                Left = HasNativeBorder(borders.WChild("left").WVal()),
+                TopBorder = CreateNativeCellBorderSide(borders.WChild("top")),
+                RightBorder = CreateNativeCellBorderSide(borders.WChild("right")),
+                BottomBorder = CreateNativeCellBorderSide(borders.WChild("bottom")),
+                LeftBorder = CreateNativeCellBorderSide(borders.WChild("left"))
             };
             MaterializeNativeTableBorderGrid(style, layout);
             if (style.CellBorders != null)
@@ -40,8 +40,8 @@ namespace OfficeIMO.Word.Pdf {
                 GetNativeTableRowStartColumn(layout, 0), right: false);
             style.BorderFrame = new PdfCore.PdfTableBorderFrame {
                 Spacing = style.CellSpacing.ToPoints(), Border = border, HorizontalInset = horizontalInset,
-                Background = ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(
-                    WordRunFormatting.ResolveTableShading(table), table.Document))
+                Background = ParseNativeColor(WordConverterNodes.ResolveShadingFillColorHex(
+                    WordConverterNodes.ResolveTableShading(table), table.Document))
             };
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }
@@ -179,8 +179,10 @@ namespace OfficeIMO.Word.Pdf {
                 double topMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: true);
                 double bottomMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: false);
                 ApplyNativeRowVerticalMargins(layout, style, rowIndex, topMargin, bottomMargin);
-                W.TableRowHeight? height = sourceRows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
-                if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
+                OfficeXmlNode height = sourceRows[rowIndex].Node().WChild("trPr").WChild("trHeight");
+                uint? heightValue = height.WUInt32("val");
+                string? heightRule = height.WAttr("hRule");
+                if (heightValue is not > 0 || heightRule == "auto") continue;
                 double top = 0D, bottom = 0D;
                 if (style.CellBorders != null) {
                     foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == rowIndex)) {
@@ -188,8 +190,8 @@ namespace OfficeIMO.Word.Pdf {
                         bottom = Math.Max(bottom, GetNativeFrameSide(entry.Value, top: false)?.PaintThickness ?? 0D);
                     }
                 }
-                double points = height.Val.Value / 20D;
-                if (height.HeightType?.Value == W.HeightRuleValues.Exact) {
+                double points = heightValue.Value / 20D;
+                if (heightRule == "exact") {
                     // The first row includes leading spacing; subsequent rows
                     // share the half-spacing and the adjoining border paint.
                     double spacing = rowIndex == 0 ? 2D * sourceSpacing : sourceSpacing;

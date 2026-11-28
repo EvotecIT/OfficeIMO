@@ -22,17 +22,18 @@ public partial class WordTableOfContent {
         if (_ownedSdt.IsNone) return default;
         OfficeXmlTree original = _ownedSdt.Tree!;
         if (_document._ownedModel != null) return _ownedSdt;
-        if (_document.FindSdkWordNodeMap(original) is { } elements) {
-            int index = _ownedSdt.Node;
-            return index >= 0 && index < elements.Length ? OfficeXmlNode.FromSdk(elements[index]) : default;
+        object?[]? elements = _document.FindSdkWordNodeMap(original);
+        if (elements == null) {
+            if (_document.DisposedReadModel is not { } copy) return default;
+            if (!ReferenceEquals(original, copy.Document)) {
+                int node = _document.DisposedCopyNode(_ownedSdt.Node);
+                _ownedSdt = new OfficeXmlNode(copy.Document, node);
+            }
+            elements = _document.FindSdkWordNodeMap(copy.Document);
+            if (elements == null) return _ownedSdt;
         }
-        if (_document.DisposedReadModel is { } copy) {
-            if (ReferenceEquals(original, copy.Document)) return _ownedSdt;
-            int node = _document.DisposedCopyNode(_ownedSdt.Node);
-            _ownedSdt = new OfficeXmlNode(copy.Document, node);
-            return _ownedSdt;
-        }
-        return default;
+        int index = _ownedSdt.Node;
+        return index >= 0 && index < elements.Length ? OfficeXmlNode.FromSdk(elements[index]) : default;
     }
 
     private void RecordOwnedTocEdit() {
