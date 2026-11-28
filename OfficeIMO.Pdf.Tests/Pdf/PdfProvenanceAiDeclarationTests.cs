@@ -126,7 +126,21 @@ public sealed class PdfProvenanceAiDeclarationTests {
             new OfficeProvenanceOptions { MaxExpandedContainerBytes = wrappedBytes - 1 }));
     }
 
-    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false, bool singleFilterArray = false) {
+    [Fact]
+    public void CatalogGetsItsOwnCleanedCopyWhenAnExcludedImageSharesItsMetadata() {
+        byte[] source = CreatePdf(out _, sharedMetadata: true);
+
+        byte[] output = PdfProvenance.Remove(source, new OfficeProvenanceRemovalOptions { ProcessEmbeddedAssets = false }).ToArray();
+
+        PdfReadDocument document = PdfReadDocument.Open(output);
+        Assert.DoesNotContain("trainedAlgorithmicMedia", document.XmpMetadata!.RawXml!);
+        PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
+        PdfStream imageMetadata = Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(document.Objects, image.Dictionary.Items["Metadata"]));
+        Assert.Contains("trainedAlgorithmicMedia", Encoding.UTF8.GetString(imageMetadata.Data));
+    }
+
+    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false, bool singleFilterArray = false, bool sharedMetadata = false) {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -179,6 +193,7 @@ public sealed class PdfProvenanceAiDeclarationTests {
             } else {
                 imageDictionary.Items["Filter"] = new PdfName("DCTDecode");
             }
+            if (sharedMetadata) imageDictionary.Items["Metadata"] = new PdfReference(metadataNumber, 0);
             int imageNumber = next++;
             objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(imageDictionary, imageData));
             PdfDictionary pages = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Pages"]));

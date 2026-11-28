@@ -53,11 +53,16 @@ public static partial class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfDocumentSecurityInfo security = document.Security;
         bool removeDeclarations = removal?.RemoveAiSourceMetadata == true;
+        bool processImages = removal?.ProcessEmbeddedAssets ?? options.ProcessEmbeddedAssets;
 
         if (security.RootObjectNumber is int rootNumber &&
             objects.TryGetValue(rootNumber, out PdfIndirectObject? root) && root.Value is PdfDictionary catalog &&
             catalog.Items.TryGetValue("Metadata", out PdfObject? catalogMetadata)) {
+            // When images are left alone but one shares the catalog's metadata stream, the catalog gets its own cleaned copy.
+            bool sharedWithKeptImage = !processImages && catalogMetadata is PdfReference catalogReference &&
+                IsMetadataSharedWithImage(objects, catalogReference.ObjectNumber, cancellationToken);
             WalkXmp(document, options, catalogMetadata, CatalogMetadataLocation, context, removeDeclarations ? removal : null, changes, edits,
+                copyOnWrite: sharedWithKeptImage,
                 replaceDirect: (graph, graphSecurity, stream) => {
                     if (graphSecurity.RootObjectNumber is int number && graph.TryGetValue(number, out PdfIndirectObject? item) &&
                         item.Value is PdfDictionary graphCatalog) graphCatalog.Items["Metadata"] = stream;
@@ -83,7 +88,6 @@ public static partial class PdfProvenance {
             }
         }
 
-        bool processImages = removal?.ProcessEmbeddedAssets ?? options.ProcessEmbeddedAssets;
         int maximumImages = removal?.MaxEmbeddedAssets ?? options.MaxEmbeddedAssets;
         int images = 0;
         var visitedMetadata = new HashSet<int>();
@@ -121,7 +125,8 @@ public static partial class PdfProvenance {
         OfficeProvenanceRemovalOptions? removal,
         List<OfficeProvenanceChange>? changes,
         List<ObjectGraphEdit>? edits,
-        Action<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, PdfStream> replaceDirect) {
+        Action<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, PdfObject> replaceDirect,
+        bool copyOnWrite = false) {
         if (PdfObjectLookup.Resolve(document.Objects, metadata) is not PdfStream stream) return;
         byte[] packet;
         try {
@@ -133,7 +138,13 @@ public static partial class PdfProvenance {
         if (removal == null || changes == null || edits == null ||
             !OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removal, location, changes, out byte[] cleaned)) return;
         PdfDictionary dictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(stream.Dictionary);
-        if (metadata is PdfReference reference) {
+        if (metadata is PdfReference shared && copyOnWrite) {
+            edits.Add((graph, security) => {
+                int number = graph.Keys.Max() + 1;
+                graph[number] = new PdfIndirectObject(number, 0, new PdfStream(dictionary, cleaned));
+                replaceDirect(graph, security, new PdfReference(number, 0));
+            });
+        } else if (metadata is PdfReference reference) {
             edits.Add((graph, _) => {
                 int generation = graph.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? existing) ? existing.Generation : reference.Generation;
                 graph[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, generation, new PdfStream(dictionary, cleaned));
@@ -228,6 +239,16 @@ public static partial class PdfProvenance {
             dictionary.Items["DecodeParms"] = dctParameters;
         }
         return dictionary;
+    }
+
+    private static bool IsMetadataSharedWithImage(Dictionary<int, PdfIndirectObject> objects, int metadataObject, CancellationToken cancellationToken) {
+        foreach (PdfIndirectObject item in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (item.Value is PdfStream image && IsName(objects, image.Dictionary, "Subtype", "Image") &&
+                image.Dictionary.Items.TryGetValue("Metadata", out PdfObject? value) &&
+                value is PdfReference reference && reference.ObjectNumber == metadataObject) return true;
+        }
+        return false;
     }
 
     private static bool HasFilterChain(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
