@@ -70,7 +70,7 @@ public partial class WordChart {
         OfficeXmlNode root = ChartSpaceNode;
         if (root.IsNone) return this;
         double interval = majorUnit.HasValue ? majorUnit.Value : SelectCountAxisInterval(root);
-        foreach (OfficeXmlNode axis in root.ContentDescendants(NsC, "valAx")) {
+        foreach (OfficeXmlNode axis in PlotAreaOf(root.Child(NsC, "chart")).Children(NsC, "valAx")) {
             OfficeXmlNode scaling = axis.Child(NsC, "scaling");
             if (scaling.IsNone) scaling = OfficeChartXml.SetOrdered(axis, NewC(axis, "scaling"), CValAxView.Order);
             OfficeChartXml.SetOrdered(scaling, NewC(scaling, "min", OfficeChartXml.Text(0D)), CScalingView.Order);
@@ -107,21 +107,26 @@ public partial class WordChart {
         !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Max(0D, value) : 0D;
 
     private static double ReadCountMaximum(OfficeXmlNode root, bool includeAuthoredMaximum) {
+        // Only plotted values and axis bounds count; values in extension or vendor markup do not.
+        OfficeXmlNode plot = PlotAreaOf(root.Child(NsC, "chart"));
         double maximum = 0D;
-        foreach (OfficeXmlNode values in root.ContentDescendants(NsC, "val")) {
-            foreach (OfficeXmlNode point in values.ContentDescendants(NsC, "pt")) maximum = Math.Max(maximum, ReadCountPoint(point));
+        foreach (OfficeXmlNode series in PlottedSeries(plot)) {
+            foreach (OfficeXmlNode point in CachedNumbers(series.Child(NsC, "val"))) maximum = Math.Max(maximum, ReadCountPoint(point));
         }
         if (includeAuthoredMaximum) {
-            foreach (OfficeXmlNode bound in root.ContentDescendants(NsC, "max")) maximum = Math.Max(maximum, bound.DoubleVal() ?? 0D);
+            for (OfficeXmlNode axis = plot.IsNone ? default : plot.FirstChild; !axis.IsNone; axis = axis.NextSibling) {
+                if (!IsAxis(axis)) continue;
+                OfficeXmlNode scaling = axis.Child(NsC, "scaling");
+                OfficeXmlNode bound = scaling.IsNone ? default : scaling.Child(NsC, "max");
+                if (!bound.IsNone) maximum = Math.Max(maximum, bound.DoubleVal() ?? 0D);
+            }
         }
         // Stacked bars use the sum at each category, rather than an individual series maximum.
-        foreach (OfficeXmlNode bar in root.ContentDescendants(NsC, "barChart")) {
+        foreach (OfficeXmlNode bar in plot.Children(NsC, "barChart")) {
             if (!IsGrouping(bar, "stacked")) continue;
             var sums = new Dictionary<uint, double>();
             foreach (OfficeXmlNode series in bar.Children(NsC, "ser")) {
-                OfficeXmlNode values = series.Child(NsC, "val");
-                if (values.IsNone) continue;
-                foreach (OfficeXmlNode point in values.ContentDescendants(NsC, "pt")) {
+                foreach (OfficeXmlNode point in CachedNumbers(series.Child(NsC, "val"))) {
                     uint index = point.UIntAttr("idx") ?? 0U;
                     sums[index] = (sums.TryGetValue(index, out double sum) ? sum : 0D) + ReadCountPoint(point);
                 }
@@ -129,5 +134,14 @@ public partial class WordChart {
             if (sums.Count > 0) maximum = Math.Max(maximum, sums.Values.Max());
         }
         return maximum;
+    }
+
+    /// <summary>The cached points of a <c>c:val</c>: its <c>c:numRef/c:numCache</c> or <c>c:numLit</c> points.</summary>
+    private static IEnumerable<OfficeXmlNode> CachedNumbers(OfficeXmlNode values) {
+        if (values.IsNone) yield break;
+        OfficeXmlNode reference = values.Child(NsC, "numRef");
+        OfficeXmlNode cache = reference.IsNone ? values.Child(NsC, "numLit") : reference.Child(NsC, "numCache");
+        if (cache.IsNone) yield break;
+        foreach (OfficeXmlNode point in cache.Children(NsC, "pt")) yield return point;
     }
 }

@@ -113,16 +113,69 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
     }
 
     [Fact]
-    public void ChartReferenceInsideVendorDrawingMarkupIsNotTheDrawnChart() {
+    public void ChartFrameInsideVendorDrawingMarkupIsNotTheDrawnChart() {
         string path = CreateBarChart("vendor-reference.docx");
         RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<wp:docPr [^>]*?)\\s*/>",
-            "$1><v:payload xmlns:v=\"urn:example:vendor\"><a:graphicData xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" uri=\"" + ChartNs + "\">" +
+            "$1><v:payload xmlns:v=\"urn:example:vendor\"><wp:inline><a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">" +
+            "<a:graphicData uri=\"" + ChartNs + "\">" +
             "<c:chart xmlns:c=\"" + ChartNs + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"rIdMissing\" />" +
-            "</a:graphicData></v:payload></wp:docPr>",
+            "</a:graphicData></a:graphic></wp:inline></v:payload></wp:docPr>",
             RegexOptions.None, TimeSpan.FromSeconds(5)));
 
         using var document = WordDocument.Load(path);
-        Assert.Equal("Sales", Assert.Single(document.AllCharts).Title);
+        WordChart chart = Assert.Single(document.AllCharts);
+        Assert.Equal("Sales", chart.Title);
+        Assert.True(chart.TrySetSeriesName(0, "Edited"));
+    }
+
+    [Fact]
+    public void ChartFrameInsideAlternateContentIsTheDrawnChart() {
+        string path = CreateBarChart("alternate-content.docx");
+        RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<wp:(inline|anchor)\\b.*?</wp:\\2>)",
+            "<mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"wp\">$1</mc:Choice></mc:AlternateContent>",
+            RegexOptions.Singleline, TimeSpan.FromSeconds(5)));
+
+        using (var document = WordDocument.Load(path)) {
+            WordChart chart = Assert.Single(document.AllCharts);
+            Assert.Equal("Sales", chart.Title);
+            Assert.True(chart.TrySetSeriesName(0, "Edited"));
+            document.Save();
+        }
+
+        Assert.Contains("<c:v>Edited</c:v>", Assert.Single(ReadChartParts(path)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SeriesInsideVendorMarkupDoNotTakePointStyles() {
+        string path = CreateBarChart("vendor-series.docx");
+        RewriteChartPart(path, xml => ReplaceFirst(xml, "<c:ser>",
+            "<v:meta xmlns:v=\"urn:example:vendor\"><c:ser><c:idx val=\"0\" /><c:order val=\"0\" /><c:tx><c:v>Decoy</c:v></c:tx></c:ser></v:meta><c:ser>"));
+
+        using (var document = WordDocument.Load(path)) {
+            Assert.Single(document.AllCharts).SetDataPointStyle(0, 1, new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#FF0000")));
+            document.Save();
+        }
+
+        string xml = Assert.Single(ReadChartParts(path));
+        string vendor = Regex.Match(xml, "<v:meta.*?</v:meta>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Contains("<c:v>Decoy</c:v>", vendor, StringComparison.Ordinal);
+        Assert.DoesNotContain("<c:dPt>", vendor, StringComparison.Ordinal);
+        Assert.Contains("<c:dPt>", xml.Replace(vendor, string.Empty), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValuesInsideVendorMarkupDoNotScaleTheCountAxis() {
+        string path = CreateBarChart("vendor-count.docx");
+        RewriteChartPart(path, xml => ReplaceFirst(xml, "<c:ser>",
+            "<v:meta xmlns:v=\"urn:example:vendor\"><c:val><c:numLit><c:ptCount val=\"1\" /><c:pt idx=\"0\"><c:v>999999999</c:v></c:pt></c:numLit></c:val></v:meta><c:ser>"));
+
+        using (var document = WordDocument.Load(path)) {
+            Assert.Single(document.AllCharts).SetCountAxis();
+            document.Save();
+        }
+
+        string scaling = Regex.Match(Assert.Single(ReadChartParts(path)), "<c:valAx\\b.*?</c:scaling>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Contains("<c:max val=\"3\"", scaling, StringComparison.Ordinal);
     }
 
     [Fact]

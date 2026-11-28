@@ -11,6 +11,7 @@ namespace OfficeIMO.Word {
         private const int NsA = OfficeXmlNamespaces.DrawingML;
         private const int NsWp = OfficeXmlNamespaces.WordprocessingDrawing;
         private const int NsR = OfficeXmlNamespaces.Relationships;
+        private const int NsMc = OfficeXmlNamespaces.MarkupCompatibility;
         private const string ChartNamespaceUri = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 
         /// <summary>Creates a child of <paramref name="parent"/> and appends it.</summary>
@@ -52,31 +53,33 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// The relationship id of the chart a drawing shows. A chart reference is a <c>c:chart</c> directly in
-        /// <c>a:graphicData</c>; one anywhere else, such as in vendor markup, and anything in extension markup is not.
+        /// The relationship id of the chart a drawing shows: the <c>c:chart</c> of the drawing's own frame, at
+        /// wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart, including a frame in an <c>mc:AlternateContent</c>
+        /// branch of the drawing. A chart anywhere else, such as in vendor or extension markup, is not.
         /// </summary>
         private static string? ChartReferenceId(OfficeXmlNode drawing) {
             if (drawing.IsNone) return null;
-            // The usual place: w:drawing/wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart.
-            OfficeXmlNode frame = drawing.FirstChild;
-            if (!frame.IsNone && (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor"))) {
-                OfficeXmlNode graphic = frame.Child(NsA, "graphic");
-                OfficeXmlNode data = graphic.IsNone ? default : graphic.Child(NsA, "graphicData");
-                OfficeXmlNode reference = data.IsNone ? default : data.Child(NsC, "chart");
-                if (!reference.IsNone && FirstContentChart(drawing, reference)) return reference.Attribute(NsR, "id");
-            }
-            foreach (OfficeXmlNode candidate in drawing.ContentDescendants(NsC, "chart")) {
-                if (IsChartReference(candidate)) return candidate.Attribute(NsR, "id");
+            for (OfficeXmlNode child = drawing.FirstChild; !child.IsNone; child = child.NextSibling) {
+                OfficeXmlNode reference = FrameChart(child);
+                if (!reference.IsNone) return reference.Attribute(NsR, "id");
+                if (!child.Is(NsMc, "AlternateContent")) continue;
+                for (OfficeXmlNode branch = child.FirstChild; !branch.IsNone; branch = branch.NextSibling) {
+                    if (!branch.Is(NsMc, "Choice") && !branch.Is(NsMc, "Fallback")) continue;
+                    for (OfficeXmlNode frame = branch.FirstChild; !frame.IsNone; frame = frame.NextSibling) {
+                        reference = FrameChart(frame);
+                        if (!reference.IsNone) return reference.Attribute(NsR, "id");
+                    }
+                }
             }
             return null;
         }
 
-        /// <summary>Whether a <c>c:chart</c> sits at wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart.</summary>
-        private static bool IsChartReference(OfficeXmlNode element) {
-            OfficeXmlNode data = element.Parent;
-            OfficeXmlNode graphic = data.Parent;
-            OfficeXmlNode frame = graphic.Parent;
-            return data.Is(NsA, "graphicData") && graphic.Is(NsA, "graphic") && (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor"));
+        /// <summary>The <c>c:chart</c> at a:graphic/a:graphicData/c:chart of a wp:inline or wp:anchor frame, or none.</summary>
+        private static OfficeXmlNode FrameChart(OfficeXmlNode frame) {
+            if (!frame.Is(NsWp, "inline") && !frame.Is(NsWp, "anchor")) return default;
+            OfficeXmlNode graphic = frame.Child(NsA, "graphic");
+            OfficeXmlNode data = graphic.IsNone ? default : graphic.Child(NsA, "graphicData");
+            return data.IsNone ? default : data.Child(NsC, "chart");
         }
 
         /// <summary>
@@ -97,30 +100,21 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        /// <summary>
-        /// Whether <paramref name="reference"/> is the drawing's first chart reference in document order outside extension
-        /// markup: no content before it, at any level up to the drawing, holds another.
-        /// </summary>
-        private static bool FirstContentChart(OfficeXmlNode drawing, OfficeXmlNode reference) {
-            for (OfficeXmlNode node = reference; !node.IsNone && node != drawing; node = node.Parent) {
-                for (OfficeXmlNode sibling = node.PreviousSibling; !sibling.IsNone; sibling = sibling.PreviousSibling) {
-                    if (sibling.IsExtensionMarkup()) continue;
-                    if (sibling.Is(NsC, "chart") && IsChartReference(sibling)) return false;
-                    if (sibling.FirstChild.IsNone) continue;
-                    foreach (OfficeXmlNode candidate in sibling.ContentDescendants(NsC, "chart")) {
-                        if (IsChartReference(candidate)) return false;
-                    }
-                }
-            }
-            return true;
-        }
-
         /// <summary>Whether a chart child is an axis.</summary>
         private static bool IsAxis(OfficeXmlNode element) =>
             element.Is(NsC, "catAx") || element.Is(NsC, "valAx") || element.Is(NsC, "dateAx") || element.Is(NsC, "serAx");
 
         /// <summary>Whether a plot area child is a chart group, such as <c>c:barChart</c>.</summary>
-        private static bool IsChartGroup(OfficeXmlNode element) => element.LocalName.EndsWith("Chart", StringComparison.Ordinal);
+        private static bool IsChartGroup(OfficeXmlNode element) =>
+            element.NamespaceId == NsC && element.LocalName.EndsWith("Chart", StringComparison.Ordinal);
+
+        /// <summary>The plotted series: the <c>c:ser</c> children of the plot area's chart groups, in document order.</summary>
+        private static IEnumerable<OfficeXmlNode> PlottedSeries(OfficeXmlNode plot) {
+            for (OfficeXmlNode group = plot.IsNone ? default : plot.FirstChild; !group.IsNone; group = group.NextSibling) {
+                if (!IsChartGroup(group)) continue;
+                foreach (OfficeXmlNode series in group.Children(NsC, "ser")) yield return series;
+            }
+        }
 
         /// <summary>Raises the shared axis id seed to at least <paramref name="max"/> without lowering it.</summary>
         private static void RaiseAxisIdSeed(uint max) {
