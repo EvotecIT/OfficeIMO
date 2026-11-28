@@ -19,7 +19,8 @@ if ($ValidateHtmlPdfRelease -and
     & "$PSScriptRoot/Test-HtmlPdfReleaseGate.ps1" -PdfComplianceProofPath $PdfComplianceProofPath
 }
 
-Import-Module PSPublishModule -Force -ErrorAction Stop
+# PSPublishModule 3.0.196 packs, and plans, OfficeIMO.Tool's per-platform packages; older versions see only one package.
+Import-Module PSPublishModule -MinimumVersion 3.0.196 -Force -ErrorAction Stop
 
 if (($PublishNuget -eq $true -or $PublishGitHub -eq $true) -and $Plan -ne $true) {
     if ($ConfigPath -ne "$PSScriptRoot\project.build.json") {

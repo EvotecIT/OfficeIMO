@@ -20,12 +20,19 @@
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
-    <!-- The tool ships as one small NuGet package that points the .NET 10 SDK at a ReadyToRun-compiled package for the
-         machine's runtime, plus a portable package for runtimes not listed here. -->
+    <!-- ReadyToRun needs a runtime: a RID-less restore or build doesn't request any platform's packs.
+         `dotnet restore -r <rid>` passes RuntimeIdentifiers, so it also restores the ReadyToRun compiler. -->
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != '' or '$(RuntimeIdentifiers)' != '' or '$(PowerForgePackaging)' == 'true'">true</PublishReadyToRun>
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
+  </PropertyGroup>
+
+  <!-- The tool ships as one small NuGet package that points the .NET 10 SDK at a ReadyToRun-compiled package for the
+       machine's runtime, plus a portable package for runtimes not listed here. The release sets PowerForgePackaging;
+       other restores skip every platform's runtime, app host and ReadyToRun packs. Pack it yourself with
+       -p:PowerForgePackaging=true. -->
+  <PropertyGroup Condition="'$(PowerForgePackaging)' == 'true'">
     <ToolPackageRuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64;osx-x64;osx-arm64;any</ToolPackageRuntimeIdentifiers>
     <RuntimeIdentifiers>$(ToolPackageRuntimeIdentifiers)</RuntimeIdentifiers>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AotValidation)' == 'true'">
@@ -72,4 +79,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
   </ItemGroup>
+  <!-- Without the runtime list, pack would quietly produce a RID-neutral package, or a single-platform package under
+       the main package ID, instead of the per-platform set. BeforePack runs before NuGet writes anything. -->
+  <PropertyGroup>
+    <BeforePack>RequireToolPackagingProperty;$(BeforePack)</BeforePack>
+  </PropertyGroup>
+  <Target Name="RequireToolPackagingProperty" Condition="'$(PowerForgePackaging)' != 'true'">
+    <Error Text="OfficeIMO.Tool packs its per-platform packages only with -p:PowerForgePackaging=true, which PSPublishModule 3.0.196 or newer sets for releases." />
+  </Target>
 </Project>
