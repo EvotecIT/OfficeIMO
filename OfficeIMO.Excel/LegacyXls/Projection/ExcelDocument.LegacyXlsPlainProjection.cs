@@ -126,6 +126,7 @@ public partial class ExcelDocument {
     // The parsed BIFF model remains authoritative for values and native data retention.
     private static bool HasPlainLegacyXlsRecords(byte[] stream, CancellationToken token) {
         int offset = 0;
+        int completedSubstreams = 0;
         while (offset <= stream.Length - 4) {
             token.ThrowIfCancellationRequested();
             ushort type = BiffRecordReader.ReadUInt16(stream, offset);
@@ -137,7 +138,14 @@ public partial class ExcelDocument {
             }
 
             offset += 4 + length;
+            if (type == 0x000a && ++completedSubstreams == 2) {
+                // Some compound files include sector padding in the recorded Workbook stream size.
+                for (; offset < stream.Length; offset++) {
+                    if (stream[offset] != 0) return false;
+                }
+                return true;
+            }
         }
-        return offset == stream.Length;
+        return false;
     }
 }
