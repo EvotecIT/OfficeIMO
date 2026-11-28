@@ -476,7 +476,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static void ChangeTemplateDocumentTypeThroughSdk(string path, PresentationDocumentType type) {
-            using var document = PresentationDocument.Open(path, true);
+            using Stream stream = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            using var document = PresentationDocument.Open(stream, true);
             document.ChangeDocumentType(type);
             document.Save();
         }
