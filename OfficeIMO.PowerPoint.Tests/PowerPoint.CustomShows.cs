@@ -1,12 +1,122 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public sealed class PowerPointCustomShowTests {
+        [Fact]
+        public void OwnedCustomShowsIgnoreExtensionDecoysAndKeepHeldShowsAcrossLateSdkBinding() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide first = source.AddSlide();
+            PowerPointSlide second = source.AddSlide();
+            source.AddCustomShow("Visible", new[] { first, second });
+            byte[] bytes = source.ToBytes();
+            using var read = OfficeOpcPackage.Open(new MemoryStream(bytes, writable: false));
+            string main = read.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(bytes, writable: false));
+            OfficeXmlTree tree = edit.GetXml(main);
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            int extensions = tree.FindChild(tree.Root, ns, "extLst");
+            if (extensions == OfficeXmlTree.NoNode) {
+                extensions = tree.CreateElement(ns, "extLst");
+                tree.Append(tree.Root, extensions);
+            }
+            int extension = tree.CreateElement(ns, "ext");
+            tree.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "urn:fixture:unknown-custom-show");
+            tree.Append(extensions, extension);
+            int shadow = tree.CreateElement(ns, "custShowLst");
+            tree.Append(extension, shadow);
+            int decoy = tree.CreateElement(ns, "custShow");
+            tree.SetAttribute(decoy, OfficeXmlNamespaces.None, "name", "Shadow");
+            tree.SetAttribute(decoy, OfficeXmlNamespaces.None, "id", "2");
+            tree.Append(shadow, decoy);
+            using var packaged = new MemoryStream();
+            edit.Save(packaged);
+
+            using var document = PowerPointDocument.Load(new MemoryStream(packaged.ToArray(), writable: false));
+            Assert.False(document.IsSdkLoaded, "load");
+            PowerPointCustomShow held = Assert.Single(document.CustomShows);
+            Assert.Null(document.GetCustomShow("Shadow"));
+            Assert.False(document.IsSdkLoaded, "read");
+            PowerPointCustomShow newShow = document.AddCustomShow("New show", new[] { document.Slides[1] });
+            Assert.Equal(2U, newShow.Id);
+            Assert.False(document.IsSdkLoaded, "create");
+            held.MoveSlide(0, 1);
+            document.RenameCustomShow(held, "Renamed");
+            Assert.Equal(new[] { document.Slides[1], document.Slides[0] }, held.Slides);
+            Assert.False(document.IsSdkLoaded, "edit");
+
+            byte[] saved = document.ToBytes();
+            Assert.False(document.IsSdkLoaded, "save");
+            using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            Assert.Equal(new[] { "Renamed", "New show" }, reopened.CustomShows.Select(show => show.Name));
+            Assert.Null(reopened.GetCustomShow("Shadow"));
+            Assert.False(reopened.IsSdkLoaded);
+            using var savedPackage = OfficeOpcEditablePackage.Open(new MemoryStream(saved, writable: false));
+            OfficeXmlTree savedPresentation = savedPackage.GetXml(main);
+            int savedExtensions = savedPresentation.FindChild(savedPresentation.Root, ns, "extLst");
+            int savedExtension = savedPresentation.FindChild(savedExtensions, ns, "ext");
+            int savedShadow = savedPresentation.FindChild(savedExtension, ns, "custShowLst");
+            int savedDecoy = savedPresentation.FindChild(savedShadow, ns, "custShow");
+            Assert.Equal("Shadow", savedPresentation.GetAttribute(savedDecoy, OfficeXmlNamespaces.None, "name"));
+
+            _ = document.OpenXmlDocument;
+            Assert.Equal("Renamed", held.Name);
+            Assert.True(document.RemoveCustomShow(held));
+            Assert.Equal("Renamed", held.Name);
+            Assert.Equal("New show", Assert.Single(document.CustomShows).Name);
+        }
+
+        [Fact]
+        public void CustomShowSequenceFollowsAnSdkBindDuringSlideEnumeration() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide first = source.AddSlide();
+            source.AddSlide();
+            source.AddCustomShow("Sequence", new[] { first });
+            using var document = PowerPointDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
+            PowerPointCustomShow show = Assert.Single(document.CustomShows);
+            Assert.False(document.IsSdkLoaded);
+
+            show.SetSlides(SelectSlides());
+            Assert.Equal(new[] { document.Slides[1] }, show.Slides);
+            using var reopened = PowerPointDocument.Load(new MemoryStream(document.ToBytes(), writable: false));
+            Assert.Equal(new[] { reopened.Slides[1] }, Assert.Single(reopened.CustomShows).Slides);
+
+            IEnumerable<PowerPointSlide> SelectSlides() {
+                _ = document.OpenXmlDocument;
+                yield return document.Slides[1];
+            }
+        }
+
+        [Fact]
+        public void SdkCustomShowEditsRetainUnknownEntriesAndAdjacentComments() {
+            using var document = PowerPointDocument.Create();
+            PowerPointSlide first = document.AddSlide();
+            PowerPointSlide second = document.AddSlide();
+            PowerPointCustomShow show = document.AddCustomShow("Sequence", new[] { first });
+            SlideList list = GetSdkShow(document, show).SlideList!;
+            SlideListEntry typed = Assert.Single(list.Elements<SlideListEntry>());
+            var unknown = new OpenXmlUnknownElement("p", "sld", typed.NamespaceUri);
+            unknown.SetAttribute(new OpenXmlAttribute("fixture", "metadata", "urn:fixture", "untyped"));
+            var comment = new OpenXmlMiscNode(System.Xml.XmlNodeType.Comment, "<!--producer note-->");
+            list.Append(comment, unknown);
+
+            show.AddSlide(second);
+            Assert.IsType<SlideListEntry>(list.ChildElements[1]);
+            Assert.Same(comment, list.ChildElements[2]);
+            Assert.Same(unknown, list.ChildElements[3]);
+
+            show.SetSlides(new[] { first });
+            Assert.Same(typed, list.ChildElements[0]);
+            Assert.Same(comment, list.ChildElements[1]);
+            Assert.Same(unknown, list.ChildElements[2]);
+            Assert.Equal(new[] { first }, show.Slides);
+        }
+
         [Fact]
         public void CustomShows_CreateEditAndRoundTripThroughPublicApi() {
             string path = Path.Combine(Path.GetTempPath(),
@@ -190,7 +300,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide third = presentation.AddSlide();
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Producer show", new[] { first, second });
-            SlideList slideList = show.OpenXmlElement.SlideList!;
+            SlideList slideList = GetSdkShow(presentation, show).SlideList!;
             slideList.SetAttribute(new OpenXmlAttribute("producer",
                 "metadata", ProducerNamespace, "list"));
             slideList.Append(new OpenXmlUnknownElement("producer",
@@ -232,20 +342,19 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Duplicate show", new[] { slide, slide });
-            SlideListEntry[] entries = show.OpenXmlElement.SlideList!
-                .Elements<SlideListEntry>().ToArray();
+            SlideList slideList = GetSdkShow(presentation, show).SlideList!;
+            SlideListEntry[] entries = slideList.Elements<SlideListEntry>().ToArray();
             entries[0].SetAttribute(new OpenXmlAttribute("producer",
                 "metadata", ProducerNamespace, "first"));
             entries[1].SetAttribute(new OpenXmlAttribute("producer",
                 "metadata", ProducerNamespace, "second"));
 
             Assert.True(show.RemoveSlide(slide));
-            Assert.Same(entries[1], Assert.Single(show.OpenXmlElement
-                .SlideList!.Elements<SlideListEntry>()));
+            Assert.Same(entries[1], Assert.Single(slideList.Elements<SlideListEntry>()));
             show.InsertSlide(0, slide);
             show.MoveSlide(1, 0);
 
-            SlideListEntry[] finalEntries = show.OpenXmlElement.SlideList!
+            SlideListEntry[] finalEntries = slideList
                 .Elements<SlideListEntry>().ToArray();
             Assert.Equal(2, finalEntries.Length);
             Assert.Same(entries[1], finalEntries[0]);
@@ -267,7 +376,7 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(60));
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Imported zero", new[] { slide });
-            show.OpenXmlElement.Id = 0U;
+            GetSdkShow(presentation, show).Id = 0U;
             NonVisualDrawingProperties actionProperties =
                 ((Shape)actionShape.Element).NonVisualShapeProperties!
                 .NonVisualDrawingProperties!;
@@ -290,7 +399,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCustomShow maximum = presentation.AddCustomShow(
                 "Maximum", new[] { slide });
-            maximum.OpenXmlElement.Id = uint.MaxValue;
+            GetSdkShow(presentation, maximum).Id = uint.MaxValue;
 
             PowerPointCustomShow allocated = presentation.AddCustomShow(
                 "Available", new[] { slide });
@@ -330,6 +439,12 @@ namespace OfficeIMO.Tests {
                 pair => pair.RelationshipId == InternalRelationshipId);
             Assert.Equal(2, presentation.Slides.Count);
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        private static CustomShow GetSdkShow(PowerPointDocument presentation, PowerPointCustomShow show) {
+            uint id = show.Id;
+            return Assert.Single(presentation.OpenXmlDocument.PresentationPart!.Presentation!
+                .CustomShowList!.Elements<CustomShow>(), element => element.Id?.Value == id);
         }
 
         private static void AppendCustomShowAction(PowerPointAutoShape shape,
