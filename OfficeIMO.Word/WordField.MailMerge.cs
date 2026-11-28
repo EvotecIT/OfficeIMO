@@ -1,64 +1,47 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
-    // Offers mail merge field operations.
     public partial class WordField {
-        /// <summary>
-        /// Replaces the current field with plain text.
-        /// </summary>
+        /// <summary>Replaces the current field with plain text.</summary>
         /// <param name="text">Text to insert in place of the field.</param>
         public void ReplaceWithText(string text) {
-            if (_simpleField != null) {
-                int index = _paragraph.ChildElements.ToList().IndexOf(_simpleField);
-                var run = CreateReplacementRun(text, _simpleField.Elements<Run>().FirstOrDefault());
-                _paragraph.InsertAt(run, index);
+            var model = ResolveNodes();
+            OfficeXmlNode reference = _simpleField.Exists ? _simpleField : _runs.FirstOrDefault();
+            if (reference.IsNone) return;
+            OfficeXmlNode source = _simpleField.Exists ? _simpleField.Child(W, "r") : FindReplacementSourceRun();
+
+            OfficeXmlNode replacement = _paragraph.CreateElement(W, "r");
+            OfficeXmlNode properties = source.Child(W, "rPr");
+            if (properties.Exists) replacement.Append(properties.Clone());
+            OfficeXmlNode content = replacement.CreateElement(W, "t");
+            content.SetInnerText(text ?? string.Empty);
+            content.SetAttribute(OfficeXmlNamespaces.Xml, "space", "preserve");
+            replacement.Append(content);
+            replacement = _paragraph.InsertBefore(replacement, reference);
+
+            if (_simpleField.Exists) {
                 _simpleField.Remove();
-                _runs.Clear();
-                _runs.Add(run);
-            } else if (_runs.Count > 0) {
-                int index = _paragraph.ChildElements.ToList().IndexOf(_runs[0]);
-                Run? sourceRun = GetComplexFieldResultRuns().FirstOrDefault()
-                    ?? _runs.FirstOrDefault(run => run.GetFirstChild<RunProperties>() != null)
-                    ?? _runs[0];
-                foreach (var r in _runs) {
-                    r.Remove();
-                }
-                var run = CreateReplacementRun(text, sourceRun);
-                _paragraph.InsertAt(run, index);
-                _runs.Clear();
-                _runs.Add(run);
+            } else {
+                foreach (OfficeXmlNode run in _runs) run.Remove();
+                _replaceSdkRuns?.Invoke(replacement);
             }
+            _runs.Clear();
+            _runs.Add(replacement);
+            _authoringParagraph?.UpdateAuthoredSdkField(this);
+            model?.MarkChanged();
         }
 
-        private IEnumerable<Run> GetComplexFieldResultRuns() {
+        private OfficeXmlNode FindReplacementSourceRun() {
             bool afterSeparator = false;
-
-            foreach (Run run in _runs) {
-                FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-                if (fieldChar?.FieldCharType?.Value == FieldCharValues.Separate) {
-                    afterSeparator = true;
-                    continue;
-                }
-
-                if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
-                    yield break;
-                }
-
-                if (afterSeparator) {
-                    yield return run;
-                }
+            foreach (OfficeXmlNode run in _runs) {
+                string? type = run.Child(W, "fldChar").Attribute(W, "fldCharType");
+                if (type == "end") break;
+                if (type == "separate") afterSeparator = true;
+                else if (afterSeparator) return run;
             }
-        }
-
-        private static Run CreateReplacementRun(string text, Run? sourceRun) {
-            var run = new Run();
-            RunProperties? properties = sourceRun?.GetFirstChild<RunProperties>();
-            if (properties != null) {
-                run.Append((RunProperties)properties.CloneNode(true));
-            }
-
-            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-            return run;
+            return _runs.FirstOrDefault(run => run.Child(W, "rPr").Exists) is { Exists: true } formatted
+                ? formatted : _runs[0];
         }
     }
 }

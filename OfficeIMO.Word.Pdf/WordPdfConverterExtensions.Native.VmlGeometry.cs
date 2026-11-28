@@ -1,36 +1,36 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
+using static OfficeIMO.Word.OpenXml.WordXml;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const string NativeVmlNumberPattern = @"[+-]?(?:\d+(?:\.\d*)?|\.\d+)";
 
-        private static OpenXmlElement? GetNativeVmlReferencedShapeTypeElement(OpenXmlElement element) {
+        private static OfficeXmlNode GetNativeVmlReferencedShapeTypeElement(OfficeXmlNode element) {
             string? type = GetNativeOpenXmlAttribute(element, "type");
             if (string.IsNullOrWhiteSpace(type) || !type!.TrimStart().StartsWith("#", StringComparison.Ordinal)) {
-                return null;
+                return default;
             }
 
             string id = type.Trim().Substring(1);
             if (id.Length == 0) {
-                return null;
+                return default;
             }
 
-            OpenXmlElement root = element;
-            while (root.Parent != null) {
+            OfficeXmlNode root = element;
+            while (root.Parent.Exists) {
                 root = root.Parent;
             }
 
-            return root.Descendants().FirstOrDefault(descendant =>
+            return root.DescendantElements().FirstOrDefault(descendant =>
                 descendant.NamespaceUri == "urn:schemas-microsoft-com:vml" &&
                 descendant.LocalName.Equals("shapetype", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(GetNativeOpenXmlAttribute(descendant, "id"), id, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static (double Width, double Height) GetNativeVmlCoordSize(OpenXmlElement element, OpenXmlElement? shapeType, double fallbackWidth, double fallbackHeight) {
+        private static (double Width, double Height) GetNativeVmlCoordSize(OfficeXmlNode element, OfficeXmlNode shapeType, double fallbackWidth, double fallbackHeight) {
             string? coordSize = GetNativeOpenXmlAttribute(element, "coordsize");
-            if (string.IsNullOrWhiteSpace(coordSize) && shapeType != null) {
+            if (string.IsNullOrWhiteSpace(coordSize) && shapeType.Exists) {
                 coordSize = GetNativeOpenXmlAttribute(shapeType, "coordsize");
             }
 
@@ -50,15 +50,15 @@ namespace OfficeIMO.Word.Pdf {
             return (fallbackWidth, fallbackHeight);
         }
 
-        private static IReadOnlyDictionary<string, double> GetNativeVmlFormulaValues(OpenXmlElement element, OpenXmlElement? shapeType, double coordWidth, double coordHeight) {
+        private static IReadOnlyDictionary<string, double> GetNativeVmlFormulaValues(OfficeXmlNode element, OfficeXmlNode shapeType, double coordWidth, double coordHeight) {
             var values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             AddNativeVmlGeometryOperands(values, coordWidth, coordHeight);
             AddNativeVmlAdjustments(values, shapeType);
             AddNativeVmlAdjustments(values, element);
 
-            OpenXmlElement formulaSource = shapeType ?? element;
+            OfficeXmlNode formulaSource = shapeType.Exists ? shapeType : element;
             int index = 0;
-            foreach (OpenXmlElement formula in formulaSource.Descendants().Where(descendant =>
+            foreach (OfficeXmlNode formula in formulaSource.DescendantElements().Where(descendant =>
                          descendant.NamespaceUri == "urn:schemas-microsoft-com:vml" &&
                          descendant.LocalName.Equals("f", StringComparison.OrdinalIgnoreCase))) {
                 string? equation = GetNativeOpenXmlAttribute(formula, "eqn");
@@ -87,8 +87,8 @@ namespace OfficeIMO.Word.Pdf {
             values["middle"] = coordHeight / 2D;
         }
 
-        private static void AddNativeVmlAdjustments(IDictionary<string, double> values, OpenXmlElement? element) {
-            if (element == null) {
+        private static void AddNativeVmlAdjustments(IDictionary<string, double> values, OfficeXmlNode element) {
+            if (element.IsNone) {
                 return;
             }
 

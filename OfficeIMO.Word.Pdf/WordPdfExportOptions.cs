@@ -138,12 +138,12 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         internal NativeFieldResultDiagnosticIndex? FieldResultDiagnostics { get; set; }
-        internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> DiagnosedFrameParagraphs { get; } = new();
-        internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> DiagnosedCellTextBoxParagraphs { get; } = new();
-        internal HashSet<DocumentFormat.OpenXml.OpenXmlElement> DiagnosedBarTabElements { get; } = new();
-        internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing> DiagnosedImageWrapElements { get; } = new();
-        internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing> DiagnosedWrappedImageClippingElements { get; } = new();
-        internal HashSet<DocumentFormat.OpenXml.OpenXmlElement> DiagnosedSvgFallbackImages { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedFrameParagraphs { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedCellTextBoxParagraphs { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedBarTabElements { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedImageWrapElements { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedWrappedImageClippingElements { get; } = new();
+        internal HashSet<OfficeXmlNode> DiagnosedSvgFallbackImages { get; } = new();
 
         /// <summary>
         /// Determines whether generated page numbers are rendered when the Word source has no page-number field. Defaults to false.

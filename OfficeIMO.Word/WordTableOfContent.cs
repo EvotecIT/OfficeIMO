@@ -1,4 +1,7 @@
-using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
 
@@ -22,14 +25,45 @@ namespace OfficeIMO.Word {
     /// Represents a table of contents within a Word document.
     /// </summary>
     public partial class WordTableOfContent : WordElement {
+        private const int TocNamespace = OfficeXmlNamespaces.WordprocessingML;
         private static readonly string TocLevelSwitchPattern = @"\\o\s+(?:""\d+-\d+""|&quot;\d+-\d+&quot;)";
         private readonly WordDocument _document;
-        private readonly SdtBlock _sdtBlock;
+        private SdtBlock? _sdkSdtBlock;
+        private SdtBlock _sdtBlock {
+            get {
+                if (_sdkSdtBlock != null) return _sdkSdtBlock;
+                if (_document.IsDisposed) _document.OpenSdkPackageAfterDispose();
+                else _document.OpenSdkPackage(null);
+                return _sdkSdtBlock = (SdtBlock?)ResolveControl().SdkElement
+                    ?? throw new InvalidOperationException("The table of contents is no longer attached to the document.");
+            }
+        }
 
         /// <summary>
         /// Exposes the underlying structured document tag for this table of contents.
         /// </summary>
         internal SdtBlock SdtBlock => _sdtBlock;
+
+        internal OfficeXmlNode SdtNode => _sdkSdtBlock != null ? OfficeXmlNode.FromSdk(_sdkSdtBlock) : ResolveControl();
+        private OfficeXmlNode ContentNode => SdtNode.Child(TocNamespace, "sdtContent");
+
+        private OfficeXmlNode GetGlossaryRoot(bool create) {
+            if (_document._ownedModel is { } owned) return GetOwnedGlossaryRoot(owned, create);
+            if (_document.IsDisposed && _document.DisposedReadModel is { } copy)
+                return GetOwnedGlossaryRoot(copy, create: false);
+            MainDocumentPart? main = _document._wordprocessingDocument.MainDocumentPart;
+            GlossaryDocumentPart? glossary = main?.GlossaryDocumentPart;
+            if (create) {
+                glossary ??= main!.AddNewPart<GlossaryDocumentPart>();
+                glossary.GlossaryDocument ??= new GlossaryDocument();
+            }
+            return OfficeXmlNode.FromSdk(glossary?.GlossaryDocument);
+        }
+
+        private void LocalizeGeneratedStyles(OfficeXmlNode content) {
+            if (_document._ownedModel is { } model) LocalizeOwnedTocStyles(content, model);
+            else if (content.SdkElement is SdtContentBlock sdk) _document.LocalizeBuiltInStyleReferences(sdk);
+        }
 
         internal WordDocument Document => _document;
 
@@ -41,43 +75,42 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal bool ShowsStoredEntries {
             get {
-                SdtContentBlock? content = _sdtBlock.SdtContentBlock;
-                if (content == null || _document.Settings.UpdateFieldsOnOpen) return false;
-                if (content.Descendants().Any(element => element is FieldChar { Dirty.Value: true } || element is SimpleField { Dirty.Value: true })) {
-                    return false;
+                OfficeXmlNode content = ContentNode;
+                if (content.IsNone || ReadTocUpdateOnOpen()) return false;
+                foreach (OfficeXmlNode marker in WordFieldInventory.EnumerateFieldContent(content)) {
+                    if (IsFieldMarker(marker) && WordFieldInventory.ReadFlag(marker, "dirty")) return false;
                 }
                 return EnumerateFieldInstructions(content).Any(instruction => GetFieldType(instruction.Instruction) == WordFieldType.PageRef);
             }
         }
 
         /// <summary>
-        /// The complete instruction of every field under <paramref name="root"/>, in document order, with the element that
-        /// starts the field: a simple field, or the begin character of a complex field. A complex field's instruction can be
-        /// split across runs, so it is returned once its separator or end is reached.
+        /// Reads instructions from their simple field or complex field begin marker.
+        /// A complex instruction can span several runs and is complete at its separator or end.
         /// </summary>
-        private static IEnumerable<(OpenXmlElement Start, string Instruction)> EnumerateFieldInstructions(OpenXmlElement root) {
-            var open = new Stack<(FieldChar Begin, System.Text.StringBuilder? Instruction)>();
-            foreach (OpenXmlElement element in root.Descendants()) {
-                switch (element) {
-                    case SimpleField simple:
-                        yield return (simple, simple.Instruction?.Value ?? string.Empty);
-                        break;
-                    case FieldChar { FieldCharType.Value: var type } fieldChar:
-                        if (type == FieldCharValues.Begin) {
-                            open.Push((fieldChar, new System.Text.StringBuilder()));
-                        } else if (open.Count > 0 && (type == FieldCharValues.Separate || type == FieldCharValues.End)) {
-                            (FieldChar begin, System.Text.StringBuilder? instruction) = open.Pop();
-                            if (instruction != null) yield return (begin, instruction.ToString());
-                            // After the separator the field result follows; its instruction is already returned.
-                            if (type == FieldCharValues.Separate) open.Push((begin, null));
-                        }
-                        break;
-                    case FieldCode code when open.Count > 0:
-                        open.Peek().Instruction?.Append(code.Text);
-                        break;
+        private static IEnumerable<(OfficeXmlNode Start, string Instruction)> EnumerateFieldInstructions(OfficeXmlNode root) {
+            const int W = TocNamespace;
+            var open = new Stack<(OfficeXmlNode Begin, StringBuilder? Instruction)>();
+            foreach (OfficeXmlNode element in WordFieldInventory.EnumerateFieldContent(root)) {
+                if (element.Is(W, "fldSimple")) {
+                    yield return (element, element.Attribute(W, "instr") ?? string.Empty);
+                } else if (element.Is(W, "fldChar")) {
+                    string? type = element.Attribute(W, "fldCharType");
+                    if (type == "begin") {
+                        open.Push((element, new StringBuilder()));
+                    } else if (open.Count > 0 && (type is "separate" or "end")) {
+                        (OfficeXmlNode begin, StringBuilder? instruction) = open.Pop();
+                        if (instruction != null) yield return (begin, instruction.ToString());
+                        if (type == "separate") open.Push((begin, null));
+                    }
+                } else if (open.Count > 0 && element.Is(W, "instrText")) {
+                    open.Peek().Instruction?.Append(element.InnerText);
                 }
             }
         }
+
+        private static bool IsFieldMarker(OfficeXmlNode element) =>
+            element.Is(TocNamespace, "fldSimple") || element.Is(TocNamespace, "fldChar");
 
         private static WordFieldType? GetFieldType(string instruction) =>
             string.IsNullOrWhiteSpace(instruction) ? null : WordFieldInventory.ParseInstruction(instruction).FieldType;
@@ -111,13 +144,12 @@ namespace OfficeIMO.Word {
         /// Gets or sets the heading text displayed for the table of contents.
         /// </summary>
         public string Text {
-            get {
-                return GetTitleTextElement()?.Text ?? string.Empty;
-            }
+            get => GetTitleTextElement().InnerText;
             set {
-                var text = GetTitleTextElement();
-                if (text != null) {
-                    text.Text = value;
+                OfficeXmlNode text = GetTitleTextElement();
+                if (text.Exists) {
+                    text.SetInnerText(value ?? string.Empty);
+                    RecordOwnedTocEdit();
                 }
             }
         }
@@ -126,8 +158,15 @@ namespace OfficeIMO.Word {
         /// <remarks>Formatting and page-break settings applied here are retained by <see cref="RefreshEntries"/>.</remarks>
         public WordParagraph? TitleParagraph {
             get {
-                Paragraph? paragraph = GetTitleParagraph();
-                if (paragraph == null) return null;
+                OfficeXmlNode title = GetTitleParagraphNode();
+                if (title.IsNone) return null;
+                if (title.Tree is { } tree) {
+                    OfficeXmlNode ownedRun = WordFieldInventory.EnumerateFieldContent(title)
+                        .FirstOrDefault(node => node.Is(TocNamespace, "r"));
+                    return WordParagraph.CreateOwned(_document, tree, title.Node, ownedRun.Node);
+                }
+                var paragraph = (Paragraph)title.SdkElement!;
+
                 Run? run = paragraph.Descendants<Run>().FirstOrDefault();
                 return run == null ? new WordParagraph(_document, paragraph) : new WordParagraph(_document, paragraph, run);
             }
@@ -141,27 +180,16 @@ namespace OfficeIMO.Word {
             set => SetPlaceholderText(value);
         }
 
-        private Text? GetTitleTextElement() {
-            var contentBlock = _sdtBlock?.SdtContentBlock;
-            if (contentBlock == null) {
-                return null;
+        private OfficeXmlNode GetTitleTextElement() {
+            const int W = TocNamespace;
+            foreach (OfficeXmlNode paragraph in ContentNode.Children(W, "p")) {
+                if (WordFieldInventory.EnumerateFieldContent(paragraph).Any(element => element.Is(W, "fldSimple"))) continue;
+                OfficeXmlNode text = WordFieldInventory.EnumerateFieldContent(paragraph)
+                    .FirstOrDefault(element => element.Is(W, "t"));
+                if (text.Exists) return text;
             }
-
-            foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
-                if (paragraph.Descendants<SimpleField>().Any()) {
-                    continue;
-                }
-
-                var text = paragraph.Descendants<Text>().FirstOrDefault();
-                if (text != null) {
-                    return text;
-                }
-            }
-
-            return null;
+            return default;
         }
-
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordTableOfContent"/> class and appends it to the document body.
@@ -170,67 +198,37 @@ namespace OfficeIMO.Word {
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
         /// <param name="minLevel">Minimum heading level to include (1..9).</param>
         /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
-        public WordTableOfContent(WordDocument wordDocument, WordTableOfContentsStyle tableOfContentStyle, int minLevel = 1, int maxLevel = 3)
-            : this(
-                wordDocument,
-                PrepareTemplate(wordDocument, tableOfContentStyle),
-                tableOfContentStyle,
-                appendToBody: true,
-                queueUpdateOnOpen: true,
-                minLevel: minLevel,
-                maxLevel: maxLevel) {
+        public WordTableOfContent(WordDocument wordDocument, WordTableOfContentsStyle tableOfContentStyle, int minLevel = 1, int maxLevel = 3) {
+            _document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
+            Style = tableOfContentStyle;
+            if (!TryAppendOwnedTemplate(tableOfContentStyle)) {
+                _sdkSdtBlock = PrepareTemplate(wordDocument, tableOfContentStyle);
+                GetPlaceholderPart();
+                _document.AppendBlockToBody(_sdkSdtBlock);
+                _document.EnsureStyleDefinitionsInitialized();
+                WordTableOfContentStyles.EnsureDefined(_document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
+                _document.InvalidateBuiltInStyleIndex();
+                _document.UseBuiltInStyle("TOCHeading");
+                _document.LocalizeBuiltInStyleReferences(_sdkSdtBlock);
+            }
+            _document._generatedTableOfContent = this;
+
+            var (normalizedMin, normalizedMax) = NormalizeLevels(minLevel, maxLevel);
+            if (normalizedMin != 1 || normalizedMax != 3) ConfigureLevels(normalizedMin, normalizedMax);
+            QueueUpdateOnOpen();
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WordTableOfContent"/> class using an existing structured document tag.
-        /// </summary>
-        /// <param name="wordDocument">Parent document that owns the table of contents.</param>
-        /// <param name="sdtBlock">Structured document tag representing the table of contents.</param>
-        internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
-            : this(wordDocument, sdtBlock, WordTableOfContentsStyle.Template1, appendToBody: false, queueUpdateOnOpen: true) {
-        }
-
-        internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, bool queueUpdateOnOpen)
-            : this(wordDocument, sdtBlock, WordTableOfContentsStyle.Template1, appendToBody: false, queueUpdateOnOpen: queueUpdateOnOpen) {
-        }
-
-        private WordTableOfContent(
-            WordDocument wordDocument,
-            SdtBlock sdtBlock,
-            WordTableOfContentsStyle style,
-            bool appendToBody,
-            bool queueUpdateOnOpen,
-            int? minLevel = null,
-            int? maxLevel = null) {
-            this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
-            this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
-            this.Style = style;
+        /// <summary>Wraps an imported structured document tag representing a table of contents.</summary>
+        internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, bool queueUpdateOnOpen = true) {
+            _document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
+            _sdkSdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
+            Style = WordTableOfContentsStyle.Template1;
             GetPlaceholderPart();
-
-            if (appendToBody) {
-                this._document.AppendBlockToBody(_sdtBlock);
-                // A TOC added by this library owns its title and entry styles and
-                // its visible entries; both must exist for viewers that never update fields.
-                this._document.EnsureStyleDefinitionsInitialized();
-                WordTableOfContentStyles.EnsureDefined(this._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
-                this._document.InvalidateBuiltInStyleIndex();
-                this._document.UseBuiltInStyle("TOCHeading");
-                this._document.LocalizeBuiltInStyleReferences(_sdtBlock);
-                this._document._generatedTableOfContent = this;
-            }
-
-            if (minLevel.HasValue && maxLevel.HasValue) {
-                var (normalizedMin, normalizedMax) = NormalizeLevels(minLevel.Value, maxLevel.Value);
-                // Avoid mutating the template when the caller requests the default 1-3 range.
-                if (normalizedMin != 1 || normalizedMax != 3) {
-                    ConfigureLevels(normalizedMin, normalizedMax);
-                }
-            }
-
-            if (queueUpdateOnOpen) {
-                QueueUpdateOnOpen();
-            }
+            if (queueUpdateOnOpen) QueueUpdateOnOpen();
         }
+
+        private static WordTableOfContent? WrapSdkControl(WordDocument document, OfficeXmlNode control) =>
+            control.SdkElement is SdtBlock block ? new WordTableOfContent(document, block, queueUpdateOnOpen: false) : null;
 
         /// <summary>
         /// Flags the document to update this table of contents when the file is opened.
@@ -247,10 +245,8 @@ namespace OfficeIMO.Word {
             }
 
             // Write only when turning the setting on: the setter marks the value as the caller's.
-            bool enabled = !this._document.Settings.UpdateFieldsOnOpen;
-            if (enabled) {
-                this._document.Settings.UpdateFieldsOnOpen = true;
-            }
+            bool enabled = !ReadTocUpdateOnOpen();
+            if (enabled) EnableTocUpdateOnOpen();
 
             this._document.NotifyTableOfContentUpdateQueued(enabled);
         }
@@ -273,108 +269,58 @@ namespace OfficeIMO.Word {
         /// any fields so the caller can still request a refresh without throwing.
         /// </returns>
         private bool MarkFieldsAsDirty() {
-            if (_sdtBlock?.SdtContentBlock == null) {
-                return false;
-            }
-
-            var fieldsFound = false;
-            var marked = false;
-
-            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+            if (ContentNode.IsNone) return false;
+            bool fieldsFound = false;
+            bool marked = false;
+            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(SdtNode)) {
+                if (!IsFieldMarker(field)) continue;
                 fieldsFound = true;
-                if (simpleField.Dirty?.Value != true) {
-                    simpleField.Dirty = true;
-                    marked = true;
-                }
+                if (WordFieldInventory.ReadFlag(field, "dirty")) continue;
+                field.SetAttribute(TocNamespace, "dirty", "true");
+                marked = true;
             }
-
-            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
-                fieldsFound = true;
-                if (fieldChar.Dirty?.Value != true) {
-                    fieldChar.Dirty = true;
-                    marked = true;
-                }
-            }
-
-            return fieldsFound ? marked : true;
+            if (marked) RecordOwnedTocEdit();
+            return !fieldsFound || marked;
         }
 
         private void ConfigureLevels(int minLevel, int maxLevel) {
+            const int W = TocNamespace;
             var (normalizedMin, normalizedMax) = NormalizeLevels(minLevel, maxLevel);
             var levelSwitch = $"\\o \"{normalizedMin}-{normalizedMax}\"";
-
-            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
-                var instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
-                if (string.IsNullOrWhiteSpace(instruction)) {
-                    continue;
-                }
-
-                if (!IsTocInstruction(instruction)) {
-                    continue;
-                }
-
-                var instructionText = instruction!;
-                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
-                string updated;
-                if (hadLevelSwitch) {
-                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
-                } else {
-                    updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
-                }
-
-                simpleField.Instruction = updated;
-                simpleField.Dirty = true;
-            }
-
-            // Word often converts TOC fields into complex fields (FieldChar/FieldCode).
-            // Update those instructions as well so SetLevels works on existing documents.
-            foreach (var fieldCode in _sdtBlock.Descendants<FieldCode>()) {
-                var instructionText = fieldCode.Text;
-                if (string.IsNullOrWhiteSpace(instructionText)) {
-                    continue;
-                }
-
-                if (!IsTocInstruction(instructionText)) {
-                    continue;
-                }
-
-                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
-                string updated;
-                if (hadLevelSwitch) {
-                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
-                } else {
-                    updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
-                }
-
-                fieldCode.Text = updated;
-            }
-
-            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
-                if (fieldChar.Dirty?.Value != true) {
-                    fieldChar.Dirty = true;
+            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(SdtNode)) {
+                if (field.Is(W, "fldSimple")) {
+                    string? instruction = field.Attribute(W, "instr");
+                    if (!string.IsNullOrWhiteSpace(instruction) && IsTocInstruction(instruction!)) {
+                        field.SetAttribute(W, "instr", UpdateLevelSwitch(instruction!));
+                        field.SetAttribute(W, "dirty", "true");
+                    }
+                } else if (field.Is(W, "instrText")) {
+                    string instruction = field.InnerText;
+                    if (!string.IsNullOrWhiteSpace(instruction) && IsTocInstruction(instruction))
+                        field.SetInnerText(UpdateLevelSwitch(instruction));
+                } else if (field.Is(W, "fldChar") && !WordFieldInventory.ReadFlag(field, "dirty")) {
+                    field.SetAttribute(W, "dirty", "true");
                 }
             }
+
+            RecordOwnedTocEdit();
+
+            string UpdateLevelSwitch(string instruction) =>
+                Regex.IsMatch(instruction, TocLevelSwitchPattern)
+                    ? Regex.Replace(instruction, TocLevelSwitchPattern, levelSwitch)
+                    : instruction.TrimEnd() + " " + levelSwitch + " ";
         }
 
         private (int MinLevel, int MaxLevel) GetConfiguredLevels() {
-            if (_sdtBlock == null) {
-                return (1, 3);
+            const int W = TocNamespace;
+            (int MinLevel, int MaxLevel)? complex = null;
+            foreach (OfficeXmlNode element in WordFieldInventory.EnumerateFieldContent(SdtNode)) {
+                if (element.Is(W, "fldSimple") && TryParseLevelSwitch(element.Attribute(W, "instr"), out int min, out int max))
+                    return (min, max);
+                if (complex == null && element.Is(W, "instrText") && TryParseLevelSwitch(element.InnerText, out min, out max))
+                    complex = (min, max);
             }
-
-            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
-                string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
-                if (TryParseLevelSwitch(instruction, out int minLevel, out int maxLevel)) {
-                    return (minLevel, maxLevel);
-                }
-            }
-
-            foreach (var fieldCode in _sdtBlock.Descendants<FieldCode>()) {
-                if (TryParseLevelSwitch(fieldCode.Text, out int minLevel, out int maxLevel)) {
-                    return (minLevel, maxLevel);
-                }
-            }
-
-            return (1, 3);
+            return complex ?? (1, 3);
         }
 
         private static bool TryParseLevelSwitch(string? instruction, out int minLevel, out int maxLevel) {

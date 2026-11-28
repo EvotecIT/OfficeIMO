@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static bool HasNativeDirectCellBorder(WordTableCellBorder borders) =>
             borders.TopStyle.HasValue || borders.RightStyle.HasValue ||
@@ -177,16 +177,16 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            W.BorderValues? conditional = GetNativeConditionalCellBorderValue(table, layout, defaults,
+            string? conditional = GetNativeConditionalCellBorderValue(table, layout, defaults,
                 headerRowCount, columnCount, key, columnSpan, edge);
             // Word's nil wins a collapsed shared edge; none hides only its own side.
-            return conditional != W.BorderValues.None;
+            return conditional != "none";
         }
 
-        private static W.BorderValues? GetNativeConditionalCellBorderValue(WordTable table, TableLayout layout,
+        private static string? GetNativeConditionalCellBorderValue(WordTable table, TableLayout layout,
             NativeTableStyleDefaults defaults, int headerRowCount, int columnCount,
             (int Row, int Column) key, int columnSpan, NativeBorderEdge edge) {
-            W.BorderValues? conditional = null;
+            string? conditional = null;
             int footerStartRow = table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount
                 ? layout.Rows.Count - 1 : layout.Rows.Count;
             UpdateNativeConditionalBorderValue(ref conditional,
@@ -208,15 +208,15 @@ namespace OfficeIMO.Word.Pdf {
             return conditional;
         }
 
-        private static void UpdateNativeConditionalBorderValue(ref W.BorderValues? value, W.TableCellBorders? borders, NativeBorderEdge edge) {
-            W.BorderType? border = edge switch {
-                NativeBorderEdge.Top => borders?.GetFirstChild<W.TopBorder>(),
-                NativeBorderEdge.Right => (W.BorderType?)borders?.GetFirstChild<W.RightBorder>() ?? borders?.GetFirstChild<W.EndBorder>(),
-                NativeBorderEdge.Bottom => borders?.GetFirstChild<W.BottomBorder>(),
-                _ => (W.BorderType?)borders?.GetFirstChild<W.LeftBorder>() ?? borders?.GetFirstChild<W.StartBorder>()
+        private static void UpdateNativeConditionalBorderValue(ref string? value, OfficeXmlNode borders, NativeBorderEdge edge) {
+            OfficeXmlNode border = edge switch {
+                NativeBorderEdge.Top => borders.WChild("top"),
+                NativeBorderEdge.Right => FirstNativeBorderSide(borders, "right", "end"),
+                NativeBorderEdge.Bottom => borders.WChild("bottom"),
+                _ => FirstNativeBorderSide(borders, "left", "start")
             };
             if (HasNativeConditionalBorderOverride(border)) {
-                value = border!.Val!.Value;
+                value = border.WVal();
             }
         }
 

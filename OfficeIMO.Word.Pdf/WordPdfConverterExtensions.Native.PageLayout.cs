@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Pdf {
                 // Physical fallback dimensions already carry their orientation. An absent
                 // source flag must not manufacture a portrait override.
                 if (options.Orientation == null && options.FallbackOrientation == null &&
-                    section._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()?.Orient == null) return size;
+                    section.Node().WChild("pgSz").WAttr("orient") == null) return size;
             } else {
                 size = PdfCore.PdfPageSizes.A4;
             }

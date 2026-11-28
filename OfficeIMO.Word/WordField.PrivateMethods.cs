@@ -1,43 +1,30 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
-    // Holds private helpers for field processing.
     public partial class WordField {
-        private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
-            SimpleField simpleField1 = new SimpleField() { Instruction = GenerateField(wordFieldType, wordFieldFormat, customFormat, parameters) };
-
-            Run run1 = new Run();
-
-            RunProperties runProperties = new RunProperties();
-            NoProof noProof = new NoProof();
-
-            runProperties.Append(noProof);
-            Text text = new Text {
-                Text = "[Document " + wordFieldType + "]"
-            };
-
-            run1.Append(runProperties);
-            run1.Append(text);
-
-            simpleField1.Append(run1);
-            return simpleField1;
+        private static OfficeXmlNode CreateFieldRun(OfficeXmlNode parent) {
+            OfficeXmlNode run = parent.CreateElement(W, "r");
+            OfficeXmlNode properties = run.Append(run.CreateElement(W, "rPr"));
+            properties.Append(properties.CreateElement(W, "noProof"));
+            return run;
         }
 
+        private static OfficeXmlNode AppendMarkerRun(OfficeXmlNode paragraph, string type) {
+            OfficeXmlNode run = CreateFieldRun(paragraph);
+            OfficeXmlNode marker = run.CreateElement(W, "fldChar");
+            marker.SetAttribute(W, "fldCharType", type);
+            run.Append(marker);
+            return paragraph.Append(run);
+        }
 
-        private static Run AddAdvancedField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
-            Run run = new Run();
-
-            RunProperties runProperties = new RunProperties();
-            runProperties.Append(new NoProof());
-
-            FieldCode fieldCode1 = new FieldCode {
-                Space = SpaceProcessingModeValues.Preserve,
-                Text = GenerateField(wordFieldType, wordFieldFormat, customFormat, parameters)
-            };
-
-            run.Append(runProperties);
-            run.Append(fieldCode1);
-            return run;
+        private static OfficeXmlNode AppendTextRun(OfficeXmlNode parent, string localName, string value, bool preserveSpace) {
+            OfficeXmlNode run = CreateFieldRun(parent);
+            OfficeXmlNode text = run.CreateElement(W, localName);
+            text.SetInnerText(value);
+            if (preserveSpace) text.SetAttribute(OfficeXmlNamespaces.Xml, "space", "preserve");
+            run.Append(text);
+            return parent.Append(run);
         }
 
         private static string GenerateField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
@@ -57,63 +44,5 @@ namespace OfficeIMO.Word {
 
             return fieldType + switchesList + fieldFormat + @"\* MERGEFORMAT ";
         }
-
-        private static Run AddFieldSeparator() {
-            Run run1 = new Run();
-
-            RunProperties runProperties1 = new RunProperties();
-            NoProof noProof1 = new NoProof();
-
-            runProperties1.Append(noProof1);
-            FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.Separate };
-
-            run1.Append(runProperties1);
-            run1.Append(fieldChar1);
-            return run1;
-        }
-
-        private static Run AddFieldStart() {
-            Run run1 = new Run();
-
-            RunProperties runProperties1 = new RunProperties();
-            NoProof noProof1 = new NoProof();
-
-            runProperties1.Append(noProof1);
-            FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.Begin };
-
-            run1.Append(runProperties1);
-            run1.Append(fieldChar1);
-            return run1;
-        }
-
-        private static Run AddFieldText(string wordType) {
-            Run run1 = new Run();
-
-            RunProperties runProperties1 = new RunProperties();
-            NoProof noProof1 = new NoProof();
-
-            runProperties1.Append(noProof1);
-            Text text1 = new Text();
-            text1.Text = "[Document " + wordType + "]";
-
-            run1.Append(runProperties1);
-            run1.Append(text1);
-            return run1;
-        }
-
-        private static Run AddFieldEnd() {
-            Run run1 = new Run();
-
-            RunProperties runProperties1 = new RunProperties();
-            NoProof noProof1 = new NoProof();
-
-            runProperties1.Append(noProof1);
-            FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.End };
-
-            run1.Append(runProperties1);
-            run1.Append(fieldChar1);
-            return run1;
-        }
-
     }
 }

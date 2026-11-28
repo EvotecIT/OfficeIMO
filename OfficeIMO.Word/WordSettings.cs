@@ -200,6 +200,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool UpdateFieldsOnOpen {
             get {
+                if (_document._ownedModel is { } model) return WordTableOfContent.ReadOwnedUpdateSetting(model);
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?.Settings;
                 var updateFieldsOnOpen = settings?
@@ -210,6 +211,10 @@ namespace OfficeIMO.Word {
                 return updateFieldsOnOpen.Val?.Value ?? false;
             }
             set {
+                if (_document._ownedModel is { } model && WordTableOfContent.TrySetOwnedUpdateSetting(model, value)) {
+                    _document.ReleaseTableOfContentUpdateFieldsOnOpen();
+                    return;
+                }
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?.Settings;
                 if (settings == null) {
@@ -232,7 +237,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document whose settings are managed.</param>
         public WordSettings(WordDocument document) {
             ArgumentNullException.ThrowIfNull(document);
-            if (document.FileOpenAccess != FileAccess.Read) {
+            if (document.FileOpenAccess != FileAccess.Read && document._ownedModel?.HasSettings != true) {
                 var mainPart = document._wordprocessingDocument.MainDocumentPart;
                 if (mainPart == null) {
                     throw new InvalidOperationException("MainDocumentPart is missing.");

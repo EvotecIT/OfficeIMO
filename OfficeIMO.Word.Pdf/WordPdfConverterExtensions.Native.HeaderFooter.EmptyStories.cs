@@ -1,11 +1,11 @@
 using PdfCore = OfficeIMO.Pdf;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
     private static WordParagraph CreateNativeImplicitRunningParagraph(WordHeaderFooter story) =>
-        new(story.Document, new W.Paragraph());
+        story.Document.ParagraphView(WordConverterNodes.CreateDetachedParagraph());
 
     private static void ConfigureNativeImplicitRunningStories(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,
@@ -20,7 +20,7 @@ public static partial class WordPdfConverterExtensions {
         double distance = (isFooter ? checked((uint)(section.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
         for (int index = 0; index < stories.Length; index++) {
             WordHeaderFooter? story = stories[index];
-            if (story == null || story.ChildElements.Any()) continue;
+            if (story == null || story.Node().HasChildren()) continue;
             // An implicit source paragraph still owns its blank line geometry
             // when visible story text uses the caller-configured projection.
             // Configure only this variant; its siblings retain their overrides.

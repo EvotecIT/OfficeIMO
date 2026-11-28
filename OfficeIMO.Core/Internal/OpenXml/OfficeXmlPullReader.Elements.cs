@@ -437,7 +437,7 @@ internal sealed partial class OfficeXmlPullReader {
             } else if (next == (byte)'?') {
                 SkipPast("?>", 2);
             } else if (next == (byte)'!') {
-                if (StartsWith(position, "<!--")) SkipPast("-->", 4);
+                if (StartsWith(position, "<!--")) SkipComment();
                 else if (StartsWith(position, "<![CDATA[")) SkipPast("]]>", 9);
                 else throw Malformed("The part has a document type declaration.");
             } else {

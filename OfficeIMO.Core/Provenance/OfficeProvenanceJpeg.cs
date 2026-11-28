@@ -78,6 +78,23 @@ internal static class OfficeProvenanceJpeg {
                     continue;
                 }
 
+                if (marker == 0xE1 && payloadLength > 14 && OfficeProvenanceBinary.MatchesAscii(data, payloadOffset, "Exif\0\0")) {
+                    byte[] tiff = new byte[payloadLength - 6];
+                    Buffer.BlockCopy(data, payloadOffset + 6, tiff, 0, tiff.Length);
+                    string location = $"JPEG[{imageIndex}]/APP1-Exif@{segmentStart}";
+                    if (context != null) OfficeProvenanceTiff.InspectGeneratorFields(tiff, options, context, location, hasCompleteImagePayload);
+                    if (output != null && removalOptions != null && changes != null &&
+                        OfficeProvenanceTiff.TryRemoveGeneratorFields(tiff, removalOptions, location, changes, hasCompleteImagePayload, out byte[] cleaned)) {
+                        output.Write(data, segmentStart, payloadOffset + 6 - segmentStart);
+                        output.Write(cleaned, 0, cleaned.Length);
+                        reserialized = true;
+                    } else {
+                        output?.Write(data, segmentStart, segmentEnd - segmentStart);
+                    }
+                    offset = segmentEnd;
+                    continue;
+                }
+
                 if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
                     out int sequenceEnd, out int manifestLength, out bool structurallyValid, out OfficeC2paManifestSummary? manifest)) {
                     structurallyValid &= !hasDuplicateC2paSequences && hasCompleteImagePayload;

@@ -11,7 +11,7 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph paragraph, double leftIndent, double firstLineIndent) {
         var result = new List<PdfCore.PdfTabStop>();
         foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
-            .Where(tabStop => tabStop.Alignment.ToOpenXml() != DocumentFormat.OpenXml.Wordprocessing.TabStopValues.Clear)
+            .Where(tabStop => tabStop.Alignment != WordTabAlignment.Clear)
             .OrderBy(tabStop => tabStop.Position)) {
             // Source stops are relative to the containing text margin, while
             // PDF stops use the continuation-line text frame. A hanging first
@@ -46,5 +46,5 @@ public static partial class WordPdfConverterExtensions {
 
     private static bool HasNativeParagraphBarTabs(WordParagraph paragraph) =>
         GetNativeParagraphEffectiveTabStops(paragraph).Any(stop =>
-            stop.Alignment.ToOpenXml() == DocumentFormat.OpenXml.Wordprocessing.TabStopValues.Bar);
+            stop.Alignment == WordTabAlignment.Bar);
 }

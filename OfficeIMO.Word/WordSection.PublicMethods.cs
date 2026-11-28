@@ -1,3 +1,6 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -11,6 +14,7 @@ namespace OfficeIMO.Word {
         /// <param name="newRun">Whether to create a run within the paragraph.</param>
         /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(bool newRun) {
+            if (AddOwnedSectionParagraph(newRun) is { } owned) return owned;
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             AppendParagraphToSection(wordParagraph);
             return wordParagraph;
@@ -22,6 +26,10 @@ namespace OfficeIMO.Word {
         /// <param name="text">Text to place in the paragraph.</param>
         /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(string text = "") {
+            if (AddOwnedSectionParagraph(newRun: false) is { } owned) {
+                if (!string.IsNullOrEmpty(text)) owned.Text = text;
+                return owned;
+            }
             WordParagraph paragraph = new WordParagraph(_document, newParagraph: true, newRun: false);
             if (!string.IsNullOrEmpty(text)) {
                 paragraph.Text = text;
@@ -283,32 +291,12 @@ namespace OfficeIMO.Word {
             WordFootnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
-            var props = _sectionProperties.GetFirstChild<FootnoteProperties>();
-            if (props == null) {
-                props = new FootnoteProperties();
-                _sectionProperties.AddChild(props, true);
-            }
-
-            props.RemoveAllChildren<NumberingFormat>();
-            props.RemoveAllChildren<FootnotePosition>();
-            props.RemoveAllChildren<NumberingRestart>();
-            props.RemoveAllChildren<NumberingStart>();
-
-            if (numberingFormat != null) {
-                props.AddChild(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() }, true);
-            }
-
-            if (position != null) {
-                props.AddChild(new FootnotePosition() { Val = position.Value.ToOpenXml() }, true);
-            }
-
-            if (restartNumbering != null) {
-                props.AddChild(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() }, true);
-            }
-
-            if (startNumber != null) {
-                props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
-            }
+            string? start = SectionNoteSettings.StartToken(startNumber);
+            OfficeXmlNode properties = new SectionNoteSettings(this, "footnotePr").Edit();
+            SectionNoteSettings.Set(properties, "pos", position?.ToOpenXmlToken());
+            SectionNoteSettings.Set(properties, "numFmt", numberingFormat?.ToOpenXmlToken());
+            SectionNoteSettings.Set(properties, "numStart", start);
+            SectionNoteSettings.Set(properties, "numRestart", restartNumbering?.ToOpenXmlToken());
 
             return FootnoteSettings;
         }
@@ -325,36 +313,16 @@ namespace OfficeIMO.Word {
             WordEndnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
-            var props = _sectionProperties.GetFirstChild<EndnoteProperties>();
-            if (props == null) {
-                props = new EndnoteProperties();
-                _sectionProperties.AddChild(props, true);
-            }
-
-            props.RemoveAllChildren<EndnotePosition>();
-            bool positionOnly = position != null && numberingFormat == null && restartNumbering == null && startNumber == null;
+            string? start = SectionNoteSettings.StartToken(startNumber);
+            OfficeXmlNode properties = new SectionNoteSettings(this, "endnotePr").Edit();
+            SectionNoteSettings.Set(properties, "pos", position?.ToOpenXmlToken());
+            bool positionOnly = position.HasValue && !numberingFormat.HasValue && !restartNumbering.HasValue && !startNumber.HasValue;
             if (!positionOnly) {
-                props.RemoveAllChildren<NumberingFormat>();
-                props.RemoveAllChildren<NumberingRestart>();
-                props.RemoveAllChildren<NumberingStart>();
+                SectionNoteSettings.Set(properties, "numFmt", numberingFormat?.ToOpenXmlToken());
+                SectionNoteSettings.Set(properties, "numStart", start);
+                SectionNoteSettings.Set(properties, "numRestart", restartNumbering?.ToOpenXmlToken());
             }
-
-            if (numberingFormat != null) {
-                props.AddChild(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() }, true);
-            }
-
-            if (position != null) {
-                props.AddChild(new EndnotePosition() { Val = position.Value.ToOpenXml() }, true);
-                _document.SetDocumentEndnotePosition(position.Value.ToOpenXml());
-            }
-
-            if (restartNumbering != null) {
-                props.AddChild(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() }, true);
-            }
-
-            if (startNumber != null) {
-                props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
-            }
+            if (position.HasValue) WriteDocumentEndnotePlacement(position.Value);
 
             return EndnoteSettings;
         }
@@ -366,18 +334,14 @@ namespace OfficeIMO.Word {
         /// <param name="format">Number format.</param>
         /// <returns>The attached, editable numbering settings.</returns>
         public WordPageNumberSettings AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
-            var existing = _sectionProperties.GetFirstChild<PageNumberType>();
-            existing?.Remove();
-
-            if (startNumber != null || format != null) {
-                var pageNumberType = new PageNumberType();
-                if (format != null) {
-                    pageNumberType.Format = format.Value.ToOpenXml();
-                }
-                if (startNumber != null) {
-                    pageNumberType.Start = startNumber.Value;
-                }
-                _sectionProperties.AddChild(pageNumberType, true);
+            string? formatToken = format?.ToOpenXmlToken();
+            OfficeXmlNode section = EditSectionNode();
+            OfficeXmlNode existing = FindSectionChild(section, "pgNumType");
+            if (existing.Exists) existing.Remove();
+            if (startNumber.HasValue || formatToken != null) {
+                OfficeXmlNode numberType = AddSectionChild(section, "pgNumType");
+                numberType.SetAttribute(SectionNamespace, "fmt", formatToken);
+                numberType.SetAttribute(SectionNamespace, "start", OfficeXmlViewValues.Format(startNumber));
             }
 
             return PageNumberSettings;
