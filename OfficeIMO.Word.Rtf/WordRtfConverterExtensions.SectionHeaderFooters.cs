@@ -1,13 +1,12 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 /// <content>Maps explicit section headers and footers while retaining inheritance through absent references.</content>
 public static partial class WordRtfConverterExtensions {
     private static void ApplyFirstPageHeaderFooterSelection(WordSection section, bool enabled) {
         // Selection and declaration are separate: absent references inherit earlier stories.
-        section._sectionProperties.RemoveAllChildren<TitlePage>();
-        if (enabled) section._sectionProperties.Append(new TitlePage());
+        OfficeXmlNode properties = section.Node();
+        properties.RemoveChildren(WordXml.W, "titlePg");
+        if (enabled) properties.Append(properties.CreateElement(WordXml.W, "titlePg"));
     }
 
     private static void CopySectionHeaderFooters(WordSection source, RtfSection destination, RtfDocument document,
@@ -34,20 +33,20 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static WordHeaderFooter GetSectionHeaderFooter(WordDocument document, WordSection section, RtfHeaderFooterKind kind) {
-        HeaderFooterValues type = kind switch {
-            RtfHeaderFooterKind.FirstHeader or RtfHeaderFooterKind.FirstFooter => HeaderFooterValues.First,
-            RtfHeaderFooterKind.LeftHeader or RtfHeaderFooterKind.LeftFooter => HeaderFooterValues.Even,
-            _ => HeaderFooterValues.Default
+        WordHeaderFooterType type = kind switch {
+            RtfHeaderFooterKind.FirstHeader or RtfHeaderFooterKind.FirstFooter => WordHeaderFooterType.First,
+            RtfHeaderFooterKind.LeftHeader or RtfHeaderFooterKind.LeftFooter => WordHeaderFooterType.Even,
+            _ => WordHeaderFooterType.Default
         };
         bool isFooter = kind is RtfHeaderFooterKind.Footer or RtfHeaderFooterKind.FirstFooter or
             RtfHeaderFooterKind.LeftFooter or RtfHeaderFooterKind.RightFooter;
         if (isFooter) {
-            WordHeadersAndFooters.AddFooterReference(document, section, type);
-            return type == HeaderFooterValues.First ? section.PageSetup.GetFooter(WordHeaderFooterType.First)! :
-                type == HeaderFooterValues.Even ? section.PageSetup.GetFooter(WordHeaderFooterType.Even)! : section.PageSetup.GetFooter(WordHeaderFooterType.Default)!;
+            WordConverterNodes.AddFooterReference(document, section, type);
+            return type == WordHeaderFooterType.First ? section.PageSetup.GetFooter(WordHeaderFooterType.First)! :
+                type == WordHeaderFooterType.Even ? section.PageSetup.GetFooter(WordHeaderFooterType.Even)! : section.PageSetup.GetFooter(WordHeaderFooterType.Default)!;
         }
-        WordHeadersAndFooters.AddHeaderReference(document, section, type);
-        return type == HeaderFooterValues.First ? section.PageSetup.GetHeader(WordHeaderFooterType.First)! :
-            type == HeaderFooterValues.Even ? section.PageSetup.GetHeader(WordHeaderFooterType.Even)! : section.PageSetup.GetHeader(WordHeaderFooterType.Default)!;
+        WordConverterNodes.AddHeaderReference(document, section, type);
+        return type == WordHeaderFooterType.First ? section.PageSetup.GetHeader(WordHeaderFooterType.First)! :
+            type == WordHeaderFooterType.Even ? section.PageSetup.GetHeader(WordHeaderFooterType.Even)! : section.PageSetup.GetHeader(WordHeaderFooterType.Default)!;
     }
 }

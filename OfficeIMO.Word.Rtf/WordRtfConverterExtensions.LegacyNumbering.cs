@@ -1,6 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -10,30 +8,29 @@ public static partial class WordRtfConverterExtensions {
     // Keep it per conversion: neither the authored model nor a global cache is modified.
     private sealed class RtfWordNumberingPlan {
         private readonly RtfDocument _source;
-        private readonly Numbering _numbering;
+        private readonly OfficeXmlNode _numbering;
         private readonly Dictionary<RtfParagraph, int> _bindings = new Dictionary<RtfParagraph, int>();
         private readonly Dictionary<RtfParagraph, string> _fallback = new Dictionary<RtfParagraph, string>();
         private readonly HashSet<RtfNote> _visitedNotes = new HashSet<RtfNote>();
         private int _abstractId;
         private int _instanceId;
 
-        private RtfWordNumberingPlan(RtfDocument source, Numbering numbering) {
+        private RtfWordNumberingPlan(RtfDocument source, OfficeXmlNode numbering) {
             _source = source;
             _numbering = numbering;
-            _abstractId = numbering.Elements<AbstractNum>().Select(item => item.AbstractNumberId?.Value ?? 0).DefaultIfEmpty().Max();
-            _instanceId = numbering.Elements<NumberingInstance>().Select(item => item.NumberID?.Value ?? 0).DefaultIfEmpty().Max();
+            _abstractId = numbering.ModelChildren("abstractNum").Select(item => WordXml.ParseInt32(item.WAttr("abstractNumId")) ?? 0).DefaultIfEmpty().Max();
+            _instanceId = numbering.ModelChildren("num").Select(item => WordXml.ParseInt32(item.WAttr("numId")) ?? 0).DefaultIfEmpty().Max();
         }
 
         internal static RtfWordNumberingPlan Create(RtfDocument source, WordDocument destination, RtfConversionReport? report) {
-            MainDocumentPart main = destination._wordprocessingDocument.MainDocumentPart!;
-            var plan = new RtfWordNumberingPlan(source, main.NumberingDefinitionsPart?.Numbering ?? new Numbering());
+            OfficeXmlNode existing = destination.NumberingNode();
+            var plan = new RtfWordNumberingPlan(source, existing.Exists ? existing : WordConverterNodes.CreateDetachedNumbering());
             plan.VisitBlocks(source.Blocks, new RtfListNumbering(source), new Sequence());
             foreach (RtfHeaderFooter story in source.HeaderFooters.Distinct()) {
                 plan.VisitParagraphs(story.Paragraphs, new RtfListNumbering(source), new Sequence());
             }
             if (plan._bindings.Count > 0) {
-                NumberingDefinitionsPart part = main.NumberingDefinitionsPart ?? main.AddNewPart<NumberingDefinitionsPart>();
-                if (!ReferenceEquals(part.Numbering, plan._numbering)) part.Numbering = plan._numbering;
+                destination.SetNumberingNode(plan._numbering);
             }
             if (plan._bindings.Count > 0) report?.Add(RtfConversionSeverity.Information, "RtfWordLegacyNumberingMapped",
                 "Legacy RTF paragraph numbering was mapped to Word numbering.", RtfConversionAction.Preserved,
@@ -69,7 +66,7 @@ public static partial class WordRtfConverterExtensions {
             RtfParagraph effective = _source.GetParagraphFormatting(paragraph);
             if (effective.ListId.HasValue || !effective.LegacyNumbering.HasAnyValue) {
                 sequence.Signature = null;
-            } else if (marker == null || !TryCreateLevel(effective, marker, out Level? level) ||
+            } else if (marker == null || !TryCreateLevel(effective, marker, out OfficeXmlNode level) ||
                 (paragraph.ListText != null && paragraph.ListText.ToPlainText() != marker.Text + marker.Separator)) {
                 _fallback[paragraph] = paragraph.ListText?.ToPlainText() ?? (marker == null ? string.Empty : marker.Text + marker.Separator);
                 sequence.Signature = null;
@@ -79,18 +76,23 @@ public static partial class WordRtfConverterExtensions {
                 // a new Word instance rather than restarting every \pnstart1 item.
                 // The resolved current value, not each paragraph's legacy
                 // start hint, decides whether this destination instance restarts.
-                level!.StartNumberingValue!.Val = 1;
-                string signature = marker.Formatting.Identity + "|" + level.OuterXml;
+                level.ModelChild("start").SetAttribute(WordXml.W, "val", "1");
+                string signature = marker.Formatting.Identity + "|" + Encoding.UTF8.GetString(level.OuterXml());
                 if (sequence.Signature != signature || marker.Value != sequence.LastValue + 1) {
-                    level.StartNumberingValue!.Val = checked((int)marker.Value);
+                    level.ModelChild("start").SetAttribute(WordXml.W, "val", FormatInt(checked((int)marker.Value)));
                     int abstractId = checked(++_abstractId);
                     int instanceId = checked(++_instanceId);
-                    var definition = new AbstractNum { AbstractNumberId = abstractId };
+                    OfficeXmlNode definition = _numbering.CreateElement(WordXml.W, "abstractNum");
+                    definition.SetAttribute(WordXml.W, "abstractNumId", FormatInt(abstractId));
                     definition.Append(level);
-                    _numbering.InsertBefore(definition, _numbering.ChildElements.FirstOrDefault(child =>
-                        child is NumberingInstance || child is NumberingIdMacAtCleanup));
-                    _numbering.InsertBefore(new NumberingInstance(new AbstractNumId { Val = abstractId }) { NumberID = instanceId },
-                        _numbering.GetFirstChild<NumberingIdMacAtCleanup>());
+                    _numbering.InsertBefore(definition, _numbering.Elements().FirstOrDefault(child =>
+                        child.IsW("num") || child.IsW("numIdMacAtCleanup")));
+                    OfficeXmlNode instance = _numbering.CreateElement(WordXml.W, "num");
+                    instance.SetAttribute(WordXml.W, "numId", FormatInt(instanceId));
+                    OfficeXmlNode abstractReference = instance.CreateElement(WordXml.W, "abstractNumId");
+                    abstractReference.SetAttribute(WordXml.W, "val", FormatInt(abstractId));
+                    instance.Append(abstractReference);
+                    _numbering.InsertBefore(instance, _numbering.ModelChild("numIdMacAtCleanup"));
                     sequence.InstanceId = instanceId;
                     sequence.Signature = signature;
                 }
@@ -109,8 +111,8 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        private bool TryCreateLevel(RtfParagraph paragraph, RtfListMarker marker, out Level? result) {
-            result = null;
+        private bool TryCreateLevel(RtfParagraph paragraph, RtfListMarker marker, out OfficeXmlNode result) {
+            result = default;
             RtfLegacyNumbering legacy = paragraph.LegacyNumbering;
             RtfListLevel source = marker.Formatting.Level;
             if (marker.Formatting.LevelIndex != 0 || legacy.Level is > 1 || marker.Value < 0 || marker.Value > int.MaxValue ||
@@ -127,25 +129,30 @@ public static partial class WordRtfConverterExtensions {
             string? color = legacy.ForegroundColorIndex.HasValue ? GetColorHex(_source, legacy.ForegroundColorIndex.Value) : null;
             if (legacy.ForegroundColorIndex is > 0 && color == null) return false;
 
-            result = CreateWordListLevel(source);
-            result.LevelText!.Val = template;
+            result = CreateWordListLevel(_numbering.CreateElement(WordXml.W, "abstractNum"), source);
+            result.ModelChild("lvlText").SetAttribute(WordXml.W, "val", template);
             // Paragraph-level \li/\fi remain separate direct overrides.
             // The list-level values are the canonical resolved fallback.
-            if (legacy.Alignment.HasValue) result.LevelJustification = new LevelJustification {
-                Val = legacy.Alignment == RtfLegacyNumberingAlignment.Center ? LevelJustificationValues.Center
-                    : legacy.Alignment == RtfLegacyNumberingAlignment.Right ? LevelJustificationValues.Right : LevelJustificationValues.Left
-            };
-            var properties = new NumberingSymbolRunProperties();
-            if (font != null) properties.AddChild(new RunFonts { Ascii = font, HighAnsi = font, EastAsia = font, ComplexScript = font }, true);
-            if (legacy.Bold.HasValue) properties.AddChild(new Bold { Val = legacy.Bold.Value }, true);
-            if (legacy.Italic.HasValue) properties.AddChild(new Italic { Val = legacy.Italic.Value }, true);
-            if (legacy.AllCaps.HasValue) properties.AddChild(new Caps { Val = legacy.AllCaps.Value }, true);
-            if (legacy.SmallCaps.HasValue) properties.AddChild(new SmallCaps { Val = legacy.SmallCaps.Value }, true);
-            if (legacy.Strikethrough.HasValue) properties.AddChild(new Strike { Val = legacy.Strikethrough.Value }, true);
-            if (legacy.UnderlineStyle.HasValue) properties.AddChild(new Underline { Val = ToWordUnderlineStyle(legacy.UnderlineStyle.Value) }, true);
-            if (legacy.FontSizeHalfPoints.HasValue) properties.AddChild(new FontSize { Val = legacy.FontSizeHalfPoints.Value.ToString(CultureInfo.InvariantCulture) }, true);
-            if (legacy.ForegroundColorIndex.HasValue) properties.AddChild(new Color { Val = color ?? "auto" }, true);
-            if (properties.HasChildren) result.AddChild(properties, true);
+            if (legacy.Alignment.HasValue) WordXmlEdits.ReplaceChild(result, "lvlJc", WordXml.LevelOrder,
+                legacy.Alignment == RtfLegacyNumberingAlignment.Center ? "center"
+                    : legacy.Alignment == RtfLegacyNumberingAlignment.Right ? "right" : "left");
+            OfficeXmlNode properties = result.CreateElement(WordXml.W, "rPr");
+            if (font != null) {
+                OfficeXmlNode fonts = properties.AddOrdered(WordXml.W, "rFonts", WRPrView.Order);
+                fonts.SetAttribute(WordXml.W, "ascii", font);
+                fonts.SetAttribute(WordXml.W, "hAnsi", font);
+                fonts.SetAttribute(WordXml.W, "eastAsia", font);
+                fonts.SetAttribute(WordXml.W, "cs", font);
+            }
+            if (legacy.Bold.HasValue) properties.AddOrdered(WordXml.W, "b", WRPrView.Order).SetAttribute(WordXml.W, "val", FormatOnOff(legacy.Bold.Value));
+            if (legacy.Italic.HasValue) properties.AddOrdered(WordXml.W, "i", WRPrView.Order).SetAttribute(WordXml.W, "val", FormatOnOff(legacy.Italic.Value));
+            if (legacy.AllCaps.HasValue) properties.AddOrdered(WordXml.W, "caps", WRPrView.Order).SetAttribute(WordXml.W, "val", FormatOnOff(legacy.AllCaps.Value));
+            if (legacy.SmallCaps.HasValue) properties.AddOrdered(WordXml.W, "smallCaps", WRPrView.Order).SetAttribute(WordXml.W, "val", FormatOnOff(legacy.SmallCaps.Value));
+            if (legacy.Strikethrough.HasValue) properties.AddOrdered(WordXml.W, "strike", WRPrView.Order).SetAttribute(WordXml.W, "val", FormatOnOff(legacy.Strikethrough.Value));
+            if (legacy.UnderlineStyle.HasValue) properties.AddOrdered(WordXml.W, "u", WRPrView.Order).SetAttribute(WordXml.W, "val", ToUnderlineToken(ToWordUnderlineStyle(legacy.UnderlineStyle.Value)));
+            if (legacy.FontSizeHalfPoints.HasValue) properties.AddOrdered(WordXml.W, "sz", WRPrView.Order).SetAttribute(WordXml.W, "val", legacy.FontSizeHalfPoints.Value.ToString(CultureInfo.InvariantCulture));
+            if (legacy.ForegroundColorIndex.HasValue) properties.AddOrdered(WordXml.W, "color", WRPrView.Order).SetAttribute(WordXml.W, "val", color ?? "auto");
+            if (properties.HasChildren()) result.InsertOrdered(properties, WordXml.LevelOrder);
             return true;
         }
 

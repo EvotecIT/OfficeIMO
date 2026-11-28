@@ -3,9 +3,9 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     /// <summary>Reports Word's separated-cell spacing without substituting an RTF half-gap.</summary>
     private static void AddWordTableCellSpacingDiagnostics(IEnumerable<WordElement> elements, RtfConversionReport report) {
-        int count = elements.OfType<WordTable>().Select(table => table._tableProperties)
-            .Where(properties => properties != null).Distinct()
-            .Count(properties => GetWordTableCellSpacingWidth(properties!.TableCellSpacing?.Width?.Value) != 0);
+        int count = elements.OfType<WordTable>().Select(table => table.PropertiesNode())
+            .Where(properties => properties.Exists).Distinct()
+            .Count(properties => GetWordTableCellSpacingWidth(properties.ModelChild("tblCellSpacing").WAttr("w")) != 0);
         if (count == 0) return;
         report.Add(RtfConversionSeverity.Warning, "WordRtfTableCellSpacingOmitted",
             "Word spacing between separated table cells is not represented by the RTF bridge and is omitted; it is not an RTF row half-gap.",

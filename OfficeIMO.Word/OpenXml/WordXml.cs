@@ -371,6 +371,37 @@ internal static class WordXml {
 
     /// <summary>The element's text and its descendants', as the SDK's <c>InnerText</c>.</summary>
     internal static string Text(this OfficeXmlNode element) => element.IsNone ? string.Empty : element.InnerText;
+
+    // ---- Schema orders the converters build in --------------------------------------------------------------------
+
+    /// <summary>The children of <c>w:style</c> in schema order.</summary>
+    internal static readonly OfficeXmlChildOrder StyleOrder = WOrder("name", "aliases", "basedOn", "next", "link",
+        "autoRedefine", "hidden", "uiPriority", "semiHidden", "unhideWhenUsed", "qFormat", "locked", "personal",
+        "personalCompose", "personalReply", "rsid", "pPr", "rPr", "tblPr", "trPr", "tcPr", "tblStylePr");
+
+    /// <summary>The children of a numbering level (<c>w:lvl</c>) in schema order.</summary>
+    internal static readonly OfficeXmlChildOrder LevelOrder = WOrder("start", "numFmt", "lvlRestart", "pStyle", "isLgl",
+        "suff", "lvlText", "lvlPicBulletId", "legacy", "lvlJc", "pPr", "rPr");
+
+    /// <summary>The children of <c>w:tblPr</c> in schema order.</summary>
+    internal static readonly OfficeXmlChildOrder TablePropertiesOrder = WOrder("tblStyle", "tblpPr", "tblOverlap",
+        "bidiVisual", "tblStyleRowBandSize", "tblStyleColBandSize", "tblW", "jc", "tblCellSpacing", "tblInd", "tblBorders",
+        "shd", "tblLayout", "tblCellMar", "tblLook", "tblCaption", "tblDescription", "tblPrChange");
+
+    /// <summary>The children of <c>w:tblCellMar</c> in schema order; <c>left</c>/<c>start</c> and <c>right</c>/<c>end</c> share a place.</summary>
+    internal static readonly OfficeXmlChildOrder TableCellMarginsOrder = new(
+        new[] { W, W, W, W, W, W }, new[] { "top", "left", "start", "bottom", "right", "end" }, new[] { 0, 1, 1, 2, 3, 3 });
+
+    /// <summary>The children of <c>w:tcPr</c> in schema order.</summary>
+    internal static readonly OfficeXmlChildOrder TableCellPropertiesOrder = WOrder("cnfStyle", "tcW", "gridSpan", "hMerge",
+        "vMerge", "tcBorders", "shd", "noWrap", "tcMar", "textDirection", "tcFitText", "vAlign", "hideMark", "headers",
+        "cellIns", "cellDel", "cellMerge", "tcPrChange");
+
+    private static OfficeXmlChildOrder WOrder(params string[] names) {
+        var namespaces = new int[names.Length];
+        for (int index = 0; index < names.Length; index++) namespaces[index] = W;
+        return new OfficeXmlChildOrder(namespaces, names);
+    }
 }
 
 /// <summary>The level of a <c>w:sdt</c> content control, as <see cref="WordXml.ContentControlLevel"/> reads it.</summary>

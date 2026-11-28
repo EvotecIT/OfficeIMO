@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 
@@ -10,17 +9,18 @@ public static partial class WordRtfConverterExtensions {
             run.StyleId = FindRtfStyleId(rtfDocument, wordRun.CharacterStyleId!, RtfStyleKind.Character);
         }
 
-        run.DirectBold = ReadToggle(wordRun.ScopedRunProperties?.Bold);
-        run.DirectItalic = ReadToggle(wordRun.ScopedRunProperties?.Italic);
-        run.DirectUnderlineStyle = wordRun.ScopedRunProperties?.Underline != null
-            ? ToRtfUnderlineStyle(wordRun.Underline.ToOpenXml()) : null;
+        OfficeXmlNode scopedProperties = wordRun.ScopedRunPropertiesNode();
+        run.DirectBold = ReadToggle(scopedProperties.ModelChild("b"));
+        run.DirectItalic = ReadToggle(scopedProperties.ModelChild("i"));
+        run.DirectUnderlineStyle = scopedProperties.ModelChild("u").Exists
+            ? ToRtfUnderlineStyle(wordRun.Underline) : null;
         if (TryGetUnderlineColor(wordRun, out byte underlineRed, out byte underlineGreen, out byte underlineBlue)) {
             run.UnderlineColorIndex = GetOrAddColor(rtfDocument, underlineRed, underlineGreen, underlineBlue);
         }
 
         run.Strikethrough = wordRun.Strikethrough;
         run.DoubleStrikethrough = wordRun.DoubleStrikethrough;
-        run.DirectHidden = ReadToggle(wordRun.ScopedRunProperties?.Vanish);
+        run.DirectHidden = ReadToggle(scopedProperties.ModelChild("vanish"));
         run.Outline = wordRun.Outline;
         run.Shadow = wordRun.Shadow;
         run.Emboss = wordRun.Emboss;
@@ -38,7 +38,7 @@ public static partial class WordRtfConverterExtensions {
         if (string.Equals(wordRun.RunColorValue, "auto", StringComparison.OrdinalIgnoreCase)) run.ForegroundColorIndex = 0;
 
         if (wordRun.Highlight.HasValue &&
-            TryGetRtfHighlightColor(wordRun.Highlight.Value.ToOpenXml(), out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
+            TryGetRtfHighlightColor(wordRun.Highlight.Value, out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
             run.HighlightColorIndex = GetOrAddColor(rtfDocument, highlightRed, highlightGreen, highlightBlue);
         }
 
@@ -46,7 +46,7 @@ public static partial class WordRtfConverterExtensions {
         run.CharacterScalePercent = GetCharacterScale(wordRun);
         run.KerningHalfPoints = GetKerningHalfPoints(wordRun);
         run.CharacterOffsetHalfPoints = GetCharacterOffsetHalfPoints(wordRun);
-        run.LanguageId = ToRtfLanguageId(wordRun._run?.RunProperties?.Languages?.Val?.Value);
+        run.LanguageId = ToRtfLanguageId(DirectRunProperties(wordRun).ModelChild("lang").WVal());
         run.Direction = IsRightToLeftWordRun(wordRun) ? RtfTextDirection.RightToLeft : null;
 
         run.VerticalPosition = wordRun.VerticalTextAlignment == WordVerticalTextPosition.Superscript
@@ -62,9 +62,9 @@ public static partial class WordRtfConverterExtensions {
         }
 
         wordRun.ApplyDirectEmphasis(run.DirectBold, run.DirectItalic,
-            run.DirectUnderlineStyle.HasValue ? ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum() : null);
+            run.DirectUnderlineStyle.HasValue ? ToWordUnderlineStyle(run.UnderlineStyle) : null);
         if (run.UnderlineStyle != RtfUnderlineStyle.None) {
-            wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum());
+            wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle));
             if (run.UnderlineColorIndex.HasValue && rtfDocument != null) {
                 string? underlineColor = GetColorHex(rtfDocument, run.UnderlineColorIndex.Value);
                 if (underlineColor != null) {
@@ -106,8 +106,8 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (run.HighlightColorIndex.HasValue &&
-            TryGetWordHighlightColor(rtfDocument, run.HighlightColorIndex.Value, out HighlightColorValues highlight)) {
-            wordRun.SetHighlight(highlight.ToOfficeEnum());
+            TryGetWordHighlightColor(rtfDocument, run.HighlightColorIndex.Value, out WordHighlightColor highlight)) {
+            wordRun.SetHighlight(highlight);
         }
 
         wordRun.Spacing = run.CharacterSpacingTwips is int nativeSpacing ? OfficeLength.Emus((long)nativeSpacing * 635) : null;
@@ -160,108 +160,129 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static RtfUnderlineStyle ToRtfUnderlineStyle(UnderlineValues? underline) {
+    private static RtfUnderlineStyle ToRtfUnderlineStyle(WordUnderlineStyle? underline) {
         if (!underline.HasValue) {
             return RtfUnderlineStyle.None;
         }
 
-        UnderlineValues value = underline.Value;
-        if (value == UnderlineValues.Single) return RtfUnderlineStyle.Single;
-        if (value == UnderlineValues.Words) return RtfUnderlineStyle.Words;
-        if (value == UnderlineValues.Double) return RtfUnderlineStyle.Double;
-        if (value == UnderlineValues.Thick) return RtfUnderlineStyle.Thick;
-        if (value == UnderlineValues.Dotted) return RtfUnderlineStyle.Dotted;
-        if (value == UnderlineValues.DottedHeavy) return RtfUnderlineStyle.ThickDotted;
-        if (value == UnderlineValues.Dash) return RtfUnderlineStyle.Dash;
-        if (value == UnderlineValues.DashedHeavy) return RtfUnderlineStyle.ThickDash;
-        if (value == UnderlineValues.DashLong) return RtfUnderlineStyle.LongDash;
-        if (value == UnderlineValues.DashLongHeavy) return RtfUnderlineStyle.ThickLongDash;
-        if (value == UnderlineValues.DotDash) return RtfUnderlineStyle.DashDot;
-        if (value == UnderlineValues.DashDotHeavy) return RtfUnderlineStyle.ThickDashDot;
-        if (value == UnderlineValues.DotDotDash) return RtfUnderlineStyle.DashDotDot;
-        if (value == UnderlineValues.DashDotDotHeavy) return RtfUnderlineStyle.ThickDashDotDot;
-        if (value == UnderlineValues.Wave) return RtfUnderlineStyle.Wave;
-        if (value == UnderlineValues.WavyHeavy) return RtfUnderlineStyle.HeavyWave;
-        if (value == UnderlineValues.WavyDouble) return RtfUnderlineStyle.DoubleWave;
-        return RtfUnderlineStyle.None;
+        switch (underline.Value) {
+            case WordUnderlineStyle.Single: return RtfUnderlineStyle.Single;
+            case WordUnderlineStyle.Words: return RtfUnderlineStyle.Words;
+            case WordUnderlineStyle.Double: return RtfUnderlineStyle.Double;
+            case WordUnderlineStyle.Thick: return RtfUnderlineStyle.Thick;
+            case WordUnderlineStyle.Dotted: return RtfUnderlineStyle.Dotted;
+            case WordUnderlineStyle.DottedHeavy: return RtfUnderlineStyle.ThickDotted;
+            case WordUnderlineStyle.Dash: return RtfUnderlineStyle.Dash;
+            case WordUnderlineStyle.DashedHeavy: return RtfUnderlineStyle.ThickDash;
+            case WordUnderlineStyle.DashLong: return RtfUnderlineStyle.LongDash;
+            case WordUnderlineStyle.DashLongHeavy: return RtfUnderlineStyle.ThickLongDash;
+            case WordUnderlineStyle.DotDash: return RtfUnderlineStyle.DashDot;
+            case WordUnderlineStyle.DashDotHeavy: return RtfUnderlineStyle.ThickDashDot;
+            case WordUnderlineStyle.DotDotDash: return RtfUnderlineStyle.DashDotDot;
+            case WordUnderlineStyle.DashDotDotHeavy: return RtfUnderlineStyle.ThickDashDotDot;
+            case WordUnderlineStyle.Wave: return RtfUnderlineStyle.Wave;
+            case WordUnderlineStyle.WavyHeavy: return RtfUnderlineStyle.HeavyWave;
+            case WordUnderlineStyle.WavyDouble: return RtfUnderlineStyle.DoubleWave;
+            default: return RtfUnderlineStyle.None;
+        }
     }
 
-    private static UnderlineValues ToWordUnderlineStyle(RtfUnderlineStyle style) {
+    private static WordUnderlineStyle ToWordUnderlineStyle(RtfUnderlineStyle style) {
         switch (style) {
             case RtfUnderlineStyle.None:
-                return UnderlineValues.None;
+                return WordUnderlineStyle.None;
             case RtfUnderlineStyle.Words:
-                return UnderlineValues.Words;
+                return WordUnderlineStyle.Words;
             case RtfUnderlineStyle.Double:
-                return UnderlineValues.Double;
+                return WordUnderlineStyle.Double;
             case RtfUnderlineStyle.Dotted:
-                return UnderlineValues.Dotted;
+                return WordUnderlineStyle.Dotted;
             case RtfUnderlineStyle.Dash:
-                return UnderlineValues.Dash;
+                return WordUnderlineStyle.Dash;
             case RtfUnderlineStyle.DashDot:
-                return UnderlineValues.DotDash;
+                return WordUnderlineStyle.DotDash;
             case RtfUnderlineStyle.DashDotDot:
-                return UnderlineValues.DotDotDash;
+                return WordUnderlineStyle.DotDotDash;
             case RtfUnderlineStyle.Thick:
-                return UnderlineValues.Thick;
+                return WordUnderlineStyle.Thick;
             case RtfUnderlineStyle.ThickDotted:
-                return UnderlineValues.DottedHeavy;
+                return WordUnderlineStyle.DottedHeavy;
             case RtfUnderlineStyle.ThickDash:
-                return UnderlineValues.DashedHeavy;
+                return WordUnderlineStyle.DashedHeavy;
             case RtfUnderlineStyle.ThickDashDot:
-                return UnderlineValues.DashDotHeavy;
+                return WordUnderlineStyle.DashDotHeavy;
             case RtfUnderlineStyle.ThickDashDotDot:
-                return UnderlineValues.DashDotDotHeavy;
+                return WordUnderlineStyle.DashDotDotHeavy;
             case RtfUnderlineStyle.Wave:
-                return UnderlineValues.Wave;
+                return WordUnderlineStyle.Wave;
             case RtfUnderlineStyle.HeavyWave:
-                return UnderlineValues.WavyHeavy;
+                return WordUnderlineStyle.WavyHeavy;
             case RtfUnderlineStyle.DoubleWave:
-                return UnderlineValues.WavyDouble;
+                return WordUnderlineStyle.WavyDouble;
             case RtfUnderlineStyle.LongDash:
-                return UnderlineValues.DashLong;
+                return WordUnderlineStyle.DashLong;
             case RtfUnderlineStyle.ThickLongDash:
-                return UnderlineValues.DashLongHeavy;
+                return WordUnderlineStyle.DashLongHeavy;
             default:
-                return UnderlineValues.Single;
+                return WordUnderlineStyle.Single;
         }
+    }
+
+    // The w:u w:val token of each underline style, paired by position with UnderlineStyles.
+    private static readonly string[] UnderlineTokens = {
+        "single", "words", "double", "thick", "dotted", "dottedHeavy", "dash", "dashedHeavy", "dashLong",
+        "dashLongHeavy", "dotDash", "dashDotHeavy", "dotDotDash", "dashDotDotHeavy", "wave", "wavyHeavy", "wavyDouble", "none"
+    };
+
+    private static readonly WordUnderlineStyle[] UnderlineStyles = {
+        WordUnderlineStyle.Single, WordUnderlineStyle.Words, WordUnderlineStyle.Double, WordUnderlineStyle.Thick,
+        WordUnderlineStyle.Dotted, WordUnderlineStyle.DottedHeavy, WordUnderlineStyle.Dash, WordUnderlineStyle.DashedHeavy,
+        WordUnderlineStyle.DashLong, WordUnderlineStyle.DashLongHeavy, WordUnderlineStyle.DotDash, WordUnderlineStyle.DashDotHeavy,
+        WordUnderlineStyle.DotDotDash, WordUnderlineStyle.DashDotDotHeavy, WordUnderlineStyle.Wave, WordUnderlineStyle.WavyHeavy,
+        WordUnderlineStyle.WavyDouble, WordUnderlineStyle.None
+    };
+
+    private static string ToUnderlineToken(WordUnderlineStyle style) => UnderlineTokens[Array.IndexOf(UnderlineStyles, style)];
+
+    private static WordUnderlineStyle? ParseUnderlineToken(string? token) {
+        int index = token == null ? -1 : Array.IndexOf(UnderlineTokens, token);
+        return index < 0 ? null : UnderlineStyles[index];
     }
 
     private static bool IsImprintWordRun(WordParagraph wordRun) {
-        return wordRun._run?.RunProperties?.Imprint != null;
+        return DirectRunProperties(wordRun).ModelChild("imprint").Exists;
     }
 
     private static bool IsRightToLeftWordRun(WordParagraph wordRun) {
-        return wordRun._run?.RunProperties?.RightToLeftText != null;
+        return DirectRunProperties(wordRun).ModelChild("rtl").Exists;
     }
 
     private static void SetRunDirection(WordParagraph wordRun, RtfTextDirection direction) {
-        if (wordRun._run == null) {
+        if (wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
+        OfficeXmlNode properties = GetOrAddRunProperties(wordRun);
         if (direction == RtfTextDirection.RightToLeft) {
-            wordRun._run.RunProperties.RightToLeftText = new RightToLeftText();
+            WordXmlEdits.ReplaceChild(properties, "rtl", WRPrView.Order);
         } else {
-            wordRun._run.RunProperties.RightToLeftText?.Remove();
+            WordXmlEdits.RemoveChild(properties, "rtl");
         }
     }
 
     private static void SetImprintWordRun(WordParagraph wordRun) {
-        if (wordRun._run == null) {
+        if (wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Imprint = new Imprint();
+        WordXmlEdits.ReplaceChild(GetOrAddRunProperties(wordRun), "imprint", WRPrView.Order);
     }
 
     private static bool TryGetUnderlineColor(WordParagraph wordRun, out byte red, out byte green, out byte blue) {
         red = 0;
         green = 0;
         blue = 0;
-        string? color = wordRun._run?.RunProperties?.Underline?.Color?.Value;
+        string? color = DirectRunProperties(wordRun).ModelChild("u").WAttr("color");
         if (string.IsNullOrWhiteSpace(color) ||
             string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)) {
             return false;
@@ -271,17 +292,15 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void SetUnderlineColor(WordParagraph wordRun, string colorHex) {
-        if (wordRun._run == null) {
+        if (wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Underline ??= new Underline();
-        wordRun._run.RunProperties.Underline.Color = colorHex;
+        GetOrAddRunProperties(wordRun).GetOrAddChild(WordXml.W, "u", WRPrView.Order).SetAttribute(WordXml.W, "color", colorHex);
     }
 
     private static int? GetCharacterScale(WordParagraph wordRun) {
-        long? value = wordRun._run?.RunProperties?.CharacterScale?.Val?.Value;
+        long? value = WordXml.ParseInt64(DirectRunProperties(wordRun).ModelChild("w").WVal());
         if (!value.HasValue || value.Value == 100 || value.Value > int.MaxValue || value.Value < int.MinValue) {
             return null;
         }
@@ -290,7 +309,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetKerningHalfPoints(WordParagraph wordRun) {
-        uint? value = wordRun._run?.RunProperties?.Kern?.Val?.Value;
+        uint? value = WordXml.ParseUInt32(DirectRunProperties(wordRun).ModelChild("kern").WVal());
         if (!value.HasValue || value.Value == 0 || value.Value > int.MaxValue) {
             return null;
         }
@@ -299,7 +318,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetCharacterOffsetHalfPoints(WordParagraph wordRun) {
-        string? value = wordRun._run?.RunProperties?.Position?.Val?.Value;
+        string? value = DirectRunProperties(wordRun).ModelChild("position").WVal();
         if (!int.TryParse(value, out int offset) || offset == 0) {
             return null;
         }
@@ -308,30 +327,27 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void SetCharacterScale(WordParagraph wordRun, int percent) {
-        if (wordRun._run == null) {
+        if (wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.CharacterScale = new CharacterScale { Val = percent };
+        WordXmlEdits.ReplaceChild(GetOrAddRunProperties(wordRun), "w", WRPrView.Order, FormatInt(percent)!);
     }
 
     private static void SetKerning(WordParagraph wordRun, int halfPoints) {
-        if (wordRun._run == null || halfPoints < 0) {
+        if (wordRun.RunNode().IsNone || halfPoints < 0) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Kern = new Kern { Val = (uint)halfPoints };
+        WordXmlEdits.ReplaceChild(GetOrAddRunProperties(wordRun), "kern", WRPrView.Order, FormatInt(halfPoints)!);
     }
 
     private static void SetCharacterOffset(WordParagraph wordRun, int halfPoints) {
-        if (wordRun._run == null) {
+        if (wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Position = new Position { Val = halfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+        WordXmlEdits.ReplaceChild(GetOrAddRunProperties(wordRun), "position", WRPrView.Order, FormatInt(halfPoints)!);
     }
 
     private static bool TryGetFontName(RtfDocument? document, int fontId, out string? fontName) {

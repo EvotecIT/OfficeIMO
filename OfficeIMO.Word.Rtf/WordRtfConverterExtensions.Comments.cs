@@ -1,11 +1,8 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void AppendWordComments(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
-        HashSet<string> commentIds = CollectReferencedCommentIds(new[] { wordParagraph._paragraph });
+        HashSet<string> commentIds = CollectReferencedCommentIds(new[] { wordParagraph.Node() });
 
         if (commentIds.Count == 0) {
             return;
@@ -25,11 +22,11 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static HashSet<string> CollectReferencedCommentIds(IEnumerable<OpenXmlElement> roots) {
+    private static HashSet<string> CollectReferencedCommentIds(IEnumerable<OfficeXmlNode> roots) {
         var commentIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (OpenXmlElement root in roots) {
-            foreach (string? id in root.Descendants<CommentRangeStart>().Select(start => start.Id?.Value)
-                         .Concat(root.Descendants<CommentReference>().Select(reference => reference.Id?.Value))) {
+        foreach (OfficeXmlNode root in roots) {
+            foreach (string? id in root.ModelDescendants("commentRangeStart").Select(start => start.WAttr("id"))
+                         .Concat(root.ModelDescendants("commentReference").Select(reference => reference.WAttr("id")))) {
                 if (!string.IsNullOrWhiteSpace(id)) commentIds.Add(id!);
             }
         }
@@ -43,7 +40,7 @@ public static partial class WordRtfConverterExtensions {
             Created = comment.DateTime
         };
 
-        foreach (WordParagraph wordParagraph in comment.Paragraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First())) {
+        foreach (WordParagraph wordParagraph in comment.Paragraphs.GroupBy(paragraph => paragraph.Node()).Select(group => group.First())) {
             RtfParagraph paragraph = note.AddParagraph();
             CopyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
             AppendFormattedRuns(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
@@ -57,28 +54,36 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendAnnotationComment(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
-        var paragraphs = new List<Paragraph>(note.Paragraphs.Count);
+        var paragraphs = new List<OfficeXmlNode>(note.Paragraphs.Count);
         foreach (RtfParagraph paragraph in note.Paragraphs) {
-            paragraphs.Add((Paragraph)CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument, numbering)._paragraph);
+            paragraphs.Add(CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument, numbering).Node());
         }
 
-        WordComment comment = WordComment.Create(wordRun._document, GetAnnotationAuthor(note), GetAnnotationInitials(note), paragraphs);
+        WordComment comment = WordConverterNodes.CreateComment(wordRun._document, GetAnnotationAuthor(note), GetAnnotationInitials(note), paragraphs);
         comment.DateTime = note.Created ?? DateTime.Now;
         AttachCommentReference(wordRun, comment.Id!);
     }
 
     private static void AttachCommentReference(WordParagraph wordRun, string commentId) {
-        Run? firstRun = wordRun._paragraph.GetFirstChild<Run>();
-        if (firstRun == null) {
-            firstRun = new Run();
-            wordRun._paragraph.Append(firstRun);
+        OfficeXmlNode paragraph = wordRun.Node();
+        OfficeXmlNode firstRun = paragraph.ModelChild("r");
+        if (firstRun.IsNone) {
+            firstRun = paragraph.Append(paragraph.CreateElement(WordXml.W, "r"));
         }
 
-        wordRun._paragraph.InsertBefore(new CommentRangeStart { Id = commentId }, firstRun);
+        OfficeXmlNode rangeStart = paragraph.CreateElement(WordXml.W, "commentRangeStart");
+        rangeStart.SetAttribute(WordXml.W, "id", commentId);
+        paragraph.InsertBefore(rangeStart, firstRun);
 
-        Run lastRun = wordRun._paragraph.Elements<Run>().Last();
-        OpenXmlElement commentEnd = wordRun._paragraph.InsertAfter(new CommentRangeEnd { Id = commentId }, lastRun);
-        wordRun._paragraph.InsertAfter(new Run(new CommentReference { Id = commentId }), commentEnd);
+        OfficeXmlNode lastRun = paragraph.ModelChildren("r").Last();
+        OfficeXmlNode rangeEnd = paragraph.CreateElement(WordXml.W, "commentRangeEnd");
+        rangeEnd.SetAttribute(WordXml.W, "id", commentId);
+        OfficeXmlNode commentEnd = lastRun.InsertAfterSelf(rangeEnd);
+        OfficeXmlNode referenceRun = paragraph.CreateElement(WordXml.W, "r");
+        OfficeXmlNode reference = referenceRun.CreateElement(WordXml.W, "commentReference");
+        reference.SetAttribute(WordXml.W, "id", commentId);
+        referenceRun.Append(reference);
+        commentEnd.InsertAfterSelf(referenceRun);
     }
 
     private static void AttachAnnotation(RtfParagraph paragraph, RtfNote annotation) {

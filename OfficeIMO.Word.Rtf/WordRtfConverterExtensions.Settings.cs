@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
@@ -9,7 +7,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         destination.Settings.ViewScale = source.Settings.ZoomPercentage;
-        CopyDocumentProtection(source.Settings.ProtectionType.ToOpenXml(), destination.Settings);
+        CopyDocumentProtection(source.Settings.ProtectionType, destination.Settings);
 
         if (source.Sections.Any(section => section.DocumentOddEvenSettingEnabled)) {
             destination.Settings.FacingPages = true;
@@ -37,9 +35,9 @@ public static partial class WordRtfConverterExtensions {
         ApplyDocumentProtection(source.Settings, destination);
 
         if (source.Settings.FacingPages == true) {
-            Settings settings = destination._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
-            settings.RemoveAllChildren<EvenAndOddHeaders>();
-            settings.Append(new EvenAndOddHeaders());
+            OfficeXmlNode settings = destination.SettingsNode();
+            settings.RemoveChildren(WordXml.W, "evenAndOddHeaders");
+            settings.Append(settings.CreateElement(WordXml.W, "evenAndOddHeaders"));
         }
 
         if (source.Settings.MirrorMargins == true) {
@@ -47,52 +45,55 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void CopyDocumentProtection(DocumentProtectionValues? source, RtfDocumentSettings destination) {
+    private static void CopyDocumentProtection(WordDocumentProtectionType? source, RtfDocumentSettings destination) {
         if (!source.HasValue) {
             return;
         }
 
-        if (source.Value == DocumentProtectionValues.Forms) {
+        if (source.Value == WordDocumentProtectionType.Forms) {
             destination.FormProtection = true;
-        } else if (source.Value == DocumentProtectionValues.TrackedChanges) {
+        } else if (source.Value == WordDocumentProtectionType.TrackedChanges) {
             destination.RevisionProtection = true;
-        } else if (source.Value == DocumentProtectionValues.Comments) {
+        } else if (source.Value == WordDocumentProtectionType.Comments) {
             destination.AnnotationProtection = true;
-        } else if (source.Value == DocumentProtectionValues.ReadOnly) {
+        } else if (source.Value == WordDocumentProtectionType.ReadOnly) {
             destination.ReadOnlyProtection = true;
         }
     }
 
     private static void ApplyDocumentProtection(RtfDocumentSettings source, WordDocument destination) {
-        DocumentProtectionValues? protection = ToWordDocumentProtection(source);
-        if (!protection.HasValue) {
+        string? protection = ToWordDocumentProtection(source);
+        if (protection == null) {
             return;
         }
 
-        Settings? settings = destination._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
-        if (settings == null) {
+        OfficeXmlNode settings = destination.SettingsNode();
+        if (settings.IsNone) {
             return;
         }
 
-        settings.RemoveAllChildren<DocumentProtection>();
-        settings.Append(new DocumentProtection { Edit = protection.Value });
+        settings.RemoveChildren(WordXml.W, "documentProtection");
+        OfficeXmlNode documentProtection = settings.CreateElement(WordXml.W, "documentProtection");
+        documentProtection.SetAttribute(WordXml.W, "edit", protection);
+        settings.Append(documentProtection);
     }
 
-    private static DocumentProtectionValues? ToWordDocumentProtection(RtfDocumentSettings source) {
+    // The w:edit token of w:documentProtection.
+    private static string? ToWordDocumentProtection(RtfDocumentSettings source) {
         if (source.FormProtection == true) {
-            return DocumentProtectionValues.Forms;
+            return "forms";
         }
 
         if (source.RevisionProtection == true) {
-            return DocumentProtectionValues.TrackedChanges;
+            return "trackedChanges";
         }
 
         if (source.AnnotationProtection == true) {
-            return DocumentProtectionValues.Comments;
+            return "comments";
         }
 
         if (source.ReadOnlyProtection == true) {
-            return DocumentProtectionValues.ReadOnly;
+            return "readOnly";
         }
 
         return null;

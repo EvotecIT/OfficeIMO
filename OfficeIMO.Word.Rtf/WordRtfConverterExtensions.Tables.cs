@@ -1,16 +1,14 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyWordElements(IEnumerable<WordElement> elements, RtfDocument destination, Dictionary<string, int> revisionAuthorIndexes) {
-        var seenParagraphs = new HashSet<Paragraph>();
+        var seenParagraphs = new HashSet<OfficeXmlNode>();
         foreach (WordElement element in elements) {
             if (element is WordParagraph wordParagraph) {
-                if (!seenParagraphs.Add(wordParagraph._paragraph)) {
+                if (!seenParagraphs.Add(wordParagraph.Node())) {
                     continue;
                 }
 
@@ -28,10 +26,10 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyWordElements(IEnumerable<WordElement> elements, RtfSection destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes) {
-        var seenParagraphs = new HashSet<Paragraph>();
+        var seenParagraphs = new HashSet<OfficeXmlNode>();
         foreach (WordElement element in elements) {
             if (element is WordParagraph wordParagraph) {
-                if (!seenParagraphs.Add(wordParagraph._paragraph)) {
+                if (!seenParagraphs.Add(wordParagraph.Node())) {
                     continue;
                 }
 
@@ -57,9 +55,10 @@ public static partial class WordRtfConverterExtensions {
         }
         int? tableLeftPadding = cellGap.HasValue ? null : GetWordTableLeftPadding(source);
         int? tableRightPadding = cellGap.HasValue ? null : GetWordTableRightPadding(source);
-        RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment.ToOpenXml());
-        RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(source._tableProperties?.TableWidth);
-        int? tableWidth = ToRtfPreferredWidthValue(source._tableProperties?.TableWidth);
+        RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment);
+        OfficeXmlNode tableWidthNode = source.PropertiesNode().ModelChild("tblW");
+        RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(tableWidthNode);
+        int? tableWidth = ToRtfPreferredWidthValue(tableWidthNode);
         foreach (WordTableRow wordRow in source.Rows) {
             RtfTableRow row = destination.AddRow();
             row.RepeatHeader = wordRow.RepeatHeaderRowAtTheTopOfEachPage;
@@ -86,12 +85,13 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyCellProperties(WordTableCell source, RtfTableCell destination, RtfDocument document) {
-        destination.HorizontalMerge = ToRtfCellMerge(source.HorizontalMerge.ToOpenXml());
-        destination.VerticalMerge = ToRtfCellMerge(source.VerticalMerge.ToOpenXml());
-        destination.VerticalAlignment = ToRtfCellVerticalAlignment(source.VerticalAlignment.ToOpenXml());
-        destination.TextFlow = ToRtfCellTextFlow(source.TextDirection.ToOpenXml());
-        destination.PreferredWidthUnit = ToRtfTableWidthUnit(source._tableCellProperties?.TableCellWidth);
-        destination.PreferredWidth = ToRtfPreferredWidthValue(source._tableCellProperties?.TableCellWidth);
+        destination.HorizontalMerge = ToRtfCellMerge(source.HorizontalMerge);
+        destination.VerticalMerge = ToRtfCellMerge(source.VerticalMerge);
+        destination.VerticalAlignment = ToRtfCellVerticalAlignment(source.VerticalAlignment);
+        destination.TextFlow = ToRtfCellTextFlow(source.TextDirection);
+        OfficeXmlNode cellProperties = source.PropertiesNode();
+        destination.PreferredWidthUnit = ToRtfTableWidthUnit(cellProperties.ModelChild("tcW"));
+        destination.PreferredWidth = ToRtfPreferredWidthValue(cellProperties.ModelChild("tcW"));
         destination.NoWrap = !source.WrapText;
         destination.FitText = source.FitText;
 
@@ -100,19 +100,19 @@ public static partial class WordRtfConverterExtensions {
             destination.BackgroundColorIndex = GetOrAddColor(document, red, green, blue);
         }
 
-        string? foreground = WordRunFormatting.ResolveShadingForegroundColorHex(source._tableCellProperties?.Shading, source.Document);
+        string? foreground = WordConverterNodes.ResolveShadingForegroundColorHex(cellProperties.ModelChild("shd"), source.Document);
         if (!string.IsNullOrWhiteSpace(foreground) &&
             !string.Equals(foreground, "auto", StringComparison.OrdinalIgnoreCase) &&
             TryParseHexColor(foreground!, out red, out green, out blue)) {
             destination.ShadingForegroundColorIndex = GetOrAddColor(document, red, green, blue);
         }
 
-        CopyCellShadingPattern(source.ShadingPattern.ToOpenXml(), destination);
+        CopyCellShadingPattern(source.ShadingPattern, destination);
         CopyCellPadding(source, destination);
         CopyCellBorders(source, destination, document);
     }
 
-    private static void CopyCellShadingPattern(ShadingPatternValues? source, RtfTableCell destination) {
+    private static void CopyCellShadingPattern(WordShadingPattern? source, RtfTableCell destination) {
         if (!source.HasValue) {
             return;
         }
@@ -133,12 +133,12 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyCellBorders(WordTableCell source, RtfTableCell destination, RtfDocument document) {
-        CopyCellBorder(source.Borders.TopStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.TopSize), source.Borders.TopColorValue, destination.TopBorder, document);
-        CopyCellBorder(source.Borders.LeftStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.LeftSize), source.Borders.LeftColorValue, destination.LeftBorder, document);
-        CopyCellBorder(source.Borders.BottomStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.BottomSize), source.Borders.BottomColorValue, destination.BottomBorder, document);
-        CopyCellBorder(source.Borders.RightStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.RightSize), source.Borders.RightColorValue, destination.RightBorder, document);
-        CopyCellBorder(source.Borders.TopLeftToBottomRightStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.TopLeftToBottomRightSize), source.Borders.TopLeftToBottomRightColorValue, destination.TopLeftToBottomRightBorder, document);
-        CopyCellBorder(source.Borders.TopRightToBottomLeftStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.TopRightToBottomLeftSize), source.Borders.TopRightToBottomLeftColorValue, destination.TopRightToBottomLeftBorder, document);
+        CopyCellBorder(source.Borders.TopStyle, WordBorderLengths.ToSize(source.Borders.TopSize), source.Borders.TopColorValue, destination.TopBorder, document);
+        CopyCellBorder(source.Borders.LeftStyle, WordBorderLengths.ToSize(source.Borders.LeftSize), source.Borders.LeftColorValue, destination.LeftBorder, document);
+        CopyCellBorder(source.Borders.BottomStyle, WordBorderLengths.ToSize(source.Borders.BottomSize), source.Borders.BottomColorValue, destination.BottomBorder, document);
+        CopyCellBorder(source.Borders.RightStyle, WordBorderLengths.ToSize(source.Borders.RightSize), source.Borders.RightColorValue, destination.RightBorder, document);
+        CopyCellBorder(source.Borders.TopLeftToBottomRightStyle, WordBorderLengths.ToSize(source.Borders.TopLeftToBottomRightSize), source.Borders.TopLeftToBottomRightColorValue, destination.TopLeftToBottomRightBorder, document);
+        CopyCellBorder(source.Borders.TopRightToBottomLeftStyle, WordBorderLengths.ToSize(source.Borders.TopRightToBottomLeftSize), source.Borders.TopRightToBottomLeftColorValue, destination.TopRightToBottomLeftBorder, document);
     }
 
     // RTF states border widths in twips and Word in eighths of a point.
@@ -146,7 +146,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static uint ToWordBorderSize(int rtfWidth) => checked((uint)Math.Round(rtfWidth / 2.5D, MidpointRounding.AwayFromZero));
 
-    private static void CopyCellBorder(BorderValues? style, uint? width, string? colorHex, RtfTableCellBorder destination, RtfDocument document) {
+    private static void CopyCellBorder(WordBorderStyle? style, uint? width, string? colorHex, RtfTableCellBorder destination, RtfDocument document) {
         destination.Style = ToRtfBorderStyle(style);
         if (width.HasValue) {
             destination.Width = ToRtfBorderWidth(width.Value);
@@ -160,14 +160,15 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyCellParagraphs(WordTableCell source, RtfTableCell destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes, int tableDepth) {
-        foreach (OpenXmlElement child in source._tableCell.ChildElements) {
-            if (child is Paragraph wordParagraphElement) {
-                var wordParagraph = new WordParagraph(source.Document, wordParagraphElement);
+        foreach (OfficeXmlNode child in source.Node().Elements()) {
+            if (!child.IsModelElement()) continue;
+            if (child.IsW("p")) {
+                WordParagraph wordParagraph = source.Document.ParagraphView(child);
                 RtfParagraph paragraph = destination.AddParagraph();
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
-            } else if (child is Table nestedTableElement) {
-                var nestedWordTable = new WordTable(source.Document, nestedTableElement);
+            } else if (child.IsW("tbl")) {
+                WordTable nestedWordTable = WordConverterNodes.CreateTable(source.Document, child);
                 RtfTable nested = destination.AddTable(0, GetColumnCount(nestedWordTable));
                 CopyTable(nestedWordTable, nested, document, revisionAuthorIndexes, tableDepth + 1);
             }
@@ -221,12 +222,12 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static int? GetWordTableLeftIndent(WordTable table) {
-        TableIndentation? indentation = table._tableProperties?.TableIndentation;
-        if (indentation?.Type?.Value != TableWidthUnitValues.Dxa) {
+        OfficeXmlNode indentation = table.PropertiesNode().ModelChild("tblInd");
+        if (indentation.WAttr("type") != "dxa") {
             return null;
         }
 
-        return indentation.Width?.Value;
+        return WordXml.ParseInt32(indentation.WAttr("w"));
     }
 
     /// <summary>Recovers an RTF half-gap only from symmetric direct dxa margins and a reversible indent.</summary>
@@ -237,12 +238,12 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
-        TableIndentation? indentation = table._tableProperties?.TableIndentation;
-        if (indentation != null &&
-            (indentation.Type?.Value != TableWidthUnitValues.Dxa || indentation.Width == null)) {
+        OfficeXmlNode indentation = table.PropertiesNode().ModelChild("tblInd");
+        if (indentation.Exists &&
+            (indentation.WAttr("type") != "dxa" || indentation.WAttr("w") == null)) {
             return null;
         }
-        long sourceIndent = (long)(indentation?.Width?.Value ?? 0) - GetWordTableGapIndentAdjustment(table, left.Value);
+        long sourceIndent = (long)(WordXml.ParseInt32(indentation.WAttr("w")) ?? 0) - GetWordTableGapIndentAdjustment(table, left.Value);
         return sourceIndent >= int.MinValue && sourceIndent <= int.MaxValue ? left : null;
     }
 
@@ -253,13 +254,13 @@ public static partial class WordRtfConverterExtensions {
             ? gap : 0;
 
     private static int? GetWordTableLeftPadding(WordTable table) {
-        TableCellLeftMargin? margin = table._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin;
-        return margin?.Type?.Value == TableWidthValues.Dxa ? margin.Width?.Value : null;
+        OfficeXmlNode margin = table.PropertiesNode().ModelChild("tblCellMar").ModelChild("left");
+        return margin.WAttr("type") == "dxa" ? WordXml.ParseInt16(margin.WAttr("w")) : null;
     }
 
     private static int? GetWordTableRightPadding(WordTable table) {
-        TableCellRightMargin? margin = table._tableProperties?.TableCellMarginDefault?.TableCellRightMargin;
-        return margin?.Type?.Value == TableWidthValues.Dxa ? margin.Width?.Value : null;
+        OfficeXmlNode margin = table.PropertiesNode().ModelChild("tblCellMar").ModelChild("right");
+        return margin.WAttr("type") == "dxa" ? WordXml.ParseInt16(margin.WAttr("w")) : null;
     }
 
     /// <summary>Only an explicit uniform nonnegative gap can become a shared Word table margin.</summary>
@@ -277,11 +278,16 @@ public static partial class WordRtfConverterExtensions {
     /// <summary>RTF row gaps are cell margins, not Word spacing between separated cells.</summary>
     private static void ApplyTableCellGap(WordTable destination, int? gap) {
         destination.CheckTableProperties();
-        destination._tableProperties!.TableCellSpacing?.Remove();
-        TableCellMarginDefault margins = destination._tableProperties.TableCellMarginDefault ??= new TableCellMarginDefault();
-        short width = (short)(gap ?? 0);
-        margins.TableCellLeftMargin = new TableCellLeftMargin { Width = width, Type = TableWidthValues.Dxa };
-        margins.TableCellRightMargin = new TableCellRightMargin { Width = width, Type = TableWidthValues.Dxa };
+        OfficeXmlNode properties = destination.PropertiesNode();
+        properties.ModelChild("tblCellSpacing").Remove();
+        OfficeXmlNode margins = properties.GetOrAddChild(WordXml.W, "tblCellMar", WordXml.TablePropertiesOrder);
+        string width = ((short)(gap ?? 0)).ToString(CultureInfo.InvariantCulture);
+        OfficeXmlNode left = WordXmlEdits.ReplaceChild(margins, "left", WordXml.TableCellMarginsOrder);
+        left.SetAttribute(WordXml.W, "w", width);
+        left.SetAttribute(WordXml.W, "type", "dxa");
+        OfficeXmlNode right = WordXmlEdits.ReplaceChild(margins, "right", WordXml.TableCellMarginsOrder);
+        right.SetAttribute(WordXml.W, "w", width);
+        right.SetAttribute(WordXml.W, "type", "dxa");
     }
 
     private static void ApplyUniformTableLeftIndent(RtfTable source, WordTable destination, int? gap) {
@@ -299,14 +305,14 @@ public static partial class WordRtfConverterExtensions {
         }
 
         destination.CheckTableProperties();
+        OfficeXmlNode properties = destination.PropertiesNode();
         if (indent == 0) {
-            destination._tableProperties!.TableIndentation?.Remove();
+            properties.ModelChild("tblInd").Remove();
             return;
         }
-        destination._tableProperties!.TableIndentation = new TableIndentation {
-            Width = (int)indent,
-            Type = TableWidthUnitValues.Dxa
-        };
+        OfficeXmlNode indentation = WordXmlEdits.ReplaceChild(properties, "tblInd", WordXml.TablePropertiesOrder);
+        indentation.SetAttribute(WordXml.W, "w", ((int)indent).ToString(CultureInfo.InvariantCulture));
+        indentation.SetAttribute(WordXml.W, "type", "dxa");
     }
 
     private static void ApplyUniformTableAlignment(RtfTable source, WordTable destination) {
@@ -319,7 +325,7 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        destination.Alignment = ToWordTableAlignment(firstAlignment).ToOfficeEnum();
+        destination.Alignment = ToWordTableAlignment(firstAlignment);
     }
 
     private static void ApplyUniformTablePreferredWidth(RtfTable source, WordTable destination) {
@@ -339,11 +345,18 @@ public static partial class WordRtfConverterExtensions {
     // Preserve partial RTF declarations rather than inventing a missing measurement or unit.
     private static void ApplyNativeTablePreference(WordTable destination, RtfTableWidthUnit? unit, int? value) {
         destination.CheckTableProperties();
-        var native = destination._tableProperties!.TableWidth?.CloneNode(true) as TableWidth ?? new TableWidth();
-        var type = ToWordTableWidthUnit(unit);
-        if (type.HasValue) native.Type = type.Value;
-        if (value.HasValue) native.Width = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        destination._tableProperties!.TableWidth = native;
+        OfficeXmlNode properties = destination.PropertiesNode();
+        OfficeXmlNode existing = properties.ModelChild("tblW");
+        OfficeXmlNode native = existing.Exists ? existing.Clone() : properties.CreateElement(WordXml.W, "tblW");
+        string? type = ToWordTableWidthUnit(unit);
+        if (type != null) native.SetAttribute(WordXml.W, "type", type);
+        if (value.HasValue) native.SetAttribute(WordXml.W, "w", value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (existing.IsNone) {
+            properties.InsertOrdered(native, WordXml.TablePropertiesOrder);
+        } else {
+            properties.InsertBefore(native, existing);
+            existing.Remove();
+        }
         destination.RefreshGrid();
     }
 
@@ -362,10 +375,10 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyCellProperties(RtfTableCell source, RtfTableRow row, WordTableCell destination, RtfDocument document) {
-        destination.HorizontalMerge = ToWordMergedCellValue(source.HorizontalMerge).ToOfficeEnum();
-        destination.VerticalMerge = ToWordMergedCellValue(source.VerticalMerge).ToOfficeEnum();
-        destination.VerticalAlignment = ToWordCellVerticalAlignment(source.VerticalAlignment).ToOfficeEnum();
-        destination.TextDirection = ToWordCellTextDirection(source.TextFlow).ToOfficeEnum();
+        destination.HorizontalMerge = ToWordMergedCellValue(source.HorizontalMerge);
+        destination.VerticalMerge = ToWordMergedCellValue(source.VerticalMerge);
+        destination.VerticalAlignment = ToWordCellVerticalAlignment(source.VerticalAlignment);
+        destination.TextDirection = ToWordCellTextDirection(source.TextFlow);
         ApplyCellPreferredWidth(source, destination);
         destination.WrapText = !source.NoWrap;
         destination.FitText = source.FitText;
@@ -376,19 +389,19 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        Shading? shading = null;
+        OfficeXmlNode shading;
         if (source.ShadingForegroundColorIndex.HasValue) {
             string? color = GetColorHex(document, source.ShadingForegroundColorIndex.Value);
             if (!string.IsNullOrWhiteSpace(color)) {
                 shading = GetOrCreateCellShading(destination);
-                shading.Color = color!;
+                shading.SetAttribute(WordXml.W, "color", color!);
             }
         }
 
-        ShadingPatternValues? pattern = ToWordShadingPercent(source.ShadingPatternPercent) ?? ToWordShadingPattern(source.ShadingPattern);
+        WordShadingPattern? pattern = ToWordShadingPercent(source.ShadingPatternPercent) ?? ToWordShadingPattern(source.ShadingPattern);
         if (pattern.HasValue) {
             shading = GetOrCreateCellShading(destination);
-            shading.Val = pattern.Value;
+            shading.SetAttribute(WordXml.W, "val", pattern.Value.ToOpenXmlToken());
         }
 
         ApplyCellPadding(source, row, destination);
@@ -398,17 +411,23 @@ public static partial class WordRtfConverterExtensions {
     private static void ApplyCellPreferredWidth(RtfTableCell source, WordTableCell destination) {
         if (!source.PreferredWidthUnit.HasValue && !source.PreferredWidth.HasValue) return;
         destination.AddTableCellProperties();
-        var native = destination._tableCellProperties!.TableCellWidth?.CloneNode(true) as TableCellWidth ?? new TableCellWidth();
-        var type = ToWordTableWidthUnit(source.PreferredWidthUnit);
-        if (type.HasValue) native.Type = type.Value;
-        if (source.PreferredWidth.HasValue) native.Width = source.PreferredWidth.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        destination._tableCellProperties!.TableCellWidth = native;
+        OfficeXmlNode properties = destination.PropertiesNode();
+        OfficeXmlNode existing = properties.ModelChild("tcW");
+        OfficeXmlNode native = existing.Exists ? existing.Clone() : properties.CreateElement(WordXml.W, "tcW");
+        string? type = ToWordTableWidthUnit(source.PreferredWidthUnit);
+        if (type != null) native.SetAttribute(WordXml.W, "type", type);
+        if (source.PreferredWidth.HasValue) native.SetAttribute(WordXml.W, "w", source.PreferredWidth.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (existing.IsNone) {
+            properties.InsertOrdered(native, WordXml.TableCellPropertiesOrder);
+        } else {
+            properties.InsertBefore(native, existing);
+            existing.Remove();
+        }
     }
 
-    private static Shading GetOrCreateCellShading(WordTableCell cell) {
+    private static OfficeXmlNode GetOrCreateCellShading(WordTableCell cell) {
         cell.AddTableCellProperties();
-        cell._tableCellProperties!.Shading ??= new Shading();
-        return cell._tableCellProperties.Shading;
+        return cell.PropertiesNode().GetOrAddChild(WordXml.W, "shd", WordXml.TableCellPropertiesOrder);
     }
 
     private static void ApplyCellPadding(RtfTableCell source, RtfTableRow row, WordTableCell destination) {
@@ -427,15 +446,15 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyCellBorders(RtfTableCell source, WordTableCell destination, RtfDocument document) {
-        ApplyCellBorder(source.TopBorder, style => destination.Borders.TopStyle = style.ToOfficeEnum(), width => destination.Borders.TopSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopColorValue = color, document);
-        ApplyCellBorder(source.LeftBorder, style => destination.Borders.LeftStyle = style.ToOfficeEnum(), width => destination.Borders.LeftSize = WordBorderLengths.FromSize(width), color => destination.Borders.LeftColorValue = color, document);
-        ApplyCellBorder(source.BottomBorder, style => destination.Borders.BottomStyle = style.ToOfficeEnum(), width => destination.Borders.BottomSize = WordBorderLengths.FromSize(width), color => destination.Borders.BottomColorValue = color, document);
-        ApplyCellBorder(source.RightBorder, style => destination.Borders.RightStyle = style.ToOfficeEnum(), width => destination.Borders.RightSize = WordBorderLengths.FromSize(width), color => destination.Borders.RightColorValue = color, document);
-        ApplyCellBorder(source.TopLeftToBottomRightBorder, style => destination.Borders.TopLeftToBottomRightStyle = style.ToOfficeEnum(), width => destination.Borders.TopLeftToBottomRightSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopLeftToBottomRightColorValue = color, document);
-        ApplyCellBorder(source.TopRightToBottomLeftBorder, style => destination.Borders.TopRightToBottomLeftStyle = style.ToOfficeEnum(), width => destination.Borders.TopRightToBottomLeftSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopRightToBottomLeftColorValue = color, document);
+        ApplyCellBorder(source.TopBorder, style => destination.Borders.TopStyle = style, width => destination.Borders.TopSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopColorValue = color, document);
+        ApplyCellBorder(source.LeftBorder, style => destination.Borders.LeftStyle = style, width => destination.Borders.LeftSize = WordBorderLengths.FromSize(width), color => destination.Borders.LeftColorValue = color, document);
+        ApplyCellBorder(source.BottomBorder, style => destination.Borders.BottomStyle = style, width => destination.Borders.BottomSize = WordBorderLengths.FromSize(width), color => destination.Borders.BottomColorValue = color, document);
+        ApplyCellBorder(source.RightBorder, style => destination.Borders.RightStyle = style, width => destination.Borders.RightSize = WordBorderLengths.FromSize(width), color => destination.Borders.RightColorValue = color, document);
+        ApplyCellBorder(source.TopLeftToBottomRightBorder, style => destination.Borders.TopLeftToBottomRightStyle = style, width => destination.Borders.TopLeftToBottomRightSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopLeftToBottomRightColorValue = color, document);
+        ApplyCellBorder(source.TopRightToBottomLeftBorder, style => destination.Borders.TopRightToBottomLeftStyle = style, width => destination.Borders.TopRightToBottomLeftSize = WordBorderLengths.FromSize(width), color => destination.Borders.TopRightToBottomLeftColorValue = color, document);
     }
 
-    private static void ApplyCellBorder(RtfTableCellBorder source, Action<BorderValues?> setStyle, Action<uint?> setWidth, Action<string?> setColor, RtfDocument document) {
+    private static void ApplyCellBorder(RtfTableCellBorder source, Action<WordBorderStyle?> setStyle, Action<uint?> setWidth, Action<string?> setColor, RtfDocument document) {
         if (!source.HasAnyValue) {
             return;
         }
@@ -483,110 +502,111 @@ public static partial class WordRtfConverterExtensions {
         return Math.Max(1, columnCount);
     }
 
-    private static RtfTableCellMerge ToRtfCellMerge(MergedCellValues? value) {
-        if (value == MergedCellValues.Restart) return RtfTableCellMerge.First;
-        if (value == MergedCellValues.Continue) return RtfTableCellMerge.Continue;
+    private static RtfTableCellMerge ToRtfCellMerge(WordCellMerge? value) {
+        if (value == WordCellMerge.Restart) return RtfTableCellMerge.First;
+        if (value == WordCellMerge.Continue) return RtfTableCellMerge.Continue;
         return RtfTableCellMerge.None;
     }
 
-    private static MergedCellValues? ToWordMergedCellValue(RtfTableCellMerge merge) {
-        if (merge == RtfTableCellMerge.First) return MergedCellValues.Restart;
-        if (merge == RtfTableCellMerge.Continue) return MergedCellValues.Continue;
+    private static WordCellMerge? ToWordMergedCellValue(RtfTableCellMerge merge) {
+        if (merge == RtfTableCellMerge.First) return WordCellMerge.Restart;
+        if (merge == RtfTableCellMerge.Continue) return WordCellMerge.Continue;
         return null;
     }
 
-    private static RtfTableCellVerticalAlignment? ToRtfCellVerticalAlignment(TableVerticalAlignmentValues? value) {
-        if (value == TableVerticalAlignmentValues.Center) return RtfTableCellVerticalAlignment.Center;
-        if (value == TableVerticalAlignmentValues.Bottom) return RtfTableCellVerticalAlignment.Bottom;
-        if (value == TableVerticalAlignmentValues.Top) return RtfTableCellVerticalAlignment.Top;
+    private static RtfTableCellVerticalAlignment? ToRtfCellVerticalAlignment(WordTableVerticalAlignment? value) {
+        if (value == WordTableVerticalAlignment.Center) return RtfTableCellVerticalAlignment.Center;
+        if (value == WordTableVerticalAlignment.Bottom) return RtfTableCellVerticalAlignment.Bottom;
+        if (value == WordTableVerticalAlignment.Top) return RtfTableCellVerticalAlignment.Top;
         return null;
     }
 
-    private static TableVerticalAlignmentValues? ToWordCellVerticalAlignment(RtfTableCellVerticalAlignment? value) {
-        if (value == RtfTableCellVerticalAlignment.Center) return TableVerticalAlignmentValues.Center;
-        if (value == RtfTableCellVerticalAlignment.Bottom) return TableVerticalAlignmentValues.Bottom;
-        if (value == RtfTableCellVerticalAlignment.Top) return TableVerticalAlignmentValues.Top;
+    private static WordTableVerticalAlignment? ToWordCellVerticalAlignment(RtfTableCellVerticalAlignment? value) {
+        if (value == RtfTableCellVerticalAlignment.Center) return WordTableVerticalAlignment.Center;
+        if (value == RtfTableCellVerticalAlignment.Bottom) return WordTableVerticalAlignment.Bottom;
+        if (value == RtfTableCellVerticalAlignment.Top) return WordTableVerticalAlignment.Top;
         return null;
     }
 
-    private static RtfTableCellTextFlow? ToRtfCellTextFlow(TextDirectionValues? value) {
-        if (value == TextDirectionValues.LefToRightTopToBottom) return RtfTableCellTextFlow.LeftToRightTopToBottom;
-        if (value == TextDirectionValues.TopToBottomRightToLeft) return RtfTableCellTextFlow.TopToBottomRightToLeft;
-        if (value == TextDirectionValues.BottomToTopLeftToRight) return RtfTableCellTextFlow.BottomToTopLeftToRight;
-        if (value == TextDirectionValues.LefttoRightTopToBottomRotated) return RtfTableCellTextFlow.LeftToRightTopToBottomVertical;
-        if (value == TextDirectionValues.TopToBottomRightToLeftRotated) return RtfTableCellTextFlow.TopToBottomRightToLeftVertical;
+    private static RtfTableCellTextFlow? ToRtfCellTextFlow(WordTextDirection? value) {
+        if (value == WordTextDirection.LeftToRightTopToBottom) return RtfTableCellTextFlow.LeftToRightTopToBottom;
+        if (value == WordTextDirection.TopToBottomRightToLeft) return RtfTableCellTextFlow.TopToBottomRightToLeft;
+        if (value == WordTextDirection.BottomToTopLeftToRight) return RtfTableCellTextFlow.BottomToTopLeftToRight;
+        if (value == WordTextDirection.LeftToRightTopToBottomRotated) return RtfTableCellTextFlow.LeftToRightTopToBottomVertical;
+        if (value == WordTextDirection.TopToBottomRightToLeftRotated) return RtfTableCellTextFlow.TopToBottomRightToLeftVertical;
         return null;
     }
 
-    private static TextDirectionValues? ToWordCellTextDirection(RtfTableCellTextFlow? value) {
-        if (value == RtfTableCellTextFlow.LeftToRightTopToBottom) return TextDirectionValues.LefToRightTopToBottom;
-        if (value == RtfTableCellTextFlow.TopToBottomRightToLeft) return TextDirectionValues.TopToBottomRightToLeft;
-        if (value == RtfTableCellTextFlow.BottomToTopLeftToRight) return TextDirectionValues.BottomToTopLeftToRight;
-        if (value == RtfTableCellTextFlow.LeftToRightTopToBottomVertical) return TextDirectionValues.LefttoRightTopToBottomRotated;
-        if (value == RtfTableCellTextFlow.TopToBottomRightToLeftVertical) return TextDirectionValues.TopToBottomRightToLeftRotated;
+    private static WordTextDirection? ToWordCellTextDirection(RtfTableCellTextFlow? value) {
+        if (value == RtfTableCellTextFlow.LeftToRightTopToBottom) return WordTextDirection.LeftToRightTopToBottom;
+        if (value == RtfTableCellTextFlow.TopToBottomRightToLeft) return WordTextDirection.TopToBottomRightToLeft;
+        if (value == RtfTableCellTextFlow.BottomToTopLeftToRight) return WordTextDirection.BottomToTopLeftToRight;
+        if (value == RtfTableCellTextFlow.LeftToRightTopToBottomVertical) return WordTextDirection.LeftToRightTopToBottomRotated;
+        if (value == RtfTableCellTextFlow.TopToBottomRightToLeftVertical) return WordTextDirection.TopToBottomRightToLeftRotated;
         return null;
     }
 
-    private static RtfTableAlignment? ToRtfTableAlignment(TableRowAlignmentValues? value) {
-        if (value == TableRowAlignmentValues.Center) return RtfTableAlignment.Center;
-        if (value == TableRowAlignmentValues.Right) return RtfTableAlignment.Right;
-        if (value == TableRowAlignmentValues.Left) return RtfTableAlignment.Left;
+    private static RtfTableAlignment? ToRtfTableAlignment(WordTableAlignment? value) {
+        if (value == WordTableAlignment.Center) return RtfTableAlignment.Center;
+        if (value == WordTableAlignment.Right) return RtfTableAlignment.Right;
+        if (value == WordTableAlignment.Left) return RtfTableAlignment.Left;
         return null;
     }
 
-    private static RtfTableWidthUnit? ToRtfTableWidthUnit(TableWidthType? width) {
-        if (width == null) return null;
-        var type = WordTableWidthNative.NativeType(width);
-        if (!type.HasValue) throw new NotSupportedException("Unsupported Word preferred-width type: " + width.Type?.InnerText);
+    private static RtfTableWidthUnit? ToRtfTableWidthUnit(OfficeXmlNode width) {
+        if (width.IsNone) return null;
+        string? type = WordConverterNodes.NativeTableWidthType(width);
+        if (type == null) throw new NotSupportedException("Unsupported Word preferred-width type: " + width.WAttr("type"));
         // Lexical percentages remain relative in RTF even if the native unit was omitted.
-        if (width.Width?.Value?.Trim().EndsWith("%", StringComparison.Ordinal) == true) return RtfTableWidthUnit.Percent;
-        if (width.Type == null) return null;
-        if (type == TableWidthUnitValues.Auto) return RtfTableWidthUnit.Auto;
-        if (type == TableWidthUnitValues.Dxa) return RtfTableWidthUnit.Twips;
-        if (type == TableWidthUnitValues.Pct) return RtfTableWidthUnit.Percent;
+        if (width.WAttr("w")?.Trim().EndsWith("%", StringComparison.Ordinal) == true) return RtfTableWidthUnit.Percent;
+        if (width.WAttr("type") == null) return null;
+        if (type == "auto") return RtfTableWidthUnit.Auto;
+        if (type == "dxa") return RtfTableWidthUnit.Twips;
+        if (type == "pct") return RtfTableWidthUnit.Percent;
         return null;
     }
 
-    private static int? ToRtfPreferredWidthValue(TableWidthType? width) {
-        if (width?.Width == null) return null;
-        return WordTableWidthNative.NumericValue(width) ?? WordTableWidthNative.Read(width)?.ToNativeValue();
+    private static int? ToRtfPreferredWidthValue(OfficeXmlNode width) {
+        if (width.WAttr("w") == null) return null;
+        return WordConverterNodes.TableWidthNumericValue(width) ?? WordConverterNodes.ReadTableWidth(width)?.ToNativeValue();
     }
 
-    private static TableRowAlignmentValues? ToWordTableAlignment(RtfTableAlignment? value) {
-        if (value == RtfTableAlignment.Center) return TableRowAlignmentValues.Center;
-        if (value == RtfTableAlignment.Right) return TableRowAlignmentValues.Right;
-        if (value == RtfTableAlignment.Left) return TableRowAlignmentValues.Left;
+    private static WordTableAlignment? ToWordTableAlignment(RtfTableAlignment? value) {
+        if (value == RtfTableAlignment.Center) return WordTableAlignment.Center;
+        if (value == RtfTableAlignment.Right) return WordTableAlignment.Right;
+        if (value == RtfTableAlignment.Left) return WordTableAlignment.Left;
         return null;
     }
 
-    private static TableWidthUnitValues? ToWordTableWidthUnit(RtfTableWidthUnit? value) {
-        if (value == RtfTableWidthUnit.Auto) return TableWidthUnitValues.Auto;
-        if (value == RtfTableWidthUnit.Twips) return TableWidthUnitValues.Dxa;
-        if (value == RtfTableWidthUnit.Percent) return TableWidthUnitValues.Pct;
+    // Width units are w:type tokens.
+    private static string? ToWordTableWidthUnit(RtfTableWidthUnit? value) {
+        if (value == RtfTableWidthUnit.Auto) return "auto";
+        if (value == RtfTableWidthUnit.Twips) return "dxa";
+        if (value == RtfTableWidthUnit.Percent) return "pct";
         return null;
     }
 
-    private static RtfTableCellBorderStyle ToRtfBorderStyle(BorderValues? value) {
-        if (value == BorderValues.Double) return RtfTableCellBorderStyle.Double;
-        if (value == BorderValues.Dotted) return RtfTableCellBorderStyle.Dotted;
-        if (value == BorderValues.Dashed) return RtfTableCellBorderStyle.Dashed;
-        if (value == BorderValues.Nil || value == BorderValues.None) return RtfTableCellBorderStyle.None;
-        if (value == BorderValues.Single) return RtfTableCellBorderStyle.Single;
+    private static RtfTableCellBorderStyle ToRtfBorderStyle(WordBorderStyle? value) {
+        if (value == WordBorderStyle.Double) return RtfTableCellBorderStyle.Double;
+        if (value == WordBorderStyle.Dotted) return RtfTableCellBorderStyle.Dotted;
+        if (value == WordBorderStyle.Dashed) return RtfTableCellBorderStyle.Dashed;
+        if (value == WordBorderStyle.Nil || value == WordBorderStyle.None) return RtfTableCellBorderStyle.None;
+        if (value == WordBorderStyle.Single) return RtfTableCellBorderStyle.Single;
         return RtfTableCellBorderStyle.None;
     }
 
-    private static BorderValues? ToWordBorderStyle(RtfTableCellBorderStyle value) {
+    private static WordBorderStyle? ToWordBorderStyle(RtfTableCellBorderStyle value) {
         switch (value) {
             case RtfTableCellBorderStyle.Double:
-                return BorderValues.Double;
+                return WordBorderStyle.Double;
             case RtfTableCellBorderStyle.Dotted:
-                return BorderValues.Dotted;
+                return WordBorderStyle.Dotted;
             case RtfTableCellBorderStyle.Dashed:
-                return BorderValues.Dashed;
+                return WordBorderStyle.Dashed;
             case RtfTableCellBorderStyle.Single:
-                return BorderValues.Single;
+                return WordBorderStyle.Single;
             default:
-                return BorderValues.Nil;
+                return WordBorderStyle.Nil;
         }
     }
 

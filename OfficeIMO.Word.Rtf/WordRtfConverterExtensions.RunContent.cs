@@ -1,28 +1,26 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static bool AppendWordRun(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, RtfRevisionKind revisionKind = RtfRevisionKind.None, int? revisionAuthorIndex = null) {
         bool hasContent = false;
-        var textChildren = new List<OpenXmlElement>();
-        foreach (OpenXmlElement child in wordRun.EnumerateEffectiveRunContent()) {
-            if (child is RunProperties) continue;
+        var textChildren = new List<OfficeXmlNode>();
+        foreach (OfficeXmlNode child in wordRun.EffectiveRunContentNodes()) {
+            bool modelChild = child.IsModelElement();
+            if (modelChild && child.IsW("rPr")) continue;
 
-            if (child is Break breakNode) {
+            if (modelChild && child.IsW("br")) {
                 hasContent |= AppendWordRunTextSpan(wordRun, textChildren, paragraph, ref previousRun, rtfDocument, revisionKind, revisionAuthorIndex);
-                paragraph.AddBreak(ToRtfBreakKind(breakNode.Type?.Value));
+                paragraph.AddBreak(ToRtfBreakKind(child.WAttr("type")));
                 previousRun = null;
                 hasContent = true;
                 continue;
             }
 
-            if (child is FootnoteReference || child is EndnoteReference) {
+            if (modelChild && (child.IsW("footnoteReference") || child.IsW("endnoteReference"))) {
                 hasContent |= AppendWordRunTextSpan(wordRun, textChildren, paragraph, ref previousRun, rtfDocument, revisionKind, revisionAuthorIndex);
-                RtfNote note = child is FootnoteReference reference
-                    ? CopyNote(new WordFootNote(wordRun._document, wordRun._paragraph, wordRun._run!, reference).Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes)
-                    : CopyNote(new WordEndNote(wordRun._document, wordRun._paragraph, wordRun._run!, (EndnoteReference)child).Paragraphs, RtfNoteKind.Endnote, rtfDocument, revisionAuthorIndexes);
+                RtfNote note = child.IsW("footnoteReference")
+                    ? CopyNote(wordRun.FootNoteView(child).Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes)
+                    : CopyNote(wordRun.EndNoteView(child).Paragraphs, RtfNoteKind.Endnote, rtfDocument, revisionAuthorIndexes);
                 if (previousRun != null && previousRun.Note == null) {
                     previousRun.Note = note;
                 } else {
@@ -33,9 +31,8 @@ public static partial class WordRtfConverterExtensions {
             }
 
             // Retain attached source nodes for relationship and drawing ancestry resolution.
-            var childView = new WordParagraph(wordRun._document, wordRun._paragraph, wordRun._run!) {
-                _visibleRunSourceChildren = new[] { child }
-            };
+            WordParagraph childView = wordRun._document.RunView(wordRun.Node(), wordRun.RunNode(),
+                visibleRunSourceChildren: new[] { child });
             List<WordImage> images = childView.EnumerateImages().ToList();
             if (images.Count == 0) {
                 textChildren.Add(child);
@@ -56,25 +53,22 @@ public static partial class WordRtfConverterExtensions {
         return hasContent;
     }
 
-    private static bool AppendWordRunTextSpan(WordParagraph source, List<OpenXmlElement> children, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, RtfRevisionKind revisionKind, int? revisionAuthorIndex) {
+    private static bool AppendWordRunTextSpan(WordParagraph source, List<OfficeXmlNode> children, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, RtfRevisionKind revisionKind, int? revisionAuthorIndex) {
         if (children.Count == 0) return false;
 
         // Projection owns cloned text; the original run retains formatting and part identity.
-        var visible = new Run();
-        var sourceChildren = new List<OpenXmlElement>();
-        if (source._run?.RunProperties is RunProperties properties) {
-            visible.Append(properties.CloneNode(true));
+        OfficeXmlNode visible = WordConverterNodes.CreateDetachedRun();
+        var sourceChildren = new List<OfficeXmlNode>();
+        OfficeXmlNode properties = source.RunNode().ModelChild("rPr");
+        if (properties.Exists) {
+            visible.Append(properties.Clone());
             sourceChildren.Add(properties);
         }
-        foreach (OpenXmlElement child in children) {
-            visible.Append(child.CloneNode(true));
+        foreach (OfficeXmlNode child in children) {
+            visible.Append(child.Clone());
             sourceChildren.Add(child);
         }
-        var span = new WordParagraph(source._document, source._paragraph, source._run!) {
-            _hyperlink = source._hyperlink,
-            _visibleRun = visible,
-            _visibleRunSourceChildren = sourceChildren
-        };
+        WordParagraph span = source._document.RunView(source.Node(), source.RunNode(), source.HyperlinkNode(), visible, sourceChildren);
         children.Clear();
         return AppendWordRunText(span, paragraph, ref previousRun, rtfDocument, revisionKind, revisionAuthorIndex);
     }

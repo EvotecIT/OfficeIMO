@@ -1,7 +1,6 @@
 namespace OfficeIMO.Word.Rtf;
 
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 public static partial class WordRtfConverterExtensions {
     private const double PixelsPerTwip = 96D / 1440D;
@@ -18,27 +17,25 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static bool TryCopyImageBlocks(WordParagraph source, Func<RtfImage, RtfImage> addImage) {
-        if (source._paragraph.ChildElements.Any(child =>
-                child is not DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties &&
-                child is not DocumentFormat.OpenXml.Wordprocessing.Run)) {
+        OfficeXmlNode sourceParagraph = source.Node();
+        if (WordConverterNodes.ChildNodesIncludingMarkup(sourceParagraph).Any(child =>
+                !child.IsModelElement() || (!child.IsW("pPr") && !child.IsW("r")))) {
             return false;
         }
 
-        List<DocumentFormat.OpenXml.Wordprocessing.Run> runs = source._paragraph
-            .Elements<DocumentFormat.OpenXml.Wordprocessing.Run>()
-            .ToList();
-        if (runs.Any(run => run.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Any() ||
-                            run.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Any())) {
+        List<OfficeXmlNode> runs = sourceParagraph.ModelChildren("r").ToList();
+        if (runs.Any(run => run.ModelChildren("footnoteReference").Any() ||
+                            run.ModelChildren("endnoteReference").Any())) {
             return false;
         }
         if (runs.Any(run => !string.IsNullOrEmpty(
-                new WordParagraph(source._document, source._paragraph, run).Text))) {
+                source._document.RunView(sourceParagraph, run).Text))) {
             return false;
         }
 
         bool copied = false;
-        foreach (DocumentFormat.OpenXml.Wordprocessing.Run sourceRun in runs) {
-            var run = new WordParagraph(source._document, source._paragraph, sourceRun);
+        foreach (OfficeXmlNode sourceRun in runs) {
+            WordParagraph run = source._document.RunView(sourceParagraph, sourceRun);
             foreach (WordImage wordImage in run.EnumerateImages()) {
                 RtfImage? image = CreateRtfImage(wordImage, out _, out _);
                 if (image == null) continue;
@@ -149,10 +146,11 @@ public static partial class WordRtfConverterExtensions {
 
     /// <summary>Retains the native RTF inline-picture carrier only in the qualified ordinary running-story profile.</summary>
     private static bool UsesOrdinaryRunningVmlImage(WordParagraph paragraph, RtfImage image, RtfImageLayout layout) {
-        if (paragraph._paragraph == null ||
-            !paragraph._paragraph.Ancestors().Any(story => story is W.Header or W.Footer) ||
-            paragraph._paragraph.Ancestors<W.TableCell>().Any() ||
-            paragraph._paragraph.Ancestors<W.TextBoxContent>().Any() ||
+        OfficeXmlNode node = paragraph.Node();
+        if (node.IsNone ||
+            !node.Ancestors().Any(story => story.IsW("hdr") || story.IsW("ftr")) ||
+            node.Ancestors().Any(ancestor => ancestor.IsW("tc")) ||
+            node.Ancestors().Any(ancestor => ancestor.IsW("txbxContent")) ||
             (image.CropLeftTwips ?? 0) != 0 || (image.CropRightTwips ?? 0) != 0 ||
             (image.CropTopTwips ?? 0) != 0 || (image.CropBottomTwips ?? 0) != 0) return false;
         return layout.VisibleWidthTwips is double width && width > 0D && !double.IsNaN(width) && !double.IsInfinity(width) &&

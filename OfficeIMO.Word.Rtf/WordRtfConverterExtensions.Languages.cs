@@ -1,21 +1,13 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyDefaultLanguage(WordDocument source, RtfDocument destination) {
-        string? language = source._wordprocessingDocument.MainDocumentPart?
-            .StyleDefinitionsPart?
-            .Styles?
-            .DocDefaults?
-            .RunPropertiesDefault?
-            .RunPropertiesBaseStyle?
-            .Languages?
-            .Val?
-            .Value;
+        string? language = source.HasStylesPart()
+            ? source.DocumentDefaultsNode().ModelChild("rPrDefault").ModelChild("rPr").ModelChild("lang").WVal()
+            : null;
 
         destination.Settings.DefaultLanguageId = ToRtfLanguageId(language);
     }
@@ -26,22 +18,15 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        MainDocumentPart? mainPart = destination._wordprocessingDocument.MainDocumentPart;
-        if (mainPart == null) {
+        if (!destination.HasStylesPart()) {
             return;
         }
 
-        StyleDefinitionsPart? stylesPart = mainPart.StyleDefinitionsPart;
-        if (stylesPart == null) {
-            return;
-        }
-
-        Styles styles = stylesPart.Styles ??= new Styles();
-        DocDefaults defaults = styles.DocDefaults ??= new DocDefaults();
-        RunPropertiesDefault runDefaults = defaults.RunPropertiesDefault ??= new RunPropertiesDefault();
-        RunPropertiesBaseStyle runProperties = runDefaults.RunPropertiesBaseStyle ??= new RunPropertiesBaseStyle();
-        runProperties.Languages ??= new Languages();
-        runProperties.Languages.Val = language;
+        OfficeXmlNode styles = destination.GetOrAddStylesNode();
+        OfficeXmlNode defaults = styles.GetOrPrependChild(WordXml.W, "docDefaults");
+        OfficeXmlNode runDefaults = defaults.GetOrPrependChild(WordXml.W, "rPrDefault");
+        OfficeXmlNode runProperties = runDefaults.GetOrPrependChild(WordXml.W, "rPr");
+        runProperties.GetOrAddChild(WordXml.W, "lang", WRPrView.Order).SetAttribute(WordXml.W, "val", language);
     }
 
     private static int? ToRtfLanguageId(string? languageTag) {
@@ -71,12 +56,10 @@ public static partial class WordRtfConverterExtensions {
 
     private static void SetRunLanguage(WordParagraph wordRun, int languageId) {
         string? language = ToWordLanguageTag(languageId);
-        if (language == null || wordRun._run == null) {
+        if (language == null || wordRun.RunNode().IsNone) {
             return;
         }
 
-        wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Languages ??= new Languages();
-        wordRun._run.RunProperties.Languages.Val = language;
+        GetOrAddRunProperties(wordRun).GetOrAddChild(WordXml.W, "lang", WRPrView.Order).SetAttribute(WordXml.W, "val", language);
     }
 }
