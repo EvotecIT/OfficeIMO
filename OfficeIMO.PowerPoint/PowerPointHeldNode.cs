@@ -11,17 +11,20 @@ namespace OfficeIMO.PowerPoint {
         private OfficeXmlNode _element;
         private readonly PowerPointPartRef _packagePart;
         private readonly PowerPointSlide? _packageSlide;
+        private readonly bool _preserveDetached;
         // Whether the element was removed before the package that held it went.
         private bool _removed;
 
         internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner)
             : this(element, element.Tree == null ? default : owner.OwnerPartRef, owner.OwnerSlide) { }
 
-        internal PowerPointHeldNode(OfficeXmlNode element, PowerPointPartRef part, PowerPointSlide? slide = null) {
+        internal PowerPointHeldNode(OfficeXmlNode element, PowerPointPartRef part, PowerPointSlide? slide = null,
+            bool preserveDetached = false) {
             _element = element;
             if (element.Tree == null) return;
             _packagePart = part;
             _packageSlide = slide;
+            _preserveDetached = preserveDetached;
             _packagePart.Document?.RegisterPackageBinding(this);
         }
 
@@ -51,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
-            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached
+            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_preserveDetached && !_element.IsAttached
                 && _packageSlide?.IsInDetachedPackageShape(_element) != true)) _removed = true;
         }
 

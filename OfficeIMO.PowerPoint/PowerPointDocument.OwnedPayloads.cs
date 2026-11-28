@@ -49,11 +49,11 @@ public sealed partial class PowerPointDocument {
     private readonly record struct PackageGraphRelationship(string? Owner, string Id, string Type, string Part, string ContentType);
 
     private static bool TryVisitPackageGraph(OfficeOpcEditablePackage package, CancellationToken cancellationToken,
-        Action<PackageGraphRelationship> visit) {
+        Action<PackageGraphRelationship> visit, string? root = null) {
         if (package.PartNames.Any(name => name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) &&
             OfficeOpcPieceAssembler.HasPieceSuffix(name))) return false;
         return TryVisitPackageGraph(owner => ReadEditablePackageRelationships(package, owner), package.GetPartName,
-            package.GetContentType, cancellationToken, visit);
+            package.GetContentType, cancellationToken, visit, root);
     }
 
     private static bool TryVisitPackageGraph(OfficeOpcPackage package, CancellationToken cancellationToken,
@@ -71,10 +71,10 @@ public sealed partial class PowerPointDocument {
 
     private static bool TryVisitPackageGraph(Func<string?, IReadOnlyList<OfficeOpcRelationship>?> getRelationships,
         Func<string, string?> getPartName, Func<string, string?> getContentType, CancellationToken cancellationToken,
-        Action<PackageGraphRelationship> visit) {
+        Action<PackageGraphRelationship> visit, string? root = null) {
         var visited = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
         var pending = new Queue<string?>();
-        pending.Enqueue(null);
+        pending.Enqueue(root);
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             string? owner = pending.Dequeue();

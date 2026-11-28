@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -439,6 +440,158 @@ namespace OfficeIMO.Tests {
                 pair => pair.RelationshipId == InternalRelationshipId);
             Assert.Equal(2, presentation.Slides.Count);
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void OwnedCustomShowRemovalKeepsOtherActionsAndExtensionMarkup() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide first = source.AddSlide();
+            PowerPointSlide second = source.AddSlide();
+            PowerPointCustomShow removed = source.AddCustomShow("Remove", new[] { second });
+            PowerPointCustomShow kept = source.AddCustomShow("Keep", new[] { first });
+            const string alternateId = "rIdCustomShowAlternate";
+            const string keepId = "rIdCustomShowKeep";
+            const string externalId = "rIdCustomShowExternal";
+            const string internalId = "rIdCustomShowInternal";
+            first.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/remove"), true, externalId);
+            first.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/keep"), true, keepId);
+            first.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/alternate"), true, alternateId);
+            first.SlidePart.AddPart(second.SlidePart, internalId);
+            AppendCustomShowAction(first.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(120), OfficeLength.Points(40)), removed.Id, externalId);
+            AppendCustomShowAction(first.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(120), OfficeLength.Points(40)), removed.Id, internalId);
+            AppendCustomShowAction(first.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(140), OfficeLength.Points(120), OfficeLength.Points(40)), kept.Id, keepId);
+            var text = (Shape)first.AddTextBox("Run action").Element;
+            A.Run run = Assert.Single(text.TextBody!.Descendants<A.Run>());
+            run.RunProperties ??= new A.RunProperties();
+            run.RunProperties.Append(new A.HyperlinkOnMouseOver {
+                Id = externalId,
+                Action = "ppaction://customshow?id=" + removed.Id
+            });
+
+            string slidePart = first.SlidePart.Uri.OriginalString;
+            using var input = OfficeOpcEditablePackage.Open(new MemoryStream(source.ToBytes(), writable: false));
+            OfficeXmlTree tree = input.GetXml(slidePart);
+            const int p = OfficeXmlNamespaces.PresentationML, a = OfficeXmlNamespaces.DrawingML;
+            const int mc = OfficeXmlNamespaces.MarkupCompatibility, r = OfficeXmlNamespaces.Relationships;
+            int extensions = tree.FindChild(tree.Root, p, "extLst");
+            if (extensions == OfficeXmlTree.NoNode) extensions = Append(tree.Root, p, "extLst");
+            int extension = Append(extensions, p, "ext");
+            tree.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", "urn:fixture:action-decoy");
+            SetDecoy(Append(extension, a, "hlinkClick"), alternateId);
+            int alternate = Append(tree.Root, mc, "AlternateContent");
+            int choice = Append(alternate, mc, "Choice");
+            tree.SetAttribute(choice, OfficeXmlNamespaces.Xmlns, "future", "urn:fixture:unsupported");
+            tree.SetAttribute(choice, OfficeXmlNamespaces.None, "Requires", "future");
+            SetDecoy(Append(choice, a, "hlinkClick"), alternateId);
+            Append(alternate, mc, "Fallback");
+            using var packaged = new MemoryStream();
+            input.Save(packaged);
+
+            using var presentation = PowerPointDocument.Load(new MemoryStream(packaged.ToArray(), writable: false));
+            PowerPointCustomShow held = presentation.GetCustomShow("Remove")!;
+            PowerPointCustomShow secondHandle = presentation.GetCustomShow("Remove")!;
+            Assert.True(presentation.RemoveCustomShow(held));
+            Assert.Equal("Keep", Assert.Single(presentation.CustomShows).Name);
+            Assert.False(presentation.IsSdkLoaded);
+
+            byte[] bytes = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+            using var persisted = OfficeOpcEditablePackage.Open(new MemoryStream(bytes, writable: false));
+            OfficeXmlTree savedTree = persisted.GetXml(slidePart);
+            OfficeXmlNode savedRoot = new OfficeXmlNode(savedTree, savedTree.Root);
+            OfficeXmlNode action = Assert.Single(savedRoot.ContentDescendants(a, "hlinkClick"));
+            Assert.Equal(keepId, action.Attribute(r, "id"));
+            Assert.Empty(savedRoot.ContentDescendants(a, "hlinkMouseOver"));
+            Assert.Equal(2, savedRoot.Descendants(a, "hlinkClick").Count(link => link.Attribute(r, "id") == alternateId));
+            OfficeXmlTree relationships = persisted.GetRelationships(slidePart);
+            int ns = OfficeXmlNamespaces.PackageRelationships;
+            var ids = new List<string>();
+            for (int edge = relationships.FindChild(relationships.Root, ns, "Relationship"); edge != OfficeXmlTree.NoNode;
+                edge = relationships.FindNextSibling(edge, ns, "Relationship")) {
+                ids.Add(relationships.GetAttribute(edge, OfficeXmlNamespaces.None, "Id")!);
+            }
+            Assert.Contains(keepId, ids);
+            Assert.Contains(alternateId, ids);
+            Assert.DoesNotContain(externalId, ids);
+            Assert.DoesNotContain(internalId, ids);
+
+            _ = presentation.OpenXmlDocument;
+            Assert.Equal("Remove", secondHandle.Name);
+            Assert.Equal(new[] { presentation.Slides[1] }, secondHandle.Slides);
+
+            int Append(int parent, int namespaceId, string name) {
+                int child = tree.CreateElement(namespaceId, name);
+                tree.Append(parent, child);
+                return child;
+            }
+
+            void SetDecoy(int node, string relationship) {
+                tree.SetAttribute(node, OfficeXmlNamespaces.None, "action", "ppaction://customshow?id=" + removed.Id);
+                tree.SetAttribute(node, r, "id", relationship);
+            }
+        }
+
+        [Fact]
+        public void CustomShowRemovalKeepsSdkCleanupForTypedAlternateShapes() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            PowerPointCustomShow show = source.AddCustomShow("Alternates", new[] { slide });
+            PowerPointAutoShape rectangle = slide.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(20),
+                OfficeLength.Points(120), OfficeLength.Points(40));
+            const string relationshipId = "rIdAlternateAction";
+            slide.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/alternate"), true, relationshipId);
+            AppendCustomShowAction(rectangle, show.Id, relationshipId);
+
+            var shape = (Shape)rectangle.Element;
+            var shapeTree = (ShapeTree)shape.Parent!;
+            shape.Remove();
+            var choice = new AlternateContentChoice { Requires = "future" };
+            choice.AddNamespaceDeclaration("future", "urn:fixture:unsupported");
+            shapeTree.Append(new AlternateContent(choice, new AlternateContentFallback(shape)));
+
+            byte[] bytes = source.ToBytes();
+            using var sdk = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+            SlidePart sdkSlide = sdk.Slides[0].SlidePart;
+            Assert.Single(sdkSlide.Slide!.Descendants<A.HyperlinkOnClick>());
+            Assert.True(sdk.RemoveCustomShow(Assert.Single(sdk.CustomShows)));
+            Assert.DoesNotContain(sdkSlide.HyperlinkRelationships, item => item.Id == relationshipId);
+
+            using var presentation = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.True(presentation.RemoveCustomShow(Assert.Single(presentation.CustomShows)));
+            Assert.True(presentation.IsSdkLoaded);
+            Assert.Empty(presentation.Slides[0].SlidePart.Slide!.Descendants<A.HyperlinkOnClick>());
+            Assert.DoesNotContain(presentation.Slides[0].SlidePart.HyperlinkRelationships, item => item.Id == relationshipId);
+        }
+
+        [Fact]
+        public void CustomShowRemovalPreservesAnOpaquePartWithTheSlideContentType() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            PowerPointCustomShow show = source.AddCustomShow("Opaque", new[] { slide });
+            source.AddCustomShow("Keep", new[] { slide });
+            PowerPointAutoShape rectangle = slide.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(20),
+                OfficeLength.Points(120), OfficeLength.Points(40));
+            AppendCustomShowAction(rectangle, show.Id, string.Empty);
+            SlidePart actualSlide = slide.SlidePart;
+            var encoding = System.Text.Encoding.Unicode;
+            byte[] opaqueBytes = encoding.GetPreamble().Concat(encoding.GetBytes(
+                "<?xml version=\"1.0\" encoding=\"utf-16\"?>" + actualSlide.Slide!.OuterXml)).ToArray();
+            ExtendedPart opaque = source.OpenXmlDocument.PresentationPart!.AddExtendedPart(
+                "urn:fixture:custom-slide", actualSlide.ContentType, ".xml");
+            using (var input = new MemoryStream(opaqueBytes, writable: false)) opaque.FeedData(input);
+            string opaqueName = opaque.Uri.OriginalString;
+
+            using var presentation = PowerPointDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
+            presentation.RenameCustomShow(presentation.GetCustomShow("Keep")!, "Pending rename");
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.True(presentation.RemoveCustomShow(presentation.GetCustomShow("Opaque")!));
+            Assert.Equal("Pending rename", Assert.Single(presentation.CustomShows).Name);
+            byte[] bytes = presentation.ToBytes();
+            using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(bytes, writable: false));
+            Assert.Equal(opaqueBytes, saved.ReadPartBytes(opaqueName));
+            OfficeXmlTree actual = saved.GetXml(actualSlide.Uri.OriginalString);
+            Assert.Empty(new OfficeXmlNode(actual, actual.Root).ContentDescendants(OfficeXmlNamespaces.DrawingML, "hlinkClick"));
         }
 
         private static CustomShow GetSdkShow(PowerPointDocument presentation, PowerPointCustomShow show) {

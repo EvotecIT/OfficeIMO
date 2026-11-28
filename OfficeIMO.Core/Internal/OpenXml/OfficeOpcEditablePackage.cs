@@ -92,13 +92,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     /// A pull reader over a part the package has not parsed, edited or replaced, reading its stored bytes without building
     /// a tree; false for any other part, which <see cref="GetXml"/> reads. The caller disposes <paramref name="content"/>.
     /// </summary>
-    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content) {
+    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content,
+        bool processMarkupCompatibility = true) {
         reader = default!;
         content = default;
         Part? part = Find(partName);
         if (part == null || part.Tree != null || part.Content != null || !part.FromSource || !_zip!.TryRead(part.Member, out content)) return false;
         try {
-            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces, processMarkupCompatibility);
         } catch {
             content.Dispose();
             content = default;

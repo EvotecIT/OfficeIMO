@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointCustomShow(PowerPointDocument presentation, PowerPointPartRef part, OfficeXmlNode show) {
             _presentation = presentation;
-            _show = new PowerPointHeldNode(show, part);
+            _show = new PowerPointHeldNode(show, part, preserveDetached: true);
         }
 
         internal OfficeXmlNode Node => _show.Element;
@@ -121,7 +121,9 @@ namespace OfficeIMO.PowerPoint {
         public bool RemoveCustomShow(PowerPointCustomShow customShow) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(customShow);
-            // Linked-action cleanup visits the package's typed parts. Bind the show before removing it.
+            if (TryRemoveOwnedCustomShow(customShow)) return true;
+
+            // Compatibility cleanup visits the package's typed parts. Bind the show before removing it.
             OpenSdkForPackageCompatibility();
             PowerPointPartRef part = PresentationPartRef;
             OfficeXmlNode owned = RequireOwnedCustomShow(part, customShow);
