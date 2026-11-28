@@ -32,6 +32,21 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? NumberFormat { get; set; }
 
+        internal static string ValidateNamedStyleName(string name) {
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+            string normalizedName = name.Trim();
+            if (normalizedName.Length > 255) throw new ArgumentOutOfRangeException(nameof(name));
+            try {
+                XmlConvert.VerifyXmlChars(normalizedName);
+            } catch (XmlException exception) {
+                throw new ArgumentException(
+                    "Named-style names cannot contain characters that are invalid in XML.",
+                    nameof(name),
+                    exception);
+            }
+            return normalizedName;
+        }
+
         internal ExcelStyleDefinition Snapshot() {
             ValidateEnum(Underline, nameof(Underline));
             ValidateEnum(HorizontalAlignment, nameof(HorizontalAlignment));

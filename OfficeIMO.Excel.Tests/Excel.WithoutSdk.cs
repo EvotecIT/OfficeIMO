@@ -327,6 +327,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ADeclaredTabularStyleCanBeEditedWithoutUsingNumberFormatsInExtensions() {
+            const string editFormat = "0.00000";
+            using var input = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(input, new ExcelWriterOptions {
+                UseSharedStrings = false,
+                DocumentProperties = new Dictionary<string, object?> {
+                    ["Modified"] = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                },
+                Styles = new Dictionary<string, ExcelStyleDefinition> {
+                    ["Original"] = new ExcelStyleDefinition { NumberFormat = "0.00" }
+                },
+                DefaultRowStyle = "Original"
+            }, leaveOpen: true)) {
+                writer.WriteTable("Data", new[] { 42 }, new[] { "Amount" }, (row, value) => row.Write(value));
+            }
+
+            byte[] source = input.ToArray();
+            XDocument styles = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/styles.xml")));
+            var extension = new XElement(Main + "extLst",
+                new XElement(Main + "ext", new XAttribute("uri", "urn:officeimo:tests:nested-number-format"),
+                    new XElement(Main + "numFmts", new XAttribute("count", 1),
+                        new XElement(Main + "numFmt", new XAttribute("numFmtId", 900), new XAttribute("formatCode", editFormat)))));
+            styles.Root!.Add(extension);
+            source = WithEntry(source, "xl/styles.xml", styles.ToString(SaveOptions.DisableFormatting));
+
+            byte[] saved = SaveWithoutSdk(source, document => document.Sheets[0].Cell(2, 1).SetNumberFormat(editFormat), out bool owned);
+
+            Assert.True(owned);
+            XElement root = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/styles.xml"))).Root!;
+            XElement format = Assert.Single(root.Element(Main + "numFmts")!.Elements(Main + "numFmt"),
+                element => (string?)element.Attribute("formatCode") == editFormat);
+            Assert.Equal(167U, (uint)format.Attribute("numFmtId")!);
+            Assert.True(XNode.DeepEquals(extension, root.Elements().Last()));
+            XElement worksheet = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/worksheets/sheet1.xml"))).Root!;
+            XElement cell = Assert.Single(worksheet.Descendants(Main + "c"), element => (string?)element.Attribute("r") == "A2");
+            int index = (int)cell.Attribute("s")!;
+            Assert.Equal(167U, (uint)root.Element(Main + "cellXfs")!.Elements(Main + "xf").ElementAt(index).Attribute("numFmtId")!);
+        }
+
+        [Fact]
         public void TheLastCustomNumberFormatIdIsNeverFollowedByGeneral() {
             byte[] source = CreateWorkbook();
             XDocument styles = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/styles.xml")));
