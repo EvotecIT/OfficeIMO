@@ -22,12 +22,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Writes the loaded package with refreshed document properties when the SDK was never opened and the save
-        /// needs nothing else; returns false, having changed nothing, when it must go through the SDK.
+        /// Writes the package held by the owned engine with refreshed document properties. A subtype change or VBA
+        /// removal applies to the saved copy, while the open document retains its source subtype and project.
         /// </summary>
-        private bool TryCreateUnchangedPackageBytes(bool keepsSubtype, bool preserveVbaProject, out byte[] bytes) {
+        private bool TryCreateOwnedPackageBytes(bool keepsSubtype, string? destinationContentType, bool preserveVbaProject, out byte[] bytes) {
             bytes = Array.Empty<byte>();
-            if (!_sdkDeferred || IsSdkLoaded || !keepsSubtype
+            if (!_sdkDeferred || IsSdkLoaded || !keepsSubtype && destinationContentType == null
                 || _packageStream is not { CanRead: true, CanSeek: true } packageStream) {
                 return false;
             }
@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcPackage package = loaded ?? OfficeOpcPackage.Open(packageStream, leaveOpen: true);
             try {
                 if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage,
-                    _packageNotesAdded, preserveVbaProject, out values)) return false;
+                    _packageNotesAdded, out values)) return false;
             } finally {
                 if (loaded == null) package.Dispose();
             }
@@ -50,8 +50,14 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcEditablePackage editable = pending ?? OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
             bool kept = false;
             try {
-                bool validateSubtype = !IsLoadedStandardPresentation;
-                if (validateSubtype && !CanSaveCurrentSubtype(editable)) return false;
+                bool stripVba = values.HasVbaProject && !preserveVbaProject;
+                bool projectOutput = !keepsSubtype || stripVba;
+                if (stripVba && destinationContentType == null) return false;
+                bool validateSubtype = projectOutput || !IsLoadedStandardPresentation;
+                if (validateSubtype && !CanSaveCurrentSubtype(editable, projectOutput, keepsSubtype ? null : values.MainPart)) return false;
+                PackageSaveProjection? projection = null;
+                if (projectOutput && !TryPlanPackageSaveProjection(editable, values.MainPart, keepsSubtype ? null : destinationContentType,
+                    stripVba, out projection)) return false;
                 if (!TryGetSavePropertyRoots(editable, values.CorePart, values.ApplicationPart, validateSubtype,
                     out OfficeXmlNode core, out OfficeXmlNode application)) return false;
 
@@ -71,7 +77,8 @@ namespace OfficeIMO.PowerPoint {
 #else
                 using (var saved = new MemoryStream(checked((int)Math.Min(int.MaxValue / 2, packageStream.Length + 4096)))) {
 #endif
-                    editable.Save(saved);
+                    if (projection == null) editable.Save(saved);
+                    else editable.Save(saved, CreatePackageSaveProjection(editable, projection));
                     bytes = saved.ToArray();
                 }
                 // The document now holds what it saved, as a save through the SDK leaves it: it keeps the package it
@@ -122,30 +129,35 @@ namespace OfficeIMO.PowerPoint {
             value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
 
         private readonly struct UnchangedSaveValues {
-            internal UnchangedSaveValues(string? applicationPart, string? corePart, int slides, int notes, int hiddenSlides, string presentationFormat) {
+            internal UnchangedSaveValues(string mainPart, string? applicationPart, string? corePart, int slides, int notes,
+                int hiddenSlides, string presentationFormat, bool hasVbaProject) {
+                MainPart = mainPart;
                 ApplicationPart = applicationPart;
                 CorePart = corePart;
                 Slides = slides;
                 Notes = notes;
                 HiddenSlides = hiddenSlides;
                 PresentationFormat = presentationFormat;
+                HasVbaProject = hasVbaProject;
             }
 
+            internal string MainPart { get; }
             internal string? ApplicationPart { get; }
             internal string? CorePart { get; }
             internal int Slides { get; }
             internal int Notes { get; }
             internal int HiddenSlides { get; }
             internal string PresentationFormat { get; }
+            internal bool HasVbaProject { get; }
         }
 
         /// <summary>
         /// Reads what a save through the SDK would write into the document properties, following
         /// <see cref="PowerPointUtils.UpdateDocumentProperties"/>. Returns false for anything that save would also change
-        /// elsewhere: footer definitions, legacy slide visibility, or a VBA project that needs to be removed.
+        /// elsewhere, including footer definitions and legacy slide visibility.
         /// </summary>
         private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters,
-            OfficeOpcEditablePackage? parsed, bool notesAdded, bool preserveVbaProject, out UnchangedSaveValues values) {
+            OfficeOpcEditablePackage? parsed, bool notesAdded, out UnchangedSaveValues values) {
             values = default;
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
             if (main == null) return false;
@@ -235,9 +247,10 @@ namespace OfficeIMO.PowerPoint {
             var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             bool notesDeclared = notesAdded || package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
+            bool hasVbaProject = false;
             bool pendingRelationships = parsed?.GetParsedXml(OfficeOpcPartNames.GetRelationshipsPartName(main)) != null;
             foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, pendingRelationships, main)) {
-                if (!preserveVbaProject && string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
+                if (string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) hasVbaProject = true;
                 if (external || !string.Equals(type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
                     || target is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
                     continue;
@@ -253,7 +266,7 @@ namespace OfficeIMO.PowerPoint {
                 if (notesPart != null && (parsed?.PartExists(notesPart) ?? package.PartExists(notesPart))) notes++;
             }
 
-            values = new UnchangedSaveValues(application, core, slideIds.Count, notes, hidden, presentationFormat);
+            values = new UnchangedSaveValues(main, application, core, slideIds.Count, notes, hidden, presentationFormat, hasVbaProject);
             return true;
         }
 

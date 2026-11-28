@@ -31,12 +31,132 @@ public sealed class PowerPointModernSubtypeLoadTests {
         Assert.False(presentation.IsSdkLoaded);
 
         byte[] copy = presentation.ToBytes();
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.Same(slide, Assert.Single(presentation.Slides));
         using var output = PresentationDocument.Open(new MemoryStream(copy, writable: false), false);
         using var reopened = PowerPointDocument.Load(new MemoryStream(copy, writable: false));
 
         Assert.Equal(PresentationDocumentType.Presentation, output.DocumentType);
         Assert.Equal(extension, presentation.SourceFormatDescriptor.Extension);
         Assert.Contains(Assert.Single(reopened.Slides).TextBoxes, box => box.Text == "Pending edit");
+    }
+
+    [Theory]
+    [InlineData(PresentationDocumentType.MacroEnabledPresentation, ".pptm", null)]
+    [InlineData(PresentationDocumentType.Template, ".potx", "occupied name")]
+    [InlineData(PresentationDocumentType.Template, ".potx", "stale override")]
+    [InlineData(PresentationDocumentType.Template, ".potx", "external relationship")]
+    [InlineData(PresentationDocumentType.MacroEnabledTemplate, ".potm", null)]
+    [InlineData(PresentationDocumentType.Slideshow, ".ppsx", null)]
+    [InlineData(PresentationDocumentType.MacroEnabledSlideshow, ".ppsm", null)]
+    [InlineData(PresentationDocumentType.AddIn, ".ppam", null)]
+    public void SavesAnotherSubtypeWithTheSamePhysicalMainPartAsTheSdk(PresentationDocumentType type, string extension, string? existing) {
+        byte[] fixture = CreateFixture(PresentationDocumentType.Presentation, signed: false);
+        using var source = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+        OfficeOpcRelationship originalMain = Assert.Single(source.GetRelationships(null),
+            edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType);
+        if (existing != null) {
+            fixture = EditPackage(fixture, package => {
+                const string collision = "/ppt/presentation2.xml";
+                switch (existing) {
+                    case "occupied name":
+                        package.CreateBinaryPart(collision, "application/octet-stream", new byte[] { 1 });
+                        package.AddRelationship(originalMain.TargetPartName, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "package", collision);
+                        break;
+                    case "stale override":
+                        package.SetOverride(collision, "application/octet-stream");
+                        break;
+                    case "external relationship":
+                        package.AddRelationship(null, "urn:officeimo:package-external", "https://example.invalid/document", external: true);
+                        break;
+                }
+            });
+        }
+        string filename = Path.Combine(Path.GetTempPath(), "OfficeIMO-SubtypeConversion-" + Guid.NewGuid().ToString("N"));
+        string expectedPath = filename + "-expected" + extension;
+        string actualPath = filename + extension;
+        try {
+            using var baseline = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            _ = baseline.OpenXmlDocument;
+            Assert.Single(baseline.Slides).AddTextBox("Saved edit");
+            baseline.SaveCopy(expectedPath);
+            using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+            Assert.False(presentation.IsSdkLoaded);
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+            slide.AddTextBox("Saved edit");
+            Assert.False(presentation.IsSdkLoaded);
+            presentation.SaveCopy(actualPath);
+            Assert.False(presentation.IsSdkLoaded);
+            Assert.Same(slide, Assert.Single(presentation.Slides));
+            Assert.Equal(".pptx", presentation.SourceFormatDescriptor.Extension);
+
+            using var expected = OfficeOpcPackage.Open(File.OpenRead(expectedPath));
+            using var actual = OfficeOpcPackage.Open(File.OpenRead(actualPath));
+            OfficeOpcRelationship expectedMain = Assert.Single(expected.GetRelationships(null),
+                edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType);
+            OfficeOpcRelationship actualMain = Assert.Single(actual.GetRelationships(null),
+                edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType);
+            Assert.Equal(originalMain.Id, actualMain.Id);
+            Assert.Equal(expectedMain.TargetPartName, actualMain.TargetPartName);
+            Assert.NotEqual(originalMain.TargetPartName, actualMain.TargetPartName);
+            Assert.False(actual.PartExists(originalMain.TargetPartName!));
+            Assert.DoesNotContain(expected.GetRelationships(null), edge => edge.IsExternal);
+            Assert.DoesNotContain(actual.GetRelationships(null), edge => edge.IsExternal);
+            using var sdk = PresentationDocument.Open(actualPath, false);
+            Assert.Equal(type, sdk.DocumentType);
+            using var reopened = PowerPointDocument.Load(actualPath);
+            Assert.Contains(Assert.Single(reopened.Slides).TextBoxes, box => box.Text == "Saved edit");
+            if (existing == "occupied name") {
+                using var again = OfficeOpcPackage.Open(new MemoryStream(presentation.ToBytes(), writable: false));
+                Assert.Equal(originalMain.TargetPartName, again.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType));
+                Assert.False(presentation.IsSdkLoaded);
+            }
+        } finally {
+            if (File.Exists(expectedPath)) File.Delete(expectedPath);
+            if (File.Exists(actualPath)) File.Delete(actualPath);
+        }
+    }
+
+    [Fact]
+    public void SubtypeConversionKeepsTheRelationshipsForNewDocumentProperties() {
+        const string appType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "extended-properties";
+        const int ns = OfficeXmlNamespaces.PackageRelationships;
+        byte[] fixture = EditPackage(CreateFixture(PresentationDocumentType.Template, signed: false), package => {
+            OfficeXmlTree relationships = package.GetRelationships(null);
+            int relationship = relationships.FindChild(relationships.Root, ns, "Relationship");
+            while (relationship != OfficeXmlTree.NoNode) {
+                int next = relationships.FindNextSibling(relationship, ns, "Relationship");
+                if (relationships.GetAttribute(relationship, OfficeXmlNamespaces.None, "Type") is appType or OfficeOpcPackage.CorePropertiesRelationshipType) {
+                    string id = relationships.GetAttribute(relationship, OfficeXmlNamespaces.None, "Id")!;
+                    package.DeletePart(package.GetRelationshipTarget(null, id)!);
+                    relationships.Remove(relationship);
+                }
+                relationship = next;
+            }
+        });
+        using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        byte[] converted = presentation.ToBytes();
+        Assert.False(presentation.IsSdkLoaded);
+
+        using var package = OfficeOpcPackage.Open(new MemoryStream(converted, writable: false));
+        Assert.True(package.PartExists(package.GetRelatedPartName(null, appType)!));
+        Assert.True(package.PartExists(package.GetRelatedPartName(null, OfficeOpcPackage.CorePropertiesRelationshipType)!));
+    }
+
+    [Fact]
+    public void SubtypeConversionRetainsSdkFailureForAMediaPartWithTwoRoles() {
+        byte[] fixture = CreateFixture(PresentationDocumentType.Presentation, signed: false);
+        using var original = OfficeOpcPackage.Open(new MemoryStream(fixture, writable: false));
+        string main = original.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+        string slide = original.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+        fixture = EditPackage(fixture, package => {
+            const string video = "/ppt/media/mixed.mp4";
+            package.CreateBinaryPart(video, "video/mp4", new byte[] { 1 });
+            package.AddRelationship(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "package", video);
+            package.AddRelationship(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "video", video);
+        });
+
+        AssertTemplateSaveFailure(fixture);
     }
 
     [Theory]
@@ -109,7 +229,7 @@ public sealed class PowerPointModernSubtypeLoadTests {
             }
         });
 
-        AssertSameSubtypeSaveFailure(fixture);
+        AssertTemplateSaveFailure(fixture);
     }
 
     [Fact]
@@ -125,7 +245,7 @@ public sealed class PowerPointModernSubtypeLoadTests {
             tree.RemoveAttribute(created, package.Namespaces.GetId("http://www.w3.org/2001/XMLSchema-instance"), "type");
         });
 
-        AssertSameSubtypeSaveFailure(fixture);
+        AssertTemplateSaveFailure(fixture);
     }
 
     [Fact]
@@ -147,7 +267,7 @@ public sealed class PowerPointModernSubtypeLoadTests {
         }
     }
 
-    private static void AssertSameSubtypeSaveFailure(byte[] fixture) {
+    private static void AssertTemplateSaveFailure(byte[] fixture) {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-InvalidSubtype-" + Guid.NewGuid().ToString("N") + ".potx");
         try {
             using var sdk = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));

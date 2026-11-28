@@ -266,7 +266,7 @@ public sealed partial class PowerPointDocument {
             }
         }
 
-        bool hasVba = !presentation._disposed && presentation.SdkDocument.PresentationPart?.VbaProjectPart != null;
+        bool hasVba = !presentation._disposed && presentation.HasVbaProject;
         if (hasVba && !destinationDescriptor.IsMacroEnabled) {
             OfficeCompatibilityState macroState = GetPowerPointGenericLossState(
                 compatibilityMode,

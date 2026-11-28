@@ -5,18 +5,37 @@ using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package) {
+        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package, bool projectOutput, string? renamedPart) {
             // The SDK clone writes only its relationship graph. Keep the same behavior for opaque or orphaned ZIP parts.
             var reachable = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance) { OfficeOpcEditablePackage.ContentTypesPartName };
+            HashSet<string>? mediaParts = null;
+            bool hasMixedPartRoles = false;
             try {
                 IReadOnlyList<OfficeOpcRelationship>? Relationships(string? owner) {
                     IReadOnlyList<OfficeOpcRelationship>? edges = ReadEditablePackageRelationships(package, owner, strictXml: true);
-                    if (edges is { Count: > 0 }) reachable.Add(PartIdentity(OfficeOpcPartNames.GetRelationshipsPartName(owner)));
+                    if (edges is { Count: > 0 }) {
+                        string part = OfficeOpcPartNames.GetRelationshipsPartName(owner);
+                        if (projectOutput && package.GetContentType(part) != OfficeOpcEditablePackage.RelationshipContentType) return null;
+                        if (renamedPart != null && edges.Any(edge => !edge.IsExternal && edge.TargetPartName is { } target &&
+                            OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(target), PartIdentity(renamedPart)) &&
+                            (owner != null || edge.Type != OfficeOpcPackage.OfficeDocumentRelationshipType))) return null;
+                        reachable.Add(PartIdentity(part));
+                    }
                     return edges;
                 }
 
                 return TryVisitPackageGraph(Relationships, package.GetPartName, package.GetContentType, default,
-                    edge => reachable.Add(PartIdentity(edge.Part)), validateForSave: true)
+                    edge => {
+                        string identity = PartIdentity(edge.Part);
+                        if (IsReferenceRelationship(edge.Type)) {
+                            mediaParts ??= new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
+                            hasMixedPartRoles |= mediaParts.Add(identity) && reachable.Contains(identity);
+                        } else {
+                            hasMixedPartRoles |= mediaParts?.Contains(identity) == true;
+                        }
+                        reachable.Add(identity);
+                    }, validateForSave: true)
+                    && !hasMixedPartRoles
                     && package.PartNames.All(name => reachable.Contains(PartIdentity(name)));
             } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or IOException
                 or ArgumentException or NotSupportedException or InvalidOperationException or OverflowException) {

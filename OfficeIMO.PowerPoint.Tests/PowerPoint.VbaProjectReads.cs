@@ -167,6 +167,34 @@ public sealed class PowerPointVbaProjectReadTests {
         Assert.Equal(".pptx", reopened.SourceFormatDescriptor.Extension);
         Assert.False(reopened.HasVbaProject);
         Assert.Equal(bytes, presentation.GetVbaProjectBytes());
+        Assert.False(presentation.IsSdkLoaded);
+    }
+
+    [Theory]
+    [InlineData(".potm", true)]
+    [InlineData(".pptx", false)]
+    public void ConvertingSubtypePreservesVbaOnlyInTheMacroEnabledOutput(string extension, bool preservesVba) {
+        byte[] bytes = ReadInertProject();
+        byte[] fixture = CreateFixture(bytes, includeSignature: true);
+        using var presentation = PowerPointDocument.Load(new MemoryStream(fixture, writable: false));
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-SubtypeVba-" + Guid.NewGuid().ToString("N") + extension);
+        try {
+            presentation.SaveCopy(path);
+            using var saved = PowerPointDocument.Load(path);
+
+            Assert.Equal(extension, saved.SourceFormatDescriptor.Extension);
+            Assert.Equal(preservesVba, saved.HasVbaProject);
+            if (preservesVba) {
+                Assert.Equal(bytes, saved.GetVbaProjectBytes());
+                Assert.True(saved.InspectVbaProjectMetadata()!.HasSignature);
+            }
+            Assert.Equal(".pptm", presentation.SourceFormatDescriptor.Extension);
+            Assert.Equal(bytes, presentation.GetVbaProjectBytes());
+            Assert.True(presentation.InspectVbaProjectMetadata()!.HasSignature);
+            Assert.False(presentation.IsSdkLoaded);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Theory]
