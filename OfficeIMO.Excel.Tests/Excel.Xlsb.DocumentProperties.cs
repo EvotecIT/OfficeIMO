@@ -58,8 +58,14 @@ public partial class Excel {
         DateTime created = XlsbPropertiesCreated.AddTicks(1_234_567);
         using var source = ExcelDocument.Create();
         source.AddSheet("Data").Cell(1, 1).SetValue(1);
-        source.Properties.Created = created;
+        source.Properties.Created = XlsbPropertiesCreated;
         byte[] native = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+        native = EditXlsbPackage(native, archive => {
+            const string corePart = "docProps/core.xml";
+            var markup = XElement.Parse(ReadEntry(archive, corePart));
+            markup.Element(XName.Get("created", "http://purl.org/dc/terms/"))!.Value = "2024-03-05T06:07:08.1234567Z";
+            ReplaceEntry(archive, corePart, markup.ToString(SaveOptions.DisableFormatting));
+        });
 
         using var imported = ExcelDocument.Load(new MemoryStream(native));
         Assert.True(imported.IsSdkDeferred);
