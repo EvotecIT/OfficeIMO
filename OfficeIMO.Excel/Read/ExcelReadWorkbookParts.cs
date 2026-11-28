@@ -37,9 +37,17 @@ namespace OfficeIMO.Excel {
         }
 
         internal static bool IsNonWorksheetRelationship(string? type) =>
-            type == OfficeRelationship + "chartsheet" || type == OfficeRelationship + "dialogsheet"
-            || type == OfficeRelationship + "macrosheet" || type == OfficeRelationship + "intlMacrosheet"
-            || type == "http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet"
-            || type == "http://schemas.microsoft.com/office/2006/relationships/xlIntlMacrosheet";
+            type is OfficeRelationship + "macrosheet" or OfficeRelationship + "intlMacrosheet"
+            || FixedNonWorksheetContentType(type) != null;
+
+        internal static string? FixedNonWorksheetContentType(string? type) => type switch {
+            OfficeRelationship + "chartsheet" => "application/vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml",
+            OfficeRelationship + "dialogsheet" => "application/vnd.openxmlformats-officedocument.spreadsheetml.dialogsheet+xml",
+            "http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet"
+                => "application/vnd.ms-excel.macrosheet+xml",
+            "http://schemas.microsoft.com/office/2006/relationships/xlIntlMacrosheet"
+                => "application/vnd.ms-excel.intlmacrosheet+xml",
+            _ => null
+        };
     }
 }

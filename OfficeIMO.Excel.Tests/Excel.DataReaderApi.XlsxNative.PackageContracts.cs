@@ -47,6 +47,56 @@ public partial class Excel {
     }
 
     [Theory]
+    [InlineData("[Content_Types].xml", "<Unexpected/>")]
+    [InlineData("[Content_Types].xml", "<other:Override xmlns:other=\"urn:unknown\"/>")]
+    [InlineData("xl/workbook.xml", "<!--a--b-->")]
+    [InlineData("xl/workbook.xml", "<!--a\u0001b-->")]
+    public void GeneralPackageReaderRejectsMalformedBootstrapMarkup(string partName, string markup) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            if (partName == "[Content_Types].xml") {
+                XDocument manifest = LoadZipXml(path, partName);
+                XElement unexpected = XElement.Parse(markup);
+                if (unexpected.Name.Namespace == XNamespace.None) unexpected.Name = manifest.Root!.Name.Namespace + unexpected.Name.LocalName;
+                manifest.Root!.Add(unexpected);
+                ReplaceZipXml(path, partName, manifest);
+            } else {
+                string workbook = Encoding.UTF8.GetString(ReadZipEntry(path, partName)).TrimStart('\uFEFF');
+                int declarationEnd = workbook.StartsWith("<?xml", StringComparison.Ordinal) ? workbook.IndexOf("?>", StringComparison.Ordinal) + 2 : 0;
+                ReplaceZipEntry(path, partName, Encoding.UTF8.GetBytes(workbook.Insert(declarationEnd, markup)));
+            }
+
+            var error = Assert.Throws<IOException>(() => ExcelDocumentReader.Open(path).Dispose());
+            Assert.IsType<System.Xml.XmlException>(error.InnerException);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void StandaloneTableReaderRepairsExtendedPropertiesContentType() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                document.Sheets[0].AddTable("A1:A3", name: "Numbers");
+                document.Save();
+            }
+            const string contentTypes = "[Content_Types].xml";
+            XDocument manifest = LoadZipXml(path, contentTypes);
+            XElement extendedProperties = Assert.Single(manifest.Root!.Elements(), item => (string?)item.Attribute("PartName") == "/docProps/app.xml");
+            extendedProperties.SetAttributeValue("ContentType", "application/xml");
+            ReplaceZipXml(path, contentTypes, manifest);
+
+            using var reader = ExcelDocumentReader.Open(path);
+            var table = Assert.Single(reader.GetTables());
+            Assert.Equal("Numbers", table.Name);
+            Assert.Equal("A1:A3", table.Range);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void XlsxNativePackage_RejectsMissingOrDuplicateRootRelationshipId(bool duplicate) {
@@ -391,11 +441,14 @@ public partial class Excel {
         }
     }
 
-    [Fact]
-    public void XlsxNativePackage_RejectsMissingNonWorksheetSheetPart() {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("application/xml")]
+    [InlineData("application/vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml")]
+    public void XlsxNativePackage_ValidatesChartSheetBeforeSkippingIt(string? contentType) {
         string path = CreateCompactFastPathWorkbook();
         try {
-            const string relationshipId = "rIdMissingChart";
+            const string relationshipId = "rIdChart";
             const string relationshipsEntry = "xl/_rels/workbook.xml.rels";
             XDocument relationships = LoadZipXml(path, relationshipsEntry);
             XNamespace packageRelationships = PackageRelationshipsNamespace;
@@ -403,7 +456,7 @@ public partial class Excel {
                 packageRelationships + "Relationship",
                 new XAttribute("Id", relationshipId),
                 new XAttribute("Type", OfficeRelationshipsNamespace + "/chartsheet"),
-                new XAttribute("Target", "chartsheets/missing.xml")));
+                new XAttribute("Target", "chartsheets/chart.xml")));
             ReplaceZipXml(path, relationshipsEntry, relationships);
 
             const string workbookEntry = "xl/workbook.xml";
@@ -412,12 +465,30 @@ public partial class Excel {
             XNamespace officeRelationships = OfficeRelationshipsNamespace;
             workbook.Root.Element(spreadsheet + "sheets")!.Add(new XElement(
                 spreadsheet + "sheet",
-                new XAttribute("name", "MissingChart"),
+                new XAttribute("name", "Chart"),
                 new XAttribute("sheetId", "2"),
                 new XAttribute(officeRelationships + "id", relationshipId)));
             ReplaceZipXml(path, workbookEntry, workbook);
 
-            Assert.Throws<InvalidOperationException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            if (contentType != null) {
+                const string typesEntry = "[Content_Types].xml";
+                XDocument types = LoadZipXml(path, typesEntry);
+                types.Root!.Add(new XElement(types.Root.Name.Namespace + "Override",
+                    new XAttribute("PartName", "/xl/chartsheets/chart.xml"), new XAttribute("ContentType", contentType)));
+                ReplaceZipXml(path, typesEntry, types);
+                using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+                using var writer = new StreamWriter(archive.CreateEntry("xl/chartsheets/chart.xml").Open());
+                writer.Write($"<chartsheet xmlns=\"{spreadsheet}\"/>");
+            }
+
+            if (contentType == null) {
+                Assert.Throws<InvalidOperationException>(() => AssertCompactNumericRows(path));
+            } else if (contentType == "application/xml") {
+                var error = Assert.Throws<IOException>(() => AssertCompactNumericRows(path));
+                Assert.IsType<InvalidDataException>(error.InnerException);
+            } else {
+                AssertCompactNumericRows(path);
+            }
         } finally {
             File.Delete(path);
         }

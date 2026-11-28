@@ -364,7 +364,7 @@ namespace OfficeIMO.Excel {
             int previousRow = 0;
             foreach (var row in WorksheetRoot.Child(SpreadsheetXml, "sheetData").Children(SpreadsheetXml, "row")) {
                 ct.ThrowIfCancellationRequested();
-                uint? declared = row.UInt32Attribute("r");
+                uint? declared = ReadDomUnsignedAttribute(row, "r");
                 int rowIndex = declared.HasValue && (declared.Value < 1 || declared.Value > ExcelA1.MaxRows)
                     ? 0 : ResolveRowIndex(row, ref previousRow);
                 int ordinal = 0, nextColumn = 1;

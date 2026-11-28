@@ -49,7 +49,12 @@ namespace OfficeIMO.Excel {
                 OfficeXmlNode workbook = ParseRoot(markup, package.Namespaces, limits?.CancellationToken ?? default);
                 if (!workbook.Is(Spreadsheet, "workbook")) throw new InvalidDataException("Workbook is null.");
                 // Resolve the workbook relationship set before the immutable view is shared.
-                _ = package.GetRelationships(workbookName);
+                foreach (OfficeOpcRelationship relationship in package.GetRelationships(workbookName)) {
+                    string? expected = ExcelReadWorkbookParts.FixedNonWorksheetContentType(relationship.Type);
+                    if (expected != null && relationship.TargetPartName is string target && package.PartExists(target)) {
+                        package.RequireContentType(target, expected);
+                    }
+                }
                 if (limits != null) {
                     int count = 0;
                     foreach (OfficeXmlNode sheet in workbook.Child(Spreadsheet, "sheets").Children(Spreadsheet, "sheet")) {

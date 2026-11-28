@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
                 if (_tableDocument is not SpreadsheetDocument document) {
                     Stream stream = _package!.OpenSource();
                     try {
-                        document = OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(stream, new OpenSettings());
+                        document = OpenTableWorkbook(ref stream);
                         _tableDocument = document;
                         _tableStream = stream;
                     } catch {
@@ -91,6 +91,29 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 return document.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+            }
+        }
+
+        private SpreadsheetDocument OpenTableWorkbook(ref Stream stream) {
+            try {
+                return OpenValidatedTableWorkbook(stream);
+            } catch (Exception exception) when (exception is OpenXmlPackageException || CanRetryWithNormalizedContentTypes(exception)) {
+                stream.Dispose();
+                using Stream source = _package!.OpenSource();
+                stream = OpenNormalizedPackageStream(ReadInput(source, _opt), _opt.CancellationToken);
+                return OpenValidatedTableWorkbook(stream);
+            }
+        }
+
+        private static SpreadsheetDocument OpenValidatedTableWorkbook(Stream stream) {
+            SpreadsheetDocument document = OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(stream, new OpenSettings());
+            try {
+                // The SDK validates the typed relationships on first access to WorkbookPart.
+                _ = document.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
             }
         }
 

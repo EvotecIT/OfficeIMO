@@ -1,4 +1,5 @@
 using OfficeIMO.OpenXml.Internal;
+using System.Globalization;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
@@ -11,7 +12,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int ResolveRowIndex(OfficeXmlNode row, ref int previousIndex) {
-            if (row.UInt32Attribute("r") is uint declared && declared > 0) {
+            if (ReadDomUnsignedAttribute(row, "r") is uint declared && declared > 0) {
                 return previousIndex = checked((int)declared);
             }
             foreach (OfficeXmlNode cell in row.Children(SpreadsheetXml, "c")) {
@@ -20,6 +21,13 @@ namespace OfficeIMO.Excel {
                 }
             }
             return ++previousIndex;
+        }
+
+        private static uint? ReadDomUnsignedAttribute(OfficeXmlNode node, string name) {
+            string? value = node.Attribute(name);
+            if (value == null) return null;
+            if (value.Length == 0) throw new InvalidOperationException("Nullable object must have a value.");
+            return uint.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
         }
 
         private readonly struct ReaderRow {
@@ -60,11 +68,17 @@ namespace OfficeIMO.Excel {
 
             internal string? Reference => _cell.Attribute("r");
 
-            internal ExcelCellValueType? Type => ToCellValueType(ParseXmlCellKind(_cell.Attribute("t")));
+            internal ExcelCellValueType? Type {
+                get {
+                    string? type = _cell.Attribute("t");
+                    if (!IsKnownXmlCellType(type)) throw new FormatException($"The cell type '{type}' is not valid.");
+                    return ToCellValueType(ParseXmlCellKind(type));
+                }
+            }
 
             internal string? StyleAttribute => _cell.Attribute("s");
 
-            internal uint? Style => _cell.UInt32Attribute("s");
+            internal uint? Style => ReadDomUnsignedAttribute(_cell, "s");
 
             internal uint? ValueMetaIndex => _cell.UInt32Attribute("vm");
 

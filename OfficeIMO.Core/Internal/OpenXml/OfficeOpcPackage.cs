@@ -285,10 +285,12 @@ internal sealed class OfficeOpcPackage : IDisposable {
                     && !(reader.NamespaceId == OfficeXmlNamespaces.ContentTypes && reader.LocalNameEquals("Types"))) {
                     throw new InvalidDataException("The content-types part has no Types root element.");
                 }
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
-                    || reader.NamespaceId != OfficeXmlNamespaces.ContentTypes) continue;
-                bool isDefault = reader.LocalNameEquals("Default");
-                if (!isDefault && !reader.LocalNameEquals("Override")) continue;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
+                bool isDefault = reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Default");
+                if (!isDefault && !reader.IsElement(OfficeXmlNamespaces.ContentTypes, "Override")) {
+                    if (_validateMetadata) throw new System.Xml.XmlException("The package contains an unexpected content-type declaration.");
+                    continue;
+                }
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ContentType", out string contentType)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, isDefault ? "Extension" : "PartName", out string key)) {
                     if (_validateMetadata) throw new System.Xml.XmlException("The package contains an incomplete content-type declaration.");

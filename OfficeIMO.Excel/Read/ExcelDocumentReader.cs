@@ -109,11 +109,7 @@ namespace OfficeIMO.Excel {
             ExcelDocumentLoadRouting.ValidateZipPackage(bytes);
             try {
                 if (normalize) {
-                    using var stream = new MemoryStream(bytes.Length + 4096);
-                    stream.Write(bytes, 0, bytes.Length);
-                    stream.Position = 0;
-                    ExcelPackageUtilities.NormalizeContentTypes(stream, leaveOpen: true);
-                    options.CancellationToken.ThrowIfCancellationRequested();
+                    using var stream = OpenNormalizedPackageStream(bytes, options.CancellationToken);
                     byte[] normalized = stream.GetBuffer();
                     int length = checked((int)stream.Length);
                     return OpenPackage(
@@ -126,6 +122,21 @@ namespace OfficeIMO.Excel {
             } catch (Exception ex) when (CanRetryWithNormalizedContentTypes(ex)) {
                 if (!normalize) return OpenFromBytes(bytes, options, normalize: true, context);
                 throw new IOException($"Failed to open {context} after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'. See inner exception for details.", ex);
+            }
+        }
+
+        private static MemoryStream OpenNormalizedPackageStream(byte[] bytes, CancellationToken cancellationToken) {
+            var stream = new MemoryStream(bytes.Length + 4096);
+            try {
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Position = 0;
+                ExcelPackageUtilities.NormalizeContentTypes(stream, leaveOpen: true);
+                cancellationToken.ThrowIfCancellationRequested();
+                stream.Position = 0;
+                return stream;
+            } catch {
+                stream.Dispose();
+                throw;
             }
         }
 
@@ -177,14 +188,18 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelSheetReader CreateSheetReader(string sheetName, string partName, ExcelPartRef? livePart) {
-            if (livePart is not ExcelPartRef worksheet || (_snapshot != null && !worksheet.IsRootLoaded && _package!.PartExists(partName))) {
+            ExcelPartRef worksheet = livePart.GetValueOrDefault();
+            ExcelPartRef workbook = _liveWorkbook.GetValueOrDefault();
+            if (livePart == null || (_snapshot != null && !worksheet.IsRootLoaded && _package!.PartExists(partName))) {
                 bool canStream = !_qualifyWorksheets || _snapshot!.QualifiesForTabularReaders(partName, _opt);
-                return new ExcelSheetReader(sheetName, partName, _sst, _styles, _opt, _dateSystem,
-                    _package!.Parts, _richValueErrors, package: _package, canStreamWorksheetPart: canStream,
-                    readOnlySnapshot: _readOnlySnapshot);
+                if (canStream || livePart == null || (!workbook.WorkbookStyles.IsRootLoaded
+                    && !workbook.FindWorkbookPart(ExcelReadWorkbookParts.SharedStrings).IsRootLoaded)) {
+                    return new ExcelSheetReader(sheetName, partName, _sst, _styles, _opt, _dateSystem,
+                        _package!.Parts, _richValueErrors, package: _package, canStreamWorksheetPart: canStream,
+                        readOnlySnapshot: _readOnlySnapshot);
+                }
             }
 
-            ExcelPartRef workbook = _liveWorkbook.GetValueOrDefault();
             SharedStringCache strings = _snapshot != null && workbook.FindWorkbookPart(ExcelReadWorkbookParts.SharedStrings).IsRootLoaded
                 ? _editedSharedStrings ??= SharedStringCache.Build(workbook, _opt)
                 : _sst;
