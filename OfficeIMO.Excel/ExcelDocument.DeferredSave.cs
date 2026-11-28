@@ -143,7 +143,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Writes the recorded values through the model once the SDK package is open, in their original order.</summary>
-        private void ReplayDeferredCellEdits() {
+        private void ReplayDeferredCellEdits(byte[] openedProjection) {
+            CaptureLegacyXlsBeforeCellReplay(openedProjection);
             ExcelSheet[] sheets;
             lock (_deferredEditsGate) {
                 sheets = _deferredEditedSheets.ToArray();
