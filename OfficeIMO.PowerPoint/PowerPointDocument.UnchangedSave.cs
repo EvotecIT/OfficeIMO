@@ -235,7 +235,8 @@ namespace OfficeIMO.PowerPoint {
             var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             bool notesDeclared = notesAdded || package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
-            foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, presentationTree != null, main)) {
+            bool pendingRelationships = parsed?.GetParsedXml(OfficeOpcPartNames.GetRelationshipsPartName(main)) != null;
+            foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, pendingRelationships, main)) {
                 if (!preserveVbaProject && string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
                 if (external || !string.Equals(type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
                     || target is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
@@ -318,7 +319,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // The presentation part's relationships: from the pending package when its slide list is read there.
+        // The presentation part's relationships may change independently of the slide list.
         private static IEnumerable<(string Type, string? Target, bool External)> MainRelationships(OfficeOpcPackage package,
             OfficeOpcEditablePackage? parsed, bool pending, string main) {
             if (!pending) {
