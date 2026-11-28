@@ -69,7 +69,7 @@ public sealed class ZstandardArchiveTests {
         Assert.True(dictionary.HasEntropyTables);
 
         var output = new MemoryStream();
-        ZstandardArchive.Decompress(Open("message-trained-dict.zst"), output, dictionary);
+        ZstandardArchive.DecompressWithDictionary(Open("message-trained-dict.zst"), output, dictionary);
         Assert.Equal(ReadInput("message.json"), output.ToArray());
 
         ArchiveCorruptionException missing = Assert.Throws<ArchiveCorruptionException>(() =>
@@ -84,8 +84,44 @@ public sealed class ZstandardArchiveTests {
         Assert.False(dictionary.HasEntropyTables);
 
         var output = new MemoryStream();
-        ZstandardArchive.Decompress(Open("message-raw-dict.zst"), output, dictionary);
+        ZstandardArchive.DecompressWithDictionary(Open("message-raw-dict.zst"), output, dictionary);
         Assert.Equal(ReadInput("message.json"), output.ToArray());
+    }
+
+    [Fact]
+    public void RawDictionariesDoNotSatisfyFramesThatNameADictionary() {
+        ZstandardDictionary raw = ZstandardDictionary.Load(ReadFixture("raw-content.dict"));
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardArchive.DecompressWithDictionary(Open("message-trained-dict.zst"), new MemoryStream(), raw));
+        Assert.Contains("4242", error.Expected);
+    }
+
+    [Fact]
+    public void ADictionaryMagicWithoutAnIdIsRejected() {
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardDictionary.Load(new byte[] { 0x37, 0xA4, 0x30, 0xEC, 0x01 }));
+        Assert.Equal(4, error.Offset);
+    }
+
+    [Fact]
+    public void ATwoByteZeroSequenceCountEndsTheBlockAfterItsLiterals() {
+        // A frame with a 1 KiB window and one compressed block holding raw literals "abc" and the count 0x80 0x00.
+        byte[] source = { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x35, 0x00, 0x00, 0x18, 0x61, 0x62, 0x63, 0x80, 0x00 };
+        var output = new MemoryStream();
+        ZstandardArchive.Decompress(new MemoryStream(source), output);
+        Assert.Equal(Encoding.ASCII.GetBytes("abc"), output.ToArray());
+    }
+
+    [Fact]
+    public void CopyingTheDictionaryIntoEachFrameCountsAsDecodeWork() {
+        ZstandardDictionary dictionary = ZstandardDictionary.Load(Enumerable.Range(0, 1024 * 1024).Select(index => (byte)index).ToArray());
+        // Twenty empty single-segment frames; each starts from a fresh copy of the 1 MiB dictionary.
+        byte[] frame = { 0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x00, 0x01, 0x00, 0x00 };
+        byte[] source = Enumerable.Repeat(frame, 20).SelectMany(bytes => bytes).ToArray();
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardArchive.DecompressWithDictionary(new MemoryStream(source), new MemoryStream(), dictionary,
+                new ArchiveReadOptions { MaxDecompressionWorkBytes = 8L * 1024 * 1024 }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxDecompressionWorkBytes), error.LimitName);
     }
 
     [Fact]
