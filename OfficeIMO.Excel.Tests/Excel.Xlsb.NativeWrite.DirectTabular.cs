@@ -7,10 +7,12 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Xlsb_NewTabularWorkbookWritesNativeBytesWithoutOpeningTheSdk(bool sharedStrings) {
+        [InlineData(false, null)]
+        [InlineData(true, null)]
+        [InlineData(true, 3L * 1024 * 1024 * 1024)]
+        public void Xlsb_NewTabularWorkbookWritesNativeBytesWithoutOpeningTheSdk(bool sharedStrings, long? packageLimit) {
             var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = sharedStrings };
+            if (packageLimit.HasValue) options.MaxInMemoryPackageBytes = packageLimit.Value;
             using ExcelDocument owned = CreateTabularWorkbook();
             using ExcelDocument standard = CreateTabularWorkbook();
             standard.OpenDeferredSdk("Test the standard native tabular writer");
