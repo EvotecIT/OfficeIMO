@@ -515,7 +515,7 @@ public static partial class WordRtfConverterExtensions {
         bool nestedRevisionIsOmitted = false,
         bool omittedByConverter = false) {
         foreach (OfficeXmlNode child in container.Elements()) {
-            string kind = child.NamespaceId == WordXml.W ? child.LocalName : string.Empty;
+            string kind = child.NamespaceId == WordXml.W && child.IsModelElement() ? child.LocalName : string.Empty;
             switch (kind) {
                 case "r":
                     yield return (child, omittedByConverter);

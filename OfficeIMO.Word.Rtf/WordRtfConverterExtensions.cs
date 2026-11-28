@@ -141,6 +141,7 @@ public static partial class WordRtfConverterExtensions {
         var complexFields = new Stack<ComplexFieldCapture>();
         var bookmarkNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (OfficeXmlNode element in wordParagraph.Node().Elements()) {
+            if (!element.IsModelElement()) continue;
             if (element.NamespaceId == WordXml.M) {
                 if (element.LocalName is "oMath" or "oMathPara") {
                     AppendEquationField(paragraph, element, complexFields);
@@ -269,6 +270,7 @@ public static partial class WordRtfConverterExtensions {
         int? revisionAuthorIndex = null) {
         bool hasContent = false;
         foreach (OfficeXmlNode child in container.Elements()) {
+            if (!child.IsModelElement()) continue;
             if (child.NamespaceId == WordXml.M) {
                 if (child.LocalName is "oMath" or "oMathPara") {
                     AppendEquationField(paragraph, child, complexFields, revisionKind, revisionAuthorIndex);
@@ -387,6 +389,7 @@ public static partial class WordRtfConverterExtensions {
         bool hasContent = false;
         int? authorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, author, revisionAuthorIndexes);
         foreach (OfficeXmlNode child in revision.Elements()) {
+            if (!child.IsModelElement()) continue;
             if (child.NamespaceId == WordXml.M) {
                 if (child.LocalName is "oMath" or "oMathPara") {
                     AppendEquationField(paragraph, child, complexFields, revisionKind, authorIndex);

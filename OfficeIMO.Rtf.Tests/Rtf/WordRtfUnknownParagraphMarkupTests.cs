@@ -8,7 +8,8 @@ namespace OfficeIMO.Tests.Rtf;
 
 /// <summary>
 /// Word markup inside a wrapper the package doesn't know (a vendor element) is held untyped and isn't part of the
-/// document model: RTF export and its report read every story as if the wrapper weren't there.
+/// document model: RTF export and its report read every story as if the wrapper weren't there. Word run markup the
+/// package holds untyped beside a paragraph's runs is skipped the same way.
 /// </summary>
 public sealed class WordRtfUnknownParagraphMarkupTests {
     private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -35,6 +36,53 @@ public sealed class WordRtfUnknownParagraphMarkupTests {
         Assert.Equal(expectedRtf, actualRtf);
         Assert.Equal(expectedReport, actualReport);
         Assert.DoesNotContain("Wrapped", actualRtf, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("paragraph", "sdtContent")]
+    [InlineData("paragraph", "sdt")]
+    [InlineData("paragraph", "r")]
+    [InlineData("hyperlink", "sdtContent")]
+    [InlineData("hyperlink", "r")]
+    public void UntypedRunMarkupBesideTheRunsIsSkipped(string parent, string element) {
+        (string expectedRtf, string expectedReport) = ExportWithUntypedChild(parent, element: null);
+
+        (string actualRtf, string actualReport) = ExportWithUntypedChild(parent, element);
+
+        Assert.Equal(expectedRtf, actualRtf);
+        Assert.Equal(expectedReport, actualReport);
+        Assert.DoesNotContain("Hidden", actualRtf, StringComparison.Ordinal);
+    }
+
+    private static (string Rtf, string Report) ExportWithUntypedChild(string parent, string? element) {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Body text");
+        paragraph.AddHyperLink("Link text", new Uri("https://example.test"));
+        if (element != null) {
+            string run = "<w:r><w:t>Hidden</w:t></w:r>";
+            string markup = element switch {
+                "sdtContent" => $"<w:sdtContent xmlns:w=\"{WordNamespace}\">{run}</w:sdtContent>",
+                "sdt" => $"<w:sdt xmlns:w=\"{WordNamespace}\"><w:sdtContent>{run}</w:sdtContent></w:sdt>",
+                _ => $"<w:r xmlns:w=\"{WordNamespace}\"><w:t>Hidden</w:t></w:r>"
+            };
+            OpenXmlElement target = parent == "hyperlink"
+                ? paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single()
+                : paragraph._paragraph;
+            target.AppendChild(UntypedElement(markup));
+        }
+
+        RtfDocument rtf = document.ToRtf(null, out OfficeConversionReport report);
+        string diagnostics = string.Join("\n", report.Diagnostics.Select(diagnostic =>
+            diagnostic.Code + " " + diagnostic.Message));
+        return (rtf.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), diagnostics);
+    }
+
+    // Word markup parsed inside an unknown wrapper stays untyped; detached, it keeps that.
+    private static OpenXmlElement UntypedElement(string outerXml) {
+        var wrapper = new OpenXmlUnknownElement("x", "wrapper", VendorNamespace) { InnerXml = outerXml };
+        OpenXmlElement element = wrapper.FirstChild!;
+        element.Remove();
+        return element;
     }
 
     private static (string Rtf, string Report) Export(string? wrappedStory) {
