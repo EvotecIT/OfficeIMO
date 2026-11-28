@@ -1999,12 +1999,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {
-            internal static byte[] CreateMinimalWorkbookStream() {
+            internal static byte[] CreateMinimalWorkbookStream(string text = "Name") {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Sheet1"));
-                WriteRecord(stream, 0x00fc, BuildSstPayload("Name"));
+                WriteRecord(stream, 0x00fc, BuildSstPayload(text));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);

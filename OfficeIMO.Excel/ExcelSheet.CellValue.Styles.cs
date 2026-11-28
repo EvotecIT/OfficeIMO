@@ -171,6 +171,7 @@ namespace OfficeIMO.Excel {
             text = string.Empty;
             try {
                 if (sharedStrings == null && DeferredEntry != null && _excelDocument.HasOwnedLegacyXlsProjection) {
+                    if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns) return false;
                     ExcelCellData value = FormulaModel.ReadValue(row, column);
                     text = value.CachedText ?? value.Formula ?? string.Empty;
                     return !value.IsBlank;

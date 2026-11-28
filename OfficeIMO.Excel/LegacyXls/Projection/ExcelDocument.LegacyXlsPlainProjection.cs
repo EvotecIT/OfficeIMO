@@ -58,6 +58,8 @@ public partial class ExcelDocument {
         selection.SetAttribute("sqref", "A1");
         OfficeXmlNode grid = AddLegacySpreadsheetElement(worksheet, "sheetData");
         ExcelDeferredSharedStrings strings = ExcelDeferredSharedStrings.Load(package, partName: null)!;
+        ExcelOwnedStyles? styles = null;
+        uint? wrappedStyle = null;
 
         int firstColumn = int.MaxValue, lastColumn = 0, row = 0, lastColumnInRow = 0;
         OfficeXmlNode rowNode = default;
@@ -70,13 +72,23 @@ public partial class ExcelDocument {
             }
 
             string type, value;
+            bool wrap = false;
             switch (cell.Kind) {
-                case LegacyXlsCellValueKind.Text when cell.Value is string text:
-                    if (!strings.TryGetOrAdd(ExcelSanitizer.SanitizeString(text), ExcelSheet.CellValuePlainStringPromotionSharedStringCount,
-                        out int index)) return false;
-                    strings.AddedReferences++;
-                    type = "s";
-                    value = index.ToString(CultureInfo.InvariantCulture);
+                case LegacyXlsCellValueKind.Text when cell.Value is string text && text.Length <= 32767:
+                    if (text.Length > 0 && strings.TryGetOrAdd(text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out int index)) {
+                        strings.AddedReferences++;
+                        type = "s";
+                        value = index.ToString(CultureInfo.InvariantCulture);
+                    } else {
+                        type = "str";
+                        value = ExcelSanitizer.EncodeXString(text);
+                    }
+                    wrap = text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
+                    if (wrap && wrappedStyle == null) {
+                        styles = ExcelOwnedStyles.Load(package, "/xl/styles.xml");
+                        wrappedStyle = styles?.Apply(0, ExcelStyleOperation.Flagged(ExcelStyleOperationKind.WrapText, true));
+                        if (wrappedStyle == null) return false;
+                    }
                     break;
                 case LegacyXlsCellValueKind.Number when cell.Value is double number && !double.IsNaN(number) && !double.IsInfinity(number):
                     type = "n";
@@ -100,6 +112,7 @@ public partial class ExcelDocument {
             lastColumn = Math.Max(lastColumn, cell.Column);
             OfficeXmlNode cellNode = AddLegacySpreadsheetElement(rowNode, "c");
             cellNode.SetAttribute("r", ExcelA1.CellReference(row, cell.Column));
+            if (wrap) cellNode.SetUInt32Attribute("s", wrappedStyle!.Value);
             cellNode.SetAttribute("t", type);
             AddLegacySpreadsheetElement(cellNode, "v").SetInnerText(value);
         }
@@ -108,6 +121,7 @@ public partial class ExcelDocument {
         string last = ExcelA1.CellReference(row, lastColumn);
         dimension.SetAttribute("ref", first == last ? first : first + ":" + last);
         if (!strings.TryWrite(package, CreatedWorkbookPartName)) return false;
+        styles?.Write();
 
         token.ThrowIfCancellationRequested();
         using var output = new MemoryStream(16 * 1024);
