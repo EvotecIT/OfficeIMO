@@ -196,9 +196,9 @@ namespace OfficeIMO.Tests {
                 "GetTableSnapshots",
                 BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("Table snapshot implementation was not found.");
-            object sourceSnapshots = getTableSnapshots.Invoke(null, new object[] { source, options })
+            object sourceSnapshots = getTableSnapshots.Invoke(null, new object[] { OfficeIMO.Word.OpenXml.WordPackageView.For(source), options })
                 ?? throw new InvalidOperationException("Source table snapshots were not created.");
-            object targetSnapshots = getTableSnapshots.Invoke(null, new object[] { target, options })
+            object targetSnapshots = getTableSnapshots.Invoke(null, new object[] { OfficeIMO.Word.OpenXml.WordPackageView.For(target), options })
                 ?? throw new InvalidOperationException("Target table snapshots were not created.");
             object sourceSnapshot = sourceSnapshots.GetType().GetProperty("Item")?.GetValue(sourceSnapshots, new object[] { 0 })
                 ?? throw new InvalidOperationException("Source table snapshot was not available.");
@@ -243,8 +243,8 @@ namespace OfficeIMO.Tests {
                 ?? throw new InvalidOperationException("Table row analysis implementation was not found.");
 
             analyzeTableRow.Invoke(null, new object?[] {
-                source.Tables[0].Rows[0],
-                target.Tables[0].Rows[0],
+                OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(source.Tables[0].Rows[0]._tableRow),
+                OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(target.Tables[0].Rows[0]._tableRow),
                 null,
                 null,
                 0,
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
 
             object scanResult = containsThemeFormatting.Invoke(
                 null,
-                new object[] { loaded._wordprocessingDocument.MainDocumentPart!, comparisonWorkBudget })
+                new object[] { OfficeIMO.Word.OpenXml.WordPackageView.For(loaded).Main!, comparisonWorkBudget })
                 ?? throw new InvalidOperationException("Effective-formatting limitation scan did not return a result.");
 
             Assert.Equal("ResourceLimitExceeded", scanResult.ToString());
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
             object scanResult = containsNumberingFormatting.Invoke(
                 null,
                 new[] {
-                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    OfficeIMO.Word.OpenXml.WordPackageView.For(loaded).Main!,
                     comparisonWorkBudget,
                     cache
                 }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no result.");
@@ -354,6 +354,10 @@ namespace OfficeIMO.Tests {
             }
 
             using WordDocument loaded = WordDocument.Load(path);
+            // The paragraph is edited through the SDK below, so the package is read from the SDK throughout, through one
+            // view, as one comparison reads it.
+            _ = loaded._wordprocessingDocument;
+            object main = OfficeIMO.Word.OpenXml.WordPackageView.For(loaded).Main!;
             object comparisonWorkBudget = CreateComparisonWorkBudget(styleCount + 8L);
             Type cacheType = typeof(WordDocumentComparer).GetNestedType(
                 "ParagraphNumberingStyleCatalogCache",
@@ -369,7 +373,7 @@ namespace OfficeIMO.Tests {
             object scanResult = containsNumberingFormatting.Invoke(
                 null,
                 new[] {
-                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    main,
                     comparisonWorkBudget,
                     cache
                 }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no result.");
@@ -383,7 +387,7 @@ namespace OfficeIMO.Tests {
             object completeResult = containsNumberingFormatting.Invoke(
                 null,
                 new[] {
-                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    main,
                     completeBudget,
                     completedCache
                 }) ?? throw new InvalidOperationException("Numbering-formatting limitation scan returned no completed result.");
@@ -394,7 +398,7 @@ namespace OfficeIMO.Tests {
             object cachedAncestorResult = containsNumberingFormatting.Invoke(
                 null,
                 new[] {
-                    loaded._wordprocessingDocument.MainDocumentPart!,
+                    main,
                     cachedAncestorBudget,
                     completedCache
                 }) ?? throw new InvalidOperationException("Cached numbering-style resolution returned no result.");

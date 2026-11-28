@@ -50,6 +50,7 @@
 				<string>com.microsoft.visio.drawing</string>
 				<string>com.evotec.officeimo.cbz</string>
 				<string>com.evotec.officeimo.cb7</string>
+				<string>com.evotec.officeimo.cbr</string>
 				<string>com.microsoft.publisher.pub</string>
 				<string>com.evotec.officeimo.mobi</string>
 				<string>org.oasis-open.opendocument.graphics</string>
@@ -131,6 +132,26 @@
 				</array>
 				<key>public.mime-type</key>
 				<string>application/x-7z-compressed</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.evotec.officeimo.cbr</string>
+			<key>UTTypeDescription</key>
+			<string>Comic book RAR 5</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cbr</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/vnd.rar</string>
 			</dict>
 		</dict>
 		<dict>

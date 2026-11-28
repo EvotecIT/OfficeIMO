@@ -1,12 +1,10 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static HashSet<int> ApplyParagraphFindings(
-            WordprocessingDocument sourceDocument,
-            WordprocessingDocument targetDocument,
+            WordPackageView sourceDocument,
+            WordPackageView targetDocument,
             WordComparisonResult result,
             WordComparisonRedlineOptions options,
             out IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
@@ -118,13 +116,14 @@ namespace OfficeIMO.Word {
                    string.Equals(finding.Message, "Paragraph effective formatting changed.", StringComparison.Ordinal);
         }
 
-        private static void ApplyParagraphFormattingFinding(Paragraph sourceParagraph, Paragraph targetParagraph, WordComparisonRedlineOptions options) {
-            targetParagraph.ParagraphProperties ??= new ParagraphProperties();
-            foreach (ParagraphPropertiesChange existingChange in targetParagraph.ParagraphProperties.Elements<ParagraphPropertiesChange>().ToList()) {
-                existingChange.Remove();
+        private static void ApplyParagraphFormattingFinding(OfficeXmlNode sourceParagraph, OfficeXmlNode targetParagraph, WordComparisonRedlineOptions options) {
+            OfficeXmlNode properties = targetParagraph.Child(W, "pPr");
+            if (properties.IsNone) {
+                properties = targetParagraph.InsertOrdered(targetParagraph.CreateElement(W, "pPr"), WPView.Order);
             }
 
-            targetParagraph.ParagraphProperties.ParagraphPropertiesChange = CreateParagraphPropertiesChange(sourceParagraph.ParagraphProperties, options);
+            properties.RemoveChildren(W, "pPrChange");
+            SetPropertyChild(properties, CreatePropertiesChange(properties, "pPrChange", sourceParagraph.Child(W, "pPr"), options), order: null);
         }
 
         private static void ApplyRunFindings(
@@ -154,7 +153,7 @@ namespace OfficeIMO.Word {
 
         private static void ApplyRunFormattingFinding(
             IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
-            Paragraph targetParagraph,
+            OfficeXmlNode targetParagraph,
             int paragraphIndex,
             int runIndex,
             WordComparisonFinding finding,
@@ -170,8 +169,8 @@ namespace OfficeIMO.Word {
             }
 
             int sourceRunIndex = finding.SourceIndex ?? runIndex;
-            List<Run> sourceRuns = GetDirectParagraphRuns(sourceParagraphs[sourceParagraphIndex].Paragraph);
-            List<Run> targetRuns = GetDirectParagraphRuns(targetParagraph);
+            List<OfficeXmlNode> sourceRuns = GetDirectParagraphRuns(sourceParagraphs[sourceParagraphIndex].Paragraph);
+            List<OfficeXmlNode> targetRuns = GetDirectParagraphRuns(targetParagraph);
             if (sourceRunIndex < 0 ||
                 sourceRunIndex >= sourceRuns.Count ||
                 runIndex < 0 ||
@@ -179,13 +178,14 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            Run targetRun = targetRuns[runIndex];
-            targetRun.RunProperties ??= new RunProperties();
-            foreach (RunPropertiesChange existingChange in targetRun.RunProperties.Elements<RunPropertiesChange>().ToList()) {
-                existingChange.Remove();
+            OfficeXmlNode targetRun = targetRuns[runIndex];
+            OfficeXmlNode properties = targetRun.Child(W, "rPr");
+            if (properties.IsNone) {
+                properties = targetRun.InsertOrdered(targetRun.CreateElement(W, "rPr"), WRView.Order);
             }
 
-            targetRun.RunProperties.RunPropertiesChange = CreateRunPropertiesChange(sourceRuns[sourceRunIndex].RunProperties, options);
+            properties.RemoveChildren(W, "rPrChange");
+            SetPropertyChild(properties, CreatePropertiesChange(properties, "rPrChange", sourceRuns[sourceRunIndex].Child(W, "rPr"), options), order: null);
         }
 
         private static bool TryGetDetailedSourceParagraphIndex(WordComparisonFinding finding, out int sourceParagraphIndex) {
@@ -201,7 +201,7 @@ namespace OfficeIMO.Word {
             return int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out sourceParagraphIndex);
         }
 
-        private static int FindSourceParagraphIndex(IReadOnlyList<RedlineParagraphEntry> sourceParagraphs, Paragraph targetParagraph, int fallbackIndex) {
+        private static int FindSourceParagraphIndex(IReadOnlyList<RedlineParagraphEntry> sourceParagraphs, OfficeXmlNode targetParagraph, int fallbackIndex) {
             string targetText = GetParagraphText(targetParagraph);
             if (!string.IsNullOrEmpty(targetText)) {
                 if (fallbackIndex >= 0 &&
@@ -220,80 +220,77 @@ namespace OfficeIMO.Word {
             return fallbackIndex;
         }
 
-        private static List<Run> GetDirectParagraphRuns(Paragraph paragraph) {
-            return paragraph.Descendants<Run>()
-                .Where(run => run.Ancestors<Paragraph>().FirstOrDefault() == paragraph)
+        private static List<OfficeXmlNode> GetDirectParagraphRuns(OfficeXmlNode paragraph) {
+            return DescendantsW(paragraph, "r")
+                .Where(run => AncestorW(run, "p") == paragraph)
                 .ToList();
         }
 
-        private static RunPropertiesChange CreateRunPropertiesChange(RunProperties? sourceProperties, WordComparisonRedlineOptions options) {
-            var previousProperties = new PreviousRunProperties();
-            if (sourceProperties != null) {
-                RunProperties clonedProperties = (RunProperties)sourceProperties.CloneNode(true);
-                foreach (RunPropertiesChange existingChange in clonedProperties.Elements<RunPropertiesChange>().ToList()) {
-                    existingChange.Remove();
-                }
-
-                foreach (OpenXmlElement child in clonedProperties.ChildElements.ToList()) {
-                    previousProperties.Append(child.CloneNode(true));
-                }
-            }
-
-            return new RunPropertiesChange(previousProperties) {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
-        }
-
-        private static ParagraphPropertiesChange CreateParagraphPropertiesChange(ParagraphProperties? sourceProperties, WordComparisonRedlineOptions options) {
-            var previousProperties = new PreviousParagraphProperties();
-            if (sourceProperties != null) {
-                ParagraphProperties clonedProperties = (ParagraphProperties)sourceProperties.CloneNode(true);
-                foreach (ParagraphPropertiesChange existingChange in clonedProperties.Elements<ParagraphPropertiesChange>().ToList()) {
-                    existingChange.Remove();
-                }
-
-                foreach (OpenXmlElement child in clonedProperties.ChildElements.ToList()) {
-                    previousProperties.Append(child.CloneNode(true));
+        /// <summary>
+        /// A <c>w:rPrChange</c> or <c>w:pPrChange</c> recording <paramref name="sourceProperties"/> as the previous
+        /// properties, without their own revision record, made for <paramref name="properties"/> to hold.
+        /// </summary>
+        private static OfficeXmlNode CreatePropertiesChange(OfficeXmlNode properties, string changeName, OfficeXmlNode sourceProperties, WordComparisonRedlineOptions options) {
+            OfficeXmlNode change = properties.CreateElement(W, changeName);
+            string previousName = changeName == "rPrChange" ? "rPr" : "pPr";
+            OfficeXmlNode previousProperties = change.CreateElement(W, previousName);
+            if (!sourceProperties.IsNone) {
+                OfficeXmlNode clonedProperties = sourceProperties.Clone();
+                clonedProperties.RemoveChildren(W, changeName);
+                foreach (OfficeXmlNode child in clonedProperties.Children().ToList()) {
+                    previousProperties.Append(child.Clone());
                 }
             }
 
-            return new ParagraphPropertiesChange(previousProperties) {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+            change.Append(previousProperties);
+            SetRevisionAttributes(change, options.Author, options.DateTime ?? DateTime.Now);
+            return change;
         }
 
-        private static List<RedlineParagraphEntry> GetRedlineParagraphEntries(WordprocessingDocument document) {
+        /// <summary>
+        /// Puts a property element in place of the existing one with its name, or in schema order, as a typed SDK property
+        /// does. A revision record (<c>w:rPrChange</c>, <c>w:pPrChange</c>) comes last in its schema, after extension
+        /// properties too, so without an order it is appended.
+        /// </summary>
+        private static OfficeXmlNode SetPropertyChild(OfficeXmlNode properties, OfficeXmlNode child, OfficeIMO.Core.Internal.OpenXml.OfficeXmlChildOrder? order) {
+            OfficeXmlNode existing = properties.Child(child.NamespaceId, child.LocalName);
+            if (existing.IsNone) {
+                return order == null ? properties.Append(child) : properties.InsertOrdered(child, order);
+            }
+
+            OfficeXmlNode inserted = properties.InsertBefore(child, existing);
+            existing.Remove();
+            return inserted;
+        }
+
+        private static List<RedlineParagraphEntry> GetRedlineParagraphEntries(WordPackageView document) {
             var entries = new List<RedlineParagraphEntry>();
-            MainDocumentPart? mainPart = document.MainDocumentPart;
-            AddRedlineParagraphEntries(entries, BodyPartKey, mainPart?.Document?.Body, BodyPartOrderBase);
+            WordPartView? mainPart = document.Main;
+            AddRedlineParagraphEntries(entries, BodyPartKey, BodyOf(mainPart), BodyPartOrderBase);
 
             if (mainPart == null) {
                 return entries;
             }
 
             int headerIndex = 0;
-            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                AddRedlineParagraphEntries(entries, headerPartKey.Value, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+            foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                AddRedlineParagraphEntries(entries, headerPartKey.Value, HeaderRoot(headerPartKey.Key), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                 headerIndex++;
             }
 
             int footerIndex = 0;
-            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                AddRedlineParagraphEntries(entries, footerPartKey.Value, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+            foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                AddRedlineParagraphEntries(entries, footerPartKey.Value, FooterRoot(footerPartKey.Key), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                 footerIndex++;
             }
 
-            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                 string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 AddRedlineParagraphEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
             }
 
-            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                 string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 AddRedlineParagraphEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
@@ -302,15 +299,15 @@ namespace OfficeIMO.Word {
             return entries;
         }
 
-        private static void AddRedlineParagraphEntries(List<RedlineParagraphEntry> entries, string partKey, OpenXmlCompositeElement? container, int orderBase) {
-            if (container == null) {
+        private static void AddRedlineParagraphEntries(List<RedlineParagraphEntry> entries, string partKey, OfficeXmlNode container, int orderBase) {
+            if (container.IsNone) {
                 return;
             }
 
             int localIndex = 0;
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not Paragraph paragraph ||
-                    paragraph.Ancestors<TableCell>().Any()) {
+                OfficeXmlNode paragraph = ordered.Element;
+                if (!paragraph.Is(W, "p") || HasAncestorW(paragraph, "tc")) {
                     continue;
                 }
 
@@ -323,35 +320,51 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool IsContentControlParagraph(Paragraph paragraph) {
-            return paragraph.Ancestors<SdtElement>().Any() || paragraph.Descendants<SdtElement>().Any();
+        private static bool IsContentControlParagraph(OfficeXmlNode paragraph) {
+            return HasAncestorW(paragraph, "sdt") || HasDescendant(paragraph, W, "sdt");
         }
 
-        private static void InsertDeletedParagraph(WordprocessingDocument targetDocument, IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, int targetLocalIndex, string deletedText, WordComparisonRedlineOptions options) {
+        private static void InsertDeletedParagraph(WordPackageView targetDocument, IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, int targetLocalIndex, string deletedText, WordComparisonRedlineOptions options) {
             RedlineParagraphEntry? firstTargetPartEntry = targetParagraphs.FirstOrDefault(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal));
-            var paragraph = new Paragraph();
-            paragraph.Append(CreateDeletedRun(deletedText, options));
+            // The paragraph is made before its place is known, as before, so revision ids are handed out in the same order.
+            OfficeXmlNode context = firstTargetPartEntry?.Container ?? BodyOf(targetDocument.Main);
+            if (context.IsNone) {
+                context = targetParagraphs.Count > 0 ? targetParagraphs[0].Container : default;
+            }
+
+            if (context.IsNone) {
+                return;
+            }
+
+            OfficeXmlNode paragraph = CreateDeletedParagraph(context, deletedText, options);
 
             List<RedlineParagraphEntry> targetPartEntries = targetParagraphs
                 .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
                 .ToList();
 
             if (targetLocalIndex >= 0 && targetLocalIndex < targetPartEntries.Count) {
-                targetPartEntries[targetLocalIndex].Paragraph.InsertBeforeSelf(paragraph);
+                OfficeXmlNode anchor = targetPartEntries[targetLocalIndex].Paragraph;
+                anchor.Parent.InsertBefore(paragraph, anchor);
                 return;
             }
 
-            OpenXmlCompositeElement? targetContainer = firstTargetPartEntry?.Container ?? GetRedlineContainerByPartKey(targetDocument, sourceEntry.PartKey);
-            if (targetContainer != null) {
+            OfficeXmlNode targetContainer = firstTargetPartEntry?.Container ?? GetRedlineContainerByPartKey(targetDocument, sourceEntry.PartKey);
+            if (!targetContainer.IsNone) {
                 AppendRedlineParagraph(targetContainer, paragraph);
             }
         }
 
-        private static void AppendRedlineParagraph(OpenXmlCompositeElement container, Paragraph paragraph) {
-            if (container is Body body) {
-                SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
-                if (sectionProperties != null) {
-                    body.InsertBefore(paragraph, sectionProperties);
+        private static OfficeXmlNode CreateDeletedParagraph(OfficeXmlNode context, string deletedText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode paragraph = context.CreateElement(W, "p");
+            paragraph.Append(CreateDeletedRun(paragraph, deletedText, options));
+            return paragraph;
+        }
+
+        private static void AppendRedlineParagraph(OfficeXmlNode container, OfficeXmlNode paragraph) {
+            if (container.Is(W, "body")) {
+                OfficeXmlNode sectionProperties = container.Children(W, "sectPr").Last();
+                if (!sectionProperties.IsNone) {
+                    container.InsertBefore(paragraph, sectionProperties);
                     return;
                 }
             }
@@ -380,7 +393,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineParagraphEntry {
-            internal RedlineParagraphEntry(string partKey, OpenXmlCompositeElement container, Paragraph paragraph, int localIndex) {
+            internal RedlineParagraphEntry(string partKey, OfficeXmlNode container, OfficeXmlNode paragraph, int localIndex) {
                 PartKey = partKey;
                 Container = container;
                 Paragraph = paragraph;
@@ -389,9 +402,9 @@ namespace OfficeIMO.Word {
 
             internal string PartKey { get; }
 
-            internal OpenXmlCompositeElement Container { get; }
+            internal OfficeXmlNode Container { get; }
 
-            internal Paragraph Paragraph { get; }
+            internal OfficeXmlNode Paragraph { get; }
 
             internal int LocalIndex { get; }
         }

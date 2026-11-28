@@ -26,6 +26,14 @@ namespace OfficeIMO.PowerPoint {
             PackageNode = node;
         }
 
+        // A shape of a layout's or master's package tree; it binds to the same element when the SDK opens.
+        internal PowerPointShape(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) {
+            PackagePart = part;
+            PackageTree = tree;
+            PackageNode = node;
+            part.Document?.RegisterPackageBinding(this);
+        }
+
         internal OpenXmlElement Element => _element ?? BindSdkElement();
 
         /// <summary>Binds a package-backed shape to its SDK element now, while the slide the SDK opened is unchanged.</summary>
@@ -40,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointSlide? OwnerSlide { get; private set; }
 
         internal OpenXmlPart? RelationshipOwnerPart {
-            get => _relationshipOwnerPart ?? (PackageTree != null ? OwnerSlide?.SlidePart : null);
+            get => _relationshipOwnerPart ?? (PackageTree == null ? null : !PackagePart.IsNone ? PackagePartForSdk() : OwnerSlide?.SlidePart);
             private set => _relationshipOwnerPart = value;
         }
 
@@ -52,43 +60,23 @@ namespace OfficeIMO.PowerPoint {
         internal bool IsPackageBacked => _element == null;
 
         private OpenXmlElement BindSdkElement() {
-            OpenXmlElement element = PowerPointSlide.BindPackageElement(OwnerSlide!, PackageTree!, PackageNode);
+            OpenXmlElement element = !PackagePart.IsNone
+                ? (OpenXmlElement)PowerPointSlide.BindPackageNode(PackagePart, PackageTree!, PackageNode)
+                : PowerPointSlide.BindPackageElement(OwnerSlide!, PackageTree!, PackageNode);
             _element = element;
             return element;
+        }
+
+        // The SDK part of a layout or master shape held in the package, opening the SDK when it is not open.
+        private OpenXmlPart? PackagePartForSdk() {
+            if (PackagePart.Current.SdkPart == null && PackagePart.Document is { } document) _ = document.OpenXmlDocument;
+            return PackagePart.Current.SdkPart as OpenXmlPart;
         }
 
         internal PowerPointShape AttachTo(PowerPointSlide slide, OpenXmlPartContainer? ownerPart = null) {
             OwnerSlide = slide;
             RelationshipOwnerPart = ownerPart as OpenXmlPart ?? RelationshipOwnerPart ?? slide.SlidePart;
             return this;
-        }
-
-        internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
-            bool found = TryGetBoundsPoints(out left, out top, out width, out height);
-            if (found && width > 0D && height > 0D) return true;
-            if (OwnerSlide != null && GetPlaceholderShape() is { } placeholder) {
-                PowerPointLayoutBox? bounds = OwnerSlide.GetExportPlaceholderBounds(placeholder);
-                if (bounds.HasValue) {
-                    left = bounds.Value.Left.ToPoints();
-                    top = bounds.Value.Top.ToPoints();
-                    width = bounds.Value.Width.ToPoints();
-                    height = bounds.Value.Height.ToPoints();
-                    return width > 0D && height > 0D;
-                }
-            }
-            return found;
-        }
-
-        internal bool HasPlaceholderShape => GetPlaceholderShape() != null;
-
-        private PlaceholderShape? GetPlaceholderShape() {
-            return Element switch {
-                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                ConnectionShape c => c.NonVisualConnectionShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                Picture p => p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                _ => null
-            };
         }
 
         private static bool IsDrawingElement(OpenXmlElement element) =>

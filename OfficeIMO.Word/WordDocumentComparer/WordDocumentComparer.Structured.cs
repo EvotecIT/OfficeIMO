@@ -1,11 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Wordprocessing;
-using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using OfficeIMO.Diff;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -77,42 +71,44 @@ namespace OfficeIMO.Word {
         }
 
         private static WordComparisonResult CompareStructureCore(
-            WordDocument source,
-            WordDocument target,
+            WordDocument sourceDocument,
+            WordDocument targetDocument,
             string sourceLabel,
             string targetLabel,
             WordComparisonOptions? options) {
             options ??= WordComparisonOptions.Default;
 
+            ComparedDocument source = ComparedDocument.Open(sourceDocument, options);
+            ComparedDocument target = ComparedDocument.Open(targetDocument, options);
             WordComparisonResult result = new(sourceLabel, targetLabel);
             var numberingStyleCatalogs = new ParagraphNumberingStyleCatalogCache();
             AnalyzeKnownComparisonLimitations(
-                source,
-                target,
+                source.Package,
+                target.Package,
                 result,
                 options,
                 new ComparisonWorkBudget(MaxComparisonDisclosureWorkUnits),
                 numberingStyleCatalogs);
             var comparisonWorkBudget = new ComparisonWorkBudget(MaxComparisonTextWorkUnits);
-            AnalyzeParagraphs(source, target, result, options, comparisonWorkBudget);
+            AnalyzeParagraphs(source.Package, target.Package, result, options, comparisonWorkBudget);
             if (options.CompareFields) {
                 AnalyzeFields(source, target, result, options);
             }
 
             if (options.CompareContentControls) {
-                AnalyzeContentControls(source, target, result, options);
+                AnalyzeContentControls(source.Package, target.Package, result, options);
             }
 
             if (options.CompareBookmarks) {
-                AnalyzeBookmarks(source, target, result, options);
+                AnalyzeBookmarks(source.Package, target.Package, result, options);
             }
 
             if (options.CompareHyperlinks) {
-                AnalyzeHyperlinks(source, target, result, options);
+                AnalyzeHyperlinks(source.Package, target.Package, result, options);
             }
 
             if (options.CompareLists) {
-                AnalyzeLists(source, target, result, options, numberingStyleCatalogs);
+                AnalyzeLists(source.Package, target.Package, result, options, numberingStyleCatalogs);
             }
 
             if (options.CompareComments) {
@@ -123,22 +119,79 @@ namespace OfficeIMO.Word {
                 AnalyzeRevisions(source, target, result, options);
             }
 
-            AnalyzeTables(source, target, result, options, comparisonWorkBudget);
+            AnalyzeTables(source.Package, target.Package, result, options, comparisonWorkBudget);
             if (options.CompareImages) {
-                AnalyzeImages(source, target, result);
+                AnalyzeImages(source.Package, target.Package, result);
             }
 
             if (options.CompareShapes) {
-                AnalyzeShapes(source, target, result, options);
+                AnalyzeShapes(source.Package, target.Package, result, options);
             }
 
             if (options.CompareBlockOrder) {
-                AnalyzeBlockOrder(source, target, result, options);
+                AnalyzeBlockOrder(source.Package, target.Package, result, options);
             }
 
             ApplyScopeFilters(result, options);
             result.SortFindingsByDocumentOrder();
             return result;
+        }
+
+        /// <summary>
+        /// A document being compared and its package as the comparer reads it. A document that works without the SDK
+        /// keeps doing so unless it holds fields or review markup, which the engine's field and review inventories read
+        /// through the SDK; such a document opens it before any part is read, so every element read comes from one layer.
+        /// </summary>
+        private sealed class ComparedDocument {
+            private ComparedDocument(WordDocument document, WordPackageView package, bool inspectsFields, bool inspectsReview) {
+                Document = document;
+                Package = package;
+                InspectsFields = inspectsFields;
+                InspectsReview = inspectsReview;
+            }
+
+            internal WordDocument Document { get; }
+
+            internal WordPackageView Package { get; }
+
+            /// <summary>Whether the document may hold fields; one that can't has none to inspect.</summary>
+            internal bool InspectsFields { get; }
+
+            /// <summary>Whether the document may hold comments or tracked revisions; one that can't has none to inspect.</summary>
+            internal bool InspectsReview { get; }
+
+            internal static ComparedDocument Open(WordDocument document, WordComparisonOptions options) {
+                bool inspectsFields = true;
+                bool inspectsReview = true;
+                if (document.IsSdkDeferred) {
+                    WordPackageView owned = WordPackageView.For(document);
+                    inspectsFields = options.CompareFields && HasFieldMarkup(owned);
+                    inspectsReview = (options.CompareComments || options.CompareRevisions) && HasReviewMarkup(owned);
+                    if (inspectsFields || inspectsReview) {
+                        document.OpenSdkPackage(inspectsFields ? "Document comparison: fields" : "Document comparison: review markup");
+                    }
+                }
+
+                return new ComparedDocument(document, WordPackageView.For(document), inspectsFields, inspectsReview);
+            }
+
+            private static bool HasFieldMarkup(WordPackageView package) =>
+                package.Main is { } mainPart && WordFieldInventory.EnumerateFieldRoots(mainPart).Any(root =>
+                    Descendants(root.Root).Any(element => element.NamespaceId == W &&
+                        element.LocalName is "fldSimple" or "fldChar" or "instrText" or "delInstrText"));
+
+            private static bool HasReviewMarkup(WordPackageView package) {
+                if (package.Main is not { } mainPart) return false;
+                if (mainPart.FirstPart(WordPackageView.CommentsRelationshipType) != null) return true;
+                return WordFieldInventory.EnumerateFieldRoots(mainPart).Any(root =>
+                    // The review inventory reads revision markup by local name, in any namespace.
+                    Descendants(root.Root).Any(element => IsReviewMarkupName(element.LocalName)));
+            }
+
+            private static bool IsReviewMarkupName(string localName) =>
+                localName is "ins" or "del" or "moveFrom" or "moveTo" or "cellIns" or "cellDel" or "cellMerge"
+                    or "moveFromRangeStart" or "moveToRangeStart" or "commentRangeStart" or "commentReference"
+                || localName.EndsWith("Change", StringComparison.Ordinal);
         }
 
         private static void ApplyScopeFilters(WordComparisonResult result, WordComparisonOptions options) {
@@ -154,8 +207,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void AnalyzeTables(
-            WordDocument source,
-            WordDocument target,
+            WordPackageView source,
+            WordPackageView target,
             WordComparisonResult result,
             WordComparisonOptions options,
             ComparisonWorkBudget comparisonWorkBudget) {
@@ -268,8 +321,8 @@ namespace OfficeIMO.Word {
             WordComparisonResult result,
             WordComparisonOptions options,
             ComparisonWorkBudget comparisonWorkBudget) {
-            List<WordTableRow> sourceRows = source.Table.Rows.ToList();
-            List<WordTableRow> targetRows = target.Table.Rows.ToList();
+            List<OfficeXmlNode> sourceRows = TableRows(source.Table);
+            List<OfficeXmlNode> targetRows = TableRows(target.Table);
             List<string> sourceRowComparisonTexts = sourceRows
                 .Select(row => NormalizeComparisonText(GetRowText(row), options))
                 .ToList();
@@ -294,12 +347,12 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddTableRowRangeFindings(
-            IReadOnlyList<WordTableRow> sourceRows,
-            IReadOnlyList<WordTableRow> targetRows,
+            IReadOnlyList<OfficeXmlNode> sourceRows,
+            IReadOnlyList<OfficeXmlNode> targetRows,
             IReadOnlyList<string> sourceRowComparisonTexts,
             IReadOnlyList<string> targetRowComparisonTexts,
-            OpenXmlPart? sourcePart,
-            OpenXmlPart? targetPart,
+            WordPartView? sourcePart,
+            WordPartView? targetPart,
             int tableIndex,
             int tableDocumentOrder,
             int sourceStart,
@@ -347,7 +400,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (sourceRows[sourceIndex].Cells.Count != targetRows[targetIndex].Cells.Count &&
+                if (RowCells(sourceRows[sourceIndex]).Count != RowCells(targetRows[targetIndex]).Count &&
                     string.Equals(sourceRowComparisonTexts[sourceIndex], targetRowComparisonTexts[targetIndex], StringComparison.Ordinal)) {
                     AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
                     AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
@@ -373,9 +426,9 @@ namespace OfficeIMO.Word {
         }
 
         private static int FindBetterTargetRowAlignmentIndex(
-            WordTableRow sourceRow,
+            OfficeXmlNode sourceRow,
             string sourceComparisonText,
-            IReadOnlyList<WordTableRow> targetRows,
+            IReadOnlyList<OfficeXmlNode> targetRows,
             IReadOnlyList<string> targetComparisonTexts,
             int targetStart,
             int targetEnd,
@@ -400,11 +453,11 @@ namespace OfficeIMO.Word {
         }
 
         private static int FindBetterSourceRowAlignmentIndex(
-            IReadOnlyList<WordTableRow> sourceRows,
+            IReadOnlyList<OfficeXmlNode> sourceRows,
             IReadOnlyList<string> sourceComparisonTexts,
             int sourceStart,
             int sourceEnd,
-            WordTableRow targetRow,
+            OfficeXmlNode targetRow,
             string targetComparisonText,
             ComparisonWorkBudget comparisonWorkBudget) {
             double currentSimilarity = GetRowSimilarity(sourceRows[sourceStart], sourceComparisonTexts[sourceStart], targetRow, targetComparisonText, comparisonWorkBudget);
@@ -426,7 +479,7 @@ namespace OfficeIMO.Word {
             return bestSimilarity > currentSimilarity ? bestIndex : sourceStart;
         }
 
-        private static void AddInsertedTableRowFinding(IReadOnlyList<WordTableRow> targetRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
+        private static void AddInsertedTableRowFinding(IReadOnlyList<OfficeXmlNode> targetRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
             result.Add(new WordComparisonFinding(
                 WordComparisonScope.TableRow,
                 WordComparisonChangeKind.Inserted,
@@ -436,10 +489,10 @@ namespace OfficeIMO.Word {
                 null,
                 GetRowText(targetRows[rowIndex]),
                 "Table row inserted."),
-                GetTableChildDocumentOrder(tableDocumentOrder, targetRows[rowIndex]._tableRow));
+                GetTableChildDocumentOrder(tableDocumentOrder, targetRows[rowIndex]));
         }
 
-        private static void AddDeletedTableRowFinding(IReadOnlyList<WordTableRow> sourceRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
+        private static void AddDeletedTableRowFinding(IReadOnlyList<OfficeXmlNode> sourceRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
             result.Add(new WordComparisonFinding(
                 WordComparisonScope.TableRow,
                 WordComparisonChangeKind.Deleted,
@@ -449,14 +502,14 @@ namespace OfficeIMO.Word {
                 GetRowText(sourceRows[rowIndex]),
                 null,
                 "Table row deleted."),
-                GetTableChildDocumentOrder(tableDocumentOrder, sourceRows[rowIndex]._tableRow));
+                GetTableChildDocumentOrder(tableDocumentOrder, sourceRows[rowIndex]));
         }
 
         private static void AnalyzeTableRow(
-            WordTableRow source,
-            WordTableRow target,
-            OpenXmlPart? sourcePart,
-            OpenXmlPart? targetPart,
+            OfficeXmlNode source,
+            OfficeXmlNode target,
+            WordPartView? sourcePart,
+            WordPartView? targetPart,
             int tableIndex,
             int tableDocumentOrder,
             int sourceRowIndex,
@@ -464,8 +517,8 @@ namespace OfficeIMO.Word {
             WordComparisonResult result,
             WordComparisonOptions options,
             ComparisonWorkBudget comparisonWorkBudget) {
-            List<WordTableCell> sourceCells = source.Cells.ToList();
-            List<WordTableCell> targetCells = target.Cells.ToList();
+            List<OfficeXmlNode> sourceCells = RowCells(source);
+            List<OfficeXmlNode> targetCells = RowCells(target);
             List<string> sourceCellComparisonTexts = sourceCells
                 .Select(cell => NormalizeComparisonText(GetCellText(cell), options))
                 .ToList();
@@ -490,12 +543,12 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddTableCellRangeFindings(
-            IReadOnlyList<WordTableCell> sourceCells,
-            IReadOnlyList<WordTableCell> targetCells,
+            IReadOnlyList<OfficeXmlNode> sourceCells,
+            IReadOnlyList<OfficeXmlNode> targetCells,
             IReadOnlyList<string> sourceCellComparisonTexts,
             IReadOnlyList<string> targetCellComparisonTexts,
-            OpenXmlPart? sourcePart,
-            OpenXmlPart? targetPart,
+            WordPartView? sourcePart,
+            WordPartView? targetPart,
             int tableIndex,
             int tableDocumentOrder,
             int sourceRowIndex,
@@ -547,7 +600,7 @@ namespace OfficeIMO.Word {
                         sourceText,
                         targetText,
                         AreComparisonTextEqual(sourceText, targetText, options) ? "Table cell structure changed." : "Table cell text changed."),
-                        GetTableChildDocumentOrder(tableDocumentOrder, targetCells[targetIndex]._tableCell));
+                        GetTableChildDocumentOrder(tableDocumentOrder, targetCells[targetIndex]));
                 }
 
                 sourceIndex++;
@@ -565,7 +618,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddInsertedTableCellFinding(IReadOnlyList<WordTableCell> targetCells, int tableIndex, int tableDocumentOrder, int targetRowIndex, int cellIndex, WordComparisonResult result) {
+        private static void AddInsertedTableCellFinding(IReadOnlyList<OfficeXmlNode> targetCells, int tableIndex, int tableDocumentOrder, int targetRowIndex, int cellIndex, WordComparisonResult result) {
             result.Add(new WordComparisonFinding(
                 WordComparisonScope.TableCell,
                 WordComparisonChangeKind.Inserted,
@@ -575,10 +628,10 @@ namespace OfficeIMO.Word {
                 null,
                 GetCellText(targetCells[cellIndex]),
                 "Table cell inserted."),
-                GetTableChildDocumentOrder(tableDocumentOrder, targetCells[cellIndex]._tableCell));
+                GetTableChildDocumentOrder(tableDocumentOrder, targetCells[cellIndex]));
         }
 
-        private static void AddDeletedTableCellFinding(IReadOnlyList<WordTableCell> sourceCells, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int cellIndex, WordComparisonResult result) {
+        private static void AddDeletedTableCellFinding(IReadOnlyList<OfficeXmlNode> sourceCells, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int cellIndex, WordComparisonResult result) {
             result.Add(new WordComparisonFinding(
                 WordComparisonScope.TableCell,
                 WordComparisonChangeKind.Deleted,
@@ -588,7 +641,7 @@ namespace OfficeIMO.Word {
                 GetCellText(sourceCells[cellIndex]),
                 null,
                 "Table cell deleted."),
-                GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
+                GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]));
         }
 
         // Myers' linear-space diff from OfficeIMO.Core keeps the alignment exact for large documents; the greedy
@@ -682,150 +735,169 @@ namespace OfficeIMO.Word {
             return matches;
         }
 
-        private static List<TableSnapshot> GetTableSnapshots(WordDocument document, WordComparisonOptions options) {
+        private static List<TableSnapshot> GetTableSnapshots(WordPackageView document, WordComparisonOptions options) {
             var snapshots = new List<TableSnapshot>();
-            MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddTableSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase, options);
+            WordPartView? mainPart = document.Main;
+            AddTableSnapshots(snapshots, mainPart, BodyOf(mainPart), BodyPartKey, BodyPartOrderBase, options);
 
             if (mainPart != null) {
                 int headerIndex = 0;
-                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                    AddTableSnapshots(snapshots, document, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
+                foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddTableSnapshots(snapshots, headerPartKey.Key, HeaderRoot(headerPartKey.Key), headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
-                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                    AddTableSnapshots(snapshots, document, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
+                foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddTableSnapshots(snapshots, footerPartKey.Key, FooterRoot(footerPartKey.Key), footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
                     footerIndex++;
                 }
 
-                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
-                    AddTableSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
+                    AddTableSnapshots(snapshots, FootnotesPart(mainPart), footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
-                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
-                    AddTableSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
+                    AddTableSnapshots(snapshots, EndnotesPart(mainPart), endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordDocument document, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase, WordComparisonOptions options) {
+        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordPartView? part, OfficeXmlNode container, string partKey, int orderBase, WordComparisonOptions options) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not Table table) {
+                if (!ordered.Element.Is(W, "tbl")) {
                     continue;
                 }
 
-                var wordTable = new WordTable(document, table);
-                string text = GetTableText(wordTable);
-                string matchText = GetTableMatchText(wordTable, part, options);
-                snapshots.Add(new TableSnapshot(wordTable, part, text, NormalizeComparisonText(text, options), matchText, GetTableMatchKey(partKey, wordTable, part, options), partKey, ordered.DocumentOrder));
+                OfficeXmlNode table = ordered.Element;
+                string text = GetTableText(table);
+                string matchText = GetTableMatchText(table, part, options);
+                snapshots.Add(new TableSnapshot(table, part, text, NormalizeComparisonText(text, options), matchText, GetTableMatchKey(partKey, table, part, options), partKey, ordered.DocumentOrder));
             }
         }
 
-        private static string GetTableText(WordTable table) {
-            return string.Join(TableRowSeparator, table.Rows.Select(GetRowText).ToArray());
+        private const int MaximumTableContainerDepth = 128;
+
+        /// <summary>The logical rows of a table, through its content-control and custom-XML row containers.</summary>
+        private static List<OfficeXmlNode> TableRows(OfficeXmlNode table) {
+            var rows = new List<OfficeXmlNode>();
+            CollectTableContent(table, "tr", rows, 0);
+            return rows;
         }
 
-        private static string GetRowText(WordTableRow row) {
-            return string.Join(" | ", row.Cells.Select(GetCellText).ToArray());
+        /// <summary>The logical cells of a row, through its content-control and custom-XML cell containers.</summary>
+        private static List<OfficeXmlNode> RowCells(OfficeXmlNode row) {
+            var cells = new List<OfficeXmlNode>();
+            CollectTableContent(row, "tc", cells, 0);
+            return cells;
         }
 
-        private static string GetTableMatchText(WordTable table, OpenXmlPart? part, WordComparisonOptions options) {
-            return string.Join(TableRowSeparator, table.Rows.Select(row => GetRowMatchText(row, part, options)).ToArray());
+        private static void CollectTableContent(OfficeXmlNode parent, string itemName, List<OfficeXmlNode> items, int depth) {
+            for (OfficeXmlNode child = parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (child.Is(W, itemName)) {
+                    // A cell is a boundary: its nested tables belong to that cell.
+                    items.Add(child);
+                    continue;
+                }
+
+                OfficeXmlNode content = child.Is(W, "sdt") ? child.Child(W, "sdtContent") : child.Is(W, "customXml") ? child : default;
+                if (content.IsNone) {
+                    continue;
+                }
+
+                if (depth >= MaximumTableContainerDepth) {
+                    throw new InvalidDataException($"Table row or cell containers exceed the supported limit of {MaximumTableContainerDepth} levels.");
+                }
+
+                CollectTableContent(content, itemName, items, depth + 1);
+            }
         }
 
-        private static string GetRowMatchText(WordTableRow row, OpenXmlPart? part, WordComparisonOptions options) {
-            return string.Join(" | ", row.Cells.Select(cell => GetCellMatchText(cell, part, options)).ToArray());
+        private static string GetTableText(OfficeXmlNode table) {
+            return string.Join(TableRowSeparator, TableRows(table).Select(GetRowText).ToArray());
         }
 
-        private static string GetTableMatchKey(string partKey, WordTable table, OpenXmlPart? part, WordComparisonOptions options) {
-            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + string.Join(TableRowSeparator, table.Rows.Select(row => GetRowMatchKey(row, part, options)).ToArray());
+        private static string GetRowText(OfficeXmlNode row) {
+            return string.Join(" | ", RowCells(row).Select(GetCellText).ToArray());
         }
 
-        private static string GetTableShape(WordTable table) {
-            return string.Join(";", table.Rows.Select(GetRowShape).ToArray());
+        private static string GetTableMatchText(OfficeXmlNode table, WordPartView? part, WordComparisonOptions options) {
+            return string.Join(TableRowSeparator, TableRows(table).Select(row => GetRowMatchText(row, part, options)).ToArray());
         }
 
-        private static string GetRowMatchKey(WordTableRow row, OpenXmlPart? part, WordComparisonOptions options) {
-            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellMatchText(cell, part, options))).ToArray());
+        private static string GetRowMatchText(OfficeXmlNode row, WordPartView? part, WordComparisonOptions options) {
+            return string.Join(" | ", RowCells(row).Select(cell => GetCellMatchText(cell, part, options)).ToArray());
         }
 
-        private static string GetRowShape(WordTableRow row) {
-            return row.Cells.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
-                   string.Join(",", row.Cells.Select(GetCellShape).ToArray());
+        private static string GetTableMatchKey(string partKey, OfficeXmlNode table, WordPartView? part, WordComparisonOptions options) {
+            List<OfficeXmlNode> rows = TableRows(table);
+            return partKey + TableRowSeparator + string.Join(";", rows.Select(GetRowShape).ToArray()) + TableRowSeparator + string.Join(TableRowSeparator, rows.Select(row => GetRowMatchKey(row, part, options)).ToArray());
         }
 
-        private static string GetCellShape(WordTableCell cell) {
-            TableCellProperties? properties = cell._tableCell.GetFirstChild<TableCellProperties>();
-            if (properties == null) {
+        private static string GetRowMatchKey(OfficeXmlNode row, WordPartView? part, WordComparisonOptions options) {
+            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, RowCells(row).Select(cell => EncodeMatchText(GetCellMatchText(cell, part, options))).ToArray());
+        }
+
+        private static string GetRowShape(OfficeXmlNode row) {
+            List<OfficeXmlNode> cells = RowCells(row);
+            return cells.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                   string.Join(",", cells.Select(GetCellShape).ToArray());
+        }
+
+        private static string GetCellShape(OfficeXmlNode cell) {
+            OfficeXmlNode properties = cell.Child(W, "tcPr");
+            if (properties.IsNone) {
                 return string.Empty;
             }
 
-            string gridSpan = properties.GridSpan?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            string horizontalMerge = GetMergeShapeValue(properties.HorizontalMerge);
-            string verticalMerge = GetMergeShapeValue(properties.VerticalMerge);
+            string gridSpan = Int32Text(WVal(properties.Child(W, "gridSpan"))) ?? string.Empty;
+            string horizontalMerge = GetMergeShapeValue(properties.Child(W, "hMerge"));
+            string verticalMerge = GetMergeShapeValue(properties.Child(W, "vMerge"));
             return "span=" + gridSpan + ";h=" + horizontalMerge + ";v=" + verticalMerge;
         }
 
-        private static string GetMergeShapeValue(OpenXmlLeafElement? merge) {
-            if (merge == null) {
+        /// <summary>
+        /// The merge shape as the SDK path wrote it: "continue" without a value, and for a value the SDK enumeration's
+        /// text, which named the type rather than the value.
+        /// </summary>
+        private static string GetMergeShapeValue(OfficeXmlNode merge) {
+            if (merge.IsNone) {
                 return string.Empty;
             }
 
-            if (merge is HorizontalMerge horizontalMerge) {
-                return horizontalMerge.Val?.Value.ToString() ?? "continue";
-            }
-
-            if (merge is VerticalMerge verticalMerge) {
-                return verticalMerge.Val?.Value.ToString() ?? "continue";
-            }
-
-            return string.Empty;
+            return EnumToken(WVal(merge), "restart", "continue") == null ? "continue" : "MergedCellValues { }";
         }
 
-        private static string GetCellText(WordTableCell cell) {
-            return string.Join(
-                CellParagraphSeparator,
-                cell._tableCell.Descendants<Paragraph>()
-                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
-                    .Select(GetParagraphText)
-                    .ToArray());
+        private static IEnumerable<OfficeXmlNode> CellParagraphs(OfficeXmlNode cell) =>
+            DescendantsW(cell, "p").Where(paragraph => AncestorW(paragraph, "tc") == cell);
+
+        private static string GetCellText(OfficeXmlNode cell) {
+            return string.Join(CellParagraphSeparator, CellParagraphs(cell).Select(GetParagraphText).ToArray());
         }
 
-        private static string GetCellMatchText(WordTableCell cell) {
+        private static string GetCellMatchText(OfficeXmlNode cell) {
             return GetCellMatchText(cell, null);
         }
 
-        private static string GetCellMatchText(WordTableCell cell, OpenXmlPart? part) {
-            return string.Join(
-                CellParagraphSeparator,
-                cell._tableCell.Descendants<Paragraph>()
-                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
-                    .Select(paragraph => GetParagraphMatchText(paragraph, part))
-                    .ToArray());
+        private static string GetCellMatchText(OfficeXmlNode cell, WordPartView? part) {
+            return string.Join(CellParagraphSeparator, CellParagraphs(cell).Select(paragraph => GetParagraphMatchText(paragraph, part)).ToArray());
         }
 
-        private static string GetCellMatchText(WordTableCell cell, OpenXmlPart? part, WordComparisonOptions options) {
-            return string.Join(
-                CellParagraphSeparator,
-                cell._tableCell.Descendants<Paragraph>()
-                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
-                    .Select(paragraph => GetParagraphMatchText(paragraph, part, options))
-                    .ToArray());
+        private static string GetCellMatchText(OfficeXmlNode cell, WordPartView? part, WordComparisonOptions options) {
+            return string.Join(CellParagraphSeparator, CellParagraphs(cell).Select(paragraph => GetParagraphMatchText(paragraph, part, options)).ToArray());
         }
 
-        private static string GetCellMatchKey(WordTableCell cell, OpenXmlPart? part) {
+        private static string GetCellMatchKey(OfficeXmlNode cell, WordPartView? part) {
             return GetCellShape(cell) + CellParagraphSeparator + GetCellMatchText(cell, part);
         }
 
-        private static string GetCellMatchKey(WordTableCell cell, OpenXmlPart? part, WordComparisonOptions options) {
+        private static string GetCellMatchKey(OfficeXmlNode cell, WordPartView? part, WordComparisonOptions options) {
             return GetCellShape(cell) + CellParagraphSeparator + GetCellMatchText(cell, part, options);
         }
 
@@ -834,12 +906,12 @@ namespace OfficeIMO.Word {
         }
 
         private static double GetRowSimilarity(
-            WordTableRow source,
+            OfficeXmlNode source,
             string sourceComparisonText,
-            WordTableRow target,
+            OfficeXmlNode target,
             string targetComparisonText,
             ComparisonWorkBudget comparisonWorkBudget) {
-            if (source.Cells.Count != target.Cells.Count) {
+            if (RowCells(source).Count != RowCells(target).Count) {
                 return 0;
             }
 
@@ -847,12 +919,12 @@ namespace OfficeIMO.Word {
         }
 
         private static double GetRowAlignmentPrefilterSimilarity(
-            WordTableRow source,
+            OfficeXmlNode source,
             string sourceComparisonText,
-            WordTableRow target,
+            OfficeXmlNode target,
             string targetComparisonText,
             ComparisonWorkBudget comparisonWorkBudget) {
-            if (source.Cells.Count != target.Cells.Count) {
+            if (RowCells(source).Count != RowCells(target).Count) {
                 return 0;
             }
 
@@ -871,63 +943,32 @@ namespace OfficeIMO.Word {
             return GetTextSimilarity(sourceComparisonText, targetComparisonText, comparisonWorkBudget);
         }
 
-        private static string GetStableElementPath(OpenXmlElement element) {
+        /// <summary>
+        /// A path of element names and ordinals among same-named siblings, as the SDK path built it from typed classes;
+        /// siblings share a parent, so their names tell the same classes apart.
+        /// </summary>
+        private static string GetStableElementPath(OfficeXmlNode element) => GetStableElementPathRelativeTo(element, default);
+
+        private static string GetStableElementPathRelativeTo(OfficeXmlNode element, OfficeXmlNode root) {
             var segments = new Stack<string>();
-            OpenXmlElement? current = element;
-            while (current != null && current.Parent != null) {
-                OpenXmlElement parent = current.Parent;
-                int ordinal = parent.Elements()
-                    .Where(item => item.GetType() == current.GetType())
-                    .TakeWhile(item => !ReferenceEquals(item, current))
-                    .Count();
-                segments.Push(current.GetType().Name + "[" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+            OfficeXmlNode current = element;
+            while (!current.IsNone && !current.Parent.IsNone && current != root) {
+                OfficeXmlNode parent = current.Parent;
+                string namespaceUri = current.NamespaceUri;
+                string localName = current.LocalName;
+                int ordinal = 0;
+                for (OfficeXmlNode sibling = parent.FirstChild; !sibling.IsNone && sibling != current; sibling = sibling.NextSibling) {
+                    if (string.Equals(sibling.LocalName, localName, StringComparison.Ordinal) &&
+                        string.Equals(sibling.NamespaceUri, namespaceUri, StringComparison.Ordinal)) {
+                        ordinal++;
+                    }
+                }
+
+                segments.Push("{" + namespaceUri + "}" + localName + "[" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
                 current = parent;
             }
 
             return string.Join("/", segments.ToArray());
-        }
-
-        private static IEnumerable<OrderedElement> EnumerateDescendantsWithOrder(OpenXmlElement? container, int orderBase) {
-            if (container == null) {
-                yield break;
-            }
-
-            int order = orderBase;
-            foreach (OpenXmlElement element in EnumerateComparableDescendants(container)) {
-                yield return new OrderedElement(element, order);
-                order++;
-            }
-        }
-
-        private static IEnumerable<OpenXmlElement> EnumerateComparableDescendants(OpenXmlElement container) {
-            foreach (OpenXmlElement child in GetComparableChildren(container)) {
-                yield return child;
-                foreach (OpenXmlElement descendant in EnumerateComparableDescendants(child)) {
-                    yield return descendant;
-                }
-            }
-        }
-
-        private static IEnumerable<OpenXmlElement> GetComparableChildren(OpenXmlElement element) {
-            if (element is AlternateContent alternateContent) {
-                foreach (OpenXmlElement child in GetActiveAlternateContentChildren(alternateContent)) {
-                    yield return child;
-                }
-
-                yield break;
-            }
-
-            foreach (OpenXmlElement child in element.ChildElements) {
-                yield return child;
-            }
-        }
-
-        private static IEnumerable<OpenXmlElement> GetActiveAlternateContentChildren(AlternateContent alternateContent) {
-            OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternateContent);
-            if (branch == null) yield break;
-            foreach (OpenXmlElement child in branch.ChildElements) {
-                yield return child;
-            }
         }
 
         private static string TableLocation(int tableIndex) {
@@ -942,15 +983,15 @@ namespace OfficeIMO.Word {
             return RowLocation(tableIndex, rowIndex) + "/cell[" + cellIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
         }
 
-        private static int GetTableChildDocumentOrder(int tableDocumentOrder, OpenXmlElement child) {
-            Table? table = child as Table ?? child.Ancestors<Table>().FirstOrDefault();
-            if (table == null) {
+        private static int GetTableChildDocumentOrder(int tableDocumentOrder, OfficeXmlNode child) {
+            OfficeXmlNode table = child.Is(W, "tbl") ? child : AncestorW(child, "tbl");
+            if (table.IsNone) {
                 return tableDocumentOrder;
             }
 
             int offset = 1;
-            foreach (OpenXmlElement descendant in table.Descendants()) {
-                if (ReferenceEquals(descendant, child)) {
+            foreach (OfficeXmlNode descendant in Descendants(table)) {
+                if (descendant == child) {
                     return tableDocumentOrder + offset;
                 }
 
@@ -961,12 +1002,12 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct OrderedElement {
-            internal OrderedElement(OpenXmlElement element, int documentOrder) {
+            internal OrderedElement(OfficeXmlNode element, int documentOrder) {
                 Element = element;
                 DocumentOrder = documentOrder;
             }
 
-            internal OpenXmlElement Element { get; }
+            internal OfficeXmlNode Element { get; }
 
             internal int DocumentOrder { get; }
         }
@@ -983,7 +1024,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableSnapshot {
-            internal TableSnapshot(WordTable table, OpenXmlPart? part, string text, string comparisonText, string matchText, string matchKey, string partKey, int documentOrder) {
+            internal TableSnapshot(OfficeXmlNode table, WordPartView? part, string text, string comparisonText, string matchText, string matchKey, string partKey, int documentOrder) {
                 Table = table;
                 Part = part;
                 Text = text;
@@ -994,9 +1035,9 @@ namespace OfficeIMO.Word {
                 DocumentOrder = documentOrder;
             }
 
-            internal WordTable Table { get; }
+            internal OfficeXmlNode Table { get; }
 
-            internal OpenXmlPart? Part { get; }
+            internal WordPartView? Part { get; }
 
             internal string Text { get; }
 

@@ -7,6 +7,7 @@ namespace OfficeIMO.PowerPoint.Benchmarks;
 /// The realistic flows on the saved 200-slide deck, once with the Open XML SDK package opened, as every load did before,
 /// and once without it: open it, add a slide with a text box, an image and a table, and save; open it, edit text, a table
 /// cell and the slide order, and save; restyle shapes, build out tables or write speaker notes on every slide, and save;
+/// read every layout and add shapes and a picture to the master and a layout, and save;
 /// open it, extract its text and close it. Setup checks that the flows without the
 /// SDK never open it and save the same slides as through it.
 /// </summary>
@@ -33,6 +34,8 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareParts: "ppt/slides/slide");
         if (!UncheckedFlows.Contains("Tables")) Check(Tables, compareParts: "ppt/slides/slide");
         if (!UncheckedFlows.Contains("Notes")) Check(Notes, compareParts: "ppt/notesSlides/");
+        if (!UncheckedFlows.Contains("Layouts")) Check(Layouts, compareParts: "ppt/slideMasters/slideMaster");
+        if (!UncheckedFlows.Contains("Themes")) Check(Themes, compareParts: "ppt/theme/theme");
         if (!UncheckedFlows.Contains("Extract")) CheckExtract();
     }
 
@@ -83,6 +86,22 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Benchmark]
     [BenchmarkCategory("Notes")]
     public byte[] NotesWithoutSdk() => Run(sdk: false, Notes);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Layouts")]
+    public byte[] LayoutsWithSdk() => Run(sdk: true, Layouts);
+
+    [Benchmark]
+    [BenchmarkCategory("Layouts")]
+    public byte[] LayoutsWithoutSdk() => Run(sdk: false, Layouts);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Themes")]
+    public byte[] ThemesWithSdk() => Run(sdk: true, Themes);
+
+    [Benchmark]
+    [BenchmarkCategory("Themes")]
+    public byte[] ThemesWithoutSdk() => Run(sdk: false, Themes);
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
@@ -185,6 +204,43 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         }
     }
 
+    // Lists the layouts and reads every layout's placeholders and every slide's layout, then adds a band and a notice to
+    // the master and a logo to a layout.
+    private void Layouts(PowerPointDocument presentation) {
+        int count = 0;
+        foreach (PowerPointSlideLayoutInfo info in presentation.GetSlideLayouts()) count += info.Name.Length;
+        foreach (PowerPointSlideMaster master in presentation.SlideMasters) {
+            foreach (PowerPointSlideLayout layout in master.Layouts) {
+                foreach (PowerPointTextBox placeholder in layout.Placeholders) count += placeholder.PlaceholderType.HasValue ? 1 : 0;
+            }
+        }
+        foreach (PowerPointSlide slide in presentation.Slides) count += slide.GetLayoutPlaceholders().Count + (slide.Layout?.Name.Length ?? 0);
+        if (count == 0) throw new InvalidOperationException("The deck has no layouts to read.");
+        PowerPointSlideMaster first = presentation.SlideMasters[0];
+        first.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(960), OfficeLength.Points(8), "Band");
+        first.AddTextBox("Confidential", OfficeLength.Points(20), OfficeLength.Points(510), OfficeLength.Points(200), OfficeLength.Points(20));
+        first.Layouts[first.Layouts.Count - 1].AddImage(new MemoryStream(_image, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png,
+            OfficeLength.Points(860), OfficeLength.Points(10), OfficeLength.Points(80), OfficeLength.Points(60));
+    }
+
+    // Reads the theme name, colours, fonts and table styles, then rebrands the colours, fonts and name of every master.
+    private void Themes(PowerPointDocument presentation) {
+        int count = presentation.ThemeName.Length + presentation.TableStyles.Count;
+        for (int index = 0; index < presentation.SlideMasters.Count; index++) {
+            count += presentation.GetThemeColors(index).Count;
+            PowerPointThemeFontSet fonts = presentation.GetThemeFonts(index);
+            count += (fonts.MajorLatin?.Length ?? 0) + (fonts.MinorLatin?.Length ?? 0);
+        }
+        if (count == 0) throw new InvalidOperationException("The deck has no theme to read.");
+        presentation.SetThemeColorsForAllMasters(new Dictionary<PowerPointThemeColor, string> {
+            [PowerPointThemeColor.Accent1] = "1F4E79",
+            [PowerPointThemeColor.Accent2] = "C55A11",
+            [PowerPointThemeColor.Hyperlink] = "0563C1"
+        });
+        presentation.SetThemeFontsForAllMasters(new PowerPointThemeFontSet("Segoe UI Semibold", "Segoe UI", null, null, null, null));
+        presentation.SetThemeNameForAllMasters("Brand");
+    }
+
     // With compareParts the markup of the parts under that prefix is compared, attribute order aside, for flows whose
     // edits the text doesn't show.
     private void Check(Action<PowerPointDocument> flow, string? compareParts = null) {
@@ -234,6 +290,8 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             ("Appearance", benchmark.AppearanceWithSdk, benchmark.AppearanceWithoutSdk),
             ("Tables", benchmark.TablesWithSdk, benchmark.TablesWithoutSdk),
             ("Notes", benchmark.NotesWithSdk, benchmark.NotesWithoutSdk),
+            ("Layouts", benchmark.LayoutsWithSdk, benchmark.LayoutsWithoutSdk),
+            ("Themes", benchmark.ThemesWithSdk, benchmark.ThemesWithoutSdk),
             ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
         };
         Console.WriteLine("Flow       | SDK median | without | faster | SDK alloc | without | less allocation");

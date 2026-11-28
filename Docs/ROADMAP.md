@@ -652,7 +652,7 @@ The [archive codecs and containers design](officeimo.archives-codecs-design.md) 
 - [ ] Train Zstandard dictionaries, read and write the Zstandard seekable format, and compress with multiple threads while keeping output independent of the thread count.
 - [ ] Extend `OfficeIMO.Archives.Benchmarks` with opt-in codec comparison lanes (OneArchive and the runtime codecs) that validate identical decoded output before timing and compare compressed size and speed together. Keep comparison packages out of `OfficeIMO.slnx` and timing tests under `Category=Performance`.
 
-bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantum have no written specification apart from source code or independent descriptions; they wait for a decision recorded in the design. RAR compression, split archives and installer execution remain out of scope; RAR stored entries are separate work. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
+bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantum wait for the specification decision recorded in the design. RAR encryption, RAR 4, compressed RAR 5 members, split archives beyond ordered RAR 5 volume sets, and installer execution remain deferred. Reassess further format expansion for an identified workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 
@@ -690,7 +690,7 @@ bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantu
 - [ ] Resolve external manifests on request. Follow `c2pa-manifest` references (HTML links, XMP `dcterms:provenance`, HTTP `Link` headers) in .NET and the CLI only behind an explicit option with host, size, redirect and time limits, and describe the fetched store with the same summary. The browser tool stays offline and keeps showing the reference without fetching it.
 - [ ] Keep and add Content Credentials when OfficeIMO changes a file. Today conversion and editing either keep a record untouched or strip it on request. Add an opt-in path that carries the source manifest forward as an ingredient and appends a new manifest (`c2pa.converted`, `c2pa.edited`, `c2pa.redacted`, with OfficeIMO as the software agent) signed with a caller-supplied certificate, starting with PDF and the image owners that already write carriers. Qualify the output with the reference SDK before any surface offers it.
 - [ ] Let users find and remove every AI label and provenance declaration in the formats OfficeIMO reads and writes, following the [AI label gap matrix](officeimo.provenance-support-matrix.md#ai-labels-and-generator-metadata). Each label is reported as a declaration with its location, never as detection; removal edits the container in place, never re-encodes pixels, keeps unrelated metadata and follows the existing signature policy. Wire each step through `OfficeDocument` hidden-data and `RemoveProvenance` APIs, the `officeimo provenance` and `officeimo hidden-data` commands, the MCP tools and PSWriteOffice. Invisible pixel or audio watermarks and visible stamps stay out of scope.
-  - [ ] AI generator image metadata in JPEG, PNG, WebP, GIF and TIFF: EXIF and TIFF `Software`/`ImageDescription`/`UserComment`, XMP `CreatorTool` and vendor fields, PNG `parameters`, `prompt` and `workflow` text chunks, comment segments and the TC260 `AIGC` label, including images embedded in Office, ODF, EPUB and HTML.
+  - [ ] AI generator image metadata in JPEG, PNG, WebP, GIF and TIFF: EXIF and TIFF `Software`/`ImageDescription`/`UserComment`, XMP `CreatorTool` and vendor fields, the same generation settings that PNG text chunks already report, comment segments and the TC260 `AIGC` label (confirm its carriers against the published standard first), including images embedded in Office, ODF, EPUB and HTML.
   - [ ] PDF: IPTC source type and generator fields in document and image XMP, `Producer`/`Creator`, image XObjects with their own metadata, and embedded files.
   - [ ] Archives and email: recursive cleanup of ZIP, 7z, TAR and CAB members and of email attachments and embedded messages, with depth and size limits and per-member owners.
   - [ ] RTF, XPS, iWork and legacy `.doc`/`.xls`/`.ppt`, each once its owner can write back the changed image or property.
@@ -698,6 +698,26 @@ bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantu
 - [ ] Add legacy encrypted-DOC import and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
+
+## Entity recognition
+
+The [Core entity recognition guide](officeimo.entities.md) covers field validation, text recognition and masking. The [design](officeimo.entities-design.md) describes the planned document and host integrations.
+
+- [ ] Add entity criteria to PDF redaction search and a `PdfRedactionRuleKind.Entity` workflow rule, and `-Entity` to `Get-OfficePdfRedactionPlan` and `Remove-OfficePdfContent`. Plans and evidence record scheme ids and confidence, never values.
+- [ ] Add `Test-OfficeEntity`, `Find-OfficeEntity`, `Protect-OfficeText` and `Get-OfficeEntityScheme` to PSWriteOffice, and the same validate, find and mask operations to the CLI and MCP server, with values left out of output unless requested.
+- [ ] Validate party VAT and tax registrations, FA(3) NIP values and BIC through the entity schemes in `OfficeIMO.Invoicing`. Keep identifiers outside the catalog as advisory findings.
+- [ ] Give `OfficeIMO.Email` an RFC 5321/5322/6531 address check and an IDNA-aware comparison key from the email scheme for contact consolidation.
+- [ ] Add a cross-format entity inspection report (kind, scheme, location, confidence) next to hidden-data and content-safety reports.
+- [ ] Add an optional Reader entity processor that records findings on each chunk and can mask chunk text before it leaves the process, and let `OfficeIMO.AI` require masked chunks for remote processing and validate identifier fields it extracts.
+- [ ] Profile, validate, normalize, format and mask identifier columns in CSV and Excel through the entity schemes, with invalid values reported, never silently changed.
+- [ ] Bring entity criteria to Word, Excel and PowerPoint redaction when those formats get reviewable redaction plans.
+- [ ] Ship `OfficeIMO.Entities.Data` with phone parsing, validation, formatting and recognition generated from pinned libphonenumber metadata, recorded in `Build/third-party-material.json`.
+- [ ] Add per-country postal address formatting to `OfficeIMO.Entities.Data` from Google address metadata, used by invoice PDFs and Word mail merge address blocks.
+- [ ] Add ISO 20275 company legal forms from the GLEIF ELF list to `OfficeIMO.Entities.Data` for company name recognition.
+- [ ] Add national identifier packs for further EU countries (German tax ID, French NIR, Spanish DNI/NIE, Italian codice fiscale, Dutch BSN and others), each with primary sources and context keywords.
+- [ ] Show entity findings, entity-driven redaction review and masking before AI in Studio.
+- [ ] Verify SWIFT IBAN Registry reuse terms and package notices before refreshing the existing BBAN structure table.
+- [ ] Add card brand detection only with a maintained, sourced issuer range table.
 
 ## Document-format depth
 

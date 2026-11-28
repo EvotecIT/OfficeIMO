@@ -266,6 +266,11 @@ namespace OfficeIMO.PowerPoint {
             return CreateShapeFromElement(element, SlidePart);
         }
 
+        private PowerPointShape? WrapSdkSlideShape(OfficeIMO.OpenXml.Internal.OfficeXmlNode element, OpenXml.PowerPointPartRef owner) =>
+            element.SdkElement is OpenXmlElement sdk && owner.Current.SdkPart is OpenXmlPartContainer part
+                ? CreateShapeFromElement(sdk, part)?.AttachTo(this, part)
+                : null;
+
         internal static PowerPointShape? CreateShapeFromElement(OpenXmlElement element, OpenXmlPartContainer ownerPart) {
             switch (element) {
                 case Shape s:

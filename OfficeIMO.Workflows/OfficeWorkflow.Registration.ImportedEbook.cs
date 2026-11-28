@@ -17,6 +17,7 @@ public static partial class OfficeWorkflow {
 
     private static IEnumerable<ImportedEbookRoute> CreateImportedEbookRoutes() {
         var routes = new List<ImportedEbookRoute>();
+        AddImportedEbookRoutes(routes, "cbr", ComicReader.Import, maximumWorkingHtmlBytes: 192 * 1024 * 1024);
         AddImportedEbookRoutes(routes, "cb7", ComicReader.Import, maximumWorkingHtmlBytes: 192 * 1024 * 1024);
         AddImportedEbookRoutes(routes, "cbz", ComicReader.Import, maximumWorkingHtmlBytes: 192 * 1024 * 1024);
         AddImportedEbookRoutes(routes, "fb2", Fb2Reader.Import, maximumWorkingHtmlBytes: 128 * 1024 * 1024,
