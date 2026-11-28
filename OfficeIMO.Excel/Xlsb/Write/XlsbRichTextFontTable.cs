@@ -28,7 +28,7 @@ internal sealed class XlsbRichTextFontTable {
     internal IReadOnlyList<Font> AddedFonts => _addedFonts;
 
     /// <summary>Returns the runs of a cell whose text has run formatting, or null for plain text.</summary>
-    internal XlsbTextRun[]? CreateRuns(Cell cell, uint styleIndex, string text) {
+    internal XlsbTextRun[]? CreateRuns(OfficeXmlNode cell, uint styleIndex, string text) {
         Run[] items = TextRuns.GetRuns(cell);
         if (!XlsbCellTextRuns.HasFormattedRuns(items)) return null;
         return CreateRuns(items, GetCellFont(styleIndex), text, "rich cell text");
