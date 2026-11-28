@@ -206,6 +206,20 @@ public sealed class ZstandardArchiveTests {
     };
 
     [Fact]
+    public void AnUnreadableSourceIsRejectedBeforeAnyInputIsAdmitted() {
+        var budget = new ArchiveOperationBudget();
+        var source = new WriteOnlyStream();
+        Assert.Throws<ArgumentException>(() =>
+            ZstandardArchive.Decompress(source, new MemoryStream(), new ArchiveReadOptions { OperationBudget = budget }));
+        Assert.Equal(0, budget.Usage.InputBytes);
+    }
+
+    private sealed class WriteOnlyStream : MemoryStream {
+        public WriteOnlyStream() : base(new byte[16]) { }
+        public override bool CanRead => false;
+    }
+
+    [Fact]
     public void TheSourceCannotAlsoBeTheDestination() {
         var stream = new MemoryStream();
         stream.Write(ReadFixture("text-level1.zst"), 0, ReadFixture("text-level1.zst").Length);

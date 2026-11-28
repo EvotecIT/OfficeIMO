@@ -86,6 +86,7 @@ public static class ZstandardArchive {
         ArchiveReadOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
+        if (!source.CanRead) throw new ArgumentException("The source must be readable.", nameof(source));
         if (ReferenceEquals(source, destination)) throw new ArgumentException("The source and destination must be different streams.", nameof(destination));
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();
         if (effective.MaxWindowBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");

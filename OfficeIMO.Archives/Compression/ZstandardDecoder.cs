@@ -326,6 +326,7 @@ internal sealed class ZstandardDecoder {
         if (_contentSize >= 0 && produced > _contentSize - _frameProduced)
             throw Corrupt(_blockOffset, $"no more than the declared {_contentSize} bytes of frame content");
         Charge(produced, 0);
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         _settings.Select?.Invoke(produced);
         if (produced > 0) {
             _destination.Write(_history, start, produced);
