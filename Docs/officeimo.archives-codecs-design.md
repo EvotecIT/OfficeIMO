@@ -16,8 +16,8 @@
 | --- | --- |
 | Containers read | ZIP (stored, Deflate, ZIP64, descriptors), 7z (Copy, LZMA, LZMA2, encoded headers, solid folders), CAB (Store, MSZIP, LZX), MSI (CFB database, embedded cabinets), TAR (ustar, pax, GNU, v7), .tar.gz, gzip |
 | Containers written | ZIP, TAR, .tar.gz, gzip, all byte-identical across platforms and targets |
-| Codecs | Deflate encoder (managed, deterministic), Deflate validation in `OfficeIMO.Core` with runtime inflate, LZMA and LZMA2 decoders (7z), LZX decoder (CAB, shared in Core), MSZIP, Zstandard decoder |
-| Checksums | CRC-32 (several private copies across Core, Email, OneNote and Png), Adler-32 inside zlib |
+| Codecs | Deflate encoder (managed, deterministic), Deflate validation in `OfficeIMO.Core` with runtime inflate, LZMA and LZMA2 decoders (7z), LZX decoder (CAB, shared in Core), MSZIP, Zstandard decoder, xz and lzip readers |
+| Checksums | CRC-32 (several private copies across Core, Email, OneNote and Png), Adler-32 inside zlib, CRC-64 and XXH64 internal to Archives |
 | Safety | Portable-path checks, staged atomic extraction, symlink/reparse refusal, per-member and aggregate byte limits, decode-work accounting, shared `ArchiveOperationBudget` across related containers |
 | Beyond the usual archive library | MSI payload extraction with File/Directory/Media resolution and alias proof; passive inventory that keeps raw names and ordinals; `PlanRead` cost plans before decoding; atomic grouped reads; verified copies through a private spool; `ArchiveResourceUsage` reports; nested-archive traversal in `OfficeIMO.Reader.Zip` |
 
@@ -33,9 +33,9 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | Zstandard | Decode, encode (levels 1–22), dictionaries, training, long-distance matching, multithreaded jobs, seekable format | Decode with dictionaries (`ZstandardArchive`) | Container integration, encoder, training, seekable format |
 | LZ4 | Block and frame, levels, dictionaries | No | Decode and encode |
 | Brotli | Decode and encode (qualities 0–11) | Runtime `BrotliStream` on .NET 8+ only (WOFF2, CSV) | Managed decode on every target, then encode |
-| LZMA, LZMA2 | Decode and encode | Decode (7z) | Encoder |
-| xz | CRC-32, CRC-64, SHA-256 checks; delta and branch filters; read and write | No | Read and write; delta filter; branch filters are a decision |
-| lzip | Read and write | No | Read and write |
+| LZMA, LZMA2 | Decode and encode | Decode (7z, xz, lzip), streaming through a sliding dictionary | Encoder |
+| xz | CRC-32, CRC-64, SHA-256 checks; delta and branch filters; read and write | Read with LZMA2, delta and all three checks (`XzArchive`) | Write; branch filters are a decision |
+| lzip | Read and write | Read (`LzipArchive`) | Write |
 | bzip2 | Read and write | No | Decision: informal specification only |
 | PPMd (variants H and I) | Read and write | No | Decision: no specification beyond source code |
 | LZX | Decode | Decode (CAB) | Done |
@@ -114,7 +114,7 @@ Each step is one PR with interop fixtures produced by the reference tools throug
 2. ZIP encrypted-member reading: traditional ZipCrypto (APPNOTE) and WinZip AES (AE-1 and AE-2), password supplied through options.
 3. TAR wrappers as each codec lands: `.tar.zst`, `.tar.xz`, `.tar.lz` now, `.tar.lz4` with step 6, `.tar.br` (by name or explicit format) with step 7, and `.tar.bz2` after the decision, read alongside `.tar.gz`, written once the encoder exists; content-sniffed single-stream detection in the extractor.
 4. `OfficeIMO.Reader.Zip` becomes `OfficeIMO.Reader.Archives` for 4.0: 7z, CAB and RAR stored entries read automatically like ZIP, TAR and gzip, MSI opt-in, nested archives of any supported kind through the same path and limits.
-5. xz and lzip readers over the existing LZMA/LZMA2 decoders: checks, delta filter, multi-stream and padding.
+5. xz and lzip readers over the existing LZMA/LZMA2 decoders: checks, delta filter, multi-stream and padding (`XzArchive`, `LzipArchive`).
 6. LZ4 frame and block decoder, then encoder.
 7. Managed Brotli decoder in Core on every target, taking WOFF2 and CSV off the .NET 8 requirement.
 8. Typed corruption in the existing readers and a shared checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64).

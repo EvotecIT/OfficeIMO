@@ -19,6 +19,9 @@ internal sealed class LzmaRangeDecoder {
 
     internal bool Finished => _remaining == 0 && _value == 0;
 
+    /// <summary>True when the coder is flushed, as it is after an end marker.</summary>
+    internal bool CodeIsZero => _value == 0;
+
     internal int Bit(ushort[] model, int index) {
         int weight = model[index];
         uint split = (_interval / ProbabilityScale) * (uint)weight;

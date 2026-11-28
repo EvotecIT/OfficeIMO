@@ -1,6 +1,6 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, stored RAR5, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It decompresses Zstandard streams in managed code. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, stored RAR5, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It decompresses Zstandard, xz and lzip streams in managed code. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
 
 ## Install
 
@@ -180,6 +180,22 @@ using (var target = new MemoryStream())
 ```
 
 `ZstandardArchive` decodes RFC 8878 frames in managed code on every target framework. It reads concatenated frames as one stream, passes over skippable frames, and verifies declared content sizes and XXH64 content checksums. Dictionaries written by `zstd --train` and raw-content dictionaries are supported; a frame that names a different dictionary ID is rejected. Declared windows are limited by `MaxWindowBytes` (64 MiB by default) and history memory grows only as output is produced. Output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`. Malformed input raises `ArchiveCorruptionException` with the byte offset and the structure expected there. Output is written block by block, so a failure can leave partial output in the destination.
+
+## Decompress xz and lzip
+
+```csharp
+using OfficeIMO.Archives;
+
+using (var source = File.OpenRead("logs.xz"))
+using (var target = File.Create("logs"))
+    XzArchive.Decompress(source, target);
+
+using (var source = File.OpenRead("logs.lz"))
+using (var target = File.Create("logs"))
+    LzipArchive.Decompress(source, target);
+```
+
+`XzArchive` reads concatenated xz streams with stream padding, blocks with LZMA2 and the delta filter, and verifies CRC-32, CRC-64 or SHA-256 block checks, declared block sizes, the index and the stream footer. Branch/call/jump filters raise `NotSupportedException`. `LzipArchive` reads concatenated lzip members and verifies each member's CRC-32, data size and member size; data after the last member is rejected. Both stream through a sliding dictionary, so memory follows the dictionary size rather than the output size. Dictionaries are limited by `MaxWindowBytes` and output by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`. Malformed input raises `ArchiveCorruptionException` with the byte offset.
 
 ## Read ZIP content in memory
 

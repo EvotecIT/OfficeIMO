@@ -1,0 +1,133 @@
+{
+  "producers": [
+    "xz (XZ Utils) 5.8.4",
+    "lzip 1.26"
+  ],
+  "sources": [
+    "https://tukaani.org/xz/",
+    "https://www.nongnu.org/lzip/"
+  ],
+  "verification": "xz -t or lzip -t applied to each fixture.",
+  "fixtures": [
+    {
+      "file": "text-preset0.xz",
+      "input": "inputs/text.txt",
+      "command": "xz -0 -c < inputs/text.txt",
+      "sha256": "63c384343c8f2d39ddcf7b594a7ad0df3d1dbca87f6286ab2a9b366b4910f399"
+    },
+    {
+      "file": "text-preset6-crc64.xz",
+      "input": "inputs/text.txt",
+      "command": "xz -6 -c < inputs/text.txt",
+      "sha256": "6aa9fdb936beed38f378efef531f2cd675a64c39ab426284cd1c52da8f885efb"
+    },
+    {
+      "file": "text-crc32.xz",
+      "input": "inputs/text.txt",
+      "command": "xz -6 --check=crc32 -c < inputs/text.txt",
+      "sha256": "d4961bedf7d197c381cfcd9377c757fa3c468f47cd03a7b25dc7f552c9af4889"
+    },
+    {
+      "file": "text-sha256.xz",
+      "input": "inputs/text.txt",
+      "command": "xz -6 --check=sha256 -c < inputs/text.txt",
+      "sha256": "c150e41dcff2f9ffa43bb64e4a65ca8924bf55774230b17f010df631a744521e"
+    },
+    {
+      "file": "text-nocheck.xz",
+      "input": "inputs/text.txt",
+      "command": "xz -6 --check=none -c < inputs/text.txt",
+      "sha256": "0bb9a7a1b605a69668ac91b8861c9a605d519e2fb5efb6392c30167b73a871e0"
+    },
+    {
+      "file": "mixed-preset9e.xz",
+      "input": "inputs/mixed.bin",
+      "command": "xz -9e -c < inputs/mixed.bin",
+      "sha256": "eede6434a603f13a6f3ea8458a515d50f4bd903ba08483f1adc6361288b1322b"
+    },
+    {
+      "file": "mixed-blocks.xz",
+      "input": "inputs/mixed.bin",
+      "command": "xz -6 --block-size=16KiB -c < inputs/mixed.bin",
+      "sha256": "3d119c2b3b65b5f826ccf20fbfe3398eed2cb36f04e71f3a2bba024e5c02d677"
+    },
+    {
+      "file": "mixed-threads.xz",
+      "input": "inputs/mixed.bin",
+      "command": "xz -6 -T2 --block-size=32KiB -c < inputs/mixed.bin",
+      "sha256": "360b3f123eabebff59d7087ec51262ea7d6bbe65a0370d3c0b9d28b2f2fdef97"
+    },
+    {
+      "file": "samples-delta.xz",
+      "input": "inputs/samples.bin",
+      "command": "xz --delta=dist=2 --lzma2=preset=6 -c < inputs/samples.bin",
+      "sha256": "a257b2f7f00da05b2d55ef4c3c69a0c1e7815d011e4342a11c061525fdfebd9b"
+    },
+    {
+      "file": "text-x86.xz",
+      "input": "inputs/text.txt",
+      "command": "xz --x86 --lzma2=preset=6 -c < inputs/text.txt",
+      "sha256": "8894c9eb1524c610726f34e21d1eb7ad54e17fbf3e7c8643709faa0c52c2276c"
+    },
+    {
+      "file": "text-dict128m.xz",
+      "input": "inputs/text.txt",
+      "command": "xz --lzma2=preset=6,dict=128MiB -c < inputs/text.txt",
+      "sha256": "9f9874ee7ea76a165bf6d16da77006ac8f318525aa38d7f67714b1e8d4bb7a0f"
+    },
+    {
+      "file": "text-dict4k.xz",
+      "input": "inputs/text.txt",
+      "command": "xz --lzma2=preset=6,dict=4KiB -c < inputs/text.txt",
+      "sha256": "82af42e5cc1a53c2ba740aa491c15af0d8c8dc2bbe398a4a2fc9a715615cc08a"
+    },
+    {
+      "file": "empty.xz",
+      "input": "inputs/empty.bin",
+      "command": "xz -6 -c < inputs/empty.bin",
+      "sha256": "0040f94d11d0039505328a90b2ff48968db873e9e7967307631bf40ef5679275"
+    },
+    {
+      "file": "text-level0.lz",
+      "input": "inputs/text.txt",
+      "command": "lzip -0 -c < inputs/text.txt",
+      "sha256": "c93fdca9a41b8165154b5a806c59a559f2d16a83bac0ee500b9347e2f8cae37f"
+    },
+    {
+      "file": "text-level6.lz",
+      "input": "inputs/text.txt",
+      "command": "lzip -6 -c < inputs/text.txt",
+      "sha256": "5a6da527db202b6f288369b336ea4e872e04afee47f139a75ceb46129b25bafb"
+    },
+    {
+      "file": "mixed-level9.lz",
+      "input": "inputs/mixed.bin",
+      "command": "lzip -9 -c < inputs/mixed.bin",
+      "sha256": "0d740482a4cd16d64f7ca60106906dc74659e2da472df03d26c696279be08164"
+    },
+    {
+      "file": "text-dict4k.lz",
+      "input": "inputs/text.txt",
+      "command": "lzip -6 --dictionary-size=4KiB -c < inputs/text.txt",
+      "sha256": "2dddc465de32fd95ae2f6d2810da28e6de7a1afa97a1d379c97a0045711d0fa6"
+    },
+    {
+      "file": "empty.lz",
+      "input": "inputs/empty.bin",
+      "command": "lzip -6 -c < inputs/empty.bin",
+      "sha256": "c080ea5a055b0d5d8e98881b8c3cb4885beb8f274a0a8f9484a880d289c76a5f"
+    },
+    {
+      "file": "concatenated.xz",
+      "input": "inputs/text.txt + inputs/mixed.bin",
+      "command": "text-preset0.xz, four null bytes of stream padding, then mixed-blocks.xz",
+      "sha256": "6f8e56ec9b1e17ccc8d03174270fc5e9e4bc7acd5f0be73b8ba8a268c27acbbf"
+    },
+    {
+      "file": "concatenated.lz",
+      "input": "inputs/text.txt + inputs/mixed.bin",
+      "command": "text-level0.lz followed by mixed-level9.lz",
+      "sha256": "bf757e6d82443402a6d2b1988f8d4144f442475df4496cf5388588108d40828e"
+    }
+  ]
+}
