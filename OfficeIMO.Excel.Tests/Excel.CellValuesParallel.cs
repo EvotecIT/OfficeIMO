@@ -36,24 +36,36 @@ namespace OfficeIMO.Tests {
             using (spreadsheet) {
                 ValidateSpreadsheetDocument(filePath, spreadsheet);
 
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                WorkbookPart workbook = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbook.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                SharedStringItem[] shared = workbook.SharedStringTablePart?.SharedStringTable
+                    ?.Elements<SharedStringItem>().ToArray() ?? Array.Empty<SharedStringItem>();
+                Assert.Equal(2000, cells.Count);
 
                 for (int row = 1; row <= 500; row++) {
                     for (int col = 1; col <= 4; col++) {
                         string expected = $"R{row}C{col}";
                         string cellRef = $"{(char)('A' + col - 1)}{row}";
-                        Cell cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == cellRef);
-                        Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
-                        int index = int.Parse(cell.CellValue!.Text);
-                        Assert.Equal(expected, shared.SharedStringTable!.ElementAt(index).InnerText);
+                        Cell cell = cells[cellRef];
+                        CellValues type = cell.DataType!.Value;
+                        string actual;
+                        if (type == CellValues.SharedString) {
+                            int index = int.Parse(cell.CellValue!.Text);
+                            Assert.InRange(index, 0, shared.Length - 1);
+                            actual = shared[index].InnerText;
+                        } else if (type == CellValues.InlineString) {
+                            actual = cell.InlineString!.InnerText;
+                        } else {
+                            Assert.Equal(CellValues.String, type);
+                            actual = cell.CellValue!.Text;
+                        }
+                        Assert.Equal(expected, actual);
                     }
                 }
 
                 OpenXmlValidator validator = new OpenXmlValidator();
                 Assert.Empty(validator.Validate(spreadsheet));
-
-                Assert.Equal(2000, shared.SharedStringTable!.Count());
             }
         }
 
