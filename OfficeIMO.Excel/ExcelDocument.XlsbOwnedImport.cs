@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
             if (!XlsbOwnedWorkbookProjector.CanWrite(source)) return null;
             cancellationToken.ThrowIfCancellationRequested();
             XlsbWorkbookProjector.EnsureArrayProjectionBudget(source, maxCells, cancellationToken);
-            byte[] bytes;
+            byte[]? bytes;
             long inputVersion = 0, authoredVersion = 0;
             Dictionary<(Uri WorksheetUri, string CellReference), FormulaAuthoredVersions>? formulas = null;
             var worksheetUris = new Dictionary<string, Uri>(StringComparer.Ordinal);
@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel {
                 bytes = XlsbOwnedWorkbookProjector.Write(package, source, SanitizeWorksheetName, RecordMutation, cancellationToken);
             }
 
+            if (bytes == null) return null;
             ExcelDeferredWorkbook? workbook = TryReadDeferredWorkbook(bytes);
             if (workbook == null) return null;
             ExcelDocument result = CreateDeferredDocument(workbook, bytes, readOnly);

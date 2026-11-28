@@ -32,6 +32,24 @@ public sealed class ExcelXlsbWorksheetFeatureTests {
     }
 
     [Fact]
+    public void Native_multiline_text_import_keeps_the_workbook_deferred() {
+        const string text = "First\r\nSecond";
+        using ExcelDocument seed = ExcelDocument.Create();
+        ExcelSheet sheet = seed.AddSheet("Lines");
+        sheet.Cell(1, 1).SetValue(text);
+        sheet.Cell(1, 2).SetValue(17);
+        sheet.SetCellStyleIndex(1, 1, 0, save: false);
+        byte[] native = seed.ToBytes(ExcelFileFormat.Xlsb);
+
+        using ExcelDocument document = ExcelDocument.Load(new MemoryStream(native));
+        Assert.True(document.IsSdkDeferred);
+        Assert.Equal(native, document.ToBytes(ExcelFileFormat.Xlsb));
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        Assert.Equal(text, document.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal(17, document.Sheets[0].Cell(1, 2).GetValue<int>());
+    }
+
+    [Fact]
     public void Page_breaks_and_ignored_errors_survive_native_xlsb_save() {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = document.AddSheet("Data");

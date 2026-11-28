@@ -8,16 +8,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     internal static partial class XlsbWorksheetGridProjector {
         private static readonly string Namespace = OfficeXmlNamespaces.KnownUri(OfficeXmlNamespaces.SpreadsheetML)!;
 
-        /// <summary>
-        /// Line breaks can add a wrap-text style during import even when the cell is later assigned its native style index.
-        /// </summary>
-        internal static bool CanStream(XlsbSheet sheet) {
-            foreach (XlsbCell cell in sheet.Cells) {
-                if (cell.Value is string text && (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)) return false;
-            }
-            return true;
-        }
-
         internal static void WriteWorksheet(Stream output, XlsbSheet source, Func<string, int?> sharedStringIndex,
             Action<string?, bool> recordMutation, CancellationToken cancellationToken, OfficeXmlNode layout = default,
             XlsbStylesheet? styles = null) {
