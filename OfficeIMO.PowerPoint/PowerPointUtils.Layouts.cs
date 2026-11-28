@@ -6,6 +6,18 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
+        /// <summary>
+        /// The theme part of a master that has none or an empty one, added through the SDK as the model adds it: an empty
+        /// theme with its theme elements. Rare enough (the file is invalid without it) that the SDK opens for it.
+        /// </summary>
+        internal static OpenXml.PowerPointPartRef EnsureThemePart(PowerPointDocument document, OpenXml.PowerPointPartRef master) {
+            _ = document.OpenXmlDocument;
+            var masterPart = (SlideMasterPart)master.Current.SdkPart!;
+            ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
+            themePart.Theme ??= new D.Theme { ThemeElements = new D.ThemeElements() };
+            return OpenXml.PowerPointPartRef.FromSdk(themePart);
+        }
+
         private static Slide CreateBlankSlide() {
             return new Slide(
                 new CommonSlideData(

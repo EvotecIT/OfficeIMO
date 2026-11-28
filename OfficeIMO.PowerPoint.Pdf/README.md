@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 
-PowerPoint PDF export lives in this adapter and uses the first-party PDF engine. Native slide image export stays in `OfficeIMO.PowerPoint` and draws through Core. [PDF-to-PowerPoint reconstruction](../OfficeIMO.Pdf.PowerPoint/README.md) lives in `OfficeIMO.Pdf.PowerPoint`.
+PowerPoint PDF export lives in this adapter and uses the first-party PDF engine. Native slide image export stays in `OfficeIMO.PowerPoint` and draws through Core. [PDF-to-PowerPoint reconstruction](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf.PowerPoint/README.md) lives in `OfficeIMO.Pdf.PowerPoint`.
 
 ## Install
 
@@ -168,9 +168,9 @@ PDF and slide images share the same content and limitations. Stored autofit valu
 
 ## Related packages
 
-- [OfficeIMO.PowerPoint](../OfficeIMO.PowerPoint/README.md) - PowerPoint presentation model.
-- [OfficeIMO.Pdf](../OfficeIMO.Pdf/README.md) - PDF engine.
-- [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) - Markup to PowerPoint rendering.
+- [OfficeIMO.PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint/README.md) - PowerPoint presentation model.
+- [OfficeIMO.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf/README.md) - PDF engine.
+- [OfficeIMO.Markup.PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markup.PowerPoint/README.md) - Markup to PowerPoint rendering.
 
 ## Targets and license
 
@@ -183,7 +183,7 @@ PDF and slide images share the same content and limitations. Stored autofit valu
 - **External:** None beyond the dependencies of its OfficeIMO format packages; no native or commercial PDF renderer.
 - **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own slide snapshots, PDF rendering, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

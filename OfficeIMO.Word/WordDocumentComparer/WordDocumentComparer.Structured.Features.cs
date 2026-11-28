@@ -1,10 +1,8 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeFields(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeFields(ComparedDocument source, ComparedDocument target, WordComparisonResult result, WordComparisonOptions options) {
             List<FieldSnapshot> sourceFields = GetFieldSnapshots(source, options);
             List<FieldSnapshot> targetFields = GetFieldSnapshots(target, options);
             AddFeatureRangeFindings(
@@ -16,7 +14,7 @@ namespace OfficeIMO.Word {
                 result);
         }
 
-        private static void AnalyzeContentControls(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeContentControls(WordPackageView source, WordPackageView target, WordComparisonResult result, WordComparisonOptions options) {
             List<ContentControlSnapshot> sourceControls = GetContentControlSnapshots(source, options);
             List<ContentControlSnapshot> targetControls = GetContentControlSnapshots(target, options);
             AddFeatureRangeFindings(
@@ -199,8 +197,12 @@ namespace OfficeIMO.Word {
                 targetItem.DocumentOrder);
         }
 
-        private static List<FieldSnapshot> GetFieldSnapshots(WordDocument document, WordComparisonOptions options) {
-            return document.InspectFields()
+        private static List<FieldSnapshot> GetFieldSnapshots(ComparedDocument document, WordComparisonOptions options) {
+            if (!document.InspectsFields) {
+                return new List<FieldSnapshot>();
+            }
+
+            return document.Document.InspectFields()
                 .Select(field => new FieldSnapshot(
                     field.Index,
                     GetFieldLocationKey(field),
@@ -270,25 +272,26 @@ namespace OfficeIMO.Word {
                 field.IsInTextBox ? "text-box" : string.Empty);
         }
 
-        private static List<ContentControlSnapshot> GetContentControlSnapshots(WordDocument document, WordComparisonOptions options) {
-            MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
+        private static List<ContentControlSnapshot> GetContentControlSnapshots(WordPackageView document, WordComparisonOptions options) {
+            WordPartView? mainPart = document.Main;
             if (mainPart == null) {
                 return new List<ContentControlSnapshot>();
             }
 
             var snapshots = new List<ContentControlSnapshot>();
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+            foreach (WordFieldInventory.NodeFieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
-                    if (ordered.Element is not SdtElement contentControl) {
+                    if (!ordered.Element.Is(W, "sdt")) {
                         continue;
                     }
 
-                    SdtProperties? properties = contentControl.SdtProperties;
-                    string alias = properties?.GetFirstChild<SdtAlias>()?.Val?.Value ?? string.Empty;
-                    string tag = properties?.GetFirstChild<Tag>()?.Val?.Value ?? string.Empty;
-                    DataBinding? binding = properties?.GetFirstChild<DataBinding>();
+                    OfficeXmlNode contentControl = ordered.Element;
+                    OfficeXmlNode properties = contentControl.Child(W, "sdtPr");
+                    string alias = ChildVal(properties, "alias") ?? string.Empty;
+                    string tag = ChildVal(properties, "tag") ?? string.Empty;
+                    OfficeXmlNode binding = properties.IsNone ? default : properties.Child(W, "dataBinding");
                     string bindingText = FormatDataBinding(binding);
-                    string text = NormalizeFeatureText(contentControl.InnerText ?? string.Empty);
+                    string text = NormalizeFeatureText(InnerText(contentControl));
                     string key = string.Join(
                         "|",
                         root.LocationKind.ToString(),
@@ -332,7 +335,7 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static string GetContentControlLocationKey(WordFieldInventory.FieldRoot root, SdtElement contentControl) {
+        private static string GetContentControlLocationKey(WordFieldInventory.NodeFieldRoot root, OfficeXmlNode contentControl) {
             return string.Join(
                 "|",
                 root.LocationKind.ToString(),
@@ -343,19 +346,19 @@ namespace OfficeIMO.Word {
                 IsInTextBoxFeature(contentControl) ? "text-box" : string.Empty);
         }
 
-        private static string FormatDataBinding(DataBinding? binding) {
-            if (binding == null) {
+        private static string FormatDataBinding(OfficeXmlNode binding) {
+            if (binding.IsNone) {
                 return string.Empty;
             }
 
             return string.Join(
                 "|",
-                binding.StoreItemId?.Value ?? string.Empty,
-                binding.XPath?.Value ?? string.Empty,
-                binding.PrefixMappings?.Value ?? string.Empty);
+                binding.Attribute(W, "storeItemID") ?? string.Empty,
+                binding.Attribute(W, "xpath") ?? string.Empty,
+                binding.Attribute(W, "prefixMappings") ?? string.Empty);
         }
 
-        private static bool IsInTableFeature(OpenXmlElement element) => element.Ancestors<Table>().Any();
+        private static bool IsInTableFeature(OfficeXmlNode element) => HasAncestorW(element, "tbl");
 
         private static int GetFeatureDocumentOrder(WordFieldLocationKind locationKind, int index) {
             return GetFeatureOrderBase(locationKind) + index;
@@ -371,10 +374,17 @@ namespace OfficeIMO.Word {
             };
         }
 
-        private static bool IsInTextBoxFeature(OpenXmlElement element) =>
-            element.Ancestors().Any(ancestor =>
-                string.Equals(ancestor.LocalName, "txbxContent", StringComparison.Ordinal) ||
-                string.Equals(ancestor.LocalName, "textbox", StringComparison.Ordinal));
+        private static bool IsInTextBoxFeature(OfficeXmlNode element) {
+            for (OfficeXmlNode ancestor = element.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+                string localName = ancestor.LocalName;
+                if (string.Equals(localName, "txbxContent", StringComparison.Ordinal) ||
+                    string.Equals(localName, "textbox", StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private static string NormalizeFeatureText(string value) =>
             string.IsNullOrEmpty(value) ? string.Empty : string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));

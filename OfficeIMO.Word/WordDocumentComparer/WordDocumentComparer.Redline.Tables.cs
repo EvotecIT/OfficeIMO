@@ -1,17 +1,15 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void ApplyTableFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyTableFindings(WordPackageView sourceDocument, WordPackageView targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
             List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
             var rewrittenSourceTables = new HashSet<string>(StringComparer.Ordinal);
             var rewrittenTargetTables = new HashSet<string>(StringComparer.Ordinal);
-            var insertedBeforeTableAnchors = new Dictionary<Table, OpenXmlElement>();
-            var insertedAfterTableAnchors = new Dictionary<Table, OpenXmlElement>();
-            var appendedDeletedTables = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
+            var insertedBeforeTableAnchors = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
+            var insertedAfterTableAnchors = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
+            var appendedDeletedTables = new Dictionary<string, OfficeXmlNode>(StringComparer.Ordinal);
 
             foreach (WordComparisonFinding finding in result.Findings) {
                 if (!ShouldTrackFinding(finding, options) ||
@@ -56,23 +54,23 @@ namespace OfficeIMO.Word {
             return entry.PartKey + "/" + entry.LocalIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static void RewriteTableWithTrackedText(Table table, bool trackInserted, WordComparisonRedlineOptions options) {
-            foreach (TableRow row in table.Elements<TableRow>()) {
+        private static void RewriteTableWithTrackedText(OfficeXmlNode table, bool trackInserted, WordComparisonRedlineOptions options) {
+            foreach (OfficeXmlNode row in ChildrenW(table, "tr")) {
                 RewriteRowWithTrackedText(row, trackInserted, options);
             }
         }
 
         private static void InsertDeletedTable(
-            WordprocessingDocument targetDocument,
+            WordPackageView targetDocument,
             IReadOnlyList<RedlineTableEntry> sourceTables,
             IReadOnlyList<RedlineTableEntry> targetTables,
             RedlineTableEntry sourceEntry,
             WordComparisonRedlineOptions options,
-            Dictionary<Table, OpenXmlElement> insertedBeforeTableAnchors,
-            Dictionary<Table, OpenXmlElement> insertedAfterTableAnchors,
-            Dictionary<string, OpenXmlElement> appendedDeletedTables) {
-            var deletedTable = (Table)sourceEntry.Table.CloneNode(true);
-            WordTable.CopyGridNormalizationState(sourceEntry.Table, deletedTable);
+            Dictionary<OfficeXmlNode, OfficeXmlNode> insertedBeforeTableAnchors,
+            Dictionary<OfficeXmlNode, OfficeXmlNode> insertedAfterTableAnchors,
+            Dictionary<string, OfficeXmlNode> appendedDeletedTables) {
+            OfficeXmlNode deletedTable = sourceEntry.Table.Clone();
+            WordPackageView.CopyGridNormalizationState(sourceEntry.Table, deletedTable);
             RewriteTableWithTrackedText(deletedTable, trackInserted: false, options);
             RemoveEmptyWordColorAttributes(deletedTable);
 
@@ -99,15 +97,15 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            OpenXmlCompositeElement? targetContainer = GetRedlineContainerByPartKey(targetDocument, sourceEntry.PartKey);
-            if (targetContainer == null) {
+            OfficeXmlNode targetContainer = GetRedlineContainerByPartKey(targetDocument, sourceEntry.PartKey);
+            if (targetContainer.IsNone) {
                 return;
             }
 
-            if (appendedDeletedTables.TryGetValue(sourceEntry.PartKey, out OpenXmlElement? previousAppended)) {
-                previousAppended.InsertAfterSelf(deletedTable);
+            if (appendedDeletedTables.TryGetValue(sourceEntry.PartKey, out OfficeXmlNode previousAppended)) {
+                deletedTable = previousAppended.InsertAfterSelf(deletedTable);
             } else {
-                AppendRedlineTable(targetContainer, deletedTable);
+                deletedTable = AppendRedlineTable(targetContainer, deletedTable);
             }
 
             appendedDeletedTables[sourceEntry.PartKey] = deletedTable;
@@ -142,9 +140,9 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static int FindRedlineTableEntryIndex(IReadOnlyList<RedlineTableEntry> entries, Table table) {
+        private static int FindRedlineTableEntryIndex(IReadOnlyList<RedlineTableEntry> entries, OfficeXmlNode table) {
             for (int index = 0; index < entries.Count; index++) {
-                if (ReferenceEquals(entries[index].Table, table)) {
+                if (entries[index].Table == table) {
                     return index;
                 }
             }
@@ -152,81 +150,80 @@ namespace OfficeIMO.Word {
             return -1;
         }
 
-        private static string GetRedlineTableIdentity(Table table) {
-            return string.Join("\u001e", table.Elements<TableRow>().Select(row =>
-                string.Join("\u001f", row.Elements<TableCell>().Select(cell => cell.InnerText).ToArray())).ToArray());
+        private static string GetRedlineTableIdentity(OfficeXmlNode table) {
+            return string.Join("\u001e", ChildrenW(table, "tr").Select(row =>
+                string.Join("\u001f", ChildrenW(row, "tc").Select(InnerText).ToArray())).ToArray());
         }
 
-        private static string GetRedlineTableSurfaceIdentity(Table table) {
-            return string.Join("\u001e", table.Elements<TableRow>().Select(row =>
-                string.Join("\u001f", row.Elements<TableCell>().Select(cell => GetCellSurfaceText(table, cell)).ToArray())).ToArray());
+        private static string GetRedlineTableSurfaceIdentity(OfficeXmlNode table) {
+            return string.Join("\u001e", ChildrenW(table, "tr").Select(row =>
+                string.Join("\u001f", ChildrenW(row, "tc").Select(cell => GetCellSurfaceText(table, cell)).ToArray())).ToArray());
         }
 
-        private static string GetCellSurfaceText(Table ownerTable, TableCell cell) {
-            return string.Concat(cell.Descendants<Text>()
-                .Where(text => ReferenceEquals(text.Ancestors<Table>().FirstOrDefault(), ownerTable))
-                .Select(text => text.Text));
+        private static string GetCellSurfaceText(OfficeXmlNode ownerTable, OfficeXmlNode cell) {
+            return string.Concat(DescendantsW(cell, "t")
+                .Where(text => AncestorW(text, "tbl") == ownerTable)
+                .Select(text => text.InnerText));
         }
 
-        private static bool IsNestedTable(Table table) {
-            return table.Ancestors<TableCell>().Any();
+        private static bool IsNestedTable(OfficeXmlNode table) {
+            return HasAncestorW(table, "tc");
         }
 
-        private static void InsertBeforeTableAnchor(Table anchorTable, OpenXmlElement deletedTable, Dictionary<Table, OpenXmlElement> insertedBeforeTableAnchors) {
-            if (insertedBeforeTableAnchors.TryGetValue(anchorTable, out OpenXmlElement? previousInserted)) {
-                previousInserted.InsertAfterSelf(deletedTable);
+        private static void InsertBeforeTableAnchor(OfficeXmlNode anchorTable, OfficeXmlNode deletedTable, Dictionary<OfficeXmlNode, OfficeXmlNode> insertedBeforeTableAnchors) {
+            if (insertedBeforeTableAnchors.TryGetValue(anchorTable, out OfficeXmlNode previousInserted)) {
+                deletedTable = previousInserted.InsertAfterSelf(deletedTable);
             } else {
-                anchorTable.InsertBeforeSelf(deletedTable);
+                deletedTable = anchorTable.Parent.InsertBefore(deletedTable, anchorTable);
             }
 
             insertedBeforeTableAnchors[anchorTable] = deletedTable;
         }
 
-        private static void InsertAfterTableAnchor(Table anchorTable, OpenXmlElement deletedTable, Dictionary<Table, OpenXmlElement> insertedAfterTableAnchors) {
-            if (insertedAfterTableAnchors.TryGetValue(anchorTable, out OpenXmlElement? previousInserted)) {
-                previousInserted.InsertAfterSelf(deletedTable);
+        private static void InsertAfterTableAnchor(OfficeXmlNode anchorTable, OfficeXmlNode deletedTable, Dictionary<OfficeXmlNode, OfficeXmlNode> insertedAfterTableAnchors) {
+            if (insertedAfterTableAnchors.TryGetValue(anchorTable, out OfficeXmlNode previousInserted)) {
+                deletedTable = previousInserted.InsertAfterSelf(deletedTable);
             } else {
-                anchorTable.InsertAfterSelf(deletedTable);
+                deletedTable = anchorTable.InsertAfterSelf(deletedTable);
             }
 
             insertedAfterTableAnchors[anchorTable] = deletedTable;
         }
 
-        private static void AppendRedlineTable(OpenXmlCompositeElement targetContainer, Table deletedTable) {
-            if (targetContainer is Body targetBody) {
-                SectionProperties? sectionProperties = targetBody.Elements<SectionProperties>().LastOrDefault();
-                if (sectionProperties != null) {
-                    targetBody.InsertBefore(deletedTable, sectionProperties);
-                    return;
+        private static OfficeXmlNode AppendRedlineTable(OfficeXmlNode targetContainer, OfficeXmlNode deletedTable) {
+            if (targetContainer.Is(W, "body")) {
+                OfficeXmlNode sectionProperties = targetContainer.Children(W, "sectPr").Last();
+                if (!sectionProperties.IsNone) {
+                    return targetContainer.InsertBefore(deletedTable, sectionProperties);
                 }
             }
 
-            targetContainer.Append(deletedTable);
+            return targetContainer.Append(deletedTable);
         }
 
-        private static OpenXmlCompositeElement? GetRedlineContainerByPartKey(WordprocessingDocument document, string partKey) {
-            MainDocumentPart? mainPart = document.MainDocumentPart;
+        private static OfficeXmlNode GetRedlineContainerByPartKey(WordPackageView document, string partKey) {
+            WordPartView? mainPart = document.Main;
             if (string.Equals(partKey, BodyPartKey, StringComparison.Ordinal)) {
-                return mainPart?.Document?.Body;
+                return BodyOf(mainPart);
             }
 
             if (mainPart == null) {
-                return null;
+                return default;
             }
 
-            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+            foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
                 if (string.Equals(partKey, headerPartKey.Value, StringComparison.Ordinal)) {
-                    return headerPartKey.Key.Header;
+                    return HeaderRoot(headerPartKey.Key);
                 }
             }
 
-            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+            foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
                 if (string.Equals(partKey, footerPartKey.Value, StringComparison.Ordinal)) {
-                    return footerPartKey.Key.Footer;
+                    return FooterRoot(footerPartKey.Key);
                 }
             }
 
-            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                 string key = FootnotePartKeyPrefix + GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 if (string.Equals(partKey, key, StringComparison.Ordinal)) {
@@ -234,7 +231,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                 string key = EndnotePartKeyPrefix + GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 if (string.Equals(partKey, key, StringComparison.Ordinal)) {
@@ -242,10 +239,10 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return null;
+            return default;
         }
 
-        private static bool TryInsertDeletedNestedTable(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, RedlineTableEntry sourceEntry, Table deletedTable) {
+        private static bool TryInsertDeletedNestedTable(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, RedlineTableEntry sourceEntry, OfficeXmlNode deletedTable) {
             if (!TryGetNestedTablePlacement(sourceTables, sourceEntry.Table, out NestedTablePlacement placement)) {
                 return false;
             }
@@ -255,17 +252,17 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            Table targetParentTable = targetParentEntry.Table;
-            List<TableRow> targetRows = targetParentTable.Elements<TableRow>().ToList();
+            OfficeXmlNode targetParentTable = targetParentEntry.Table;
+            List<OfficeXmlNode> targetRows = ChildrenW(targetParentTable, "tr");
             RedlineTableEntry sourceParentEntry = sourceTables[placement.ParentTableIndex];
-            List<TableRow> sourceRows = sourceParentEntry.Table.Elements<TableRow>().ToList();
+            List<OfficeXmlNode> sourceRows = ChildrenW(sourceParentEntry.Table, "tr");
             int targetRowIndex = FindBestTargetBySimilarity(sourceRows, targetRows, placement.RowIndex, GetOpenXmlRowText, GetOpenXmlRowText);
             if (targetRowIndex < 0 || targetRowIndex >= targetRows.Count || placement.RowIndex < 0 || placement.RowIndex >= sourceRows.Count) {
                 return false;
             }
 
-            List<TableCell> sourceCells = sourceRows[placement.RowIndex].Elements<TableCell>().ToList();
-            List<TableCell> targetCells = targetRows[targetRowIndex].Elements<TableCell>().ToList();
+            List<OfficeXmlNode> sourceCells = ChildrenW(sourceRows[placement.RowIndex], "tc");
+            List<OfficeXmlNode> targetCells = ChildrenW(targetRows[targetRowIndex], "tc");
             int targetCellIndex = FindBestTargetBySimilarity(sourceCells, targetCells, placement.CellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
             if (targetCellIndex < 0 || targetCellIndex >= targetCells.Count) {
                 return false;
@@ -328,16 +325,16 @@ namespace OfficeIMO.Word {
                 .FirstOrDefault();
         }
 
-        private static bool TryGetNestedTablePlacement(IReadOnlyList<RedlineTableEntry> sourceTables, Table sourceTable, out NestedTablePlacement placement) {
+        private static bool TryGetNestedTablePlacement(IReadOnlyList<RedlineTableEntry> sourceTables, OfficeXmlNode sourceTable, out NestedTablePlacement placement) {
             placement = default;
-            TableCell? parentCell = sourceTable.Ancestors<TableCell>().FirstOrDefault();
-            if (parentCell == null) {
+            OfficeXmlNode parentCell = AncestorW(sourceTable, "tc");
+            if (parentCell.IsNone) {
                 return false;
             }
 
-            Table? parentTable = parentCell.Ancestors<Table>().FirstOrDefault();
-            TableRow? parentRow = parentCell.Ancestors<TableRow>().FirstOrDefault();
-            if (parentTable == null || parentRow == null) {
+            OfficeXmlNode parentTable = AncestorW(parentCell, "tbl");
+            OfficeXmlNode parentRow = AncestorW(parentCell, "tr");
+            if (parentTable.IsNone || parentRow.IsNone) {
                 return false;
             }
 
@@ -346,14 +343,14 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            List<TableRow> rows = parentTable.Elements<TableRow>().ToList();
-            int rowIndex = rows.FindIndex(row => ReferenceEquals(row, parentRow));
+            List<OfficeXmlNode> rows = ChildrenW(parentTable, "tr");
+            int rowIndex = rows.FindIndex(row => row == parentRow);
             if (rowIndex < 0) {
                 return false;
             }
 
-            List<TableCell> cells = parentRow.Elements<TableCell>().ToList();
-            int cellIndex = cells.FindIndex(cell => ReferenceEquals(cell, parentCell));
+            List<OfficeXmlNode> cells = ChildrenW(parentRow, "tc");
+            int cellIndex = cells.FindIndex(cell => cell == parentCell);
             if (cellIndex < 0) {
                 return false;
             }
@@ -362,9 +359,9 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static int FindTableIndex(IReadOnlyList<RedlineTableEntry> tables, Table table) {
+        private static int FindTableIndex(IReadOnlyList<RedlineTableEntry> tables, OfficeXmlNode table) {
             for (int index = 0; index < tables.Count; index++) {
-                if (ReferenceEquals(tables[index].Table, table)) {
+                if (tables[index].Table == table) {
                     return index;
                 }
             }
@@ -372,28 +369,30 @@ namespace OfficeIMO.Word {
             return -1;
         }
 
-        private static void InsertNestedTableIntoCell(TableCell targetCell, Table deletedTable) {
-            Paragraph? trailingParagraph = targetCell.Elements<Paragraph>().LastOrDefault();
-            if (trailingParagraph != null && string.IsNullOrWhiteSpace(trailingParagraph.InnerText)) {
-                trailingParagraph.InsertBeforeSelf(deletedTable);
+        private static void InsertNestedTableIntoCell(OfficeXmlNode targetCell, OfficeXmlNode deletedTable) {
+            OfficeXmlNode trailingParagraph = targetCell.Children(W, "p").Last();
+            if (!trailingParagraph.IsNone && string.IsNullOrWhiteSpace(InnerText(trailingParagraph))) {
+                targetCell.InsertBefore(deletedTable, trailingParagraph);
             } else {
                 targetCell.Append(deletedTable);
             }
 
-            if (targetCell.LastChild is not Paragraph) {
-                targetCell.Append(new Paragraph());
+            if (!targetCell.LastChild.Is(W, "p")) {
+                targetCell.Append(targetCell.CreateElement(W, "p"));
             }
         }
 
-        private static void RemoveEmptyWordColorAttributes(OpenXmlElement root) {
-            foreach (OpenXmlElement element in new[] { root }.Concat(root.Descendants())) {
-                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
-                    if (attribute.LocalName == "color" &&
-                        attribute.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" &&
-                        string.IsNullOrWhiteSpace(attribute.Value)) {
-                        element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
-                    }
-                }
+        private static void RemoveEmptyWordColorAttributes(OfficeXmlNode root) {
+            RemoveEmptyWordColorAttribute(root);
+            foreach (OfficeXmlNode element in Descendants(root)) {
+                RemoveEmptyWordColorAttribute(element);
+            }
+        }
+
+        private static void RemoveEmptyWordColorAttribute(OfficeXmlNode element) {
+            string? color = element.Attribute(W, "color");
+            if (color != null && string.IsNullOrWhiteSpace(color)) {
+                element.RemoveAttribute(W, "color");
             }
         }
 

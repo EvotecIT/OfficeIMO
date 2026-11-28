@@ -5,7 +5,8 @@ namespace OfficeIMO.Reader.Epub;
 internal static partial class EpubReaderAdapter {
     internal static ReaderHandlerRegistration CreateImportHandler(string format, string[] extensions, ReaderInputKind kind,
         long maxInputBytes, Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import,
-        Func<Stream, string?, long, CancellationToken, bool> probe, bool useDetectedKindFallback = false) {
+        Func<Stream, string?, long, CancellationToken, bool> probe, bool useDetectedKindFallback = false,
+        Func<Exception, string?>? classifyReadError = null) {
         OfficeDocumentReadResult ReadPath(string path, ReaderOptions options, CancellationToken token) {
             using var input = File.OpenRead(path);
             return ReadImport(input, BuildSourceMetadataFromPath(path, options.ComputeHashes), options, token);
@@ -57,6 +58,7 @@ internal static partial class EpubReaderAdapter {
             UseDetectedKindFallback = useDetectedKindFallback,
             DefaultMaxInputBytes = maxInputBytes,
             MaxInputBytesCeiling = maxInputBytes,
+            ClassifyReadError = classifyReadError,
             ExtensionValidationProbeStream = (stream, name, options, token) =>
                 probe(stream, name, Math.Min(options.MaxInputBytes ?? maxInputBytes, maxInputBytes), token),
             ReadDocumentPath = ReadPath,
