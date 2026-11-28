@@ -1,28 +1,35 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
-    private void SetChartFill(OpenXmlCompositeElement properties, OfficeColor color) {
-        properties.RemoveAllChildren<A.NoFill>();
-        properties.RemoveAllChildren<A.SolidFill>();
-        properties.RemoveAllChildren<A.GradientFill>();
-        properties.RemoveAllChildren<A.PatternFill>();
-        properties.RemoveAllChildren<A.BlipFill>();
-        properties.RemoveAllChildren<A.GroupFill>();
-        properties.AddChild(CreateChartFill(color), true);
+    private static readonly string[] FillNames = { "noFill", "solidFill", "gradFill", "pattFill", "blipFill", "grpFill" };
+
+    /// <summary>Replaces the fill of shape, line or text properties with a solid <paramref name="color"/>.</summary>
+    private void SetChartFill(OfficeXmlNode properties, OfficeColor color) {
+        foreach (string fill in FillNames) properties.RemoveChildren(NsA, fill);
+        OfficeChartXml.SetOrdered(properties, CreateChartFill(properties, color), DrawingOrderOf(properties));
     }
 
-    private A.SolidFill CreateChartFill(OfficeColor color) {
+    /// <summary>A detached <c>a:solidFill</c> of <paramref name="color"/>, made for <paramref name="context"/>.</summary>
+    private OfficeXmlNode CreateChartFill(OfficeXmlNode context, OfficeColor color) {
+        OfficeXmlNode fill = context.CreateElement(NsA, "solidFill");
         if (color.ThemeSlot is string slot) {
-            var scheme = new A.SchemeColor();
-            scheme.SetAttribute(new OpenXmlAttribute("val", string.Empty, slot));
-            return new A.SolidFill(scheme);
+            AddA(fill, "schemeClr").SetAttribute("val", slot);
+            return fill;
         }
         color = color.Resolve(_document?.EffectiveCreationTheme ?? OfficeTheme.Default);
-        var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
-        if (color.A < 255) rgb.Append(new A.Alpha { Val = (int)System.Math.Round(color.A * 100000D / 255D) });
-        return new A.SolidFill(rgb);
+        OfficeXmlNode rgb = AddA(fill, "srgbClr");
+        rgb.SetAttribute("val", color.ToRgbHex());
+        if (color.A < 255) rgb.AppendVal(NsA, "alpha", OfficeChartXml.Text((int)System.Math.Round(color.A * 100000D / 255D)));
+        return fill;
     }
+
+    /// <summary>The schema order of DrawingML shape, line or text-run properties.</summary>
+    private static OfficeXmlChildOrder DrawingOrderOf(OfficeXmlNode properties) => properties.LocalName switch {
+        "ln" => DmlLinePropertiesView.Order,
+        "defRPr" or "rPr" or "endParaRPr" => DmlTextCharacterPropertiesView.Order,
+        _ => DmlShapePropertiesView.Order
+    };
 }

@@ -1,6 +1,6 @@
 using System.Globalization;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
@@ -10,45 +10,56 @@ public partial class WordChart {
     /// <param name="titleColor">Text color for the chart title.</param>
     /// <returns>The chart.</returns>
     public WordChart SetPaperStyle(bool percentageLabels = false, OfficeColor? titleColor = null) {
-        var root = _chartPart?.ChartSpace;
-        if (root == null) return this;
-        C.ShapeProperties? frame = root.GetFirstChild<C.ShapeProperties>();
-        if (frame == null) {
-            frame = new C.ShapeProperties();
-            root.AddChild(frame, true);
+        OfficeXmlNode root = ChartSpaceNode;
+        if (root.IsNone) return this;
+        OfficeXmlNode frame = root.Child(NsC, "spPr");
+        if (frame.IsNone) frame = OfficeChartXml.SetOrdered(root, NewC(root, "spPr"), CChartSpaceView.Order);
+        foreach (string fill in new[] { "solidFill", "gradFill", "pattFill", "blipFill", "grpFill", "noFill" }) frame.RemoveChildren(NsA, fill);
+        OfficeChartXml.SetOrdered(frame, frame.CreateElement(NsA, "noFill"), DmlShapePropertiesView.Order);
+        frame.RemoveChildren(NsA, "ln");
+        OfficeXmlNode outline = frame.CreateElement(NsA, "ln");
+        AddA(outline, "noFill");
+        OfficeChartXml.SetOrdered(frame, outline, DmlShapePropertiesView.Order);
+        var titleRunProperties = new List<OfficeXmlNode>();
+        foreach (OfficeXmlNode title in root.ContentDescendants(NsC, "title")) titleRunProperties.AddRange(title.ContentDescendants(NsA, "defRPr"));
+        foreach (OfficeXmlNode properties in titleRunProperties) {
+            properties.RemoveChildren(NsA, "solidFill");
+            OfficeChartXml.SetOrdered(properties, CreateChartFill(properties, titleColor ?? OfficeColor.Parse("202428")), DmlTextCharacterPropertiesView.Order);
         }
-        frame.RemoveAllChildren<A.SolidFill>();
-        frame.RemoveAllChildren<A.GradientFill>();
-        frame.RemoveAllChildren<A.PatternFill>();
-        frame.RemoveAllChildren<A.BlipFill>();
-        frame.RemoveAllChildren<A.GroupFill>();
-        frame.RemoveAllChildren<A.NoFill>();
-        frame.AddChild(new A.NoFill(), true);
-        frame.RemoveAllChildren<A.Outline>();
-        frame.AddChild(new A.Outline(new A.NoFill()), true);
-        foreach (A.DefaultRunProperties properties in root.Descendants<C.Title>().SelectMany(title => title.Descendants<A.DefaultRunProperties>())) {
-            properties.RemoveAllChildren<A.SolidFill>();
-            properties.AddChild(CreateChartFill(titleColor ?? OfficeColor.Parse("202428")), true);
-        }
-        foreach (C.DataLabels labels in root.Descendants<C.DataLabels>()) {
+        foreach (OfficeXmlNode labels in root.ContentDescendants(NsC, "dLbls")) {
             if (!percentageLabels) {
-                labels.RemoveAllChildren<C.DataLabelPosition>();
-                bool supportsOutsideEnd = labels.Ancestors<C.PieChart>().Any() || labels.Ancestors<C.Pie3DChart>().Any()
-                    || labels.Ancestors<C.OfPieChart>().Any() || labels.Ancestors<C.BarChart>()
-                        .Any(bar => bar.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered);
-                if (supportsOutsideEnd) {
-                    labels.AddChild(new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
+                labels.RemoveChildren(NsC, "dLblPos");
+                if (SupportsOutsideEndLabels(labels)) {
+                    OfficeChartXml.SetOrdered(labels, NewC(labels, "dLblPos", "outEnd"), CDLblsView.Order);
                 }
             }
-            labels.RemoveAllChildren<C.ShowValue>();
-            labels.RemoveAllChildren<C.ShowPercent>();
-            labels.RemoveAllChildren<C.NumberingFormat>();
-            labels.AddChild(new C.ShowValue { Val = !percentageLabels }, true);
-            labels.AddChild(new C.ShowPercent { Val = percentageLabels }, true);
-            labels.AddChild(new C.NumberingFormat { FormatCode = percentageLabels ? "0.#%" : "0", SourceLinked = false }, true);
+            labels.RemoveChildren(NsC, "showVal");
+            labels.RemoveChildren(NsC, "showPercent");
+            labels.RemoveChildren(NsC, "numFmt");
+            OfficeChartXml.SetOrdered(labels, NewC(labels, "showVal", !percentageLabels), CDLblsView.Order);
+            OfficeChartXml.SetOrdered(labels, NewC(labels, "showPercent", percentageLabels), CDLblsView.Order);
+            OfficeXmlNode numberFormat = NewC(labels, "numFmt");
+            numberFormat.SetAttribute("formatCode", percentageLabels ? "0.#%" : "0");
+            numberFormat.SetAttribute("sourceLinked", OfficeChartXml.Text(false));
+            OfficeChartXml.SetOrdered(labels, numberFormat, CDLblsView.Order);
         }
-        root.Save();
+        SaveChartSpace();
         return this;
+    }
+
+    /// <summary>Whether data labels sit in a pie group or a clustered bar group, which place labels outside the end.</summary>
+    private static bool SupportsOutsideEndLabels(OfficeXmlNode labels) {
+        for (OfficeXmlNode ancestor = labels.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+            if (ancestor.NamespaceId != NsC) continue;
+            if (ancestor.LocalName is "pieChart" or "pie3DChart" or "ofPieChart") return true;
+            if (ancestor.LocalName == "barChart" && IsGrouping(ancestor, "clustered")) return true;
+        }
+        return false;
+    }
+
+    private static bool IsGrouping(OfficeXmlNode barChart, string grouping) {
+        OfficeXmlNode value = barChart.Child(NsC, "grouping");
+        return !value.IsNone && value.Val() == grouping;
     }
 
     /// <summary>Sets count axes to start at zero, use whole-number labels and a positive integral tick interval.</summary>
@@ -56,30 +67,31 @@ public partial class WordChart {
     /// <returns>The chart.</returns>
     public WordChart SetCountAxis(uint? majorUnit = null) {
         if (majorUnit == 0) throw new ArgumentOutOfRangeException(nameof(majorUnit));
-        var root = _chartPart?.ChartSpace;
-        if (root == null) return this;
+        OfficeXmlNode root = ChartSpaceNode;
+        if (root.IsNone) return this;
         double interval = majorUnit.HasValue ? majorUnit.Value : SelectCountAxisInterval(root);
-        foreach (C.ValueAxis axis in root.Descendants<C.ValueAxis>()) {
-            C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
-            if (scaling == null) {
-                scaling = new C.Scaling();
-                axis.AddChild(scaling, true);
-            }
-            scaling.MinAxisValue = new C.MinAxisValue { Val = 0 };
+        foreach (OfficeXmlNode axis in PlotAreaOf(root.Child(NsC, "chart")).Children(NsC, "valAx")) {
+            OfficeXmlNode scaling = axis.Child(NsC, "scaling");
+            if (scaling.IsNone) scaling = OfficeChartXml.SetOrdered(axis, NewC(axis, "scaling"), CValAxView.Order);
+            OfficeChartXml.SetOrdered(scaling, NewC(scaling, "min", OfficeChartXml.Text(0D)), CScalingView.Order);
             double dataMaximum = ReadCountMaximum(root, includeAuthoredMaximum: false);
             double requiredMaximum = Math.Ceiling(dataMaximum / interval + 1D) * interval;
-            scaling.MaxAxisValue = new C.MaxAxisValue { Val = Math.Max(scaling.MaxAxisValue?.Val?.Value ?? 0D, requiredMaximum) };
-            axis.RemoveAllChildren<C.NumberingFormat>();
-            axis.AddChild(new C.NumberingFormat { FormatCode = "0", SourceLinked = false }, true);
-            // MajorUnit is a schema child without a generated CLR property in OpenXML 3.5.1.
-            axis.RemoveAllChildren<C.MajorUnit>();
-            axis.AddChild(new C.MajorUnit { Val = interval }, true);
+            OfficeXmlNode existingMaximum = scaling.Child(NsC, "max");
+            double authored = (existingMaximum.IsNone ? null : existingMaximum.DoubleVal()) ?? 0D;
+            OfficeChartXml.SetOrdered(scaling, NewC(scaling, "max", OfficeChartXml.Text(Math.Max(authored, requiredMaximum))), CScalingView.Order);
+            axis.RemoveChildren(NsC, "numFmt");
+            OfficeXmlNode numberFormat = NewC(axis, "numFmt");
+            numberFormat.SetAttribute("formatCode", "0");
+            numberFormat.SetAttribute("sourceLinked", OfficeChartXml.Text(false));
+            OfficeChartXml.SetOrdered(axis, numberFormat, CValAxView.Order);
+            axis.RemoveChildren(NsC, "majorUnit");
+            OfficeChartXml.SetOrdered(axis, NewC(axis, "majorUnit", OfficeChartXml.Text(interval)), CValAxView.Order);
         }
-        root.Save();
+        SaveChartSpace();
         return this;
     }
 
-    private static double SelectCountAxisInterval(C.ChartSpace root) {
+    private static double SelectCountAxisInterval(OfficeXmlNode root) {
         double maximum = ReadCountMaximum(root, includeAuthoredMaximum: true);
         // Allow the padded upper bound to retain its interval when formatting is repeated.
         // Data targets ten intervals; authored bounds may use up to twelve, below the reader's limit.
@@ -90,19 +102,46 @@ public partial class WordChart {
         return Math.Max(1D, (normalized <= 1D ? 1D : normalized <= 2D ? 2D : normalized <= 5D ? 5D : 10D) * scale);
     }
 
-    private static double ReadCountMaximum(C.ChartSpace root, bool includeAuthoredMaximum) {
-        double Read(C.NumericPoint point) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Max(0D, value) : 0D;
-        double maximum = root.Descendants<C.Values>().SelectMany(values => values.Descendants<C.NumericPoint>())
-            .Select(Read).DefaultIfEmpty(0D).Max();
-        if (includeAuthoredMaximum) maximum = Math.Max(maximum, root.Descendants<C.MaxAxisValue>()
-            .Select(bound => bound.Val?.Value ?? 0D).DefaultIfEmpty(0D).Max());
+    private static double ReadCountPoint(OfficeXmlNode point) =>
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.ChildText(NsC, "v"), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+        !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Max(0D, value) : 0D;
+
+    private static double ReadCountMaximum(OfficeXmlNode root, bool includeAuthoredMaximum) {
+        // Only plotted values and axis bounds count; values in extension or vendor markup do not.
+        OfficeXmlNode plot = PlotAreaOf(root.Child(NsC, "chart"));
+        double maximum = 0D;
+        foreach (OfficeXmlNode series in PlottedSeries(plot)) {
+            foreach (OfficeXmlNode point in CachedNumbers(series.Child(NsC, "val"))) maximum = Math.Max(maximum, ReadCountPoint(point));
+        }
+        if (includeAuthoredMaximum) {
+            for (OfficeXmlNode axis = plot.IsNone ? default : plot.FirstChild; !axis.IsNone; axis = axis.NextSibling) {
+                if (!IsAxis(axis)) continue;
+                OfficeXmlNode scaling = axis.Child(NsC, "scaling");
+                OfficeXmlNode bound = scaling.IsNone ? default : scaling.Child(NsC, "max");
+                if (!bound.IsNone) maximum = Math.Max(maximum, bound.DoubleVal() ?? 0D);
+            }
+        }
         // Stacked bars use the sum at each category, rather than an individual series maximum.
-        foreach (C.BarChart bar in root.Descendants<C.BarChart>().Where(bar => bar.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked)) {
-            double stacked = bar.Elements<C.BarChartSeries>().SelectMany(series => series.GetFirstChild<C.Values>()?.Descendants<C.NumericPoint>()
-                    ?? Enumerable.Empty<C.NumericPoint>())
-                .GroupBy(point => point.Index?.Value ?? 0U).Select(points => points.Sum(Read)).DefaultIfEmpty(0D).Max();
-            maximum = Math.Max(maximum, stacked);
+        foreach (OfficeXmlNode bar in plot.Children(NsC, "barChart")) {
+            if (!IsGrouping(bar, "stacked")) continue;
+            var sums = new Dictionary<uint, double>();
+            foreach (OfficeXmlNode series in GroupSeries(bar)) {
+                foreach (OfficeXmlNode point in CachedNumbers(series.Child(NsC, "val"))) {
+                    uint index = point.UIntAttr("idx") ?? 0U;
+                    sums[index] = (sums.TryGetValue(index, out double sum) ? sum : 0D) + ReadCountPoint(point);
+                }
+            }
+            if (sums.Count > 0) maximum = Math.Max(maximum, sums.Values.Max());
         }
         return maximum;
+    }
+
+    /// <summary>The cached points of a <c>c:val</c>: its <c>c:numRef/c:numCache</c> or <c>c:numLit</c> points.</summary>
+    private static IEnumerable<OfficeXmlNode> CachedNumbers(OfficeXmlNode values) {
+        if (values.IsNone) yield break;
+        OfficeXmlNode reference = values.Child(NsC, "numRef");
+        OfficeXmlNode cache = reference.IsNone ? values.Child(NsC, "numLit") : reference.Child(NsC, "numCache");
+        if (cache.IsNone) yield break;
+        foreach (OfficeXmlNode point in cache.Children(NsC, "pt")) yield return point;
     }
 }

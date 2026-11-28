@@ -1,6 +1,6 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -14,15 +14,15 @@ namespace OfficeIMO.Word {
         public bool TrySetCategories(IEnumerable<string> categories) {
             ArgumentNullException.ThrowIfNull(categories);
             string[] values = categories.Select(value => value ?? string.Empty).ToArray();
-            C.Chart? chart = ResolveChart();
-            if (chart == null) return false;
+            OfficeXmlNode chart = ResolveChart();
+            if (chart.IsNone) return false;
 
             bool updated = false;
-            foreach (OpenXmlCompositeElement series in EnumerateSeries(chart)) {
-                C.CategoryAxisData? categoryData = series.GetFirstChild<C.CategoryAxisData>();
-                if (categoryData == null) continue;
-                categoryData.RemoveAllChildren();
-                categoryData.Append(BuildStringLiteral(values));
+            foreach (OfficeXmlNode series in EnumerateSeries(chart)) {
+                OfficeXmlNode categoryData = series.Child(NsC, "cat");
+                if (categoryData.IsNone) continue;
+                categoryData.RemoveAllChildElements();
+                categoryData.Append(BuildStringLiteral(categoryData, values));
                 updated = true;
             }
 
@@ -44,16 +44,16 @@ namespace OfficeIMO.Word {
                 throw new ArgumentOutOfRangeException(nameof(values), "Chart series values must be finite numbers.");
             }
 
-            OpenXmlCompositeElement? series = FindSeries(seriesIndex);
-            if (series == null) return false;
+            OfficeXmlNode series = FindSeries(seriesIndex);
+            if (series.IsNone) return false;
 
-            OpenXmlCompositeElement? valueContainer = series.GetFirstChild<C.Values>();
-            valueContainer ??= series.GetFirstChild<C.YValues>();
-            if (valueContainer == null) return false;
+            OfficeXmlNode valueContainer = series.Child(NsC, "val");
+            if (valueContainer.IsNone) valueContainer = series.Child(NsC, "yVal");
+            if (valueContainer.IsNone) return false;
 
             string formatCode = GetNumberFormatCode(valueContainer);
-            valueContainer.RemoveAllChildren();
-            valueContainer.Append(BuildNumberLiteral(materialized, formatCode));
+            valueContainer.RemoveAllChildElements();
+            valueContainer.Append(BuildNumberLiteral(valueContainer, materialized, formatCode));
             return true;
         }
 
@@ -63,62 +63,73 @@ namespace OfficeIMO.Word {
         /// <returns><see langword="true"/> when the indexed series has a mutable series-text element.</returns>
         public bool TrySetSeriesName(uint seriesIndex, string name) {
             ArgumentNullException.ThrowIfNull(name);
-            OpenXmlCompositeElement? series = FindSeries(seriesIndex);
-            C.SeriesText? seriesText = series?.GetFirstChild<C.SeriesText>();
-            if (seriesText == null) return false;
+            OfficeXmlNode series = FindSeries(seriesIndex);
+            OfficeXmlNode seriesText = series.IsNone ? default : series.Child(NsC, "tx");
+            if (seriesText.IsNone) return false;
 
-            seriesText.RemoveAllChildren();
-            seriesText.Append(AddSeries(0U, name));
+            seriesText.RemoveAllChildElements();
+            AddText(seriesText, NsC, "v", name);
             return true;
         }
 
-        private C.Chart? ResolveChart() {
-            _chart ??= _chartPart?.ChartSpace?.GetFirstChild<C.Chart>();
+        private OfficeXmlNode ResolveChart() {
+            if (_chart.IsNone && !ChartSpaceNode.IsNone) _chart = ChartSpaceNode.Child(NsC, "chart");
             return _chart;
         }
 
-        private OpenXmlCompositeElement? FindSeries(uint seriesIndex) => ResolveChart() == null
-            ? null
-            : EnumerateSeries(_chart!).FirstOrDefault(series =>
-                series.GetFirstChild<C.Index>()?.Val?.Value == seriesIndex);
+        private OfficeXmlNode FindSeries(uint seriesIndex) {
+            if (ResolveChart().IsNone) return default;
+            foreach (OfficeXmlNode series in EnumerateSeries(_chart)) {
+                OfficeXmlNode index = series.Child(NsC, "idx");
+                if (!index.IsNone && index.UIntVal() == seriesIndex) return series;
+            }
+            return default;
+        }
 
-        private static IEnumerable<OpenXmlCompositeElement> EnumerateSeries(C.Chart chart) =>
-            chart.PlotArea?.Descendants<OpenXmlCompositeElement>().Where(IsSupportedSeriesElement)
-            ?? Enumerable.Empty<OpenXmlCompositeElement>();
+        /// <summary>
+        /// The bar, line, area, radar, pie and scatter series of the chart's plot area, in document order. Series in
+        /// extension markup are not plotted and are skipped.
+        /// </summary>
+        private static IEnumerable<OfficeXmlNode> EnumerateSeries(OfficeXmlNode chart) {
+            // Series are children of the chart groups, which are children of the plot area.
+            OfficeXmlNode plot = PlotAreaOf(chart);
+            if (plot.IsNone) yield break;
+            foreach (OfficeXmlNode group in ChartGroups(plot)) {
+                if (!IsSupportedSeriesGroup(group)) continue;
+                foreach (OfficeXmlNode series in GroupSeries(group)) yield return series;
+            }
+        }
 
-        private static bool IsSupportedSeriesElement(OpenXmlCompositeElement element) =>
-            element is C.BarChartSeries or
-            C.LineChartSeries or
-            C.AreaChartSeries or
-            C.RadarChartSeries or
-            C.PieChartSeries or
-            C.ScatterChartSeries;
+        private static bool IsSupportedSeriesGroup(OfficeXmlNode group) {
+            return group.NamespaceId == NsC && group.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or
+                "stockChart" or "areaChart" or "area3DChart" or "radarChart" or "pieChart" or "pie3DChart" or "doughnutChart" or
+                "ofPieChart" or "scatterChart";
+        }
 
-        private static string GetNumberFormatCode(OpenXmlCompositeElement valueContainer) =>
-            valueContainer.GetFirstChild<C.NumberReference>()?.NumberingCache?.FormatCode?.Text ??
-            valueContainer.GetFirstChild<C.NumberLiteral>()?.FormatCode?.Text ??
-            "General";
+        private static string GetNumberFormatCode(OfficeXmlNode valueContainer) {
+            OfficeXmlNode reference = valueContainer.Child(NsC, "numRef");
+            OfficeXmlNode cache = reference.IsNone ? default : reference.Child(NsC, "numCache");
+            string? cached = cache.IsNone ? null : cache.ChildText(NsC, "formatCode");
+            if (cached != null) return cached;
+            OfficeXmlNode literal = valueContainer.Child(NsC, "numLit");
+            return (literal.IsNone ? null : literal.ChildText(NsC, "formatCode")) ?? "General";
+        }
 
-        private static C.NumberLiteral BuildNumberLiteral(IReadOnlyList<double> values, string formatCode) {
-            var literal = new C.NumberLiteral(
-                new C.FormatCode { Text = formatCode },
-                new C.PointCount { Val = (uint)values.Count });
+        private static OfficeXmlNode BuildNumberLiteral(OfficeXmlNode context, IReadOnlyList<double> values, string formatCode) {
+            OfficeXmlNode literal = NewC(context, "numLit");
+            AddText(literal, NsC, "formatCode", formatCode);
+            AddC(literal, "ptCount", (uint)values.Count);
             for (int index = 0; index < values.Count; index++) {
-                literal.Append(new C.NumericPoint(
-                    new C.NumericValue(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture))) {
-                    Index = (uint)index
-                });
+                AddPoint(literal, (uint)index, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture));
             }
             return literal;
         }
 
-        private static C.StringLiteral BuildStringLiteral(IReadOnlyList<string> values) {
-            var literal = new C.StringLiteral(new C.PointCount { Val = (uint)values.Count });
+        private static OfficeXmlNode BuildStringLiteral(OfficeXmlNode context, IReadOnlyList<string> values) {
+            OfficeXmlNode literal = NewC(context, "strLit");
+            AddC(literal, "ptCount", (uint)values.Count);
             for (int index = 0; index < values.Count; index++) {
-                literal.Append(new C.StringPoint(
-                    new C.NumericValue(values[index])) {
-                    Index = (uint)index
-                });
+                AddPoint(literal, (uint)index, values[index]);
             }
             return literal;
         }

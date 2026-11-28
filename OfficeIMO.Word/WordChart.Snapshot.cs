@@ -1,8 +1,6 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -14,22 +12,28 @@ namespace OfficeIMO.Word {
         internal bool TryGetSnapshot(out WordChartInfo snapshot) {
             snapshot = null!;
             try {
-                C.Chart? chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
-                C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
-                if (chart == null || plotArea == null || !HasSingleSupportedChartElement(plotArea)) return false;
-                OpenXmlCompositeElement group = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Single(IsSupportedChartPlotElement);
+                OfficeXmlNode chart = CurrentChart;
+                OfficeXmlNode plotArea = chart.IsNone ? default : chart.Child(NsC, "plotArea");
+                if (chart.IsNone || plotArea.IsNone || !HasSingleSupportedChartElement(plotArea)) return false;
+                OfficeXmlNode group = plotArea.Children().ToList().Single(IsSupportedChartPlotElement);
                 if (!OfficeOpenXmlChartSeriesReader.TryReadKind(group, out OfficeIMO.OfficeChartType kind)) return false;
-                A.ColorScheme? scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+                OfficeXmlNode scheme = ThemeColorScheme;
                 OfficeOpenXmlChartSeriesReader.SourceVisibility? visibility = null;
-                if (_chartPart != null && !OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(_chartPart, chart, out visibility, out _)) return false;
-                OfficeOpenXmlChartSeriesReader.Result? result = group is C.ScatterChart scatter
-                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, (int)MaxCachedChartPoints,
+                IOfficeChartPart? part = SharedChartPart;
+                if (part != null && !OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(part, chart, out visibility, out _)) return false;
+                // At most one series past the readers' limit, so an oversized group is rejected without reading it all.
+                var series = new List<OfficeXmlNode>();
+                foreach (OfficeXmlNode item in GroupSeries(group)) {
+                    series.Add(item);
+                    if (series.Count > MaxCachedChartPoints) break;
+                }
+                OfficeOpenXmlChartSeriesReader.Result? result = group.Is(NsC, "scatterChart")
+                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(series, scheme, (int)MaxCachedChartPoints,
                         visibility: visibility)
-                    : OfficeOpenXmlChartSeriesReader.ReadCategories(group.ChildElements.OfType<OpenXmlCompositeElement>()
-                        .Where(element => element.LocalName == "ser"), kind, scheme, OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, (int)MaxCachedChartPoints,
+                    : OfficeOpenXmlChartSeriesReader.ReadCategories(series, kind, scheme, OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, (int)MaxCachedChartPoints,
                         visibility: visibility);
-                if (result == null || result.Series.Any(series => series.HasUnsupportedAppearance)) return false;
-                var data = new WordChartData(result.Categories, result.Series.Select(series => new WordChartSeries(series.Data)).ToArray());
+                if (result == null || result.Series.Any(item => item.HasUnsupportedAppearance)) return false;
+                var data = new WordChartData(result.Categories, result.Series.Select(item => new WordChartSeries(item.Data)).ToArray());
                 snapshot = CreateSnapshot(chart, ToWordSnapshotKind(kind), data);
                 return true;
             } catch {
@@ -57,11 +61,11 @@ namespace OfficeIMO.Word {
             OfficeIMO.OfficeChartType.Doughnut => WordChartSnapshotKind.Doughnut,
             _ => throw new NotSupportedException("This chart family has no legacy Word snapshot projection.")
         };
-        private static bool HasSingleSupportedChartElement(C.PlotArea plotArea) {
+        private static bool HasSingleSupportedChartElement(OfficeXmlNode plotArea) {
             int chartElementCount = 0;
             int supportedChartElementCount = 0;
 
-            foreach (OpenXmlElement child in plotArea.ChildElements) {
+            foreach (OfficeXmlNode child in plotArea.Children()) {
                 if (!IsChartPlotElement(child)) {
                     continue;
                 }
@@ -75,26 +79,14 @@ namespace OfficeIMO.Word {
             return chartElementCount == 1 && supportedChartElementCount == 1;
         }
 
-        private static bool IsChartPlotElement(OpenXmlElement element) =>
-            element != null &&
-            element.LocalName != null &&
+        private static bool IsChartPlotElement(OfficeXmlNode element) =>
             element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase);
 
-        private static bool IsSupportedChartPlotElement(OpenXmlElement element) {
-            return element is C.BarChart
-                || element is C.Bar3DChart
-                || element is C.LineChart
-                || element is C.Line3DChart
-                || element is C.AreaChart
-                || element is C.Area3DChart
-                || element is C.RadarChart
-                || element is C.ScatterChart
-                || element is C.PieChart
-                || element is C.Pie3DChart
-                || element is C.DoughnutChart;
-        }
+        private static bool IsSupportedChartPlotElement(OfficeXmlNode element) =>
+            element.NamespaceId == NsC && element.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or
+                "areaChart" or "area3DChart" or "radarChart" or "scatterChart" or "pieChart" or "pie3DChart" or "doughnutChart";
 
-        private WordChartInfo CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {
+        private WordChartInfo CreateSnapshot(OfficeXmlNode chart, WordChartSnapshotKind kind, WordChartData data) {
             return new WordChartInfo(
                 ReadDrawingName(),
                 ReadTitle(chart),
@@ -105,13 +97,14 @@ namespace OfficeIMO.Word {
                 OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
-        private static string? ReadTitle(C.Chart chart) {
-            C.ChartText? chartText = chart.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
+        private static string? ReadTitle(OfficeXmlNode chart) {
+            OfficeXmlNode title = chart.Child(NsC, "title");
+            OfficeXmlNode chartText = title.IsNone ? default : title.Child(NsC, "tx");
+            if (chartText.IsNone) {
                 return null;
             }
 
-            string text = string.Concat(chartText.Descendants<A.Text>().Select(item => item.Text));
+            string text = RichTextOf(chartText);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return text.Trim();
             }
@@ -120,22 +113,36 @@ namespace OfficeIMO.Word {
             return cached.Count > 0 && !string.IsNullOrWhiteSpace(cached[0]) ? cached[0].Trim() : null;
         }
 
-        private static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container) =>
+        /// <summary>The text of the runs and fields in a chart text's rich-text paragraphs.</summary>
+        private static string RichTextOf(OfficeXmlNode chartText) {
+            OfficeXmlNode rich = chartText.Child(NsC, "rich");
+            if (rich.IsNone) return string.Empty;
+            var text = new System.Text.StringBuilder();
+            foreach (OfficeXmlNode paragraph in rich.Children(NsA, "p")) {
+                for (OfficeXmlNode item = paragraph.FirstChild; !item.IsNone; item = item.NextSibling) {
+                    if (!item.Is(NsA, "r") && !item.Is(NsA, "fld")) continue;
+                    foreach (OfficeXmlNode value in item.Children(NsA, "t")) text.Append(value.InnerText);
+                }
+            }
+            return text.ToString();
+        }
+
+        private static IReadOnlyList<string> ReadCachedStrings(OfficeXmlNode container) =>
             OfficeOpenXmlChartCacheReader.ReadCachedStrings(container, (int)MaxCachedChartPoints);
         private string ReadDrawingName() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
+            return TryReadDrawingLayout(out WordDrawingLayoutInfo layout)
                 ? layout.Name
                 : string.Empty;
         }
 
         private double GetWidthPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
+            return TryReadDrawingLayout(out WordDrawingLayoutInfo layout)
                 ? layout.WidthPoints
                 : 450D;
         }
 
         private double GetHeightPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
+            return TryReadDrawingLayout(out WordDrawingLayoutInfo layout)
                 ? layout.HeightPoints
                 : 300D;
         }

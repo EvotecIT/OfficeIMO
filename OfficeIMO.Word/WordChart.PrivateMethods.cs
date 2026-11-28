@@ -1,73 +1,76 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Holds private helper methods for chart construction.
     public partial class WordChart {
-        private CategoryAxisData InitializeCategoryAxisData() {
-            var pieChartSeries = InitializePieChartSeries();
-            CategoryAxisData? categoryAxis = pieChartSeries?.GetFirstChild<CategoryAxisData>();
+        /// <summary>The pie, 3-D pie or doughnut group of the chart, or none.</summary>
+        private OfficeXmlNode PieFamily {
+            get {
+                OfficeXmlNode plot = PlotAreaOf(_chart);
+                if (plot.IsNone) return default;
+                OfficeXmlNode family = plot.Child(NsC, "pieChart");
+                if (family.IsNone) family = plot.Child(NsC, "pie3DChart");
+                if (family.IsNone) family = plot.Child(NsC, "doughnutChart");
+                return family;
+            }
+        }
+
+        private static OfficeXmlChildOrder PieFamilyOrder(OfficeXmlNode family) =>
+            family.LocalName == "doughnutChart" ? CDoughnutChartView.Order : CPieChartView.Order;
+
+        /// <summary>The pie series' <c>c:cat</c>, or a detached one with an empty string literal when it has none.</summary>
+        private OfficeXmlNode InitializeCategoryAxisData(OfficeXmlNode pieChartSeries) {
+            OfficeXmlNode categoryAxis = pieChartSeries.IsNone ? default : pieChartSeries.Child(NsC, "cat");
             // If CategoryAxisData does not exist, create it
-            if (categoryAxis == null) {
-                categoryAxis = new CategoryAxisData();
-                StringLiteral stringLiteral = new StringLiteral();
-                categoryAxis.Append(stringLiteral);
+            if (categoryAxis.IsNone) {
+                categoryAxis = pieChartSeries.IsNone ? NewC(PlotSeriesContext, "cat") : NewC(pieChartSeries, "cat");
+                AddC(categoryAxis, "strLit");
             }
             return categoryAxis;
         }
 
-        private NumberLiteral InitializeNumberLiteral() {
-            NumberLiteral? literal = _chart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
+        /// <summary>The element new detached series data is made for when the chart has no pie series to hold it.</summary>
+        private OfficeXmlNode PlotSeriesContext => ChartSpaceNode;
+
+        private OfficeXmlNode InitializeNumberLiteral(OfficeXmlNode values) {
+            OfficeXmlNode valueAxis = PlotChild("valAx");
+            OfficeXmlNode axisValues = valueAxis.IsNone ? default : valueAxis.Child(NsC, "val");
+            OfficeXmlNode literal = axisValues.IsNone ? default : axisValues.Child(NsC, "numLit");
             // If NumberLiteral does not exist, create it
-            if (literal == null) {
-                literal = new NumberLiteral();
-                FormatCode format = new FormatCode() { Text = "General" };
-                literal.Append(format);
+            if (literal.IsNone) {
+                literal = NewC(values, "numLit");
+                AddText(literal, NsC, "formatCode", "General");
             }
-            return literal!;
+            return literal;
         }
 
-        private Values InitializeValues() {
-            var pieChartSeries = InitializePieChartSeries();
-            Values values = pieChartSeries?.GetFirstChild<Values>() ?? new Values() { NumberLiteral = InitializeNumberLiteral() };
+        private OfficeXmlNode InitializeValues(OfficeXmlNode pieChartSeries) {
+            OfficeXmlNode values = pieChartSeries.IsNone ? default : pieChartSeries.Child(NsC, "val");
+            if (!values.IsNone) return values;
+            values = pieChartSeries.IsNone ? NewC(PlotSeriesContext, "val") : NewC(pieChartSeries, "val");
+            values.Append(InitializeNumberLiteral(values));
             return values;
         }
 
-        private PieChartSeries? InitializePieChartSeries() {
-            if (_chart != null) {
-                var pieChart = _chart.PlotArea?.GetFirstChild<PieChart>();
-                OpenXmlCompositeElement? chartElement = pieChart;
-                if (chartElement == null) {
-                    chartElement = _chart.PlotArea?.GetFirstChild<Pie3DChart>();
-                }
-                chartElement ??= _chart.PlotArea?.GetFirstChild<DoughnutChart>();
-
-                if (chartElement != null) {
-                    var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
-
-                    if (pieChartSeries == null) {
-                        pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        chartElement.AddChild(pieChartSeries, true);
-                    }
-                    return pieChartSeries;
-                }
+        /// <summary>The pie family's first series, created when the family has none, or none without a pie family.</summary>
+        private OfficeXmlNode InitializePieChartSeries() {
+            OfficeXmlNode chartElement = PieFamily;
+            if (chartElement.IsNone) return default;
+            OfficeXmlNode pieChartSeries = chartElement.Child(NsC, "ser");
+            if (pieChartSeries.IsNone) {
+                pieChartSeries = OfficeChartXml.SetOrdered(chartElement, CreatePieChartSeries(chartElement, _index, "Title?"),
+                    PieFamilyOrder(chartElement));
             }
-            return null;
+            return pieChartSeries;
         }
 
-        private PieChartSeries CreatePieChartSeries(UInt32Value index, string series) {
-            PieChartSeries pieChartSeries1 = new PieChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-
-            Order order1 = new Order() { Val = index };
-            SeriesText seriesText1 = new SeriesText();
-
-            var stringReference1 = AddSeries(0, series);
-            seriesText1.Append(stringReference1);
-
-            pieChartSeries1.Append(index1);
-            pieChartSeries1.Append(order1);
-            pieChartSeries1.Append(seriesText1);
-            return pieChartSeries1;
+        private static OfficeXmlNode CreatePieChartSeries(OfficeXmlNode family, uint index, string series) {
+            OfficeXmlNode pieChartSeries = NewC(family, "ser");
+            AddC(pieChartSeries, "idx", index);
+            AddC(pieChartSeries, "order", index);
+            AddSeriesText(pieChartSeries, series);
+            return pieChartSeries;
         }
 
         /// <summary>
@@ -75,47 +78,50 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="category">The category.</param>
         private void AddSingleCategory(string category) {
-            var pieChartSeries = InitializePieChartSeries();
+            OfficeXmlNode pieChartSeries = InitializePieChartSeries();
 
-            CategoryAxisData categoryAxis = InitializeCategoryAxisData();
+            OfficeXmlNode categoryAxis = InitializeCategoryAxisData(pieChartSeries);
 
-            if (categoryAxis.GetFirstChild<NumberLiteral>() is NumberLiteral numericCategories) {
-                var numericPoint = new NumericPoint {
-                    Index = _currentIndexCategory,
-                    NumericValue = new NumericValue { Text = category }
-                };
-                AppendLiteralSlicePoint(numericCategories, numericPoint);
-                _lastAppendedCategoryPoint = numericPoint;
-                PointCount? count = numericCategories.GetFirstChild<PointCount>();
-                if (count != null) count.Val = _currentIndexCategory + 1;
-                else numericCategories.AddChild(new PointCount { Val = _currentIndexCategory + 1 }, true);
+            OfficeXmlNode numericCategories = categoryAxis.Child(NsC, "numLit");
+            if (!numericCategories.IsNone) {
+                _lastAppendedCategoryPoint = AppendLiteralSlicePoint(numericCategories, NewPoint(numericCategories, _currentIndexCategory, category));
+                OfficeXmlNode count = numericCategories.Child(NsC, "ptCount");
+                if (!count.IsNone) count.SetAttribute("val", OfficeChartXml.Text(_currentIndexCategory + 1));
+                else OfficeChartXml.SetOrdered(numericCategories, NewC(numericCategories, "ptCount", _currentIndexCategory + 1), CNumDataView.Order);
                 _currentIndexCategory++;
                 return;
             }
-            StringLiteral? stringLiteral = categoryAxis.GetFirstChild<StringLiteral>();
+            OfficeXmlNode stringLiteral = categoryAxis.Child(NsC, "strLit");
             // If StringLiteral does not exist, create it
-            if (stringLiteral == null) {
-                stringLiteral = new StringLiteral();
-                categoryAxis.Append(stringLiteral);
+            if (stringLiteral.IsNone) {
+                stringLiteral = AddC(categoryAxis, "strLit");
             }
-            var stringPoint = new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } };
-            AppendLiteralSlicePoint(stringLiteral, stringPoint);
-            _lastAppendedCategoryPoint = stringPoint;
+            _lastAppendedCategoryPoint = AppendLiteralSlicePoint(stringLiteral, NewPoint(stringLiteral, _currentIndexCategory, category));
             // Update the PointCount
-            PointCount? pointCount = stringLiteral.GetFirstChild<PointCount>();
-            if (pointCount != null) {
-                pointCount.Val = _currentIndexCategory + 1;
+            OfficeXmlNode pointCount = stringLiteral.Child(NsC, "ptCount");
+            if (!pointCount.IsNone) {
+                pointCount.SetAttribute("val", OfficeChartXml.Text(_currentIndexCategory + 1));
             } else {
-                stringLiteral.InsertAt(new PointCount() { Val = _currentIndexCategory + 1 }, 0);
+                stringLiteral.InsertBefore(NewC(stringLiteral, "ptCount", _currentIndexCategory + 1), stringLiteral.FirstChild);
             }
             // Increment the current index
             _currentIndexCategory++;
 
-            if (pieChartSeries != null) {
-                if (!pieChartSeries.Elements<CategoryAxisData>().Any()) {
-                    pieChartSeries.AddChild(categoryAxis, true);
-                }
+            if (!pieChartSeries.IsNone && pieChartSeries.Child(NsC, "cat").IsNone) {
+                categoryAxis = OfficeChartXml.SetOrdered(pieChartSeries, categoryAxis, CPieSerView.Order);
+                RefreshAppendedCategoryPoint(categoryAxis);
             }
+        }
+
+        /// <summary>
+        /// Points the last appended category at its element in <paramref name="categoryAxis"/>, as inserting a detached
+        /// category list can hold it as new elements.
+        /// </summary>
+        private void RefreshAppendedCategoryPoint(OfficeXmlNode categoryAxis) {
+            OfficeXmlNode literal = categoryAxis.Child(NsC, "numLit");
+            if (literal.IsNone) literal = categoryAxis.Child(NsC, "strLit");
+            OfficeXmlNode last = literal.IsNone ? default : literal.Children(NsC, "pt").Last();
+            _lastAppendedCategoryPoint = last;
         }
 
         /// <summary>
@@ -125,101 +131,102 @@ namespace OfficeIMO.Word {
         /// <param name="data">The data.</param>
         private void AddSingleValue<T>(T data) {
             // Initialize the PieChartSeries
-            var pieChartSeries = InitializePieChartSeries();
+            OfficeXmlNode pieChartSeries = InitializePieChartSeries();
             // Initialize the Values
-            Values values = InitializeValues();
+            OfficeXmlNode values = InitializeValues(pieChartSeries);
             // Initialize the NumberLiteral
-            NumberLiteral literal = values.GetFirstChild<NumberLiteral>() ?? InitializeNumberLiteral();
+            OfficeXmlNode literal = values.Child(NsC, "numLit");
+            if (literal.IsNone) literal = InitializeNumberLiteral(values);
 
             // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
             string valueText = data is double d ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(d, System.Globalization.CultureInfo.InvariantCulture) :
                               data is float f ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(f, System.Globalization.CultureInfo.InvariantCulture) :
                               data?.ToString() ?? "0";
 
-            var valuePoint = new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } };
-            AppendLiteralSlicePoint(literal, valuePoint);
-            _lastAppendedValuePoint = valuePoint;
+            _lastAppendedValuePoint = AppendLiteralSlicePoint(literal, NewPoint(literal, _currentIndexValues, valueText));
             // Update the PointCount
-            PointCount? pointCount = literal.GetFirstChild<PointCount>();
-            if (pointCount != null) {
-                pointCount.Val = _currentIndexValues + 1;
+            OfficeXmlNode pointCount = literal.Child(NsC, "ptCount");
+            if (!pointCount.IsNone) {
+                pointCount.SetAttribute("val", OfficeChartXml.Text(_currentIndexValues + 1));
             } else {
-                int pos = literal.Elements<FormatCode>().Any() ? 1 : 0;
-                literal.InsertAt(new PointCount() { Val = _currentIndexValues + 1 }, pos);
+                OfficeXmlNode formatCode = literal.Child(NsC, "formatCode");
+                OfficeXmlNode count = NewC(literal, "ptCount", _currentIndexValues + 1);
+                if (formatCode.IsNone) literal.InsertBefore(count, literal.FirstChild);
+                else formatCode.InsertAfterSelf(count);
             }
             // Increment the current index
             _currentIndexValues++;
             // add values to the series if it does not exist
-            if (pieChartSeries != null) {
-                if (!pieChartSeries.Elements<Values>().Any()) {
-                    pieChartSeries.AddChild(values, true);
-                }
+            if (!pieChartSeries.IsNone && pieChartSeries.Child(NsC, "val").IsNone) {
+                values = OfficeChartXml.SetOrdered(pieChartSeries, values, CPieSerView.Order);
+                OfficeXmlNode heldLiteral = values.Child(NsC, "numLit");
+                _lastAppendedValuePoint = heldLiteral.IsNone ? default : heldLiteral.Children(NsC, "pt").Last();
             }
         }
 
-        private Chart CreatePieChart(Chart chart) {
-            PieChart pieChart1 = new PieChart(new VaryColors { Val = true }, AddDataLabel());
-            pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            chart.PlotArea!.Append(pieChart1);
-            return chart;
+        private static void CreatePieChart(OfficeXmlNode chart) {
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode pieChart = NewC(plotArea, "pieChart");
+            AddC(pieChart, "varyColors", true);
+            pieChart.Append(AddDataLabel(pieChart));
+            pieChart.DeclareNamespace("c", ChartNamespaceUri);
+            plotArea.Append(pieChart);
         }
 
         /// <summary>
         /// Chart groups precede the axes in c:plotArea, so a group added to an existing chart goes before them
         /// and shares the axes already there.
         /// </summary>
-        private static void AddChartGroup(PlotArea plotArea, OpenXmlCompositeElement group, CategoryAxis categoryAxis, ValueAxis valueAxis) {
-            OpenXmlElement? firstAxis = plotArea.ChildElements.FirstOrDefault(IsAxis);
-            if (firstAxis == null) {
-                plotArea.Append(group, categoryAxis, valueAxis);
+        private static void AddChartGroup(OfficeXmlNode plotArea, OfficeXmlNode group, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
+            OfficeXmlNode firstAxis = FirstAxis(plotArea);
+            if (firstAxis.IsNone) {
+                plotArea.Append(group);
+                plotArea.Append(categoryAxis);
+                plotArea.Append(valueAxis);
                 return;
             }
 
-            CategoryAxis? sharedCategory = plotArea.GetFirstChild<CategoryAxis>();
-            ValueAxis? sharedValue = plotArea.GetFirstChild<ValueAxis>();
-            plotArea.InsertBefore(group, firstAxis);
-            if (sharedCategory?.AxisId?.Val != null && sharedValue?.AxisId?.Val != null) {
-                AxisId[] ids = group.Elements<AxisId>().ToArray();
-                ids[0].Val = sharedCategory.AxisId.Val.Value;
-                ids[1].Val = sharedValue.AxisId.Val.Value;
+            OfficeXmlNode sharedCategory = plotArea.Child(NsC, "catAx");
+            OfficeXmlNode sharedValue = plotArea.Child(NsC, "valAx");
+            group = plotArea.InsertBefore(group, firstAxis);
+            OfficeXmlNode sharedCategoryId = sharedCategory.IsNone ? default : sharedCategory.Child(NsC, "axId");
+            OfficeXmlNode sharedValueId = sharedValue.IsNone ? default : sharedValue.Child(NsC, "axId");
+            if (sharedCategoryId.Val() != null && sharedValueId.Val() != null) {
+                List<OfficeXmlNode> ids = group.Children(NsC, "axId").ToList();
+                ids[0].SetAttribute("val", OfficeChartXml.Text(sharedCategoryId.UIntVal()!.Value));
+                ids[1].SetAttribute("val", OfficeChartXml.Text(sharedValueId.UIntVal()!.Value));
                 return;
             }
 
-            OpenXmlElement lastAxis = plotArea.ChildElements.Last(IsAxis);
+            OfficeXmlNode lastAxis = default;
+            foreach (OfficeXmlNode child in plotArea.Children()) {
+                if (IsAxis(child)) lastAxis = child;
+            }
             lastAxis.InsertAfterSelf(valueAxis);
             lastAxis.InsertAfterSelf(categoryAxis);
         }
 
-        private static bool IsAxis(OpenXmlElement element) =>
-            element is CategoryAxis or ValueAxis or DateAxis or SeriesAxis;
-
-        private Chart GenerateChartBar(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
-
-            BarChart barChart1 = CreateBarChart(catId, valId);
-            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Left);
-            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Bottom);
-            AddChartGroup(chart.PlotArea!, barChart1, categoryAxis1, valueAxis1);
-
-            return chart;
+        private static OfficeXmlNode FirstAxis(OfficeXmlNode plotArea) {
+            foreach (OfficeXmlNode child in plotArea.Children()) {
+                if (IsAxis(child)) return child;
+            }
+            return default;
         }
-        private BarChart CreateBarChart(UInt32Value catAxisId, UInt32Value valAxisId, BarDirectionValues? barDirection = null) {
-            barDirection ??= BarDirectionValues.Bar;
-            BarChart barChart1 = new BarChart();
-            barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            BarDirection barDirection1 = new BarDirection() { Val = barDirection };
-            BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Clustered };
-            DataLabels dataLabels1 = AddDataLabel();
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent };
-            Overlap overlap1 = new Overlap() { Val = 0 };
+        private void GenerateChartBar(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode barChart = CreateBarChart(plotArea, catId, valId);
+            OfficeXmlNode categoryAxis = AddCategoryAxisInternal(plotArea, catId, valId, "l");
+            OfficeXmlNode valueAxis = AddValueAxisInternal(plotArea, valId, catId, "b");
+            AddChartGroup(plotArea, barChart, categoryAxis, valueAxis);
+        }
 
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+        private static OfficeXmlNode CreateBarChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId, string barDirection = "bar") {
+            OfficeXmlNode barChart = NewC(plotArea, "barChart");
+            barChart.DeclareNamespace("c", ChartNamespaceUri);
 
             // Append elements in correct OpenXML schema order:
             // 1. barDir [1..1] - Bar Direction
@@ -232,57 +239,46 @@ namespace OfficeIMO.Word {
             // 8. serLines [0..*] - Series Lines (not used)
             // 9. axId [2..2] - Axis ID
             // 10. extLst [0..1] - Extension List (not used)
-            barChart1.Append(barDirection1);
-            barChart1.Append(barGrouping1);
-            barChart1.Append(dataLabels1);
-            barChart1.Append(gapWidth1);
-            barChart1.Append(overlap1);
-            barChart1.Append(axisId1);
-            barChart1.Append(axisId2);
-            return barChart1;
+            AddC(barChart, "barDir", barDirection);
+            AddC(barChart, "grouping", "clustered");
+            barChart.Append(AddDataLabel(barChart));
+            AddC(barChart, "gapWidth", OfficeChartXml.Text(OfficeTheme.Default.ChartStyle.BarGapPercent));
+            AddC(barChart, "overlap", "0");
+            AddC(barChart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(barChart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            return barChart;
+        }
+
+        /// <summary>Builds a new chart with one group, attaches it and applies the chart-level defaults.</summary>
+        private void CreateNewChart(Action<OfficeXmlNode> generate, bool axisTitles = true) {
+            OfficeXmlNode chart = GenerateChart();
+            generate(chart);
+            AttachNewChart(chart);
+            EnsureFramelessChartArea();
+
+            // since the title may have changed, we need to update it
+            UpdateTitle();
+            if (axisTitles) UpdateAxisTitles();
         }
 
         private void EnsureChartExistsPie() {
             // minimum required to create chart
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = CreatePieChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-
-                // since the title may have changed, we need to update it
-                UpdateTitle();
-                UpdateAxisTitles();
-            }
+            if (_chart.IsNone) CreateNewChart(CreatePieChart);
         }
 
         private void EnsureChartExistsBar() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateChartBar(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-
-                // since the title may have changed, we need to update it
-                UpdateTitle();
-                UpdateAxisTitles();
+            if (_chart.IsNone) {
+                CreateNewChart(GenerateChartBar);
             } else {
-                AttachCategoryGroup<BarChart>((catAxisId, valAxisId) => CreateBarChart(catAxisId, valAxisId), GenerateChartBar);
+                AttachCategoryGroup("barChart", (plot, catAxisId, valAxisId) => CreateBarChart(plot, catAxisId, valAxisId), GenerateChartBar);
             }
         }
 
         private void EnsureChartExistsArea() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateAreaChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-
-                // since the title may have changed, we need to update it
-                UpdateTitle();
-                UpdateAxisTitles();
+            if (_chart.IsNone) {
+                CreateNewChart(GenerateAreaChart);
             } else {
-                AttachCategoryGroup<AreaChart>(CreateAreaChart, GenerateAreaChart);
+                AttachCategoryGroup("areaChart", CreateAreaChart, GenerateAreaChart);
             }
         }
 
@@ -290,669 +286,379 @@ namespace OfficeIMO.Word {
         /// Adds a bar, line or area group to an existing chart on the category and value axes of the
         /// chart's existing bar, line or area group, so loaded charts accept the same combinations as new ones.
         /// </summary>
-        private void AttachCategoryGroup<TGroup>(Func<UInt32Value, UInt32Value, TGroup> create, Func<Chart, Chart> generate)
-            where TGroup : OpenXmlCompositeElement {
-            var plot = _chart!.PlotArea ??= new PlotArea();
-            if (plot.GetFirstChild<TGroup>() != null) return;
-            OpenXmlCompositeElement? shared = (OpenXmlCompositeElement?)plot.GetFirstChild<BarChart>()
-                ?? (OpenXmlCompositeElement?)plot.GetFirstChild<LineChart>() ?? plot.GetFirstChild<AreaChart>();
-            var ids = shared?.Elements<AxisId>().ToList();
-            if (ids is { Count: >= 2 } && ids[0].Val != null && ids[1].Val != null) {
-                var group = create(ids[0].Val!, ids[1].Val!);
-                var firstAxis = plot.ChildElements.FirstOrDefault(element =>
-                    element is CategoryAxis or ValueAxis or DateAxis or SeriesAxis);
-                if (firstAxis != null) {
-                    plot.InsertBefore(group, firstAxis);
-                } else {
-                    plot.Append(group);
-                }
+        private void AttachCategoryGroup(string groupName, Func<OfficeXmlNode, uint, uint, OfficeXmlNode> create, Action<OfficeXmlNode> generate) {
+            OfficeXmlNode plot = PlotAreaOf(_chart);
+            if (plot.IsNone) plot = OfficeChartXml.SetOrdered(_chart, NewC(_chart, "plotArea"), CChartView.Order);
+            if (!plot.Child(NsC, groupName).IsNone) return;
+            OfficeXmlNode shared = plot.Child(NsC, "barChart");
+            if (shared.IsNone) shared = plot.Child(NsC, "lineChart");
+            if (shared.IsNone) shared = plot.Child(NsC, "areaChart");
+            List<OfficeXmlNode>? ids = shared.IsNone ? null : shared.Children(NsC, "axId").ToList();
+            if (ids is { Count: >= 2 } && ids[0].Val() != null && ids[1].Val() != null) {
+                OfficeXmlNode group = create(plot, ids[0].UIntVal()!.Value, ids[1].UIntVal()!.Value);
+                plot.InsertBefore(group, FirstAxis(plot));
                 return;
             }
-            RejectOtherChartGroup<TGroup>(typeof(TGroup).Name.Replace("Chart", string.Empty).ToLowerInvariant());
-            _chart = generate(_chart);
+            RejectOtherChartGroup(groupName, groupName.Replace("Chart", string.Empty).ToLowerInvariant());
+            generate(_chart);
         }
 
         /// <summary>Rejects a series kind that cannot share the plot area with the chart's existing group.</summary>
-        private void RejectOtherChartGroup<TGroup>(string kind) where TGroup : OpenXmlCompositeElement {
-            var plot = _chart?.PlotArea;
-            if (plot == null || plot.GetFirstChild<TGroup>() != null) return;
-            var existing = plot.ChildElements.FirstOrDefault(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal));
-            if (existing == null) return;
+        private void RejectOtherChartGroup(string groupName, string kind) {
+            OfficeXmlNode plot = PlotAreaOf(_chart);
+            if (plot.IsNone || !plot.Child(NsC, groupName).IsNone) return;
+            OfficeXmlNode existing = default;
+            foreach (OfficeXmlNode child in plot.Children()) {
+                if (IsChartGroup(child)) {
+                    existing = child;
+                    break;
+                }
+            }
+            if (existing.IsNone) return;
             throw new NotSupportedException("A " + kind + " series cannot be added to a chart that already has a " +
                 existing.LocalName.Replace("Chart", string.Empty) + " chart group. Bar, line and area series can be combined on shared axes.");
         }
 
         private void EnsureChartExistsLine() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateLineChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-
-                // since the title may have changed, we need to update it
-                UpdateTitle();
-                UpdateAxisTitles();
+            if (_chart.IsNone) {
+                CreateNewChart(GenerateLineChart);
             } else {
-                AttachCategoryGroup<LineChart>(CreateLineChart, GenerateLineChart);
+                AttachCategoryGroup("lineChart", CreateLineChart, GenerateLineChart);
             }
         }
 
-
-        private BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
-            BarChartSeries barChartSeries1 = new BarChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order1 = new Order() { Val = index };
-            SeriesText seriesText1 = new SeriesText();
-            var stringReference1 = AddSeries(0, series);
-            seriesText1.Append(stringReference1);
-            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
-            var chartShapeProperties1 = AddShapeProperties(color);
-            barChartSeries1.Append(index1);
-            barChartSeries1.Append(order1);
-            barChartSeries1.Append(seriesText1);
-            barChartSeries1.Append(chartShapeProperties1);
-            barChartSeries1.Append(invertIfNegative1);
-            Values values1 = AddValuesAxisData(data);
-            CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
-            barChartSeries1.Append(categoryAxisData1);
-            barChartSeries1.Append(values1);
-            return barChartSeries1;
+        /// <summary>Starts a series with its index, order and literal name.</summary>
+        private static OfficeXmlNode NewSeries(OfficeXmlNode group, uint index, string name) {
+            OfficeXmlNode series = NewC(group, "ser");
+            AddC(series, "idx", index);
+            AddC(series, "order", index);
+            AddSeriesText(series, name);
+            return series;
         }
 
-        private ChartShapeProperties AddShapeProperties(OfficeIMO.OfficeColor color) {
-            ChartShapeProperties chartShapeProperties1 = new ChartShapeProperties();
-
-            chartShapeProperties1.Append(CreateChartFill(color));
-
-            return chartShapeProperties1;
-
-        }
-        private LineChart CreateLineChart(UInt32Value catAxisId, UInt32Value valAxisId) {
-            LineChart lineChart1 = new LineChart();
-            lineChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
-
-            DataLabels dataLabels1 = AddDataLabel();
-
-            lineChart1.Append(grouping1);
-            lineChart1.Append(dataLabels1);
-
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            lineChart1.Append(axisId1);
-            lineChart1.Append(axisId2);
-            return lineChart1;
+        private OfficeXmlNode AddBarChartSeries<T>(OfficeXmlNode group, uint index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
+            OfficeXmlNode barChartSeries = NewSeries(group, index, series);
+            barChartSeries.Append(AddShapeProperties(barChartSeries, color));
+            AddC(barChartSeries, "invertIfNegative");
+            barChartSeries.Append(AddCategoryAxisData(barChartSeries, categories));
+            barChartSeries.Append(AddValuesAxisData(barChartSeries, data));
+            return barChartSeries;
         }
 
-        private Chart GenerateLineChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
-
-            LineChart lineChart1 = CreateLineChart(catId, valId);
-            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
-            //chart.PlotArea.Append(layout1);
-            AddChartGroup(chart.PlotArea!, lineChart1, categoryAxis1, valueAxis1);
-            return chart;
+        /// <summary>A detached <c>c:spPr</c> with a solid fill, made for <paramref name="context"/>.</summary>
+        private OfficeXmlNode AddShapeProperties(OfficeXmlNode context, OfficeIMO.OfficeColor color) {
+            OfficeXmlNode chartShapeProperties = NewC(context, "spPr");
+            chartShapeProperties.Append(CreateChartFill(chartShapeProperties, color));
+            return chartShapeProperties;
         }
-        private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
-            LineChartSeries lineChartSeries1 = new LineChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order1 = new Order() { Val = index };
 
-            SeriesText seriesText1 = new SeriesText();
+        private static OfficeXmlNode CreateLineChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId) {
+            OfficeXmlNode lineChart = NewC(plotArea, "lineChart");
+            lineChart.DeclareNamespace("c", ChartNamespaceUri);
+            AddC(lineChart, "grouping", "standard");
+            lineChart.Append(AddDataLabel(lineChart));
+            AddC(lineChart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(lineChart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            return lineChart;
+        }
 
-            var stringReference1 = AddSeries(0, series);
+        private void GenerateLineChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-            seriesText1.Append(stringReference1);
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode lineChart = CreateLineChart(plotArea, catId, valId);
+            OfficeXmlNode categoryAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valueAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
+            AddChartGroup(plotArea, lineChart, categoryAxis, valueAxis);
+        }
 
-            // Note: InvertIfNegative is not valid for LineChartSeries according to OpenXML schema
-            // It's only valid for BarChartSeries and other chart types, but not LineChartSeries
-
-            var chartShapeProperties1 = AddShapeProperties(color);
-
-            Values values1 = AddValuesAxisData(data);
-            CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
-
+        private OfficeXmlNode AddLineChartSeries<T>(OfficeXmlNode group, uint index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
             // Append elements in correct OpenXML schema order for LineChartSeries:
             // 1. idx, 2. order, 3. tx (seriesText), 4. spPr (chartShapeProperties),
             // 5. marker, 6. pictureOptions, 7. dPt, 8. dLbls, 9. trendline, 10. errBars,
             // 11. cat (categoryAxisData), 12. val (values), 13. smooth, 14. extLst
-            lineChartSeries1.Append(index1);
-            lineChartSeries1.Append(order1);
-            lineChartSeries1.Append(seriesText1);
-            lineChartSeries1.Append(chartShapeProperties1);
-            lineChartSeries1.Append(new Marker(new Symbol { Val = MarkerStyleValues.None }));
-            lineChartSeries1.Append(categoryAxisData1);
-            lineChartSeries1.Append(values1);
-
-            return lineChartSeries1;
-
-
+            // InvertIfNegative is not valid for LineChartSeries according to OpenXML schema.
+            OfficeXmlNode lineChartSeries = NewSeries(group, index, series);
+            lineChartSeries.Append(AddShapeProperties(lineChartSeries, color));
+            AddC(AddC(lineChartSeries, "marker"), "symbol", "none");
+            lineChartSeries.Append(AddCategoryAxisData(lineChartSeries, categories));
+            lineChartSeries.Append(AddValuesAxisData(lineChartSeries, data));
+            return lineChartSeries;
         }
 
-        private AreaChart CreateAreaChart(UInt32Value catAxisId, UInt32Value valAxisId) {
-            AreaChart chart = new AreaChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
-
-            chart.Append(grouping1);
-
-            DataLabels dataLabels1 = AddDataLabel();
-            chart.Append(dataLabels1);
-
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
+        private static OfficeXmlNode CreateAreaChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId) {
+            OfficeXmlNode chart = NewC(plotArea, "areaChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "grouping", "standard");
+            chart.Append(AddDataLabel(chart));
+            AddC(chart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private Chart GenerateAreaChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
+        private void GenerateAreaChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-            AreaChart areaChart = CreateAreaChart(catId, valId);
-
-            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
-
-            //chart.PlotArea.Append(layout1);
-            AddChartGroup(chart.PlotArea!, areaChart, categoryAxis1, valueAxis1);
-
-
-            return chart;
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode areaChart = CreateAreaChart(plotArea, catId, valId);
+            OfficeXmlNode categoryAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valueAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
+            AddChartGroup(plotArea, areaChart, categoryAxis, valueAxis);
         }
 
-        private AreaChartSeries AddAreaChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
-            AreaChartSeries lineChartSeries1 = new AreaChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order1 = new Order() { Val = index };
-
-            SeriesText seriesText1 = new SeriesText();
-
-
-            NumericValue numericValue1 = new NumericValue();
-            numericValue1.Text = series;
-
-            seriesText1.Append(numericValue1);
-
-
-            var chartShapeProperties1 = AddShapeProperties(color);
-
-            Values values1 = AddValuesAxisData(data);
-            CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
-
-
-            lineChartSeries1.Append(index1);
-            lineChartSeries1.Append(order1);
-            lineChartSeries1.Append(seriesText1);
-            lineChartSeries1.Append(chartShapeProperties1);
-
-            lineChartSeries1.Append(categoryAxisData1);
-            lineChartSeries1.Append(values1);
-
-            return lineChartSeries1;
+        private OfficeXmlNode AddAreaChartSeries<T>(OfficeXmlNode group, uint index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
+            OfficeXmlNode areaChartSeries = NewSeries(group, index, series);
+            areaChartSeries.Append(AddShapeProperties(areaChartSeries, color));
+            areaChartSeries.Append(AddCategoryAxisData(areaChartSeries, categories));
+            areaChartSeries.Append(AddValuesAxisData(areaChartSeries, data));
+            return areaChartSeries;
         }
 
-        private static UInt32Value GenerateAxisId() {
-            int id = System.Threading.Interlocked.Increment(ref _axisIdSeed);
-            return (UInt32Value)(uint)id;
-        }
+        private static uint GenerateAxisId() => (uint)System.Threading.Interlocked.Increment(ref _axisIdSeed);
 
-        private static void InsertSeries(OpenXmlCompositeElement chartElement, OpenXmlCompositeElement series) {
+        /// <summary>
+        /// Inserts a series into its chart group after the grouping or vary-colors setting, or before the data labels,
+        /// gap depth or axis ids, and returns it as it is now held.
+        /// </summary>
+        private static OfficeXmlNode InsertSeries(OfficeXmlNode chartElement, OfficeXmlNode series) {
             // For Line3DChart and other charts, series should come after grouping/varyColors but before dLbls/gapDepth/axId
 
             // Try to insert after VaryColors first
-            var varyColors = chartElement.GetFirstChild<VaryColors>();
-            if (varyColors != null) {
-                chartElement.InsertAfter(series, varyColors);
-                return;
-            }
+            OfficeXmlNode varyColors = chartElement.Child(NsC, "varyColors");
+            if (!varyColors.IsNone) return varyColors.InsertAfterSelf(series);
 
-            // If no VaryColors, try to insert after Grouping
-            var grouping = chartElement.GetFirstChild<Grouping>();
-            if (grouping != null) {
-                chartElement.InsertAfter(series, grouping);
-                return;
-            }
+            // If no VaryColors, try to insert after Grouping. A bar group's grouping is a bar grouping, which this
+            // doesn't look for, so bar series go before the data labels and keep the order they were added in.
+            OfficeXmlNode grouping = chartElement.LocalName is "barChart" or "bar3DChart" ? default : chartElement.Child(NsC, "grouping");
+            if (!grouping.IsNone) return grouping.InsertAfterSelf(series);
 
             // If no grouping, try to insert before DataLabels
-            var dataLabels = chartElement.GetFirstChild<DataLabels>();
-            if (dataLabels != null) {
-                chartElement.InsertBefore(series, dataLabels);
-                return;
-            }
+            OfficeXmlNode dataLabels = chartElement.Child(NsC, "dLbls");
+            if (!dataLabels.IsNone) return chartElement.InsertBefore(series, dataLabels);
 
             // If no DataLabels, try to insert before GapDepth
-            var gapDepth = chartElement.GetFirstChild<GapDepth>();
-            if (gapDepth != null) {
-                chartElement.InsertBefore(series, gapDepth);
-                return;
-            }
+            OfficeXmlNode gapDepth = chartElement.Child(NsC, "gapDepth");
+            if (!gapDepth.IsNone) return chartElement.InsertBefore(series, gapDepth);
 
-            // As a last resort, insert before the first AxisId
-            var axis = chartElement.Elements<AxisId>().FirstOrDefault();
-            if (axis != null) {
-                chartElement.InsertBefore(series, axis);
-                return;
-            }
-
-            // If none of the above, just append it
-            chartElement.Append(series);
+            // As a last resort, insert before the first AxisId; if there is none, append it
+            return chartElement.InsertBefore(series, chartElement.Child(NsC, "axId"));
         }
 
-        private ScatterChart CreateScatterChart(UInt32Value xAxisId, UInt32Value yAxisId) {
-            ScatterChart chart = new ScatterChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            chart.Append(new ScatterStyle() { Val = ScatterStyleValues.Marker });
-
-            DataLabels labels = AddDataLabel();
-            chart.Append(labels);
-
-            AxisId axisId1 = new AxisId() { Val = xAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            AxisId axisId2 = new AxisId() { Val = yAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
+        private static OfficeXmlNode CreateScatterChart(OfficeXmlNode plotArea, uint xAxisId, uint yAxisId) {
+            OfficeXmlNode chart = NewC(plotArea, "scatterChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "scatterStyle", "marker");
+            chart.Append(AddDataLabel(chart));
+            AddC(chart, "axId", xAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", yAxisId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private Chart GenerateScatterChart(Chart chart) {
-            UInt32Value xId = GenerateAxisId();
-            UInt32Value yId = GenerateAxisId();
+        private void GenerateScatterChart(OfficeXmlNode chart) {
+            uint xId = GenerateAxisId();
+            uint yId = GenerateAxisId();
 
-            ScatterChart scatter = CreateScatterChart(xId, yId);
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode scatter = CreateScatterChart(plotArea, xId, yId);
+            OfficeXmlNode xAxis = AddValueAxisInternal(plotArea, xId, yId, "b");
+            OfficeXmlNode yAxis = AddValueAxisInternal(plotArea, yId, xId, "l");
 
-            ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
-            ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
-
-            chart.PlotArea!.Append(scatter);
-            chart.PlotArea!.Append(xAxis);
-            chart.PlotArea!.Append(yAxis);
-
-            return chart;
+            plotArea.Append(scatter);
+            plotArea.Append(xAxis);
+            plotArea.Append(yAxis);
         }
 
-        private ScatterChartSeries AddScatterChartSeries(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<double> xValues, List<double> yValues) {
-            ScatterChartSeries scSeries = new ScatterChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order = new Order() { Val = index };
+        private OfficeXmlNode AddScatterChartSeries(OfficeXmlNode group, uint index, string series, OfficeIMO.OfficeColor color, List<double> xValues, List<double> yValues) {
+            OfficeXmlNode scatterSeries = NewSeries(group, index, series);
+            scatterSeries.Append(AddShapeProperties(scatterSeries, color));
+            AddScatterValues(AddC(scatterSeries, "xVal"), xValues);
+            AddScatterValues(AddC(scatterSeries, "yVal"), yValues);
+            return scatterSeries;
+        }
 
-            SeriesText text = new SeriesText();
-            var seriesRef = AddSeries(0, series);
-            text.Append(seriesRef);
-
-            var shape = AddShapeProperties(color); XValues x = new XValues();
-            NumberLiteral xLit = new NumberLiteral();
-            xLit.Append(new PointCount() { Val = (uint)xValues.Count }); for (int i = 0; i < xValues.Count; i++) {
+        private static void AddScatterValues(OfficeXmlNode values, List<double> data) {
+            OfficeXmlNode literal = AddC(values, "numLit");
+            AddC(literal, "ptCount", (uint)data.Count);
+            for (int i = 0; i < data.Count; i++) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string xValueText = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(xValues[i], System.Globalization.CultureInfo.InvariantCulture);
-                xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValueText) });
+                string valueText = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(data[i], System.Globalization.CultureInfo.InvariantCulture);
+                AddPoint(literal, (uint)i, valueText);
             }
-            x.Append(xLit);
-
-            YValues y = new YValues();
-            NumberLiteral yLit = new NumberLiteral();
-            yLit.Append(new PointCount() { Val = (uint)yValues.Count }); for (int i = 0; i < yValues.Count; i++) {
-                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string yValueText = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(yValues[i], System.Globalization.CultureInfo.InvariantCulture);
-                yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValueText) });
-            }
-            y.Append(yLit);
-
-            scSeries.Append(idx);
-            scSeries.Append(order);
-            scSeries.Append(text);
-            scSeries.Append(shape);
-            scSeries.Append(x);
-            scSeries.Append(y);
-
-            return scSeries;
         }
 
-        private RadarChart CreateRadarChart(UInt32Value catAxisId, UInt32Value valAxisId) {
-            RadarChart chart = new RadarChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            RadarStyle style = new RadarStyle() { Val = RadarStyleValues.Standard };
-            chart.Append(style);
-
-            DataLabels labels = AddDataLabel();
-            chart.Append(labels);
-
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
+        private static OfficeXmlNode CreateRadarChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId) {
+            OfficeXmlNode chart = NewC(plotArea, "radarChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "radarStyle", "standard");
+            chart.Append(AddDataLabel(chart));
+            AddC(chart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private Chart GenerateRadarChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
+        private void GenerateRadarChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-            RadarChart radarChart = CreateRadarChart(catId, valId);
-            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode radarChart = CreateRadarChart(plotArea, catId, valId);
+            OfficeXmlNode catAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
 
-            chart.PlotArea!.Append(radarChart);
-            chart.PlotArea!.Append(catAxis);
-            chart.PlotArea!.Append(valAxis);
-            return chart;
+            plotArea.Append(radarChart);
+            plotArea.Append(catAxis);
+            plotArea.Append(valAxis);
         }
 
-        private RadarChartSeries AddRadarChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
-            RadarChartSeries radarSeries = new RadarChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order = new Order() { Val = index };
-
-            SeriesText text = new SeriesText();
-            var seriesRef = AddSeries(0, series);
-            text.Append(seriesRef);
-
-            var shape = AddShapeProperties(color);
-            CategoryAxisData cats = AddCategoryAxisData(categories);
-            Values vals = AddValuesAxisData(values);
-
-            radarSeries.Append(idx);
-            radarSeries.Append(order);
-            radarSeries.Append(text);
-            radarSeries.Append(shape);
-            radarSeries.Append(cats);
-            radarSeries.Append(vals);
+        private OfficeXmlNode AddRadarChartSeries<T>(OfficeXmlNode group, uint index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
+            OfficeXmlNode radarSeries = NewSeries(group, index, series);
+            radarSeries.Append(AddShapeProperties(radarSeries, color));
+            radarSeries.Append(AddCategoryAxisData(radarSeries, categories));
+            radarSeries.Append(AddValuesAxisData(radarSeries, values));
             return radarSeries;
         }
-        private Bar3DChart CreateBar3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
-            Bar3DChart chart = new Bar3DChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+        private static OfficeXmlNode CreateBar3DChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId) {
+            OfficeXmlNode chart = NewC(plotArea, "bar3DChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
 
             // Append elements in correct OpenXML schema order for Bar3DChart:
             // 1. barDir, 2. grouping, 3. varyColors, 4. ser (added later via InsertSeries),
             // 5. dLbls, 6. gapWidth, 7. gapDepth, 8. shape, 9. axId, 10. extLst
-            // Note: ser elements must come before gapWidth, which must come before axId
-            chart.Append(new BarDirection() { Val = BarDirectionValues.Column });
-            chart.Append(new BarGrouping() { Val = BarGroupingValues.Clustered });
+            // gapWidth comes after the ser elements and is added with the first series.
+            AddC(chart, "barDir", "col");
+            AddC(chart, "grouping", "clustered");
 
-            // Don't add gapWidth here - it should come after ser elements
-            // We'll add it in a different location or modify InsertSeries to handle this properly
-
-            // Add axId elements at the end - series will be inserted before these by InsertSeries method
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
+            // Series are inserted before the axis ids.
+            AddC(chart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private Chart GenerateBar3DChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
+        private void GenerateBar3DChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-            Bar3DChart chart3d = CreateBar3DChart(catId, valId);
-            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode chart3d = CreateBar3DChart(plotArea, catId, valId);
+            OfficeXmlNode catAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
 
-            chart.PlotArea!.Append(chart3d);
-            chart.PlotArea!.Append(catAxis);
-            chart.PlotArea!.Append(valAxis);
-            return chart;
+            plotArea.Append(chart3d);
+            plotArea.Append(catAxis);
+            plotArea.Append(valAxis);
         }
 
-        private BarChartSeries AddBar3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
-            BarChartSeries series3d = AddBarChartSeries(index, series, color, categories, values);
-            return series3d;
-        }
-
-        private Line3DChart CreateLine3DChart(UInt32Value catAxisId, UInt32Value valAxisId, UInt32Value seriesId) {
-            Line3DChart chart = new Line3DChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+        private static OfficeXmlNode CreateLine3DChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId, uint seriesId) {
+            OfficeXmlNode chart = NewC(plotArea, "line3DChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
 
             // Add elements in the correct OpenXML schema order for Line3DChart:
             // 1. grouping, 2. varyColors, 3. ser (LineChartSeries - inserted by InsertSeries), 4. dLbls, 5. dropLines, 6. gapDepth, 7. axId (3x), 8. extLst
-
-            // Required elements that come before series
-            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
-            chart.Append(grouping);
-
-            VaryColors varyColors = new VaryColors() { Val = false };
-            chart.Append(varyColors);
+            AddC(chart, "grouping", "standard");
+            AddC(chart, "varyColors", false);
 
             // Elements that come after series - InsertSeries will place series between varyColors and dLbls
-            DataLabels labels = AddDataLabel();
-            chart.Append(labels);
-
-            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
-            chart.Append(gapDepth);
+            chart.Append(AddDataLabel(chart));
+            AddC(chart, "gapDepth", "150");
 
             // Line3DChart requires 3 axis IDs (CategoryAxis, ValueAxis, SeriesAxis)
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId3 = new AxisId() { Val = seriesId };
-            axisId3.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
-            chart.Append(axisId3);
-
+            AddC(chart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", seriesId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private SeriesAxis AddSeriesAxisInternal(UInt32Value axisId, UInt32Value crossAxisId, AxisPositionValues position) {
-            SeriesAxis axis = new SeriesAxis();
-
-            AxisId axId = new AxisId() { Val = axisId };
-            Scaling scaling = new Scaling();
-            scaling.Append(new Orientation() { Val = OrientationValues.MinMax });
-            AxisPosition axPos = new AxisPosition() { Val = position };
-            CrossingAxis crossAx = new CrossingAxis() { Val = crossAxisId };
-            Crosses crosses = new Crosses() { Val = CrossesValues.AutoZero };
-
-            axis.Append(axId);
-            axis.Append(scaling);
-            axis.Append(axPos);
-            axis.Append(crossAx);
-            axis.Append(crosses);
-
+        private static OfficeXmlNode AddSeriesAxisInternal(OfficeXmlNode plotArea, uint axisId, uint crossAxisId, string position) {
+            OfficeXmlNode axis = NewC(plotArea, "serAx");
+            AddC(axis, "axId", axisId);
+            AddC(AddC(axis, "scaling"), "orientation", "minMax");
+            AddC(axis, "axPos", position);
+            AddC(axis, "crossAx", crossAxisId);
+            AddC(axis, "crosses", "autoZero");
             return axis;
         }
 
-        private Chart GenerateLine3DChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
-            UInt32Value seriesId = GenerateAxisId(); // Add third axis for Line3D
+        private void GenerateLine3DChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
+            uint seriesId = GenerateAxisId(); // Add third axis for Line3D
 
-            Line3DChart chart3d = CreateLine3DChart(catId, valId, seriesId);
-            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
-            SeriesAxis seriesAxis = AddSeriesAxisInternal(seriesId, catId, AxisPositionValues.Right);
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode chart3d = CreateLine3DChart(plotArea, catId, valId, seriesId);
+            OfficeXmlNode catAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
+            OfficeXmlNode seriesAxis = AddSeriesAxisInternal(plotArea, seriesId, catId, "r");
 
-            chart.PlotArea!.Append(chart3d);
-            chart.PlotArea!.Append(catAxis);
-            chart.PlotArea!.Append(valAxis);
-            chart.PlotArea!.Append(seriesAxis);
+            plotArea.Append(chart3d);
+            plotArea.Append(catAxis);
+            plotArea.Append(valAxis);
+            plotArea.Append(seriesAxis);
+        }
+
+        private static void GeneratePie3DChart(OfficeXmlNode chart) {
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode pie3d = NewC(plotArea, "pie3DChart");
+            pie3d.DeclareNamespace("c", ChartNamespaceUri);
+            pie3d.Append(AddDataLabel(pie3d));
+            plotArea.Append(pie3d);
+        }
+
+        private static OfficeXmlNode CreateArea3DChart(OfficeXmlNode plotArea, uint catAxisId, uint valAxisId) {
+            OfficeXmlNode chart = NewC(plotArea, "area3DChart");
+            chart.DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "grouping", "standard");
+            chart.Append(AddDataLabel(chart));
+            AddC(chart, "gapDepth", "150");
+            AddC(chart, "axId", catAxisId).DeclareNamespace("c", ChartNamespaceUri);
+            AddC(chart, "axId", valAxisId).DeclareNamespace("c", ChartNamespaceUri);
             return chart;
         }
 
-        private LineChartSeries AddLine3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
-            LineChartSeries series3d = AddLineChartSeries(index, series, color, categories, values);
-            return series3d;
-        }
+        private void GenerateArea3DChart(OfficeXmlNode chart) {
+            uint catId = GenerateAxisId();
+            uint valId = GenerateAxisId();
 
-        private PieChartSeries AddPie3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
-            PieChartSeries pieSeries = new PieChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-            Order order = new Order() { Val = index };
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode area3d = CreateArea3DChart(plotArea, catId, valId);
+            OfficeXmlNode catAxis = AddCategoryAxisInternal(plotArea, catId, valId, "b");
+            OfficeXmlNode valAxis = AddValueAxisInternal(plotArea, valId, catId, "l");
 
-            SeriesText text = new SeriesText();
-            var seriesRef = AddSeries(0, series);
-            text.Append(seriesRef);
-
-            var shape = AddShapeProperties(color);
-            CategoryAxisData cats = AddCategoryAxisData(categories);
-            Values vals = AddValuesAxisData(values);
-
-            pieSeries.Append(idx);
-            pieSeries.Append(order);
-            pieSeries.Append(text);
-            pieSeries.Append(shape);
-            pieSeries.Append(cats);
-            pieSeries.Append(vals);
-            return pieSeries;
-        }
-
-        private Pie3DChart CreatePie3DChart() {
-            Pie3DChart chart3d = new Pie3DChart();
-            chart3d.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            DataLabels labels = AddDataLabel();
-            chart3d.Append(labels);
-            return chart3d;
-        }
-
-        private Chart GeneratePie3DChart(Chart chart) {
-            Pie3DChart pie3d = CreatePie3DChart();
-            chart.PlotArea!.Append(pie3d);
-            return chart;
-        }
-
-        private Area3DChart CreateArea3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
-            Area3DChart chart = new Area3DChart();
-            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
-            chart.Append(grouping);
-
-            DataLabels labels = AddDataLabel();
-            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
-
-            chart.Append(labels);
-            chart.Append(gapDepth);
-
-            AxisId axisId1 = new AxisId() { Val = catAxisId };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId2 = new AxisId() { Val = valAxisId };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            chart.Append(axisId1);
-            chart.Append(axisId2);
-
-            return chart;
-        }
-
-        private Chart GenerateArea3DChart(Chart chart) {
-            UInt32Value catId = GenerateAxisId();
-            UInt32Value valId = GenerateAxisId();
-
-            Area3DChart area3d = CreateArea3DChart(catId, valId);
-            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
-
-            chart.PlotArea!.Append(area3d);
-            chart.PlotArea!.Append(catAxis);
-            chart.PlotArea!.Append(valAxis);
-
-            return chart;
-        }
-
-        private AreaChartSeries AddArea3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
-            return AddAreaChartSeries(index, series, color, categories, values);
+            plotArea.Append(area3d);
+            plotArea.Append(catAxis);
+            plotArea.Append(valAxis);
         }
 
         private void EnsureChartExistsScatter() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateScatterChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-                UpdateAxisTitles();
-            } else {
-                RejectOtherChartGroup<ScatterChart>("scatter");
-            }
+            if (_chart.IsNone) CreateNewChart(GenerateScatterChart);
+            else RejectOtherChartGroup("scatterChart", "scatter");
         }
 
         private void EnsureChartExistsRadar() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateRadarChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-                UpdateAxisTitles();
-            } else {
-                RejectOtherChartGroup<RadarChart>("radar");
-            }
+            if (_chart.IsNone) CreateNewChart(GenerateRadarChart);
+            else RejectOtherChartGroup("radarChart", "radar");
         }
 
         private void EnsureChartExistsArea3D() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateArea3DChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-                UpdateAxisTitles();
-            } else {
-                RejectOtherChartGroup<Area3DChart>("3-D area");
-            }
+            if (_chart.IsNone) CreateNewChart(GenerateArea3DChart);
+            else RejectOtherChartGroup("area3DChart", "3-D area");
         }
 
         private void EnsureChartExistsBar3D() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateBar3DChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-                UpdateAxisTitles();
-            } else {
-                RejectOtherChartGroup<Bar3DChart>("3-D bar");
-            }
+            if (_chart.IsNone) CreateNewChart(GenerateBar3DChart);
+            else RejectOtherChartGroup("bar3DChart", "3-D bar");
         }
 
         private void EnsureChartExistsPie3D() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GeneratePie3DChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-            } else {
-                RejectOtherChartGroup<Pie3DChart>("3-D pie");
-            }
+            if (_chart.IsNone) CreateNewChart(GeneratePie3DChart, axisTitles: false);
+            else RejectOtherChartGroup("pie3DChart", "3-D pie");
         }
 
         private void EnsureChartExistsLine3D() {
-            if (_chart == null) {
-                _chart = GenerateChart();
-                _chart = GenerateLine3DChart(_chart);
-                _chartPart?.ChartSpace?.Append(_chart);
-                EnsureFramelessChartArea();
-                UpdateTitle();
-            } else {
-                RejectOtherChartGroup<Line3DChart>("3-D line");
-            }
+            if (_chart.IsNone) CreateNewChart(GenerateLine3DChart, axisTitles: false);
+            else RejectOtherChartGroup("line3DChart", "3-D line");
         }
     }
 }

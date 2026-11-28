@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Partial class containing public methods for building chart content.
@@ -9,13 +10,12 @@ namespace OfficeIMO.Word {
             long? heightEmus = height?.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthEmus, nameof(width));
             if (heightEmus <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-            if (_drawing != null) WordDrawingLayoutReader.SetExtent(_drawing, widthEmus, heightEmus);
+            SetDrawingExtent(widthEmus, heightEmus);
             return this;
         }
 
         /// <summary>Reads persisted inline or anchored package geometry for this chart.</summary>
-        public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo snapshot) =>
-            WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
+        public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo snapshot) => TryReadDrawingLayout(out snapshot);
 
         /// <summary>Fits chart width to its owning section or cell, optionally adjusting its height.</summary>
         public WordChart SetWidthToPageContent(double fraction = 1.0, OfficeLength? height = null) {
@@ -74,7 +74,12 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-
+        /// <summary>Inserts a new series into the first group of this name and wraps it.</summary>
+        private WordChartSeries AttachSeries(string groupName, Func<OfficeXmlNode, OfficeXmlNode> build) {
+            OfficeXmlNode group = PlotChild(groupName);
+            if (group.IsNone) throw new InvalidOperationException("The chart series could not be attached.");
+            return new WordChartSeries(this, InsertSeries(group, build(group)));
+        }
 
         /// <summary>
         /// Add a line to a chart. Multiple lines can be added.
@@ -88,19 +93,8 @@ namespace OfficeIMO.Word {
         public WordChartSeries AddLine<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color) {
             var data = (values ?? throw new ArgumentNullException(nameof(values))).ToList();
             EnsureChartExistsLine();
-            var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
-            if (lineChart != null) {
-                LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, data);
-                InsertSeries(lineChart, lineChartSeries);
-                return new WordChartSeries(this, lineChartSeries);
-            }
-
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("lineChart", group => AddLineChartSeries(group, _index, name, color, Categories, data));
         }
-
-
-
-
 
         /// <summary>
         /// Adds a bar series with multiple values. When used in a combo chart
@@ -110,16 +104,8 @@ namespace OfficeIMO.Word {
         public WordChartSeries AddBar<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color) {
             var data = (values ?? throw new ArgumentNullException(nameof(values))).ToList();
             EnsureChartExistsBar();
-            var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
-            if (barChart != null) {
-                BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, data);
-                InsertSeries(barChart, barChartSeries);
-                return new WordChartSeries(this, barChartSeries);
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("barChart", group => AddBarChartSeries(group, _index, name, color, Categories, data));
         }
-
-
 
         /// <summary>
         /// Adds an area chart series using the provided values.
@@ -131,18 +117,8 @@ namespace OfficeIMO.Word {
         public WordChartSeries AddArea<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color) {
             var data = (values ?? throw new ArgumentNullException(nameof(values))).ToList();
             EnsureChartExistsArea();
-            if (_chart != null) {
-                var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
-                if (barChart != null) {
-                    AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, data);
-                    InsertSeries(barChart, areaChartSeries);
-                return new WordChartSeries(this, areaChartSeries);
-                }
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("areaChart", group => AddAreaChartSeries(group, _index, name, color, Categories, data));
         }
-
-
 
         /// <summary>
         /// Adds a scatter chart series with separate X and Y values.
@@ -153,15 +129,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color of the series.</param>
         public WordChartSeries AddScatter(string name, List<double> xValues, List<double> yValues, OfficeIMO.OfficeColor color) {
             EnsureChartExistsScatter();
-            if (_chart != null) {
-                var scatterChart = _chart.PlotArea?.GetFirstChild<ScatterChart>();
-                if (scatterChart != null) {
-                    var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
-                    InsertSeries(scatterChart, series);
-                return new WordChartSeries(this, series);
-                }
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("scatterChart", group => AddScatterChartSeries(group, _index, name, color, xValues, yValues));
         }
 
         /// <summary>
@@ -173,13 +141,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color of the series.</param>
         public WordChartSeries AddRadar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsRadar();
-            var radarChart = _chart?.PlotArea?.GetFirstChild<RadarChart>();
-            if (radarChart != null) {
-                var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
-                InsertSeries(radarChart, series);
-                return new WordChartSeries(this, series);
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("radarChart", group => AddRadarChartSeries(group, _index, name, color, Categories, values));
         }
         /// <summary>
         /// Adds a 3D bar chart series.
@@ -190,28 +152,24 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color of the bars.</param>
         public WordChartSeries AddBar3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar3D();
-            var chart3d = _chart?.PlotArea?.GetFirstChild<Bar3DChart>();
-            if (chart3d != null) {
-                var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
+            OfficeXmlNode chart3d = PlotChild("bar3DChart");
+            if (chart3d.IsNone) throw new InvalidOperationException("The chart series could not be attached.");
+            OfficeXmlNode series = AddBarChartSeries(chart3d, _index, name, color, Categories, values);
 
-                // For Bar3DChart, we need special handling to maintain correct element order:
-                // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
-                var axis = chart3d.Elements<AxisId>().FirstOrDefault();
-                if (axis != null) {
-                    chart3d.InsertBefore(series, axis);
+            // For Bar3DChart, we need special handling to maintain correct element order:
+            // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
+            OfficeXmlNode axis = chart3d.Child(NsC, "axId");
+            if (!axis.IsNone) {
+                series = chart3d.InsertBefore(series, axis);
 
-                    // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
-                    var gapWidth = chart3d.GetFirstChild<GapWidth>();
-                    if (gapWidth == null) {
-                        gapWidth = new GapWidth() { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent };
-                        chart3d.InsertBefore(gapWidth, axis);
-                    }
-                } else {
-                    chart3d.Append(series);
+                // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
+                if (chart3d.Child(NsC, "gapWidth").IsNone) {
+                    chart3d.InsertBefore(NewC(chart3d, "gapWidth", OfficeChartXml.Text(OfficeTheme.Default.ChartStyle.BarGapPercent)), axis);
                 }
-                return new WordChartSeries(this, series);
+            } else {
+                series = chart3d.Append(series);
             }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return new WordChartSeries(this, series);
         }
 
         /// <summary>
@@ -231,14 +189,8 @@ namespace OfficeIMO.Word {
         /// </remarks>
         public WordChartSeries AddLine3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine3D();
-            var line3d = _chart?.PlotArea?.GetFirstChild<Line3DChart>();
-            if (line3d != null) {
-                var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
-                // Insert series in the correct schema position (after varyColors, before dLbls)
-                InsertSeries(line3d, series);
-                return new WordChartSeries(this, series);
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            // Insert series in the correct schema position (after varyColors, before dLbls)
+            return AttachSeries("line3DChart", group => AddLineChartSeries(group, _index, name, color, Categories, values));
         }
 
         /// <summary>
@@ -250,13 +202,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Series color.</param>
         public WordChartSeries AddArea3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea3D();
-            var area3d = _chart?.PlotArea?.GetFirstChild<Area3DChart>();
-            if (area3d != null) {
-                var series = AddArea3DChartSeries(this._index, name, color, this.Categories, values);
-                InsertSeries(area3d, series);
-                return new WordChartSeries(this, series);
-            }
-            throw new InvalidOperationException("The chart series could not be attached.");
+            return AttachSeries("area3DChart", group => AddAreaChartSeries(group, _index, name, color, Categories, values));
         }
 
         /// <summary>
@@ -264,26 +210,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="legendPosition">Desired legend position.</param>
         public WordChartLegend AddLegend(OfficeChartLegendPosition legendPosition) {
-            if (_chart != null) {
-                _chart.GetFirstChild<Legend>()?.Remove();
-                Legend legend = new Legend();
-                LegendPosition postion = new LegendPosition() { Val = legendPosition.ToOpenXml() };
-                Overlay overlay = new Overlay() { Val = false };
-                legend.Append(postion);
-                legend.Append(overlay);
+            if (_chart.IsNone) throw new InvalidOperationException("The legend could not be attached.");
+            OfficeXmlNode existing = _chart.Child(NsC, "legend");
+            if (!existing.IsNone) existing.Remove();
+            OfficeXmlNode legend = NewC(_chart, "legend");
+            AddC(legend, "legendPos", legendPosition.ToOpenXmlToken());
+            AddC(legend, "overlay", false);
 
-                // Insert legend in correct position according to OpenXML schema
-                // Legend should come after PlotArea but before other elements like PlotVisibleOnly
-                var plotVisibleOnly = _chart.GetFirstChild<PlotVisibleOnly>();
-                if (plotVisibleOnly != null) {
-                    _chart.InsertBefore(legend, plotVisibleOnly);
-                } else {
-                    // If no PlotVisibleOnly, just append at the end
-                    _chart.Append(legend);
-                }
-                return new WordChartLegend(this, legend);
-            }
-            throw new InvalidOperationException("The legend could not be attached.");
+            // Insert legend in correct position according to OpenXML schema
+            // Legend should come after PlotArea but before other elements like PlotVisibleOnly;
+            // without PlotVisibleOnly it goes at the end.
+            legend = _chart.InsertBefore(legend, _chart.Child(NsC, "plotVisOnly"));
+            return new WordChartLegend(this, legend);
         }
 
         /// <summary>
@@ -323,82 +261,100 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        
-
         /// <summary>
         /// Sets the color of a specific pie slice by zero-based index.
         /// </summary>
         public WordChart SetPieSliceColor(uint index, OfficeIMO.OfficeColor color) {
-            var series = InitializePieChartSeries();
-            if (series == null) return this;
-            var before = series.GetFirstChild<CategoryAxisData>();
-            var dpt = series.Elements<DataPoint>().FirstOrDefault(d => d.Index?.Val?.Value == index);
-            if (dpt == null) {
-                dpt = new DataPoint();
-                dpt.Index = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
-                if (before != null) series.InsertBefore(dpt, before); else series.Append(dpt);
+            OfficeXmlNode series = InitializePieChartSeries();
+            if (series.IsNone) return this;
+            OfficeXmlNode before = series.Child(NsC, "cat");
+            OfficeXmlNode dataPoint = default;
+            foreach (OfficeXmlNode candidate in series.Children(NsC, "dPt")) {
+                OfficeXmlNode pointIndex = candidate.Child(NsC, "idx");
+                if (!pointIndex.IsNone && pointIndex.UIntVal() == index) {
+                    dataPoint = candidate;
+                    break;
+                }
             }
-            var spPr = dpt.GetFirstChild<ChartShapeProperties>();
-            if (spPr == null) {
-                spPr = AddShapeProperties(color);
-                dpt.Append(spPr);
+            if (dataPoint.IsNone) {
+                dataPoint = NewC(series, "dPt");
+                AddC(dataPoint, "idx", index);
+                dataPoint = series.InsertBefore(dataPoint, before);
+            }
+            OfficeXmlNode shapeProperties = dataPoint.Child(NsC, "spPr");
+            if (shapeProperties.IsNone) {
+                dataPoint.Append(AddShapeProperties(dataPoint, color));
             } else {
-                spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
-                spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
-                spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.GradientFill>();
-                spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.PatternFill>();
-                spPr.Append(CreateChartFill(color));
+                SetChartFill(shapeProperties, color);
             }
             return this;
         }
 
-        
+        private static readonly string[] ColorableGroups = { "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "radarChart", "scatterChart", "bubbleChart" };
+
+        private static readonly Dictionary<string, OfficeIMO.OfficeColor> DefaultOutcomeColors = new(System.StringComparer.OrdinalIgnoreCase) {
+            ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
+            ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
+            ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
+            ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
+        };
+
+        /// <summary>The series of every chart group the native series colors apply to, in group-kind order.</summary>
+        private List<OfficeXmlNode> ColorableSeries() {
+            var series = new List<OfficeXmlNode>();
+            OfficeXmlNode plot = PlotAreaOf(_chart);
+            if (plot.IsNone) return series;
+            foreach (string group in ColorableGroups) {
+                foreach (OfficeXmlNode chartGroup in plot.Children(NsC, group)) {
+                    foreach (OfficeXmlNode item in GroupSeries(chartGroup)) series.Add(item);
+                }
+            }
+            return series;
+        }
 
         /// <summary>
         /// Sets the base fill of a filled cartesian, filled radar, bubble or 3-D line series, or the connecting
         /// stroke of a 2-D line, scatter or unfilled radar series. Explicit point and marker overrides are retained.
         /// </summary>
         public WordChart SetSeriesColor(uint index, OfficeIMO.OfficeColor color) {
-            if (_chart == null) return this;
-            var plot = _chart.PlotArea; if (plot == null) return this;
-
-            IEnumerable<OpenXmlCompositeElement> allSeries =
-                plot.Elements<BarChart>().SelectMany(ch => ch.Elements<BarChartSeries>()).Cast<OpenXmlCompositeElement>()
-                .Concat(plot.Elements<Bar3DChart>().SelectMany(ch => ch.Elements<BarChartSeries>()))
-                .Concat(plot.Elements<LineChart>().SelectMany(ch => ch.Elements<LineChartSeries>()))
-                .Concat(plot.Elements<Line3DChart>().SelectMany(ch => ch.Elements<LineChartSeries>()))
-                .Concat(plot.Elements<AreaChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
-                .Concat(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
-                .Concat(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()))
-                .Concat(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()))
-                .Concat(plot.Elements<BubbleChart>().SelectMany(ch => ch.Elements<BubbleChartSeries>()));
-
-            foreach (var s in allSeries) {
-                var idx = s.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value ?? 999999U;
+            foreach (OfficeXmlNode series in ColorableSeries()) {
+                OfficeXmlNode seriesIndex = series.Child(NsC, "idx");
+                uint idx = (seriesIndex.IsNone ? null : seriesIndex.UIntVal()) ?? 999999U;
                 if (idx != index) continue;
-                ApplyNativeSeriesColor(s, color);
+                ApplyNativeSeriesColor(series, color);
                 break;
             }
             return this;
         }
 
-        private void ApplyNativeSeriesColor(OpenXmlCompositeElement series, OfficeIMO.OfficeColor color) {
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
-            var properties = series.GetFirstChild<ChartShapeProperties>();
-            if (properties == null) { properties = new ChartShapeProperties(); series.AddChild(properties, true); }
-            bool line = series is LineChartSeries && series.Parent is not Line3DChart || series is ScatterChartSeries ||
-                series is RadarChartSeries && (series.Parent as RadarChart)?.RadarStyle?.Val?.Value != RadarStyleValues.Filled;
+        private void ApplyNativeSeriesColor(OfficeXmlNode series, OfficeIMO.OfficeColor color) {
+            OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+            OfficeXmlNode properties = series.Child(NsC, "spPr");
+            if (properties.IsNone) properties = OfficeChartXml.SetOrdered(series, NewC(series, "spPr"), SeriesOrderOf(series));
+            OfficeXmlNode group = ContentParent(series);
+            OfficeXmlNode radarStyle = group.LocalName == "radarChart" ? group.Child(NsC, "radarStyle") : default;
+            bool line = group.LocalName == "lineChart" || group.LocalName == "scatterChart" ||
+                group.LocalName == "radarChart" && (radarStyle.IsNone || radarStyle.Val() != "filled");
             if (line) {
-                var outline = properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>();
-                if (outline == null) {
-                    outline = new DocumentFormat.OpenXml.Drawing.Outline();
-                    properties.AddChild(outline, true);
-                }
+                OfficeXmlNode outline = properties.Child(NsA, "ln");
+                if (outline.IsNone) outline = OfficeChartXml.SetOrdered(properties, properties.CreateElement(NsA, "ln"), DmlShapePropertiesView.Order);
                 SetChartFill(outline, color);
             } else {
                 SetChartFill(properties, color);
             }
         }
+
+        /// <summary>The schema order of a series, from the chart group that holds it.</summary>
+        private static OfficeXmlChildOrder SeriesOrderOf(OfficeXmlNode series) => ContentParent(series).LocalName switch {
+            "lineChart" or "line3DChart" or "stockChart" => CLineSerView.Order,
+            "scatterChart" => CScatterSerView.Order,
+            "radarChart" => CRadarSerView.Order,
+            "areaChart" or "area3DChart" => CAreaSerView.Order,
+            "pieChart" or "pie3DChart" or "doughnutChart" or "ofPieChart" => CPieSerView.Order,
+            "bubbleChart" => CBubbleSerView.Order,
+            "surfaceChart" or "surface3DChart" => CSurfaceSerView.Order,
+            _ => CBarSerView.Order
+        };
 
         /// <summary>
         /// Applies a built-in palette across the chart. Optionally honors semantic outcome
@@ -456,67 +412,54 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>The semantic outcome colors with <paramref name="overrides"/> applied; read only.</summary>
+        private static Dictionary<string, OfficeIMO.OfficeColor> OutcomeColors(Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
+            if (overrides == null || overrides.Count == 0) return DefaultOutcomeColors;
+            var map = new Dictionary<string, OfficeIMO.OfficeColor>(DefaultOutcomeColors, System.StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in overrides) map[kv.Key] = kv.Value;
+            return map;
+        }
+
         private WordChart ApplyPaletteToPie(OfficeIMO.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
             EnsureChartExistsPie();
-            var series = InitializePieChartSeries();
-            var catAxis = series?.GetFirstChild<CategoryAxisData>()?.GetFirstChild<StringLiteral>();
-            if (series == null || catAxis == null) return this;
+            OfficeXmlNode series = InitializePieChartSeries();
+            OfficeXmlNode categories = series.IsNone ? default : series.Child(NsC, "cat");
+            OfficeXmlNode catAxis = categories.IsNone ? default : categories.Child(NsC, "strLit");
+            if (series.IsNone || catAxis.IsNone) return this;
 
-            var map = new Dictionary<string, OfficeIMO.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
-                ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
-                ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
-                ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
-            };
-            if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
+            var map = OutcomeColors(overrides);
 
             int idxPal = 0;
-            var points = catAxis.Descendants<StringPoint>().OrderBy(p => p.Index?.Value ?? 0U).ToList();
-            foreach (var sp in points) {
-                var name = sp?.NumericValue?.Text ?? string.Empty;
-                var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
+            // The literal's own points; a point in vendor markup is not a slice.
+            List<OfficeXmlNode> found = catAxis.Children(NsC, "pt").ToList();
+            var points = new (uint Index, string Name)[found.Count];
+            for (int i = 0; i < found.Count; i++) points[i] = (found[i].UIntAttr("idx") ?? 0U, found[i].ChildText(NsC, "v") ?? string.Empty);
+            // A stable sort by index.
+            points = points.OrderBy(point => point.Index).ToArray();
+            foreach (var (index, name) in points) {
+                var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name, out var sem))
                     ? sem
                     : palette[idxPal++ % palette.Length];
-                SetPieSliceColor((uint)(sp?.Index?.Value ?? 0U), c);
+                SetPieSliceColor(index, c);
             }
             return this;
         }
 
         private WordChart ApplyPaletteToSeries(OfficeIMO.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
-            if (_chart == null) return this;
-            var plot = _chart.PlotArea; if (plot == null) return this;
-            var map = new Dictionary<string, OfficeIMO.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
-                ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
-                ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
-                ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
-            };
-            if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
+            if (PlotAreaOf(_chart).IsNone) return this;
+            var map = OutcomeColors(overrides);
 
             int idxPal = 0;
-            void colorSeries<TSeries>(IEnumerable<TSeries> seriesNodes) where TSeries : OpenXmlCompositeElement {
-                foreach (var s in seriesNodes) {
-                    string? name = s.GetFirstChild<SeriesText>()
-                        ?.Descendants<DocumentFormat.OpenXml.Drawing.Charts.NumericValue>()
-                        ?.FirstOrDefault()?.Text;
+            foreach (OfficeXmlNode series in ColorableSeries()) {
+                OfficeXmlNode text = series.Child(NsC, "tx");
+                string? name = SeriesTitleText(text);
 
-                    var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
-                        ? sem
-                        : palette[idxPal++ % palette.Length];
+                var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
+                    ? sem
+                    : palette[idxPal++ % palette.Length];
 
-                    ApplyNativeSeriesColor(s, c);
-                }
+                ApplyNativeSeriesColor(series, c);
             }
-
-            colorSeries(plot.Elements<BarChart>().SelectMany(ch => ch.Elements<BarChartSeries>()));
-            colorSeries(plot.Elements<Bar3DChart>().SelectMany(ch => ch.Elements<BarChartSeries>()));
-            colorSeries(plot.Elements<LineChart>().SelectMany(ch => ch.Elements<LineChartSeries>()));
-            colorSeries(plot.Elements<Line3DChart>().SelectMany(ch => ch.Elements<LineChartSeries>()));
-            colorSeries(plot.Elements<AreaChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()));
-            colorSeries(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()));
-            colorSeries(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()));
-            colorSeries(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()));
-            colorSeries(plot.Elements<BubbleChart>().SelectMany(ch => ch.Elements<BubbleChartSeries>()));
             return this;
         }
     }

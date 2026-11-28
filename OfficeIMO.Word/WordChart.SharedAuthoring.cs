@@ -1,27 +1,28 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
+    /// <summary>The drawing frame's <c>wp:docPr</c>, looking through <c>mc:AlternateContent</c>; or none.</summary>
+    private OfficeXmlNode DrawingProperties => SelectedChild(DrawingFrame(_drawing), NsWp, "docPr");
+
     /// <summary>Gets or sets the native drawing name without changing chart data.</summary>
     public string? Name {
-        get => _drawing?.Descendants<DW.DocProperties>().FirstOrDefault()?.Name?.Value;
+        get => DrawingProperties.IsNone ? null : DrawingProperties.Attribute("name");
         set {
-            DW.DocProperties? properties = _drawing?.Descendants<DW.DocProperties>().FirstOrDefault();
-            if (properties != null) properties.Name = value ?? string.Empty;
+            OfficeXmlNode properties = DrawingProperties;
+            if (!properties.IsNone) properties.SetAttribute("name", value ?? string.Empty);
         }
     }
 
     /// <summary>Gets or sets alternative text persisted in the native Word drawing.</summary>
     public string? AltText {
-        get => _drawing?.Descendants<DW.DocProperties>().FirstOrDefault()?.Description?.Value;
+        get => DrawingProperties.IsNone ? null : DrawingProperties.Attribute("descr");
         set {
-            DW.DocProperties? properties = _drawing?.Descendants<DW.DocProperties>().FirstOrDefault();
-            if (properties != null) properties.Description = value;
+            OfficeXmlNode properties = DrawingProperties;
+            if (!properties.IsNone) properties.SetAttribute("descr", value);
         }
     }
 
@@ -37,34 +38,40 @@ public partial class WordChart {
         ConfigureSharedData(chartKind, data, OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind));
 
     internal WordChart ConfigureSharedData(OfficeChartType chartKind, OfficeChartData data, byte[] workbook) {
-        ChartPart part = _chartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
-        ChartSpace source = part.ChartSpace ?? throw new InvalidOperationException("The chart has no native chart space.");
+        IOfficeChartPart part = SharedChartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
+        OfficeXmlNode source = part.ChartSpace;
+        if (source.IsNone) throw new InvalidOperationException("The chart has no native chart space.");
         var preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
             part, data.Series.Select(series => series.Values.Count).ToArray());
-        EmbeddedPackagePart? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part);
-        bool rounded = source.GetFirstChild<RoundedCorners>()?.Val?.Value ?? false;
-        if (source.GetFirstChild<Chart>() == null) {
-            embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
-            OfficeOpenXmlChartWriter.PopulateSharedChart(part, part.GetIdOfPart(embedded), data, chartKind);
+        string? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part)?.RelationshipId;
+        OfficeXmlNode roundedCorners = source.Child(NsC, "roundedCorners");
+        bool rounded = (roundedCorners.IsNone ? null : roundedCorners.BoolVal()) ?? false;
+        bool written = false;
+        if (source.Child(NsC, "chart").IsNone) {
+            embedded ??= AddEmbeddedWorkbook();
+            // The workbook goes in before the chart that references it is saved to its part.
+            WriteEmbeddedPackage(embedded, workbook);
+            written = true;
+            ReplaceChartSpaceRoot();
+            OfficeOpenXmlChartWriter.PopulateSharedChart(part, embedded, data, chartKind);
             OfficeOpenXmlChartThemeWriter.Apply(part, OfficeTheme.Default);
-            part.ChartSpace!.GetFirstChild<RoundedCorners>()!.Val = rounded;
+            ChartSpaceNode.Child(NsC, "roundedCorners").SetAttribute("val", OfficeChartXml.Text(rounded));
             EnsureFramelessChartArea();
         } else {
+            // The shared writer validates the update before it changes anything, so the package is only touched after it.
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
-            embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
-            ExternalData? external = part.ChartSpace.GetFirstChild<ExternalData>();
-            if (external == null) {
-                external = new ExternalData();
-                part.ChartSpace.AddChild(external, true);
-            }
-            external.Id = part.GetIdOfPart(embedded);
-            external.AutoUpdate = new AutoUpdate { Val = false };
+            embedded ??= AddEmbeddedWorkbook();
+            OfficeXmlNode space = ChartSpaceNode;
+            OfficeXmlNode external = space.Child(NsC, "externalData");
+            if (external.IsNone) external = OfficeChartXml.SetOrdered(space, NewC(space, "externalData"), CChartSpaceView.Order);
+            external.SetAttribute(NsR, "id", embedded);
+            OfficeChartXml.SetOrdered(external, NewC(external, "autoUpdate", false), CExternalDataView.Order);
         }
         preserveBindings();
-        using (var stream = new MemoryStream(workbook, writable: false)) embedded.FeedData(stream);
-        _chart = part.ChartSpace.GetFirstChild<Chart>();
+        if (!written) WriteEmbeddedPackage(embedded, workbook);
+        _chart = ChartSpaceNode.Child(NsC, "chart");
         UpdateTitle();
-        part.ChartSpace.Save();
+        SaveChartSpace();
         return this;
     }
 }

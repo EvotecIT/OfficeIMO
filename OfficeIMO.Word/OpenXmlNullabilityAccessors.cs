@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -48,14 +47,6 @@ namespace OfficeIMO.Word {
             _bodyCache = body;
             return body;
         }
-    }
-
-    public partial class WordChart {
-        private ChartPart ChartPartRoot =>
-            _chartPart ?? throw new InvalidOperationException("ChartPart is missing.");
-
-        private ChartSpace ChartSpaceRoot =>
-            ChartPartRoot.ChartSpace ?? throw new InvalidOperationException("ChartSpace is missing.");
     }
 
     public partial class WordList {
