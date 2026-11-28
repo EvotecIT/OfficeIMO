@@ -135,13 +135,16 @@ export class PdfFontResources {
     if (this.fontBytes + bytes > this.maxBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxFontBytes exceeded.");
     this.fontBytes += bytes; this.registered.add(font);
   }
-  select(bold = false, italic = false, explicit?: PdfFont): PdfFontResource {
+  select(bold = false, italic = false, explicit?: PdfFont, standardForMissingFace = false): PdfFontResource {
     if (explicit) this.registerFont(explicit);
     let selections = this.selections;
     if (explicit) { const found = this.explicitSelections.get(explicit); selections = found ?? new Map(); if (!found) this.explicitSelections.set(explicit, selections); }
-    const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+    const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+      this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+    const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
     if (existing) return existing;
-    const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+    const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+      selectFont(fallback ? undefined : this.fonts, bold, italic);
     const shared = font ? this.programs.get(font) : undefined;
     const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
     if (!shared) { this.resources.push(resource); if (font) this.programs.set(font, resource); }

@@ -59,4 +59,16 @@ public static class JavaScriptAssets {
 
     /// <summary>The CanopyX integration ES module without document writers; it imports the sibling <c>officeimo.mjs</c> (<see cref="Module"/>).</summary>
     public static JavaScriptAsset CanopyXAdapterModule { get; } = new JavaScriptAsset("officeimo-canopyx-adapter.mjs");
+
+    /// <summary>The optional ChartForgeX chart capture integration (typed XLSX series and vector PDF), including its document writers.</summary>
+    public static JavaScriptAsset ChartForgeXScript { get; } = new JavaScriptAsset("officeimo-chartforgex.js");
+
+    /// <summary>The optional standalone ChartForgeX ES module, including its document writers.</summary>
+    public static JavaScriptAsset ChartForgeXModule { get; } = new JavaScriptAsset("officeimo-chartforgex.mjs");
+
+    /// <summary>The ChartForgeX integration without document writers; load <see cref="Script"/> from the same build first.</summary>
+    public static JavaScriptAsset ChartForgeXAdapterScript { get; } = new JavaScriptAsset("officeimo-chartforgex-adapter.js");
+
+    /// <summary>The ChartForgeX integration ES module without document writers; it imports the sibling <c>officeimo.mjs</c> (<see cref="Module"/>).</summary>
+    public static JavaScriptAsset ChartForgeXAdapterModule { get; } = new JavaScriptAsset("officeimo-chartforgex-adapter.mjs");
 }

@@ -5788,12 +5788,14 @@ const sizes = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+const pdfDrawingLimits = Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
@@ -5904,7 +5906,7 @@ function settings(input, document = false) {
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
@@ -5932,7 +5934,7 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    for (const key of ["title", "messageTop", "messageBottom"])
+    for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
     for (const key of ["pageHeader", "pageFooter"])
@@ -5968,7 +5970,7 @@ function settings(input, document = false) {
         repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
+const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, pdfDrawingLimits: pdfDrawingLimits, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
 return _exports;
 })();
 
@@ -7486,7 +7488,7 @@ class PdfFontResources {
         this.fontBytes += bytes;
         this.registered.add(font);
     }
-    select(bold = false, italic = false, explicit) {
+    select(bold = false, italic = false, explicit, standardForMissingFace = false) {
         if (explicit)
             this.registerFont(explicit);
         let selections = this.selections;
@@ -7496,10 +7498,13 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+        const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+            this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+            selectFont(fallback ? undefined : this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
         const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
@@ -9967,7 +9972,8 @@ class PdfWriteSession {
             await this.structure.finish();
         await this.outlines.finish();
         await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        const title = options.metadataTitle ?? options.title;
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
 }
@@ -10556,6 +10562,24 @@ function clipRectangle(value) {
     const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
     return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
 }
+/** A PDF dash array: 1 through 16 nonnegative lengths, not all zero, and a finite phase. */
+function dashPattern(value, offset) {
+    if (value === undefined) {
+        if (offset !== undefined)
+            throw new TypeError("Drawing dashOffset requires dash.");
+        return "";
+    }
+    if (!Array.isArray(value) || !value.length || value.length > 16)
+        throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
+    const lengths = Array.from(value, item => {
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+            throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+        return n(item);
+    });
+    if (lengths.every(length => length === "0"))
+        throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+    return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+}
 async function cooperate(settings) {
     if (taskYieldDue())
         await pause();
@@ -10564,14 +10588,17 @@ async function cooperate(settings) {
 /** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
-    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
+    const standardFonts = root.standardFonts;
+    if (standardFonts !== undefined && typeof standardFonts !== "boolean")
+        throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
     function path(value) {
-        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin", "dash", "dashOffset"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
@@ -10593,6 +10620,7 @@ function captureDrawing(drawing, settings, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
+        const dash = dashPattern(value.dash, value.dashOffset);
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
@@ -10625,11 +10653,11 @@ function captureDrawing(drawing, settings, used) {
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
         return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
-                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n" + dash,
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
     function text(value) {
-        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color", "anchor", "rotation"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
@@ -10640,8 +10668,16 @@ function captureDrawing(drawing, settings, used) {
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        const anchor = value.anchor, rotation = value.rotation ?? 0;
+        if (anchor !== undefined && !["start", "middle", "end"].includes(anchor))
+            throw new TypeError("Invalid drawing text anchor.");
+        if (typeof rotation !== "number" || !Number.isFinite(rotation) || Math.abs(rotation) > 360)
+            throw new RangeError("Drawing text rotation must be finite degrees within -360 through 360.");
         settings.budget.cell(snapshot);
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
+        // Quarter turns stay exact so upright and vertical axis labels keep integral matrices.
+        const turn = rotation % 90 === 0 ? (((rotation / 90) % 4) + 4) % 4 : -1, radians = rotation * Math.PI / 180;
+        const cos = turn < 0 ? Math.cos(radians) : [1, 0, -1, 0][turn], sin = turn < 0 ? Math.sin(radians) : [0, 1, 0, -1][turn];
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot, anchor: anchor === "middle" ? .5 : anchor === "end" ? 1 : 0, cos, sin };
     }
     function children(input, depth) {
         if (!Array.isArray(input))
@@ -10681,7 +10717,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -10691,8 +10727,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         const existing = drawingFonts.get(slot);
         if (existing)
             return existing;
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
+        if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
@@ -10748,7 +10784,15 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             }
             else {
                 const font = fontFor(node.font);
-                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let shift = 0;
+                if (node.anchor) {
+                    for (const character of node.text)
+                        shift += font.width(character.codePointAt(0));
+                    shift *= node.size / 1000 * node.anchor;
+                }
+                // Text space is upright in the drawing's downward y axis; rotation turns the baseline clockwise about its anchor.
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr " +
+                    [node.cos, node.sin, node.sin, -node.cos, node.x - shift * node.cos, node.y - shift * node.sin].map(n).join(" ") + " Tm <");
                 let chunk = "";
                 for (const character of node.text) {
                     chunk += character;
@@ -11613,6 +11657,6 @@ const _m0 = (() => {
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m50, pdf: _m54, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m50.writeCsv, writeCsvTo: _m50.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m48.writeGroupedXlsx, writeGroupedXlsxTo: _m48.writeGroupedXlsxTo, addGroupedXlsx: _m48.addGroupedXlsx, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writePdfDocument: _m54.writePdfDocument, writePdfDocumentTo: _m54.writePdfDocumentTo, pdfTable: _m54.pdfTable, PdfFont: _m54.PdfFont, preflightPdfText: _m54.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
-const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244": _m23, "406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580": _m50, "edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759": _m21, "dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7": _m54, "d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38": _m56, "fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67 });
+const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244": _m23, "406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580": _m50, "edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759": _m21, "2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d": _m54, "d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607": _m56, "fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67, "d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea": _m2, "e716b8b1da464094622f5f671518493c78e63ff22a029d61544d2d193b63ce8f": _m60 });
 const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;
 export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell, __officeimoModules };

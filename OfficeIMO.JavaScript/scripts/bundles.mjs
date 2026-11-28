@@ -6,7 +6,7 @@
 // minifies from the same assembled text. Module identities hash the readable tsc output and stay as string literals,
 // so readable and minified scripts of one build share modules and class identities on the same page.
 //
-// The DataTables and CanopyX integrations also ship as thin adapters: officeimo-<name>-adapter.{js,mjs} carry only
+// The DataTables, CanopyX and ChartForgeX integrations also ship as thin adapters: officeimo-<name>-adapter.{js,mjs} carry only
 // the integration modules and take the shared writer modules from officeimo.{js,mjs} of the same build.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,8 @@ const bundles = [
   ["officeimo-pdf", "pdf/index.js", ["core", "pdf"]],
   ["officeimo-execution", "execution/index.js", []],
   ["officeimo-datatables", "integrations/datatables/index.js", [], true],
-  ["officeimo-canopyx", "integrations/canopyx/index.js", [], true]
+  ["officeimo-canopyx", "integrations/canopyx/index.js", [], true],
+  ["officeimo-chartforgex", "integrations/chartforgex/index.js", [], true]
 ];
 
 function bindings(text) {

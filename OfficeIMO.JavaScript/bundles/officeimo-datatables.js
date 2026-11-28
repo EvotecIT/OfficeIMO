@@ -5822,7 +5822,7 @@ _modules.set("278e6adc6a5d4491e688589ef165bd1aa9cc74f557da6f9d6bdf53ecc0c6df47",
 return _exports;
 })();
 
-const _m56 = _modules.get("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38") ?? (() => {
+const _m56 = _modules.get("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportBudget } = _m9;
@@ -5849,12 +5849,14 @@ const sizes = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+const pdfDrawingLimits = Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
@@ -5965,7 +5967,7 @@ function settings(input, document = false) {
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
@@ -5993,7 +5995,7 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    for (const key of ["title", "messageTop", "messageBottom"])
+    for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
     for (const key of ["pageHeader", "pageFooter"])
@@ -6029,8 +6031,8 @@ function settings(input, document = false) {
         repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
-_modules.set("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38", _exports);
+const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, pdfDrawingLimits: pdfDrawingLimits, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
+_modules.set("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607", _exports);
 return _exports;
 })();
 
@@ -7355,7 +7357,7 @@ _modules.set("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070",
 return _exports;
 })();
 
-const _m62 = _modules.get("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3") ?? (() => {
+const _m62 = _modules.get("7825c87ba92a9992baf6b5c8a5e146948268985c31584ef9c8bf395359942e4f") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { fontProgram } = _m63;
@@ -7556,7 +7558,7 @@ class PdfFontResources {
         this.fontBytes += bytes;
         this.registered.add(font);
     }
-    select(bold = false, italic = false, explicit) {
+    select(bold = false, italic = false, explicit, standardForMissingFace = false) {
         if (explicit)
             this.registerFont(explicit);
         let selections = this.selections;
@@ -7566,10 +7568,13 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+        const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+            this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+            selectFont(fallback ? undefined : this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
         const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
@@ -7583,7 +7588,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3", _exports);
+_modules.set("7825c87ba92a9992baf6b5c8a5e146948268985c31584ef9c8bf395359942e4f", _exports);
 return _exports;
 })();
 
@@ -7912,7 +7917,7 @@ _modules.set("8be3fb029e08d100ce8ffcf50916d5ba7f7bc00d62156cc33815fd58554a9ed6",
 return _exports;
 })();
 
-const _m71 = _modules.get("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47") ?? (() => {
+const _m71 = _modules.get("0d9e7c831976c697e4f1e146f90a6b5aaa94bfbf7cfab3565d7d02743af7e4d5") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
@@ -8104,11 +8109,11 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
     return lines;
 }
 const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wrapPdfText });
-_modules.set("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47", _exports);
+_modules.set("0d9e7c831976c697e4f1e146f90a6b5aaa94bfbf7cfab3565d7d02743af7e4d5", _exports);
 return _exports;
 })();
 
-const _m73 = _modules.get("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea") ?? (() => {
+const _m73 = _modules.get("e6abc92661c2eb46828d2fd2d1aa37c88919895fcb65a1cdfe2d81f09377b442") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { wrapPdfText } = _m71;
@@ -8203,11 +8208,11 @@ function alignBandBlocks(bands, settings) {
         cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
 }
 const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
-_modules.set("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea", _exports);
+_modules.set("e6abc92661c2eb46828d2fd2d1aa37c88919895fcb65a1cdfe2d81f09377b442", _exports);
 return _exports;
 })();
 
-const _m69 = _modules.get("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874") ?? (() => {
+const _m69 = _modules.get("69303166f161ee4db99eb49296e0a8c7342ecf7665686fcfa737e1b854b292b7") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8438,7 +8443,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874", _exports);
+_modules.set("69303166f161ee4db99eb49296e0a8c7342ecf7665686fcfa737e1b854b292b7", _exports);
 return _exports;
 })();
 
@@ -8794,7 +8799,7 @@ _modules.set("c68d18d668366fb9b96d1b53c79dc6305f84cb83c05e4942fcf1cdf96ed1a73f",
 return _exports;
 })();
 
-const _m79 = _modules.get("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052") ?? (() => {
+const _m79 = _modules.get("0d185836afce83a207ef2682b7b3855eb0f7db75634e4596283422db5f874372") ?? (() => {
 const { settings } = _m56;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -8809,11 +8814,11 @@ function sectionSettings(base, section) {
     return { ...base, page: derived.page, margins: derived.margins, options };
 }
 const _exports = Object.freeze({ sectionSettings: sectionSettings });
-_modules.set("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052", _exports);
+_modules.set("0d185836afce83a207ef2682b7b3855eb0f7db75634e4596283422db5f874372", _exports);
 return _exports;
 })();
 
-const _m74 = _modules.get("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9") ?? (() => {
+const _m74 = _modules.get("544e650f47f754bd7f817837a1d272f95b769cc4b570ab61dbbb21e9b8139c7d") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -9551,7 +9556,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9", _exports);
+_modules.set("544e650f47f754bd7f817837a1d272f95b769cc4b570ab61dbbb21e9b8139c7d", _exports);
 return _exports;
 })();
 
@@ -9994,7 +9999,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m59 = _modules.get("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273") ?? (() => {
+const _m59 = _modules.get("1595abd6d2fa030cfa4f72a8b248991f88e5bf3e31577b4300480ee4c18921c9") ?? (() => {
 const { PdfObjects, unicodeHex } = _m60;
 
 const { PdfFontResources } = _m62;
@@ -10052,16 +10057,17 @@ class PdfWriteSession {
             await this.structure.finish();
         await this.outlines.finish();
         await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        const title = options.metadataTitle ?? options.title;
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273", _exports);
+_modules.set("1595abd6d2fa030cfa4f72a8b248991f88e5bf3e31577b4300480ee4c18921c9", _exports);
 return _exports;
 })();
 
-const _m55 = _modules.get("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f") ?? (() => {
+const _m55 = _modules.get("a6403581394f80da769b440fdb8f8085df3eafc88215888c15467e0c6eaa0c00") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -10126,7 +10132,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f", _exports);
+_modules.set("a6403581394f80da769b440fdb8f8085df3eafc88215888c15467e0c6eaa0c00", _exports);
 return _exports;
 })();
 
@@ -10532,7 +10538,7 @@ _modules.set("7dca2d9ca5c43893abdaf86df5b1bcb1f3de3d5d33532d082fdfe04711999d21",
 return _exports;
 })();
 
-const _m87 = _modules.get("3290c84fdf80725af802f497d947bc088aa8d93d9db0a33f6f829f9153aa6fd6") ?? (() => {
+const _m87 = _modules.get("e7363aff8b91f67bb0ef8f866b1d053abe10eca41a46e8f1bb1e71ae2532f8c5") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -10615,11 +10621,11 @@ async function vectorCommands(block, settings, used) {
             commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
 }
 const _exports = Object.freeze({ vectorCommands: vectorCommands });
-_modules.set("3290c84fdf80725af802f497d947bc088aa8d93d9db0a33f6f829f9153aa6fd6", _exports);
+_modules.set("e7363aff8b91f67bb0ef8f866b1d053abe10eca41a46e8f1bb1e71ae2532f8c5", _exports);
 return _exports;
 })();
 
-const _m88 = _modules.get("da9ad00f94b9ae28e2e3de796928ff0c4eab1d73382b1441e7d779fad4278ef7") ?? (() => {
+const _m88 = _modules.get("63693ecc5ee50587de491d99a6e8538091e67413309b66ea3b2111991693ace6") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -10646,6 +10652,24 @@ function clipRectangle(value) {
     const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
     return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
 }
+/** A PDF dash array: 1 through 16 nonnegative lengths, not all zero, and a finite phase. */
+function dashPattern(value, offset) {
+    if (value === undefined) {
+        if (offset !== undefined)
+            throw new TypeError("Drawing dashOffset requires dash.");
+        return "";
+    }
+    if (!Array.isArray(value) || !value.length || value.length > 16)
+        throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
+    const lengths = Array.from(value, item => {
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+            throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+        return n(item);
+    });
+    if (lengths.every(length => length === "0"))
+        throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+    return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+}
 async function cooperate(settings) {
     if (taskYieldDue())
         await pause();
@@ -10654,14 +10678,17 @@ async function cooperate(settings) {
 /** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
-    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
+    const standardFonts = root.standardFonts;
+    if (standardFonts !== undefined && typeof standardFonts !== "boolean")
+        throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
     function path(value) {
-        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin", "dash", "dashOffset"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
@@ -10683,6 +10710,7 @@ function captureDrawing(drawing, settings, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
+        const dash = dashPattern(value.dash, value.dashOffset);
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
@@ -10715,11 +10743,11 @@ function captureDrawing(drawing, settings, used) {
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
         return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
-                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n" + dash,
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
     function text(value) {
-        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color", "anchor", "rotation"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
@@ -10730,8 +10758,16 @@ function captureDrawing(drawing, settings, used) {
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        const anchor = value.anchor, rotation = value.rotation ?? 0;
+        if (anchor !== undefined && !["start", "middle", "end"].includes(anchor))
+            throw new TypeError("Invalid drawing text anchor.");
+        if (typeof rotation !== "number" || !Number.isFinite(rotation) || Math.abs(rotation) > 360)
+            throw new RangeError("Drawing text rotation must be finite degrees within -360 through 360.");
         settings.budget.cell(snapshot);
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
+        // Quarter turns stay exact so upright and vertical axis labels keep integral matrices.
+        const turn = rotation % 90 === 0 ? (((rotation / 90) % 4) + 4) % 4 : -1, radians = rotation * Math.PI / 180;
+        const cos = turn < 0 ? Math.cos(radians) : [1, 0, -1, 0][turn], sin = turn < 0 ? Math.sin(radians) : [0, 1, 0, -1][turn];
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot, anchor: anchor === "middle" ? .5 : anchor === "end" ? 1 : 0, cos, sin };
     }
     function children(input, depth) {
         if (!Array.isArray(input))
@@ -10771,7 +10807,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -10781,8 +10817,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         const existing = drawingFonts.get(slot);
         if (existing)
             return existing;
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
+        if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
@@ -10838,7 +10874,15 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             }
             else {
                 const font = fontFor(node.font);
-                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let shift = 0;
+                if (node.anchor) {
+                    for (const character of node.text)
+                        shift += font.width(character.codePointAt(0));
+                    shift *= node.size / 1000 * node.anchor;
+                }
+                // Text space is upright in the drawing's downward y axis; rotation turns the baseline clockwise about its anchor.
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr " +
+                    [node.cos, node.sin, node.sin, -node.cos, node.x - shift * node.cos, node.y - shift * node.sin].map(n).join(" ") + " Tm <");
                 let chunk = "";
                 for (const character of node.text) {
                     chunk += character;
@@ -10862,11 +10906,11 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("da9ad00f94b9ae28e2e3de796928ff0c4eab1d73382b1441e7d779fad4278ef7", _exports);
+_modules.set("63693ecc5ee50587de491d99a6e8538091e67413309b66ea3b2111991693ace6", _exports);
 return _exports;
 })();
 
-const _m89 = _modules.get("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88") ?? (() => {
+const _m89 = _modules.get("0034f8c578b1c5c23dd42b2f08619b081853f3ed769aa50558e5e904a2726d30") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { capturePdfText, wrapPdfText } = _m71;
@@ -10946,11 +10990,11 @@ function paragraphStartHeight(paragraphs) {
     return required;
 }
 const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCaption: captureCaption, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
-_modules.set("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88", _exports);
+_modules.set("0034f8c578b1c5c23dd42b2f08619b081853f3ed769aa50558e5e904a2726d30", _exports);
 return _exports;
 })();
 
-const _m90 = _modules.get("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7") ?? (() => {
+const _m90 = _modules.get("b619bf4d2ea53152f27eda3e5ead04e5f37d353a5cf66619f82e5097536f6164") ?? (() => {
 const { capturePdfText, wrapPdfText } = _m71;
 
 const { captureParagraph, prepareParagraph } = _m89;
@@ -11004,11 +11048,11 @@ async function prepareListItem(item, index, options, settings, fonts) {
             height: paragraph.height + lineHeight - first.lineHeight, firstHeight: paragraph.spaceBefore + lineHeight } };
 }
 const _exports = Object.freeze({ captureListOptions: captureListOptions, prepareListItem: prepareListItem });
-_modules.set("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7", _exports);
+_modules.set("b619bf4d2ea53152f27eda3e5ead04e5f37d353a5cf66619f82e5097536f6164", _exports);
 return _exports;
 })();
 
-const _m92 = _modules.get("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343") ?? (() => {
+const _m92 = _modules.get("c8419e484bba2717a4e3899eff340c9a2a58d69710bb12b55f6d3a2ae3425fb0") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -11054,11 +11098,11 @@ function captureGroupedPdfTableOptions(configuration) {
         ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });
 }
 const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, groupedPdfTableFields: groupedPdfTableFields, pdfGroupedTable: pdfGroupedTable, captureGroupedPdfTableOptions: captureGroupedPdfTableOptions });
-_modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343", _exports);
+_modules.set("c8419e484bba2717a4e3899eff340c9a2a58d69710bb12b55f6d3a2ae3425fb0", _exports);
 return _exports;
 })();
 
-const _m91 = _modules.get("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0") ?? (() => {
+const _m91 = _modules.get("f9946e2354e061768f54012738699c14a4aeed5ebc08536a16327ffce8834cad") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -11312,11 +11356,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0", _exports);
+_modules.set("f9946e2354e061768f54012738699c14a4aeed5ebc08536a16327ffce8834cad", _exports);
 return _exports;
 })();
 
-const _m84 = _modules.get("77cbc636141a5bcb999b399693d3e836cc6d74eb40fb407e980d13dbbc6fe78c") ?? (() => {
+const _m84 = _modules.get("fac9114aa801b024f8d87ed2b8061a2dcbfc9f9a92bfb3428ca95c74612763f8") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11606,11 +11650,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("77cbc636141a5bcb999b399693d3e836cc6d74eb40fb407e980d13dbbc6fe78c", _exports);
+_modules.set("fac9114aa801b024f8d87ed2b8061a2dcbfc9f9a92bfb3428ca95c74612763f8", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("9df580f9853411293bc562c049fb1297d59986cc923786dbacfa5d937c6cfff8") ?? (() => {
+const _m83 = _modules.get("c4111733b22e5b704d69ea630acc025c811aeea5e63765e2a63a062c4f168d9c") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11656,7 +11700,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m92.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("9df580f9853411293bc562c049fb1297d59986cc923786dbacfa5d937c6cfff8", _exports);
+_modules.set("c4111733b22e5b704d69ea630acc025c811aeea5e63765e2a63a062c4f168d9c", _exports);
 return _exports;
 })();
 
@@ -11700,10 +11744,10 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m54 = _modules.get("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7") ?? (() => {
+const _m54 = _modules.get("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m55.writePdf, writePdfTo: _m55.writePdfTo, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m84.writePdfDocument, writePdfDocumentTo: _m84.writePdfDocumentTo, pdfTable: _m84.pdfTable, PdfFont: _m63.PdfFont, preflightPdfText: _m93.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7", _exports);
+_modules.set("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d", _exports);
 return _exports;
 })();
 
@@ -12077,7 +12121,7 @@ _modules.set("8edb7b3b19d6555ea24a92d771d532dc0448ad18101fdf663217b4c518b5a31b",
 return _exports;
 })();
 
-const _m97 = _modules.get("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224") ?? (() => {
+const _m97 = _modules.get("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08") ?? (() => {
 const { captureFields } = _m10;
 
 const { ExportBudget } = _m9;
@@ -12118,11 +12162,11 @@ function capturePdfOptions(input = {}) {
     return { ...options, ...(options.limits === undefined ? {} : { limits: capturePdfLimits(options.limits) }) };
 }
 const _exports = Object.freeze({ captureCommonLimits: captureCommonLimits, mergeAdapterLimits: mergeAdapterLimits, captureXlsxOptions: captureXlsxOptions, captureCsvOptions: captureCsvOptions, capturePdfOptions: capturePdfOptions });
-_modules.set("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224", _exports);
+_modules.set("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("c58ad284b362e82526a5460b416dc19d3444e757aefa7320d6292bcf342ee1de") ?? (() => {
+const _m0 = _modules.get("0adc305bbdff9d9b6a0b28764762f60a557f4e8a6c83a39cffa104ad309ca129") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12305,7 +12349,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m96.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("c58ad284b362e82526a5460b416dc19d3444e757aefa7320d6292bcf342ee1de", _exports);
+_modules.set("0adc305bbdff9d9b6a0b28764762f60a557f4e8a6c83a39cffa104ad309ca129", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

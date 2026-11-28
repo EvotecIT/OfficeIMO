@@ -45,6 +45,8 @@ Each `JavaScriptAsset` exposes `FileName`, `Content`, `ContentHash` and `HashedF
 | `CanopyXModule` | Optional standalone CanopyX capture adapter ES module |
 | `DataTablesAdapterScript`, `CanopyXAdapterScript` | The grid bridges without document writers; load `Script` from the same build first |
 | `DataTablesAdapterModule`, `CanopyXAdapterModule` | The grid bridge ES modules without document writers; they import the sibling `officeimo.mjs` |
+| `ChartForgeXScript`, `ChartForgeXModule` | Optional ChartForgeX chart capture integration: typed XLSX series and vector PDF |
+| `ChartForgeXAdapterScript`, `ChartForgeXAdapterModule` | The ChartForgeX bridge without document writers; load `Script` (or import `officeimo.mjs`) from the same build first |
 
 Every asset's `Minified` property returns its minified variant (`officeimo.min.js`, `officeimo-canopyx-adapter.min.mjs`, ...). Minified and readable classic scripts of one build share modules on a page. Each `.mjs` asset is its own module graph, so ES module consumers pass values only between modules from one assembly: a minified adapter module imports `officeimo.min.mjs`, a readable one `officeimo.mjs`.
 

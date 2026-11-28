@@ -9,7 +9,7 @@ const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0e
 const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244");
 const _c2 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
 const _c3 = _core("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759");
-const _c4 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
+const _c4 = _core("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d");
 const _c5 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2");
 const _c6 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c7 = _core("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da");
@@ -18,7 +18,7 @@ const _c9 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3
 const _c10 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669");
 const _c11 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c12 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
-const _c13 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
+const _c13 = _core("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607");
 const _c14 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
 const _c15 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
 const _m7 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
@@ -391,7 +391,7 @@ _modules.set("8edb7b3b19d6555ea24a92d771d532dc0448ad18101fdf663217b4c518b5a31b",
 return _exports;
 })();
 
-const _m16 = _modules.get("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224") ?? (() => {
+const _m16 = _modules.get("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08") ?? (() => {
 const { captureFields } = _c10;
 
 const { ExportBudget } = _c9;
@@ -432,11 +432,11 @@ function capturePdfOptions(input = {}) {
     return { ...options, ...(options.limits === undefined ? {} : { limits: capturePdfLimits(options.limits) }) };
 }
 const _exports = Object.freeze({ captureCommonLimits: captureCommonLimits, mergeAdapterLimits: mergeAdapterLimits, captureXlsxOptions: captureXlsxOptions, captureCsvOptions: captureCsvOptions, capturePdfOptions: capturePdfOptions });
-_modules.set("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224", _exports);
+_modules.set("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("c58ad284b362e82526a5460b416dc19d3444e757aefa7320d6292bcf342ee1de") ?? (() => {
+const _m0 = _modules.get("0adc305bbdff9d9b6a0b28764762f60a557f4e8a6c83a39cffa104ad309ca129") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _c0;
 
 const { notifyProgress } = _c1;
@@ -619,7 +619,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m11.createDataTablesExport, ExportCell: _c6.ExportCell, PdfFont: _c15.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("c58ad284b362e82526a5460b416dc19d3444e757aefa7320d6292bcf342ee1de", _exports);
+_modules.set("0adc305bbdff9d9b6a0b28764762f60a557f4e8a6c83a39cffa104ad309ca129", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -10,11 +10,11 @@ const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb
 const _c2 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669");
 const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671");
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
-const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
+const _c5 = _core("80399f3d77d51331d9e81e855bc6d4cafcb180b7d2e16a41d72474b160195607");
 const _c6 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
 const _c7 = _core("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759");
 const _c8 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
-const _c9 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
+const _c9 = _core("2b34ac52f52d482ae7ee252e4988e40d26e8c588efe44f4e168f55feaaab173d");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c11 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c12 = _core("e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8");
@@ -26,7 +26,7 @@ const _c17 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc927
 const _c18 = _core("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b");
 const _c19 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
 const _c20 = _core("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070");
-const _m4 = _modules.get("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224") ?? (() => {
+const _m4 = _modules.get("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08") ?? (() => {
 const { captureFields } = _c2;
 
 const { ExportBudget } = _c3;
@@ -67,7 +67,7 @@ function capturePdfOptions(input = {}) {
     return { ...options, ...(options.limits === undefined ? {} : { limits: capturePdfLimits(options.limits) }) };
 }
 const _exports = Object.freeze({ captureCommonLimits: captureCommonLimits, mergeAdapterLimits: mergeAdapterLimits, captureXlsxOptions: captureXlsxOptions, captureCsvOptions: captureCsvOptions, capturePdfOptions: capturePdfOptions });
-_modules.set("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224", _exports);
+_modules.set("b8f441c87149f13655314ac56a8518ac403e7fc06cf3c2548a590cd6a0525a08", _exports);
 return _exports;
 })();
 
@@ -1262,7 +1262,7 @@ _modules.set("e22371f890c61b2c5f4f1539c53e6e49077f39eed3cbfec0904d989c57f4c48d",
 return _exports;
 })();
 
-const _m32 = _modules.get("345c23be36571bed54982070d2ac5b01a8598428d57a48ab2fd2df8b2bbf712c") ?? (() => {
+const _m32 = _modules.get("4ccffbbb20499ee50c0e30fce9c4225106d7aabfe8a3ffcef218e2b97a7897d0") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _c0;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _c14;
@@ -1367,11 +1367,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("345c23be36571bed54982070d2ac5b01a8598428d57a48ab2fd2df8b2bbf712c", _exports);
+_modules.set("4ccffbbb20499ee50c0e30fce9c4225106d7aabfe8a3ffcef218e2b97a7897d0", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387") ?? (() => {
+const _m0 = _modules.get("f6a7c72b7712fa819e50f2b65d89095c592e0ef1b35d45cad94672732dfd5148") ?? (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
 const { notifyProgress, notifySynchronously } = _c1;
@@ -1519,7 +1519,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387", _exports);
+_modules.set("f6a7c72b7712fa819e50f2b65d89095c592e0ef1b35d45cad94672732dfd5148", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

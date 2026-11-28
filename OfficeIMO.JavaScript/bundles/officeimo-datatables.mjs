@@ -5788,12 +5788,14 @@ const sizes = {
 };
 /** @internal Shared capture schema for thin format adapters and the grouped writer. */
 const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
-    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "title", "metadataTitle", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
 const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Default ceilings shared by the drawing writer and its producers. */
+const pdfDrawingLimits = Object.freeze({ maxVectorCommands: 100000, maxDrawingElements: 100000 });
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
@@ -5904,7 +5906,7 @@ function settings(input, document = false) {
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, ...pdfDrawingLimits,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
@@ -5932,7 +5934,7 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    for (const key of ["title", "messageTop", "messageBottom"])
+    for (const key of ["title", "metadataTitle", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
     for (const key of ["pageHeader", "pageFooter"])
@@ -5968,7 +5970,7 @@ function settings(input, document = false) {
         repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
+const _exports = Object.freeze({ positive: _m58.positive, color: _m58.color, presentation: _m58.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, pdfDrawingLimits: pdfDrawingLimits, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
 return _exports;
 })();
 
@@ -7486,7 +7488,7 @@ class PdfFontResources {
         this.fontBytes += bytes;
         this.registered.add(font);
     }
-    select(bold = false, italic = false, explicit) {
+    select(bold = false, italic = false, explicit, standardForMissingFace = false) {
         if (explicit)
             this.registerFont(explicit);
         let selections = this.selections;
@@ -7496,10 +7498,13 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
+        const fallback = standardForMissingFace && !explicit && this.fonts !== undefined &&
+            this.fonts[bold ? italic ? "boldItalic" : "bold" : italic ? "italic" : "regular"] === undefined;
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0) | (fallback ? 4 : 0), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } :
+            selectFont(fallback ? undefined : this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
         const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
@@ -9967,7 +9972,8 @@ class PdfWriteSession {
             await this.structure.finish();
         await this.outlines.finish();
         await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
-        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        const title = options.metadataTitle ?? options.title;
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (title === undefined ? "" : " /Title <feff" + unicodeHex(title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
 }
@@ -10556,6 +10562,24 @@ function clipRectangle(value) {
     const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
     return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
 }
+/** A PDF dash array: 1 through 16 nonnegative lengths, not all zero, and a finite phase. */
+function dashPattern(value, offset) {
+    if (value === undefined) {
+        if (offset !== undefined)
+            throw new TypeError("Drawing dashOffset requires dash.");
+        return "";
+    }
+    if (!Array.isArray(value) || !value.length || value.length > 16)
+        throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
+    const lengths = Array.from(value, item => {
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400)
+            throw new TypeError("Drawing dash lengths must be from 0 through 14,400 points.");
+        return n(item);
+    });
+    if (lengths.every(length => length === "0"))
+        throw new TypeError("Drawing dash needs a positive length after PDF rounding.");
+    return "[" + lengths.join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+}
 async function cooperate(settings) {
     if (taskYieldDue())
         await pause();
@@ -10564,14 +10588,17 @@ async function cooperate(settings) {
 /** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
-    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
+    const standardFonts = root.standardFonts;
+    if (standardFonts !== undefined && typeof standardFonts !== "boolean")
+        throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
     function path(value) {
-        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin", "dash", "dashOffset"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
@@ -10593,6 +10620,7 @@ function captureDrawing(drawing, settings, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
+        const dash = dashPattern(value.dash, value.dashOffset);
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
@@ -10625,11 +10653,11 @@ function captureDrawing(drawing, settings, used) {
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
         return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
-                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n" + dash,
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
     function text(value) {
-        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color", "anchor", "rotation"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
@@ -10640,8 +10668,16 @@ function captureDrawing(drawing, settings, used) {
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        const anchor = value.anchor, rotation = value.rotation ?? 0;
+        if (anchor !== undefined && !["start", "middle", "end"].includes(anchor))
+            throw new TypeError("Invalid drawing text anchor.");
+        if (typeof rotation !== "number" || !Number.isFinite(rotation) || Math.abs(rotation) > 360)
+            throw new RangeError("Drawing text rotation must be finite degrees within -360 through 360.");
         settings.budget.cell(snapshot);
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
+        // Quarter turns stay exact so upright and vertical axis labels keep integral matrices.
+        const turn = rotation % 90 === 0 ? (((rotation / 90) % 4) + 4) % 4 : -1, radians = rotation * Math.PI / 180;
+        const cos = turn < 0 ? Math.cos(radians) : [1, 0, -1, 0][turn], sin = turn < 0 ? Math.sin(radians) : [0, 1, 0, -1][turn];
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot, anchor: anchor === "middle" ? .5 : anchor === "end" ? 1 : 0, cos, sin };
     }
     function children(input, depth) {
         if (!Array.isArray(input))
@@ -10681,7 +10717,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -10691,8 +10727,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         const existing = drawingFonts.get(slot);
         if (existing)
             return existing;
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic", undefined, captured.standardFonts);
+        if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
@@ -10748,7 +10784,15 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             }
             else {
                 const font = fontFor(node.font);
-                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let shift = 0;
+                if (node.anchor) {
+                    for (const character of node.text)
+                        shift += font.width(character.codePointAt(0));
+                    shift *= node.size / 1000 * node.anchor;
+                }
+                // Text space is upright in the drawing's downward y axis; rotation turns the baseline clockwise about its anchor.
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr " +
+                    [node.cos, node.sin, node.sin, -node.cos, node.x - shift * node.cos, node.y - shift * node.sin].map(n).join(" ") + " Tm <");
                 let chunk = "";
                 for (const character of node.text) {
                     chunk += character;

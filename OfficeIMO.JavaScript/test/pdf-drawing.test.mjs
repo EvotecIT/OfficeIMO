@@ -53,13 +53,39 @@ test("drawing text requires exact embedded faces and preserves the scalar writer
     await assert.rejects(writePdfDocument([block([{ ...text, text: value }])], options), error);
 });
 
+test("standard-font drawing text measures anchors, turns baselines and dashes strokes", async () => {
+  const blocks = [{ kind: "drawing", drawing: { ...drawing([
+    { ...text, text: "AB", fontSize: 10, anchor: "middle", rotation: -90 }, { ...text, text: "End", font: "bold", anchor: "end", x: 190, y: 90 },
+    { ...text, text: "Slant", rotation: 30 }, { ...path, dash: [4, 2], dashOffset: 1 }]), standardFonts: true } }];
+  const pdf = await inspectPdf(await writePdfDocument(blocks, { pageNumbers: false, compression: false }));
+  const content = pdf.pages[0].content;
+  assert.match(content, /0 -1 -1 0 10 31\.67 Tm/, "Half the Helvetica advance of AB (13.34 pt) moves the turned baseline");
+  assert.match(content, /1 0 0 -1 163\.554 90 Tm/, "Helvetica-Bold End is 26.446 pt wide at 14 pt");
+  assert.match(content, /0\.866 0\.5 0\.5 -0\.866 10 25 Tm/);
+  assert.match(content, /\[4 2\] 1 d\n-20 0 m/);
+  assert.equal(pdf.text.replace(/\s+/g, " ").trim(), "AB End Slant");
+  assert.ok([...pdf.objects.values()].some(object => /\/BaseFont \/Helvetica-Bold /.test(object.body)));
+  const mixed = await inspectPdf(await writePdfDocument(blocks, { ...options, fonts: { regular: fonts.regular } }));
+  assert.match([...mixed.objects.values()].map(object => object.body).join("\n"), /\/BaseFont \/Helvetica-Bold /);
+  assert.equal(mixed.text.replace(/\s+/g, " ").trim(), "AB End Slant");
+  await assert.rejects(writePdfDocument([{ kind: "drawing", drawing: { ...drawing([{ ...text, text: "Łódź" }]), standardFonts: true } }], { pageNumbers: false }), /U\+141 needs an embedded/);
+});
+
 test("portable drawing schemas reject unsupported fields, geometry, versions and cyclic/deep groups", async () => {
   for (const [value, error] of [
     [{ ...block([path]), opacity: .5 }, /drawing block properties/],
     [{ ...block([path]), drawing: { ...drawing([path]), transform: [1, 0, 0, 1, 0, 0] } }, /drawing properties/],
     [{ ...block([path]), drawing: { ...drawing([path]), version: 2 } }, /version 1/],
-    [block([{ ...path, dash: [2, 2] }]), /path properties/],
-    [block([{ ...text, rotation: 15 }]), /text properties/],
+    [block([{ ...path, opacity: .5 }]), /path properties/],
+    [block([{ ...text, skew: 15 }]), /text properties/],
+    [block([{ ...text, rotation: 400 }]), /rotation/],
+    [block([{ ...text, anchor: "center" }]), /anchor/],
+    [block([{ ...path, dash: [0, 0] }]), /dash/],
+    [block([{ ...path, dash: [0.0001] }]), /positive length after PDF rounding/],
+    [block([{ ...path, dash: [, 1] }]), /dash lengths/],
+    [block([{ ...path, dash: [-1] }]), /dash/],
+    [block([{ ...path, dashOffset: 1 }]), /requires dash/],
+    [{ ...block([path]), drawing: { ...drawing([path]), standardFonts: "yes" } }, /standardFonts/],
     [block([{ kind: "group", clip: { x: 0, y: 0, width: 10, height: 10, radius: 2 }, elements: [path] }]), /clip properties/],
     [block([{ ...path, commands: [{ op: "move", x: 0, y: 0, z: 1 }] }]), /command properties/],
     [block([{ ...path, commands: [{ op: "quadratic", x: 0, y: 0 }] }]), /Unsupported drawing path command/],

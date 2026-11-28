@@ -6,6 +6,9 @@ export interface PdfDrawing {
   readonly width: number;
   readonly height: number;
   readonly elements: readonly PdfDrawingElement[];
+  /** Paint text whose slot has no supplied TrueType face with the standard Helvetica face (WinAnsi characters only)
+   * instead of rejecting it. Default false: drawing text requires exact embedded faces. */
+  readonly standardFonts?: boolean;
 }
 /** One painted path; colors are six-digit RGB hex strings. */
 export interface PdfDrawingPath {
@@ -17,6 +20,10 @@ export interface PdfDrawingPath {
   readonly fillRule?: "nonzero" | "evenodd";
   readonly lineCap?: "butt" | "round" | "square";
   readonly lineJoin?: "miter" | "round" | "bevel";
+  /** 1 through 16 stroke dash lengths from 0 through 14,400 points. At least one must survive rounding to 0.001 pt. */
+  readonly dash?: readonly number[];
+  /** Dash phase from -1,000,000 through 1,000,000 points; requires dash. */
+  readonly dashOffset?: number;
 }
 /** A face explicitly supplied in the PDF document's embedded static TrueType family. */
 export type PdfDrawingFont = "regular" | "bold" | "italic" | "boldItalic";
@@ -29,6 +36,10 @@ export interface PdfDrawingText {
   readonly font: PdfDrawingFont;
   readonly fontSize: number;
   readonly color: string;
+  /** Which point of the measured run sits at x and y. Default start. */
+  readonly anchor?: "start" | "middle" | "end";
+  /** Clockwise baseline rotation in degrees about the anchor, -360 through 360. Default 0. */
+  readonly rotation?: number;
 }
 export interface PdfDrawingClip { readonly x: number; readonly y: number; readonly width: number; readonly height: number; }
 /** Ordered children, optionally restricted by an axis-aligned rectangular clip. */

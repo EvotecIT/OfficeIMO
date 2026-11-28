@@ -227,19 +227,22 @@ test("integration adapters take their writers from the shared core", async () =>
     assert.throws(() => vm.runInContext(adapterOnly, context), /needs officeimo\.js or officeimo\.min\.js/);
     vm.runInContext(await script(shared), context);
     const { core, PdfFont, ExportCell } = context.OfficeIMO;
-    for (const adapter of ["datatables", "canopyx"]) vm.runInContext(await script("officeimo-" + adapter + "-adapter" + suffix), context);
+    for (const adapter of ["datatables", "canopyx", "chartforgex"]) vm.runInContext(await script("officeimo-" + adapter + "-adapter" + suffix), context);
     assert.equal(context.OfficeIMO.core, core); assert.equal(context.OfficeIMO.PdfFont, PdfFont); assert.equal(context.OfficeIMO.ExportCell, ExportCell);
     assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
     const columns = [{ id: "V", title: "V", kind: "text", width: { unit: "css-px", preferred: 160, minimum: 40 }, wrap: false, alignment: "left" }];
     const blob = await context.OfficeIMO.exportCanopy({ request: { columns, recordCount: 1, presentation: "semantic", values: "raw", timeZone: "utc", revision: "adapter" },
       async *rows() { yield { id: "1", cells: { V: { value: "Łódź", text: "Łódź" } } }; } }, "csv");
     assert.equal(await blob.text(), "V\r\nŁódź\r\n");
+    assert.equal(typeof context.OfficeIMO.exportChartForgeX, "function");
+    assert.equal(context.OfficeIMO.chartForgeXDrawing('<svg width="4" height="4"><rect width="4" height="4"/></svg>').elements[0].fill, "000000");
   }
   for (const suffix of ["", ".min"]) {
     const shared = await import("../bundles/officeimo" + suffix + ".mjs");
-    for (const adapter of ["datatables", "canopyx"]) {
+    for (const adapter of ["datatables", "canopyx", "chartforgex"]) {
       const module = await import("../bundles/officeimo-" + adapter + "-adapter" + suffix + ".mjs");
-      assert.equal(module.PdfFont, shared.PdfFont); assert.equal(module.ExportCell, shared.ExportCell);
+      assert.equal(module.PdfFont, shared.PdfFont);
+      if (adapter !== "chartforgex") assert.equal(module.ExportCell, shared.ExportCell);
     }
   }
 });
