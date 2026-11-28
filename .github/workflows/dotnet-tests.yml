@@ -1880,6 +1880,7 @@ jobs:
         run: |
           # Without the packaging property the tool must refuse to pack, with or without a runtime, rather than write
           # a RID-neutral or single-platform package.
+          mkdir -p artifacts
           for runtime in "" "linux-x64"; do
             output="artifacts/unflagged-package-${runtime:-any}"
             if dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output "$output" -p:PackageVersion=0.0.0-local ${runtime:+--runtime "$runtime"} > "$output.log" 2>&1; then
