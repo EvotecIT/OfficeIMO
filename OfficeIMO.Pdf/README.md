@@ -3,7 +3,60 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Pdf)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 
-Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no third-party PDF library, browser or Office installation.
+Create, read and change PDF files in .NET with OfficeIMO's own PDF engine: no third-party PDF library, browser or Office installation.
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Pdf
+```
+
+Add an optional package only when you need its workflow:
+
+| To | Add |
+| --- | --- |
+| Sign with certificates or validate CMS signatures | `OfficeIMO.Security` |
+| Save Word, Excel or PowerPoint as PDF | `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf` |
+| Convert HTML to PDF, or PDF to HTML | `OfficeIMO.Html.Pdf` |
+| Save Markdown as PDF | `OfficeIMO.Markdown.Pdf` |
+| Convert PDF to Word, Excel or PowerPoint | `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint` |
+| Read scanned pages with an OCR provider | `OfficeIMO.Pdf.Ocr` |
+| Render an invoice with its Factur-X XML | `OfficeIMO.Invoicing.Pdf` |
+| Print to an installed printer | [`OfficeIMO.Workflows`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#print-a-document) |
+| Full OpenType shaping for complex scripts | `OfficeIMO.Drawing.HarfBuzz` |
+
+## Quick start
+
+Page numbers and ranges are 1-based. Page, merge and form operations return a new document; save it to a different path to keep the source file.
+
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Create" -->
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Service review")
+        .AddParagraph("All scheduled checks passed. Two follow-ups remain open.")
+        .AddTable(new[] {
+            new[] { "Task", "Owner", "Due" },
+            new[] { "Rotate certificates", "Platform", "4 Nov" } })))
+    .Meta(title: "Service review", author: "Operations")
+    .Save("Service-review.pdf");
+```
+<!-- /powerforge:code -->
+
+Read it back as paragraphs, headings, lists and tables per page, or as Markdown:
+
+<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Read" -->
+```csharp
+PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
+foreach (PdfLogicalPage page in result.Pages) {
+    Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
+}
+Console.WriteLine(result.ExtractMarkdown());
+```
+<!-- /powerforge:code -->
+
+Use `PdfLoadOptions.UntrustedDefaults` for files from outside your organization, and `PdfDocument.LoadSeekable` to read a few pages of a large PDF without loading all of it. `LoadSeekable` keeps the file open against writes where the operating system allows it; elsewhere it reads the whole file into a bounded in-memory snapshot, limited by `PdfLoadOptions.Limits.MaxInputBytes`.
 
 ## What it does
 
@@ -22,153 +75,24 @@ Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no
 - **Print** to installed printers on Windows, macOS and Linux, with page ranges, 1, 2, 4, 6 or 9 pages per sheet, scaling, duplex and paper source, through `OfficeIMO.Workflows`.
 - **Convert** Word, Excel, PowerPoint, HTML and Markdown to PDF, and PDF back to Word, Excel, PowerPoint, HTML or Markdown.
 
-## Install
+The [PDF guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf-guide.md) shows each of these with examples, from page layout and fonts to merging, forms, signatures, redaction, PDF/A, rendering and asset extraction.
 
-```sh
-dotnet add package OfficeIMO.Pdf
-```
+## Limits
 
-`OfficeIMO.Pdf` depends only on `OfficeIMO.Core`. It targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows. Add an optional package only when you need its workflow:
+Each workflow reports what it couldn't do instead of silently dropping content: unsupported fonts, color profiles, transparency and form features show up as diagnostics. [PDF current state](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf.current-state.md) describes what each workflow covers, and the [PDF conversion support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf-conversion-support-matrix.md), [accessibility matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf-accessibility-support-matrix.md) and [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md) list the details.
 
-| To | Add |
-| --- | --- |
-| Sign with certificates or validate CMS signatures | `OfficeIMO.Security` |
-| Save Word, Excel or PowerPoint as PDF | `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf` |
-| Convert HTML to PDF, or PDF to HTML | `OfficeIMO.Html.Pdf` |
-| Save Markdown as PDF | `OfficeIMO.Markdown.Pdf` |
-| Convert PDF to Word, Excel or PowerPoint | `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint` |
-| Read scanned pages with an OCR provider | `OfficeIMO.Pdf.Ocr` |
-| Render an invoice with its Factur-X XML | `OfficeIMO.Invoicing.Pdf` |
-| Print to an installed printer | [`OfficeIMO.Workflows`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Workflows/README.md#print-a-document) |
-| Full OpenType shaping for complex scripts | `OfficeIMO.Drawing.HarfBuzz` |
+## Learn more
 
-## Examples
+- [OfficeIMO.Pdf on officeimo.com](https://officeimo.com/products/pdf/), the [PDF docs](https://officeimo.com/docs/pdf/) and the [browser PDF tools](https://officeimo.com/browser/).
+- [PDF guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf-guide.md).
+- [Examples](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Pdf) and the [migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md).
+- PowerShell: [PSWriteOffice](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/README.MD) (`New-OfficePdf`, `Open-OfficePdf`). Command line: `officeimo convert report.pdf report.md` with [OfficeIMO.Tool](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md).
 
-Each example uses `using OfficeIMO.Pdf;`, and page numbers and ranges are 1-based. Page, merge and form operations return a new document; save it to a different path to keep the source file.
+## Targets and dependencies
 
-### Create a report
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Create" -->
-```csharp
-using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf => pdf.Content(content => content
-        .H1("Service review")
-        .AddParagraph("All scheduled checks passed. Two follow-ups remain open.")
-        .AddTable(new[] {
-            new[] { "Task", "Owner", "Due" },
-            new[] { "Rotate certificates", "Platform", "4 Nov" } })))
-    .Meta(title: "Service review", author: "Operations")
-    .Save("Service-review.pdf");
-```
-<!-- /powerforge:code -->
-
-Embedded fonts follow their OS/2 `fsType` licence, read the least restrictive way when several permissions are set. A font that forbids embedding or allows only bitmaps is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that forbids subsetting is embedded whole.
-
-Color emoji fonts keep their color. Text in a run with COLR glyphs (Segoe UI Emoji) or CBDT/sbix PNG glyphs (Noto Color Emoji, Apple Color Emoji) is written as invisible, searchable text, and each glyph's color layers or image are painted at the same position, so extraction and `ActualText` return the exact source. The artwork follows the text's rotation and skew, including in text watermarks, and translucent palette colors keep their alpha. COLR v1 gradients are painted as solid layers, and SVG glyphs are reported by the text encoding preflight.
-
-### Read text and tables
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Read" -->
-```csharp
-PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
-foreach (PdfLogicalPage page in result.Pages) {
-    Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
-}
-Console.WriteLine(result.ExtractMarkdown());
-```
-<!-- /powerforge:code -->
-
-`Read()` returns paragraphs, headings, lists and tables per page. The [reading guide](../Docs/officeimo.pdf-guide.md#load-once-and-build-one-semantic-read-result) covers decoding diagnostics, form values and scanned pages; use [`PdfLoadOptions.UntrustedDefaults`](../Docs/officeimo.pdf-guide.md#read-limits) for files from outside your organization.
-
-For a large, stable PDF when you only need a few pages, use `PdfDocument.LoadSeekable(...)`.
-Initial admission scans the complete PDF with a bounded read cache. Later page reads fetch the
-encoded ranges they need. Saving, fingerprinting and operations that need the exact source read
-the complete PDF. The library holds a path open until disposal when the operating system can
-exclude writes. Otherwise the path overload takes a bounded snapshot.
-
-Pass a seekable stream at the start of the PDF, with a length when it occupies part of a larger
-stream. Keep the input available and unchanged until the document is disposed. The document
-preserves the stream position during its reads.
-
-### Merge, rotate and split
-
-This example combines the report with an `Appendix.pdf` of your own.
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Combine" -->
-```csharp
-PdfDocument.Load("Service-review.pdf")
-    .MergeWith("Appendix.pdf")
-    .Pages.Rotate(90, "2")
-    .Save("Review-pack.pdf");
-
-IReadOnlyList<PdfDocument> parts = PdfDocument.Load("Review-pack.pdf").Pages.Split();
-for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
-```
-<!-- /powerforge:code -->
-
-### Fill a form
-
-This example fills `Application.pdf`, a form with `Applicant.Name` and `Approval.Status` text fields. The [forms guide](../Docs/officeimo.pdf-guide.md#forms) shows how to create one.
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="FillForm" -->
-```csharp
-PdfDocument.Load("Application.pdf")
-    .Forms.FillAndFlatten(new Dictionary<string, string> {
-        ["Applicant.Name"] = "Adele Vance",
-        ["Approval.Status"] = "Approved"
-    })
-    .Save("Application-filled.pdf");
-```
-<!-- /powerforge:code -->
-
-Use `Forms.Fill` to keep the fields editable.
-
-### Protect with a password
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Protect" -->
-```csharp
-PdfSecurityMutationResult protectedPdf = PdfDocument.Load("Service-review.pdf")
-    .Security.Encrypt(new PdfStandardEncryptionOptions("open-password") {
-        OwnerPassword = "owner-password"
-    });
-File.WriteAllBytes("Service-review-protected.pdf", protectedPdf.Pdf);
-```
-<!-- /powerforge:code -->
-
-### Render a page to PNG
-
-<!-- powerforge:code source="Build/DocumentationExamples/Pdf/Program.cs" region="Render" -->
-```csharp
-PdfPageRenderResult preview = PdfDocument.Load("Service-review.pdf")
-    .Render.Pages("1", new PdfPageRenderOptions { Dpi = 144 })[0];
-File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
-```
-<!-- /powerforge:code -->
-
-Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
-
-### Extract PDF assets
-
-```csharp
-using var pdf = PdfDocument.Load("artwork.pdf");
-IReadOnlyList<string> files = pdf.ExtractAssets("artwork-assets");
-```
-
-The new folder contains distinct images and embedded font programs, ICC profiles and an SVG for each page. Open `report.html` to browse the files and see image placement DPI, page boxes in millimetres, spot colorants and font subset status. `report.json` contains the same inventory in a machine-readable form.
-
-Supported image soft masks are saved as RGBA PNGs by default. Pass `CompositeSoftMasks = false` in `PdfAssetExtractionOptions` to use the ordinary image extraction formats. Standalone TrueType and OpenType programs with unusable names receive a repaired name table. Font subsets keep the glyphs the PDF embedded, and raw CFF and Type 1 programs keep their decoded bytes.
-
-Use `ExtractAssetsTo` to open a stream for each bundle file, or `ExtractEmbeddedFonts` to save the fonts alone. The same extraction is available in the browser. [Extract PDF assets](https://officeimo.com/browser/extract-pdf-assets/)
-
-## More
-
-- [PDF guide](../Docs/officeimo.pdf-guide.md): every workflow with examples, from page layout and fonts to signatures, redaction, PDF/A and deployment.
-- [PDF current state](../Docs/officeimo.pdf.current-state.md): what each workflow covers and where its limits are.
-- [PDF conversion support](../Docs/officeimo.pdf-conversion-support-matrix.md) and the [generated operation contract](../Docs/Compatibility/generated/package-operations.md).
-- [Examples](../OfficeIMO.Examples/Pdf), the [migration guide](../MIGRATION.md) and [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) for PowerShell (`New-OfficePdf`, `Open-OfficePdf`).
-
-MIT licensed.
+- Targets: `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows.
+- Dependencies: `OfficeIMO.Core` only, plus `System.Memory` on .NET Standard 2.0 and .NET Framework.
+- License: MIT.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

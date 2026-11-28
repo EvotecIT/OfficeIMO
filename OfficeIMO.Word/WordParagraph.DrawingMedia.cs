@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
                     if (drawing is not null) {
                         var data = drawing.Descendants<GraphicData>().FirstOrDefault();
                         if (data is not null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
-                            return new WordSmartArt(_document, this, drawing);
+                            return new WordSmartArt(_document, this, OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(drawing));
                         }
                     }
                 }

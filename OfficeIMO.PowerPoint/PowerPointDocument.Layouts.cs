@@ -1,53 +1,48 @@
-using System.Reflection;
-using System.Runtime.ExceptionServices;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        // The package's layouts with their types read as the SDK reads them; null when one has a type the schema doesn't
-        // know, which the model reports when it reads it.
-        private List<(string Name, SlideLayoutValues? Type, string? RelationshipId)>? ReadPackageLayouts(int masterIndex) {
-            if (TryReadPackageLayouts(masterIndex) is not { } layouts) return null;
-            var read = new List<(string, SlideLayoutValues?, string?)>(layouts.Count);
-            foreach ((string name, string? token, string? relationshipId) in layouts) {
-                SlideLayoutValues? type = null;
-                if (token != null) {
-                    var value = new SlideLayoutValues(token);
-                    if (!((IEnumValue)value).IsValid) return null;
-                    type = value;
-                }
-                read.Add((name, type, relationshipId));
-            }
-            return read;
+        private const int LayoutPresentationNamespace = OfficeXmlNamespaces.PresentationML;
+
+        // A master's layouts in relationship order, as the index-based layout APIs count them.
+        private List<PowerPointPartRef> LayoutPartRefs(int masterIndex) =>
+            RequireMasterPartRef(masterIndex).RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType).ToList();
+
+        // The layout at an index of a master, throwing as an out-of-range index does.
+        internal PowerPointPartRef RequireLayoutPartRef(int masterIndex, int layoutIndex) {
+            List<PowerPointPartRef> layouts = LayoutPartRefs(masterIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Count);
+            return layouts[layoutIndex];
         }
+
+        // The master at an index, throwing as an out-of-range index does.
+        private PowerPointPartRef RequireMasterPartRef(int masterIndex) {
+            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
+            PowerPointPartRef master = MasterPartRef(masterIndex);
+            if (master.IsNone) throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            return master;
+        }
+
+        private static string LayoutName(PowerPointPartRef layout) =>
+            layout.Root.Child(LayoutPresentationNamespace, "cSld").Attribute("name") ?? string.Empty;
+
+        // A layout's declared type; one the schema doesn't know reads as none.
+        private static PowerPointSlideLayoutType? LayoutTypeOf(PowerPointPartRef layout) =>
+            PowerPointSlideLayoutTypeTokens.TryParse(layout.Root.Attribute("type"), out PowerPointSlideLayoutType type) ? type : null;
 
         /// <summary>
         ///     Returns the layouts available for a slide master.
         /// </summary>
         public IReadOnlyList<PowerPointSlideLayoutInfo> GetSlideLayouts(int masterIndex = 0) {
             ThrowIfDisposed();
-            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
-                return packageLayouts.Select((layout, index) => new PowerPointSlideLayoutInfo(masterIndex, index, layout.Name,
-                    layout.Type?.ToOfficeIMO(), layout.RelationshipId)).ToList();
-            }
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            var results = new List<PowerPointSlideLayoutInfo>(layouts.Length);
-
-            for (int i = 0; i < layouts.Length; i++) {
-                SlideLayoutPart layoutPart = layouts[i];
-                SlideLayout? layout = layoutPart.SlideLayout;
-                string name = layout?.CommonSlideData?.Name?.Value ?? string.Empty;
-                SlideLayoutValues? type = layout?.Type?.Value;
-                string? relationshipId = masterPart.GetIdOfPart(layoutPart);
-                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, name, type?.ToOfficeIMO(), relationshipId));
+            PowerPointPartRef master = RequireMasterPartRef(masterIndex);
+            List<PowerPointPartRef> layouts = LayoutPartRefs(masterIndex);
+            var results = new List<PowerPointSlideLayoutInfo>(layouts.Count);
+            for (int i = 0; i < layouts.Count; i++) {
+                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, LayoutName(layouts[i]), LayoutTypeOf(layouts[i]), master.RelationshipIdOf(layouts[i], PowerPointPartRef.SlideLayoutRelationshipType)));
             }
 
             return results;
@@ -58,20 +53,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int GetLayoutIndex(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
-                SlideLayoutValues wanted = layoutType.ToOpenXml();
-                int found = packageLayouts.FindIndex(layout => layout.Type == wanted);
-                if (found >= 0) return found;
-            }
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            for (int i = 0; i < layouts.Length; i++) {
-                SlideLayoutValues? type = layouts[i].SlideLayout?.Type?.Value;
-                if (type == layoutType.ToOpenXml()) {
-                    return i;
-                }
-            }
-
+            int found = LayoutPartRefs(masterIndex).FindIndex(layout => LayoutTypeOf(layout) == layoutType);
+            if (found >= 0) return found;
             throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
         }
 
@@ -81,22 +64,9 @@ namespace OfficeIMO.PowerPoint {
         public int GetLayoutIndex(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(layoutName);
-            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
-                StringComparison packageComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-                int found = packageLayouts.FindIndex(layout => string.Equals(layout.Name, layoutName, packageComparison));
-                if (found >= 0) return found;
-            }
-
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            for (int i = 0; i < layouts.Length; i++) {
-                string name = layouts[i].SlideLayout?.CommonSlideData?.Name?.Value ?? string.Empty;
-                if (string.Equals(name, layoutName, comparison)) {
-                    return i;
-                }
-            }
-
+            int found = LayoutPartRefs(masterIndex).FindIndex(layout => string.Equals(LayoutName(layout), layoutName, comparison));
+            if (found >= 0) return found;
             throw new InvalidOperationException($"Layout '{layoutName}' not found for master {masterIndex}.");
         }
 
@@ -116,70 +86,35 @@ namespace OfficeIMO.PowerPoint {
             return AddSlide(masterIndex, layoutIndex);
         }
 
-        private SlideLayoutPart? FindMatchingLayout(SlideLayoutPart sourceLayoutPart) {
-            SlideLayout? sourceLayout = sourceLayoutPart.SlideLayout;
-            if (sourceLayout == null) {
-                return null;
-            }
-
-            string? sourceName = sourceLayout.CommonSlideData?.Name?.Value;
-            SlideLayoutValues? sourceType = sourceLayout.Type?.Value;
-
-            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
-                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
-                    SlideLayout? candidateLayout = layoutPart.SlideLayout;
-                    if (candidateLayout == null) {
-                        continue;
-                    }
-
-                    SlideLayoutValues? candidateType = candidateLayout.Type?.Value;
-                    if (sourceType.HasValue && candidateType != sourceType) {
-                        continue;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(sourceName)) {
-                        string? candidateName = candidateLayout.CommonSlideData?.Name?.Value;
-                        if (!string.Equals(sourceName, candidateName, StringComparison.OrdinalIgnoreCase)) {
-                            continue;
-                        }
-                    }
-
-                    return layoutPart;
-                }
-            }
-
-            return null;
-        }
-
-        internal SlideLayoutPart GetSlideLayoutPart(int masterIndex, int layoutIndex) {
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Length);
-            return layouts[layoutIndex];
-        }
-
         /// <summary>
         ///     Retrieves a layout placeholder textbox for a master/layout pair.
         /// </summary>
         public PowerPointTextBox? GetLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             uint? index = null) {
             ThrowIfDisposed();
-            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-            Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
-            return shape == null ? null : new PowerPointTextBox(shape, layoutPart);
+            PowerPointSlideLayout layout = GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex));
+            OfficeXmlNode shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
+            return shape.IsNone ? null : layout.WrapTextBox(shape);
         }
 
         /// <summary>Reads layout geometry in native inheritance order before a partial edit materializes a local transform.</summary>
         internal PowerPointLayoutBox? GetEffectiveLayoutPlaceholderBounds(int masterIndex, int layoutIndex,
             PowerPointPlaceholderType placeholderType, uint? index = null) {
             ThrowIfDisposed();
-            SlideLayoutPart layout = GetSlideLayoutPart(masterIndex, layoutIndex);
-            Shape? shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
-            PlaceholderShape? placeholder = shape?.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
-            return shape == null || placeholder == null ? null
-                : PowerPointSlide.GetLayoutElementBounds(shape) ?? PowerPointSlide.GetExportPlaceholderBounds(layout, placeholder);
+            PowerPointPartRef layoutPart = RequireLayoutPartRef(masterIndex, layoutIndex);
+            OfficeXmlNode shape = FindLayoutPlaceholderShape(GetLayout(layoutPart), placeholderType, index);
+            OfficeXmlNode placeholder = shape.Child(LayoutPresentationNamespace, "nvSpPr").Child(LayoutPresentationNamespace, "nvPr").Child(LayoutPresentationNamespace, "ph");
+            if (shape.IsNone || placeholder.IsNone) return null;
+            return LocalBounds(shape) ?? PowerPointSlide.GetExportPlaceholderBounds(layoutPart, placeholder);
+        }
+
+        // The offset and extents of a layout shape's own transform, when all four are set.
+        private static PowerPointLayoutBox? LocalBounds(OfficeXmlNode shape) {
+            OfficeXmlNode transform = shape.Child(LayoutPresentationNamespace, "spPr").Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            OfficeXmlNode offset = transform.Child(OfficeXmlNamespaces.DrawingML, "off"), extents = transform.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            long? x = offset.Int64Attribute("x"), y = offset.Int64Attribute("y"), cx = extents.Int64Attribute("cx"), cy = extents.Int64Attribute("cy");
+            if (x == null || y == null || cx == null || cy == null) return null;
+            return new PowerPointLayoutBox(OfficeLength.Emus(x.Value), OfficeLength.Emus(y.Value), OfficeLength.Emus(cx.Value), OfficeLength.Emus(cy.Value));
         }
 
         /// <summary>
@@ -188,21 +123,22 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTextBox EnsureLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
             uint? index = null, PowerPointLayoutBox? bounds = null, string? name = null) {
             ThrowIfDisposed();
-            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-            Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
-            if (shape != null) {
-                return new PowerPointTextBox(shape, layoutPart);
+            PowerPointSlideLayout layout = GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex));
+            OfficeXmlNode shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
+            if (!shape.IsNone) {
+                return layout.WrapTextBox(shape);
             }
 
-            ShapeTree tree = EnsureLayoutShapeTree(layoutPart);
+            OfficeXmlNode tree = layout.ShapeTree;
             uint shapeId = GetNextShapeId(tree);
+            string typeToken = placeholderType.ToOpenXmlToken();
             uint resolvedIndex = index ?? 0U;
             string resolvedName = name ?? $"{placeholderType} Placeholder";
             PowerPointLayoutBox resolvedBounds = bounds ?? GetFallbackPlaceholderBounds(placeholderType);
 
-            Shape created = CreateLayoutPlaceholderShape(shapeId, resolvedName, placeholderType, resolvedIndex, resolvedBounds);
-            tree.AppendChild(created);
-            return new PowerPointTextBox(created, layoutPart);
+            OfficeXmlNode created = tree.Append(CreateLayoutPlaceholderShape(tree, shapeId, resolvedName, typeToken, resolvedIndex, resolvedBounds));
+            layout.PartRef.MarkEdited();
+            return layout.WrapTextBox(created);
         }
 
         /// <summary>
@@ -268,13 +204,13 @@ namespace OfficeIMO.PowerPoint {
 
             style.Apply(paragraph);
             if (style.HasFormatting) {
-                A.ParagraphProperties properties = paragraph.Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-                A.DefaultRunProperties? defaults = properties.GetFirstChild<A.DefaultRunProperties>();
-                if (defaults == null) {
-                    defaults = new A.DefaultRunProperties();
-                    properties.AddChild(defaults, true);
-                }
-                style.ApplyDefaults(defaults, PowerPointDrawingColor.ThemeFor(paragraph.OwnerPart));
+                OfficeTheme? theme = style.Color.HasValue || style.BackgroundColor.HasValue
+                    ? PowerPointDrawingColor.ThemeFor(paragraph.OwnerPartRef, null) : null;
+                OfficeXmlNode element = paragraph.Element;
+                OfficeXmlNode properties = element.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "pPr");
+                OfficeXmlNode defaults = properties.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "defRPr", ATextParagraphPropertiesView.Order);
+                style.ApplyDefaults(defaults, theme);
+                paragraph.OwnerPartRef.MarkEdited();
             }
         }
 
@@ -317,83 +253,68 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static Shape? FindLayoutPlaceholderShape(SlideLayoutPart layoutPart, PowerPointPlaceholderType placeholderType, uint? index) {
-            ShapeTree? shapeTree = layoutPart.SlideLayout?.CommonSlideData?.ShapeTree;
-            if (shapeTree == null) {
-                return null;
+        // The first shape (p:sp) of the layout whose placeholder has the type and, when given, the index.
+        private static OfficeXmlNode FindLayoutPlaceholderShape(PowerPointSlideLayout layout, PowerPointPlaceholderType placeholderType, uint? index) {
+            OfficeXmlNode tree = layout.Root.Child(LayoutPresentationNamespace, "cSld").Child(LayoutPresentationNamespace, "spTree");
+            string typeToken = placeholderType.ToOpenXmlToken();
+            foreach (OfficeXmlNode element in tree.Children()) {
+                OfficeXmlNode placeholder = LayoutPlaceholderOf(element);
+                // A placeholder that declares no type matches none, as the model reads it.
+                if (placeholder.Attribute("type") != typeToken) continue;
+                if (index != null && placeholder.UInt32Attribute("idx") != index.Value) continue;
+                if (element.Is(LayoutPresentationNamespace, "sp")) return element;
             }
 
-            foreach (OpenXmlElement element in shapeTree.ChildElements) {
-                PlaceholderShape? placeholder = GetLayoutPlaceholderShape(element);
-                if (placeholder?.Type?.Value.ToOfficeEnum() != placeholderType) {
-                    continue;
-                }
-                if (index != null && placeholder.Index?.Value != index.Value) {
-                    continue;
-                }
-                if (element is Shape shape) {
-                    return shape;
-                }
-            }
-
-            return null;
+            return default;
         }
 
-        private static PlaceholderShape? GetLayoutPlaceholderShape(OpenXmlElement element) {
-            return element switch {
-                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                DocumentFormat.OpenXml.Presentation.Picture p =>
-                    p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+        private static OfficeXmlNode LayoutPlaceholderOf(OfficeXmlNode element) {
+            string? container = element.NamespaceId != LayoutPresentationNamespace ? null : element.LocalName switch {
+                "sp" => "nvSpPr",
+                "pic" => "nvPicPr",
+                "graphicFrame" => "nvGraphicFramePr",
                 _ => null
             };
+            return container == null ? default
+                : element.Child(LayoutPresentationNamespace, container).Child(LayoutPresentationNamespace, "nvPr").Child(LayoutPresentationNamespace, "ph");
         }
 
-        private static ShapeTree EnsureLayoutShapeTree(SlideLayoutPart layoutPart) {
-            SlideLayout layout = layoutPart.SlideLayout ??= new SlideLayout();
-            CommonSlideData common = layout.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = common.ShapeTree ??= new ShapeTree();
-
-            if (tree.GetFirstChild<NonVisualGroupShapeProperties>() == null) {
-                tree.PrependChild(new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()));
-            }
-
-            if (tree.GetFirstChild<GroupShapeProperties>() == null) {
-                tree.AppendChild(PowerPointUtils.CreateDefaultGroupShapeProperties());
-            }
-
-            return tree;
-        }
-
-        private static uint GetNextShapeId(ShapeTree shapeTree) {
-            uint maxId = shapeTree
-                .Descendants<NonVisualDrawingProperties>()
-                .Select(properties => properties.Id?.Value ?? 0U)
-                .DefaultIfEmpty(0U)
-                .Max();
+        private static uint GetNextShapeId(OfficeXmlNode tree) {
+            uint maxId = 0U;
+            foreach (OfficeXmlNode drawing in tree.Descendants(LayoutPresentationNamespace, "cNvPr")) maxId = Math.Max(maxId, drawing.UInt32Attribute("id") ?? 0U);
             return maxId + 1U;
         }
 
-        private static Shape CreateLayoutPlaceholderShape(uint id, string name, PowerPointPlaceholderType type, uint index,
+        // A placeholder shape as the model adds it to a layout: a rectangle at the bounds with one empty run.
+        private static OfficeXmlNode CreateLayoutPlaceholderShape(OfficeXmlNode context, uint id, string name, string typeToken, uint index,
             PowerPointLayoutBox bounds) {
-            return new Shape(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = id, Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type.ToOpenXml(), Index = index })),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
-                        new A.Extents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                ),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(string.Empty)))))
-            { };
+            const int P = LayoutPresentationNamespace, D = OfficeXmlNamespaces.DrawingML;
+            OfficeXmlNode shape = context.CreateElement(P, "sp");
+            OfficeXmlNode nonVisual = shape.Append(shape.CreateElement(P, "nvSpPr"));
+            OfficeXmlNode drawing = nonVisual.Append(nonVisual.CreateElement(P, "cNvPr"));
+            drawing.SetUInt32Attribute("id", id);
+            drawing.SetAttribute("name", name);
+            nonVisual.Append(nonVisual.CreateElement(P, "cNvSpPr")).Append(nonVisual.CreateElement(D, "spLocks")).SetAttribute("noGrp", "1");
+            OfficeXmlNode placeholder = nonVisual.Append(nonVisual.CreateElement(P, "nvPr")).Append(nonVisual.CreateElement(P, "ph"));
+            placeholder.SetAttribute("type", typeToken);
+            placeholder.SetUInt32Attribute("idx", index);
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(P, "spPr"));
+            OfficeXmlNode transform = properties.Append(properties.CreateElement(D, "xfrm"));
+            OfficeXmlNode offset = transform.Append(transform.CreateElement(D, "off"));
+            offset.SetInt64Attribute("x", bounds.Left.ToEmus());
+            offset.SetInt64Attribute("y", bounds.Top.ToEmus());
+            OfficeXmlNode extents = transform.Append(transform.CreateElement(D, "ext"));
+            extents.SetInt64Attribute("cx", bounds.Width.ToEmus());
+            extents.SetInt64Attribute("cy", bounds.Height.ToEmus());
+            OfficeXmlNode geometry = properties.Append(properties.CreateElement(D, "prstGeom"));
+            geometry.SetAttribute("prst", "rect");
+            geometry.Append(geometry.CreateElement(D, "avLst"));
+            OfficeXmlNode body = shape.Append(shape.CreateElement(P, "txBody"));
+            body.Append(body.CreateElement(D, "bodyPr"));
+            body.Append(body.CreateElement(D, "lstStyle"));
+            OfficeXmlNode run = body.Append(body.CreateElement(D, "p")).Append(body.CreateElement(D, "r"));
+            run.Append(run.CreateElement(D, "t"));
+            return shape;
         }
 
         private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PowerPointPlaceholderType placeholderType) {
@@ -410,8 +331,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPlaceholderType placeholderType, string? text, PowerPointLayoutBox? bounds, uint index, string name) {
             ThrowIfDisposed();
 
-            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-            SetHeaderFooterFlag(layoutPart, placeholderType, true);
+            SetHeaderFooterFlag(GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex)), placeholderType);
 
             PowerPointTextBox textBox = EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType,
                 index, bounds ?? GetDefaultHeaderFooterBounds(placeholderType), name);
@@ -442,39 +362,22 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus((slideWidth - centerWidth) / 2),OfficeIMO.OfficeLength.Emus(footerTop),OfficeIMO.OfficeLength.Emus(centerWidth),OfficeIMO.OfficeLength.Emus(footerHeight));
         }
 
-        private static void SetHeaderFooterFlag(SlideLayoutPart layoutPart, PowerPointPlaceholderType placeholderType, bool visible) {
-            HeaderFooter headerFooter = EnsureHeaderFooter(layoutPart);
-            if (placeholderType == PowerPointPlaceholderType.Footer) {
-                headerFooter.Footer = visible;
-                return;
+        // Shows the footer, date or slide number on the layout's header/footer settings (p:hf), added before the
+        // extension list when missing.
+        private static void SetHeaderFooterFlag(PowerPointSlideLayout layout, PowerPointPlaceholderType placeholderType) {
+            string? attribute = placeholderType switch {
+                PowerPointPlaceholderType.Footer => "ftr",
+                PowerPointPlaceholderType.DateAndTime => "dt",
+                PowerPointPlaceholderType.SlideNumber => "sldNum",
+                _ => null
+            };
+            OfficeXmlNode root = layout.EditableRoot;
+            OfficeXmlNode headerFooter = root.Child(LayoutPresentationNamespace, "hf");
+            if (headerFooter.IsNone) {
+                headerFooter = root.InsertBefore(root.CreateElement(LayoutPresentationNamespace, "hf"), root.Child(LayoutPresentationNamespace, "extLst"));
             }
-
-            if (placeholderType == PowerPointPlaceholderType.DateAndTime) {
-                headerFooter.DateTime = visible;
-                return;
-            }
-
-            if (placeholderType == PowerPointPlaceholderType.SlideNumber) {
-                headerFooter.SlideNumber = visible;
-            }
-        }
-
-        private static HeaderFooter EnsureHeaderFooter(SlideLayoutPart layoutPart) {
-            SlideLayout layout = layoutPart.SlideLayout ??= new SlideLayout();
-            HeaderFooter? headerFooter = layout.GetFirstChild<HeaderFooter>();
-            if (headerFooter != null) {
-                return headerFooter;
-            }
-
-            headerFooter = new HeaderFooter();
-            SlideLayoutExtensionList? extensionList = layout.GetFirstChild<SlideLayoutExtensionList>();
-            if (extensionList != null) {
-                layout.InsertBefore(headerFooter, extensionList);
-            } else {
-                layout.AppendChild(headerFooter);
-            }
-
-            return headerFooter;
+            if (attribute != null) headerFooter.SetAttribute(attribute, "1");
+            layout.PartRef.MarkEdited();
         }
 
     }

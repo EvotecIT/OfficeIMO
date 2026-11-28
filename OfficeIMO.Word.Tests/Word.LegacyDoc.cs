@@ -9099,7 +9099,7 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
-                    table.StyleDetails!.TableBorders = new TableBorders(
+                    table._tableProperties!.TableBorders = new TableBorders(
                         new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U, Space = 1U },
                         new BottomBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
                         new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U },
@@ -9154,7 +9154,7 @@ namespace OfficeIMO.Tests {
                     WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("NoTop", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Inherited", removeExistingParagraphs: true);
-                    table.StyleDetails!.TableBorders = new TableBorders(
+                    table._tableProperties!.TableBorders = new TableBorders(
                         new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
                         new BottomBorder { Val = BorderValues.Single, Color = "0000FF", Size = 4U });
                     table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Nil;

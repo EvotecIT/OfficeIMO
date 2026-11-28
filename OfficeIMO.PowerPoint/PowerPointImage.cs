@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Office2019.Drawing.SVG;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -12,9 +13,12 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or DocumentFormat.OpenXml.Packaging.SlidePart ? _slidePart! : _initialOwnerPart;
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or DocumentFormat.OpenXml.Packaging.SlidePart ? (_slidePart ?? RelationshipOwnerPart)! : _initialOwnerPart;
 
         internal PowerPointImage(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
+
+        internal PowerPointImage(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
         }
 
         internal PowerPointImage(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
@@ -23,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointImage(Picture picture, OpenXmlPartContainer ownerPart) : this(picture, null, ownerPart) {
         }
 
-        private PowerPointImage(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture) {
+        private PowerPointImage(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture, ownerPart) {
             _initialSlidePart = slidePart;
             _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
@@ -35,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets the MIME content type of the underlying image.
         /// </summary>
-        public string? ContentType => GetImagePart()?.ContentType;
+        public string? ContentType => GetImagePartRef().ContentType;
 
         /// <summary>
         ///     Gets the MIME content type of the underlying image.
@@ -46,20 +50,6 @@ namespace OfficeIMO.PowerPoint {
             get => PowerPointHyperlinkResolver.Resolve(_ownerPart, _slidePart ?? OwnerSlide?.SlidePart,
                 Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>());
         }
-
-        // A picture with an SVG extension is that SVG; its ordinary blip is only the raster fallback.
-        private ImagePart? GetImagePart() => ResolveImagePart(GetSvgRelationshipId()) ?? GetFallbackImagePart();
-
-        private ImagePart? GetFallbackImagePart() => ResolveImagePart(((Picture)Element).BlipFill?.Blip?.Embed?.Value);
-
-        private string? GetSvgRelationshipId() =>
-            ((Picture)Element).BlipFill?.Blip?.Descendants<SVGBlip>()
-                .Select(vector => vector.Embed?.Value).FirstOrDefault(id => !string.IsNullOrEmpty(id));
-
-        private ImagePart? ResolveImagePart(string? relationshipId) =>
-            relationshipId != null && _ownerPart.TryGetPartById(relationshipId, out OpenXmlPart? part)
-                ? part as ImagePart
-                : null;
 
         /// <summary>
         ///     Replaces the picture's underlying image with the provided stream.
@@ -196,16 +186,11 @@ namespace OfficeIMO.PowerPoint {
         public double CropBottomRatio => GetCrop().Bottom;
 
         internal PowerPointImageCrop GetCrop() {
-            A.SourceRectangle? rect = Picture.BlipFill?.SourceRectangle;
-            if (rect == null) {
-                return PowerPointImageCrop.None;
-            }
-
+            OfficeXmlNode crop = PictureBlipFill.Child(OfficeXmlNamespaces.DrawingML, "srcRect");
+            if (crop.IsNone) return PowerPointImageCrop.None;
             return new PowerPointImageCrop(
-                ToCropFraction(rect.Left?.Value),
-                ToCropFraction(rect.Top?.Value),
-                ToCropFraction(rect.Right?.Value),
-                ToCropFraction(rect.Bottom?.Value));
+                ToCropFraction(crop.Int32Attribute("l")), ToCropFraction(crop.Int32Attribute("t")),
+                ToCropFraction(crop.Int32Attribute("r")), ToCropFraction(crop.Int32Attribute("b")));
         }
 
         /// <summary>

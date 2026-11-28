@@ -32,7 +32,7 @@ content.AddBarcode(SymbolFormat.Gs1Code128, "(01)09501101530003(17)261231");
 content.AddBarcode(SymbolFormat.DataMatrix, "SN-0042-PL", options => options.Width = OfficeLength.Millimeters(15));
 ```
 
-Any CodeGlyphX `SymbolFormat` works. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](../OfficeIMO.Drawing.CodeGlyphX/README.md#options).
+Any CodeGlyphX `SymbolFormat` works. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Drawing.CodeGlyphX/README.md#options).
 
 ## Place a code at a page position
 

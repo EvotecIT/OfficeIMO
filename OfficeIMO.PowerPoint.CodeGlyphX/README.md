@@ -42,7 +42,7 @@ using OfficeIMO.PowerPoint;
 slide.AddBarcode(SymbolFormat.Code128, "TICKET-7781", box);
 ```
 
-Any CodeGlyphX `SymbolFormat` works. In a box, linear barcodes fill its width and height; two-dimensional codes keep their proportions. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](../OfficeIMO.Drawing.CodeGlyphX/README.md#options).
+Any CodeGlyphX `SymbolFormat` works. In a box, linear barcodes fill its width and height; two-dimensional codes keep their proportions. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Drawing.CodeGlyphX/README.md#options).
 
 ## Output
 

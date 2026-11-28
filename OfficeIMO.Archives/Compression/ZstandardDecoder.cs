@@ -180,7 +180,8 @@ internal sealed class ZstandardDecoder {
         ZstandardDictionaryData? dictionary = _settings.Dictionary;
         if (dictionaryId != 0) {
             if (dictionary == null) throw Corrupt(headerOffset, $"dictionary {dictionaryId}, which was not supplied");
-            if (dictionary.Id != 0 && dictionary.Id != dictionaryId)
+            // A raw-content dictionary has ID zero, so it never matches a frame that names a dictionary.
+            if (dictionary.Id != dictionaryId)
                 throw Corrupt(headerOffset, $"dictionary {dictionaryId}, not the supplied dictionary {dictionary.Id}");
         }
         StartFrame(window, contentSize, dictionary);
@@ -237,11 +238,15 @@ internal sealed class ZstandardDecoder {
         _blockMaximum = (int)Math.Min(window, MaxBlockSize);
         // A frame never needs more history than its window or, when declared, its whole content.
         long history = contentSize >= 0 ? Math.Min(window, contentSize) : window;
-        _capacity = content.Length + history + 2L * MaxBlockSize;
+        // Spare room of at least half the window means a slide, which copies one window, happens at most once per half
+        // window of output, so history copies stay below twice the output.
+        _capacity = content.Length + history + Math.Max(2L * MaxBlockSize, (content.Length + history) / 2);
         if (_capacity > int.MaxValue - 64)
             throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), _settings.MaximumWindow);
         int initial = (int)Math.Min(_capacity, content.Length + 2L * MaxBlockSize);
         if (_history.Length < initial) _history = new byte[initial];
+        // Every frame starts from a fresh copy of the dictionary, so the copy is decode work like any block.
+        if (content.Length > 0) _settings.Budget.Charge(0, content.Length);
         Buffer.BlockCopy(content, 0, _history, 0, content.Length);
         _position = content.Length;
         _frameProduced = 0;
@@ -274,6 +279,7 @@ internal sealed class ZstandardDecoder {
             return;
         }
         int keep = (int)Math.Min(_position, _window);
+        _settings.Budget.Charge(0, keep);
         Buffer.BlockCopy(_history, _position - keep, _history, 0, keep);
         _position = keep;
         // Only a frame that outgrows its declared content can run out of history capacity.
@@ -303,13 +309,6 @@ internal sealed class ZstandardDecoder {
         int limit = blockStart + _blockMaximum;
         if (position >= size) throw Corrupt(offset + position, "the sequences section header");
         int sequenceCount = _block[position++];
-        if (sequenceCount == 0) {
-            if (position != size) throw Corrupt(offset + position, "the end of a block without sequences");
-            if (literalCount > limit - _position) throw Corrupt(offset, $"a block that expands to at most {_blockMaximum} bytes");
-            Buffer.BlockCopy(_literals, 0, _history, _position, literalCount);
-            _position += literalCount;
-            return;
-        }
         if (sequenceCount >= 128) {
             if (sequenceCount < 255) {
                 if (position >= size) throw Corrupt(offset + position, "the sequence count");
@@ -319,6 +318,14 @@ internal sealed class ZstandardDecoder {
                 sequenceCount = _block[position] + (_block[position + 1] << 8) + 0x7F00;
                 position += 2;
             }
+        }
+        // Zero can also be written in two bytes (0x80 0x00); either way the block is its literals alone.
+        if (sequenceCount == 0) {
+            if (position != size) throw Corrupt(offset + position, "the end of a block without sequences");
+            if (literalCount > limit - _position) throw Corrupt(offset, $"a block that expands to at most {_blockMaximum} bytes");
+            Buffer.BlockCopy(_literals, 0, _history, _position, literalCount);
+            _position += literalCount;
+            return;
         }
         if (position >= size) throw Corrupt(offset + position, "the symbol compression modes");
         int modes = _block[position++];
@@ -619,6 +626,8 @@ internal sealed class ZstandardDictionaryData {
     internal bool HasEntropyTables => Huffman != null;
 
     internal static ZstandardDictionaryData Parse(byte[] bytes) {
+        if (bytes.Length >= 4 && Read32(bytes, 0) == DictionaryMagic && bytes.Length < 8)
+            throw new ArchiveCorruptionException(FormatName, 4, "a 4-byte dictionary ID after the dictionary magic");
         if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) {
             if (bytes.Length == 0) throw new ArchiveCorruptionException(FormatName, 0, "non-empty dictionary content");
             return new ZstandardDictionaryData(0, (byte[])bytes.Clone(), new[] { 1, 4, 8 }, null, null, null, null);

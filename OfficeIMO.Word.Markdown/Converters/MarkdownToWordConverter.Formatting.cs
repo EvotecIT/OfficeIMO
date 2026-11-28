@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Markdown {
                 return null;
             }
 
-            return WordFontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
+            return WordFontResolver.ToDocumentFont(options.FontFamily);
         }
 
         internal const string CodeStylePrefix = "CodeLang_";

@@ -21,7 +21,8 @@ public sealed class ArchiveReadOptions {
     public long MaxEntryBytes { get; set; } = DefaultMaxEntryBytes;
     /// <summary>Maximum expanded data, including siblings in a selected solid folder. Defaults to 64 MiB.</summary>
     public long MaxExpandedBytes { get; set; } = 64L * 1024 * 1024;
-    /// <summary>Maximum decompression work for 7z. Defaults to 2 GiB.</summary>
+    /// <summary>Maximum decompression work for 7z and Zstandard, counted as input plus output bytes with a minimum of
+    /// 4 KiB per Zstandard block. Defaults to 2 GiB.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
     /// <summary>Maximum history window or dictionary a compressed stream may declare. Defaults to 64 MiB, which covers the
     /// largest standard presets. Decoders allocate history only as output is produced. Single-segment frames keep their whole content as the window and are bounded by the

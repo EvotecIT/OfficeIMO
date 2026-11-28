@@ -19,6 +19,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../OfficeIMO.SharedSource/Invoicing/*.cs" Link="Shared/Invoicing/%(Filename)%(Extension)" />
+    <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
+    <Using Include="OfficeIMO.Entities" />
     <Using Include="OfficeIMO.Internal.Invoicing" />
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />

@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -217,8 +215,8 @@ namespace OfficeIMO.Word {
         private static List<RunSnapshot> GetRunSnapshots(ParagraphSnapshot paragraph, WordComparisonOptions options) {
             var snapshots = new List<RunSnapshot>();
             int runIndex = 0;
-            foreach (Run run in EnumerateComparableDescendants(paragraph.Paragraph).OfType<Run>()) {
-                if (run.Ancestors<Paragraph>().FirstOrDefault() != paragraph.Paragraph) {
+            foreach (OfficeXmlNode run in EnumerateComparableDescendants(paragraph.Paragraph)) {
+                if (!run.Is(W, "r") || AncestorW(run, "p") != paragraph.Paragraph) {
                     continue;
                 }
 
@@ -238,32 +236,34 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static string GetRunText(Run run) {
+        private static string GetRunText(OfficeXmlNode run) {
             var parts = new List<string>();
-            foreach (OpenXmlElement element in EnumerateComparableDescendants(run)) {
-                switch (element) {
-                    case Text text:
-                        parts.Add(text.Text ?? string.Empty);
+            foreach (OfficeXmlNode element in EnumerateComparableDescendants(run)) {
+                if (element.NamespaceId != W) {
+                    continue;
+                }
+
+                switch (element.LocalName) {
+                    case "t":
+                    case "delText":
+                        parts.Add(element.InnerText);
                         break;
-                    case DeletedText deletedText:
-                        parts.Add(deletedText.Text ?? string.Empty);
-                        break;
-                    case TabChar:
+                    case "tab" when IsTabChar(element):
                         parts.Add("\t");
                         break;
-                    case Break breakNode:
-                        parts.Add(GetBreakText(breakNode));
+                    case "br":
+                        parts.Add(GetBreakText(element));
                         break;
-                    case SymbolChar symbol:
-                        parts.Add("[Symbol:" + (symbol.Font?.Value ?? string.Empty) + ":" + (symbol.Char?.Value ?? string.Empty) + "]");
+                    case "sym":
+                        parts.Add("[Symbol:" + (element.Attribute(W, "font") ?? string.Empty) + ":" + (element.Attribute(W, "char") ?? string.Empty) + "]");
                         break;
-                    case NoBreakHyphen:
+                    case "noBreakHyphen":
                         parts.Add("-");
                         break;
-                    case SoftHyphen:
+                    case "softHyphen":
                         parts.Add("[SoftHyphen]");
                         break;
-                    case CarriageReturn:
+                    case "cr":
                         parts.Add("\n");
                         break;
                 }
@@ -272,44 +272,39 @@ namespace OfficeIMO.Word {
             return string.Concat(parts);
         }
 
-        private static string GetBreakText(Break breakNode) {
-            if (breakNode.Type == null || breakNode.Type.Value == BreakValues.TextWrapping) {
-                return "\n";
+        private static string GetBreakText(OfficeXmlNode breakNode) {
+            switch (GetBreakType(breakNode)) {
+                case "page":
+                    return "[PageBreak]";
+                case "column":
+                    return "[ColumnBreak]";
+                default:
+                    return "\n";
             }
-
-            if (breakNode.Type.Value == BreakValues.Page) {
-                return "[PageBreak]";
-            }
-
-            if (breakNode.Type.Value == BreakValues.Column) {
-                return "[ColumnBreak]";
-            }
-
-            return "[Break:" + breakNode.Type.Value + "]";
         }
 
-        private static string GetRunFormatSignature(Run run, OpenXmlPart? part, Paragraph paragraph, WordComparisonOptions options) {
+        private static string GetRunFormatSignature(OfficeXmlNode run, WordPartView? part, OfficeXmlNode paragraph, WordComparisonOptions options) {
             if (options.CompareEffectiveFormatting) {
                 return GetEffectiveRunFormatSignature(run, paragraph, part, options);
             }
 
-            RunProperties? properties = run.RunProperties;
-            if (properties == null) {
+            OfficeXmlNode properties = run.Child(W, "rPr");
+            if (properties.IsNone) {
                 return string.Empty;
             }
 
-            OpenXmlElement clone = properties.CloneNode(true);
-            foreach (RunPropertiesChange change in clone.Descendants<RunPropertiesChange>().ToList()) {
-                change.Remove();
-            }
+            return GetElementSignature(properties, options.CompareRunStyleIds ? RunFormatSignatureRules.WithStyle : RunFormatSignatureRules.WithoutStyle);
+        }
 
-            if (!options.CompareRunStyleIds) {
-                foreach (RunStyle runStyle in clone.Descendants<RunStyle>().ToList()) {
-                    runStyle.Remove();
-                }
-            }
+        /// <summary>Run properties without their revision record, and without the run style when styles aren't compared.</summary>
+        private sealed class RunFormatSignatureRules : SignatureRules {
+            internal static readonly RunFormatSignatureRules WithStyle = new(dropStyle: false);
+            internal static readonly RunFormatSignatureRules WithoutStyle = new(dropStyle: true);
+            private readonly bool _dropStyle;
 
-            return clone.OuterXml;
+            private RunFormatSignatureRules(bool dropStyle) => _dropStyle = dropStyle;
+
+            internal override bool Skip(OfficeXmlNode element) => element.Is(W, "rPrChange") || _dropStyle && element.Is(W, "rStyle");
         }
 
         private static string GetRunMatchKey(string text, string formatSignature) {

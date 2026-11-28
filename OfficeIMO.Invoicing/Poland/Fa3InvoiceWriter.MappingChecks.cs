@@ -35,8 +35,8 @@ public static partial class Fa3InvoiceWriter {
             if (payment.MeansCode != "30") error(path + ".Account", "A creditor account requires the supported generic-transfer mapping.");
             optional(path + ".Account.Name", payment.Account.Name);
             string account = payment.Account.Identifier;
-            if (string.IsNullOrWhiteSpace(account) || account.Length > 34 || account.Any(character => character < '0' || character > '9') && !InvoiceBankAccountIdentity.IsValidIban(account)) error(path + ".Account.Identifier", "Supply a valid IBAN or a numeric national account identifier of at most 34 characters.");
-            if (payment.Account.IsIban && !InvoiceBankAccountIdentity.IsValidIban(account)) error(path + ".Account.IsIban", "An account marked as an IBAN must have a valid registered structure and checksum.");
+            if (string.IsNullOrWhiteSpace(account) || account.Length > 34 || account.Any(character => character < '0' || character > '9') && !FinancialSchemes.Iban.IsValid(account)) error(path + ".Account.Identifier", "Supply a valid IBAN or a numeric national account identifier of at most 34 characters.");
+            if (payment.Account.IsIban && !FinancialSchemes.Iban.IsValid(account)) error(path + ".Account.IsIban", "An account marked as an IBAN must have a valid registered structure and checksum.");
             string? bic = payment.Account.ProviderIdentifier;
             if (bic != null && (bic.Length is not (8 or 11) || bic.Any(character => !(character >= 'A' && character <= 'Z' || character >= '0' && character <= '9')))) error(path + ".Account.ProviderIdentifier", "SWIFT must contain eight or eleven uppercase alphanumeric characters.");
         }
