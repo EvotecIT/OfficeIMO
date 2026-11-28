@@ -1,14 +1,13 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         internal sealed class LegacyPptSoundProjectionContext {
             private readonly LegacyPptDocument _presentation;
-            private readonly Dictionary<uint, MediaDataPart> _mediaParts = new();
-            private readonly Dictionary<(OpenXmlPart Owner, uint SoundId), string>
-                _relationships = new();
+            private readonly Dictionary<uint, LegacyPptImportPart> _mediaParts = new();
+            private readonly Dictionary<(string Owner, uint SoundId), string> _relationships = new();
 
             internal LegacyPptSoundProjectionContext(
                 LegacyPptDocument presentation) {
@@ -16,29 +15,31 @@ namespace OfficeIMO.PowerPoint {
                     ?? throw new ArgumentNullException(nameof(presentation));
             }
 
-            internal bool TryProject(OpenXmlPart ownerPart, uint soundId,
+            /// <summary>
+            /// Relates <paramref name="ownerPart"/> to the embedded sound, adding the media part the first time any part
+            /// uses it, and returns the relationship id; false when the binary sound has no projectable audio.
+            /// </summary>
+            internal bool TryProject(PowerPointPartRef ownerPart, uint soundId,
                 out LegacyPptSound? sound, out string? relationshipId) {
                 sound = _presentation.FindSound(soundId);
                 relationshipId = null;
                 if (sound?.ContentType == null || !sound.HasData) return false;
-                var key = (ownerPart, soundId);
+                PowerPointDocument document = ownerPart.Document
+                    ?? throw new InvalidOperationException(
+                        "Unable to resolve the target package for legacy sound import.");
+                var key = (ownerPart.Name, soundId);
                 if (_relationships.TryGetValue(key, out relationshipId)) return true;
 
-                if (!_mediaParts.TryGetValue(soundId, out MediaDataPart? mediaPart)) {
-                    OpenXmlPackage package = GetPackage(ownerPart)
-                        ?? throw new InvalidOperationException(
-                            "Unable to resolve the target package for legacy sound import.");
-                    mediaPart = CreateMediaDataPart(package, sound.ContentType);
-                    using var input = new MemoryStream(sound.DataBytes, writable: false);
-                    mediaPart.FeedData(input);
+                LegacyPptImportParts parts = LegacyPptImportParts.For(document);
+                if (_mediaParts.TryGetValue(soundId, out LegacyPptImportPart mediaPart)) {
+                    relationshipId = parts.AddRelationship(ownerPart, LegacyAudioRelationshipType,
+                        mediaPart, generatedId: false);
+                } else {
+                    string extension = sound.ContentType == "audio/aiff" ? ".aiff" : ".wav";
+                    relationshipId = parts.AddBinaryPart(ownerPart, LegacyAudioRelationshipType,
+                        "/ppt/media/media" + extension, sound.ContentType, sound.DataBytes,
+                        numbered: true, generatedId: false, out mediaPart);
                     _mediaParts.Add(soundId, mediaPart);
-                }
-
-                relationshipId = GetNextRelationshipId(ownerPart);
-                if (!TryAddAudioReferenceRelationship(ownerPart, mediaPart,
-                        relationshipId)) {
-                    throw new InvalidOperationException(
-                        $"Unable to attach binary sound {soundId} to {ownerPart.GetType().Name}.");
                 }
                 _relationships.Add(key, relationshipId);
                 return true;

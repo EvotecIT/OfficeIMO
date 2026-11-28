@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Drawing.Binary;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -39,6 +40,168 @@ namespace OfficeIMO.Tests {
             Assert.True(failed.HasImportErrors);
             Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
+
+        [Fact]
+        public void LoadLegacyPpt_LeavesTheImportedPresentationInItsPackage() {
+            using PowerPointDocument presentation = PowerPointDocument.LoadLegacyPpt(FixturePath);
+
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        [Fact]
+        public void SchemaDescendants_SkipExtensionMetadataLikeTypedSdkLookups() {
+            // A blip in the picture and another inside extension metadata of the same picture.
+            var picture = new P.Picture(new DocumentFormat.OpenXml.OpenXmlUnknownElement("p", "nvPicPr",
+                    "http://schemas.openxmlformats.org/presentationml/2006/main"),
+                new P.BlipFill(new A.Blip { Embed = "rId1" }),
+                new P.ShapeProperties(new A.ExtensionList(new A.Extension(
+                    new A.Blip { Embed = "rId2" }) { Uri = "{00000000-0000-0000-0000-000000000000}" })));
+            OfficeIMO.OpenXml.Internal.OfficeXmlNode node = OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(picture);
+
+            OfficeIMO.OpenXml.Internal.OfficeXmlNode blip = Assert.Single(node.SchemaDescendants(LegacyPptXml.A, "blip"));
+            Assert.Equal("rId1", blip.Attribute(LegacyPptXml.R, "embed"));
+            Assert.Equal(2, node.EveryDescendant().Count(element => element.Is(LegacyPptXml.A, "blip")));
+        }
+
+        [Theory]
+        [InlineData("urn:understood", "v", true)]
+        [InlineData("urn:unsupported", "v", false)]
+        [InlineData("urn:understood", "w", true)]
+        public void Digest_ComparesCompatibilityPrefixesByTheirNamespace(string namespaceUri, string prefix, bool sameDigest) {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+            const string Template = "<p:sp xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" "
+                + "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:{0}=\"{1}\">"
+                + "<mc:AlternateContent><mc:Choice Requires=\"{0}\"><p:txBody/></mc:Choice><mc:Fallback/></mc:AlternateContent></p:sp>";
+
+            string original = DigestOf(string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, "v", "urn:understood"));
+            string changed = DigestOf(string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, prefix, namespaceUri));
+
+            Assert.Equal(sameDigest, original == changed);
+        }
+
+        [Fact]
+        public void ScalarAttributes_IgnoreSurroundingXmlWhitespace() {
+            Assert.False(LegacyPptXml.ParseBoolean(" false\n"));
+            Assert.Equal(42, LegacyPptXml.ParseInt32("\t42 "));
+            Assert.Equal(7U, LegacyPptXml.ParseUInt32(" 7"));
+            Assert.Equal(-5L, LegacyPptXml.ParseInt64("-5 "));
+            Assert.Null(LegacyPptXml.ParseInt32("4 2"));
+        }
+
+        [Theory]
+        [InlineData(" xml:space=\"preserve\"", false)]
+        [InlineData("", true)]
+        public void Digest_KeepsWhitespaceWhereXmlSpaceIsPreserve(string space, bool sameDigest) {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+
+            string withSpace = DigestOf("<v:root xmlns:v=\"urn:test\"" + space + "><v:data><v:item/> </v:data></v:root>");
+            string withoutSpace = DigestOf("<v:root xmlns:v=\"urn:test\"" + space + "><v:data><v:item/></v:data></v:root>");
+
+            Assert.Equal(sameDigest, withSpace == withoutSpace);
+        }
+
+        [Fact]
+        public void Digest_TreatsNonBreakingSpaceBesideElementsAsText() {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+
+            Assert.NotEqual(DigestOf("<v:root xmlns:v=\"urn:test\"><v:item/>&#160;</v:root>"),
+                DigestOf("<v:root xmlns:v=\"urn:test\"><v:item/></v:root>"));
+        }
+
+        [Fact]
+        public void Preflight_CountsCharactersAgainstTheConfiguredPartLimit() {
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                // 100,000 characters: within the limit, but about 300,000 bytes in UTF-8.
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox(new string('\u65E5', 100_000));
+                pptx = created.ToBytes();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 200_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
+        }
+
+        [Theory]
+        [InlineData("utf-32BE")]
+        [InlineData("utf-32")]
+        public void Preflight_CountsUtf32PartsByCharacter(string encodingName) {
+            // A slide stored as UTF-32 takes four bytes a character; its character count is what the limit applies to.
+            System.Text.Encoding encoding = System.Text.Encoding.GetEncoding(encodingName);
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox(new string('x', 60_000));
+                pptx = created.ToBytes();
+            }
+            using (var stream = new MemoryStream()) {
+                stream.Write(pptx, 0, pptx.Length);
+                using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+                    DocumentFormat.OpenXml.Packaging.SlidePart slidePart = package.PresentationPart!.SlideParts.First();
+                    string xml;
+                    using (var reader = new StreamReader(slidePart.GetStream())) xml = reader.ReadToEnd();
+                    xml = System.Text.RegularExpressions.Regex.Replace(xml, "encoding=\"[^\"]*\"", "encoding=\"" + encodingName + "\"");
+                    byte[] encoded = encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray();
+                    using Stream target = slidePart.GetStream(FileMode.Create, FileAccess.Write);
+                    target.Write(encoded, 0, encoded.Length);
+                }
+                pptx = stream.ToArray();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 200_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
+        }
+
+        [Theory]
+        [InlineData("application/xml")]
+        [InlineData("application/vnd.example.payload+xml")]
+        [InlineData("application/vnd.openxmlformats-officedocument.drawingml.chart+xml")]
+        public void Preflight_ReportsOversizedCustomXmlWithoutReadingIt(string contentType) {
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
+                pptx = created.ToBytes();
+            }
+            using (var stream = new MemoryStream()) {
+                stream.Write(pptx, 0, pptx.Length);
+                using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+                    DocumentFormat.OpenXml.Packaging.CustomXmlPart custom = package.PresentationPart!
+                        .AddCustomXmlPart(contentType);
+                    using var payload = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                        "<root>" + new string('x', 510_000) + "</root>"));
+                    custom.FeedData(payload);
+                }
+                pptx = stream.ToArray();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 500_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.Contains(preflight.Findings, finding => finding.Code == "ppt-write-custom-xml");
         }
 
         [Fact]
@@ -625,7 +788,7 @@ namespace OfficeIMO.Tests {
                 new A.Transform2D(),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle });
 
-            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(properties), source);
 
             A.RgbColorModelHex fill = properties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
             Assert.Equal("112233", fill.Val!.Value);

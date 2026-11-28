@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
@@ -9,24 +8,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordVbaInfoAtom = 0x0400;
         private const ushort RecordExternalOleObjectStorage = 0x1011;
 
+        // Caller in LegacyPptWritePreflight.cs not yet passing a view.
         internal static bool TryReadVbaProject(
             PowerPointDocument presentation, out byte[]? projectBytes,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryReadVbaProject(view, out projectBytes, out reason);
+        }
+
+        internal static bool TryReadVbaProject(
+            LegacyPptPackageView view, out byte[]? projectBytes,
+            out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             projectBytes = null;
             reason = null;
-            VbaProjectPart? part = presentation.OpenXmlDocument
-                .PresentationPart?.VbaProjectPart;
-            if (part == null) return true;
-            if (part.Parts.Any()) {
+            LegacyPptPartView part = view.Presentation.RelatedPart(
+                LegacyPptPackageView.VbaProjectRelationshipType);
+            if (part.IsNone) return true;
+            // Hyperlinks are references, not related signature or data parts.
+            if (part.Relationships.Any(relationship => !relationship.IsExternal
+                    && !relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType))) {
                 reason = "Related VBA signature or data parts do not have a PowerPoint 97-2003 representation.";
                 return false;
             }
             try {
-                using Stream stream = part.GetStream(FileMode.Open,
-                    FileAccess.Read);
-                projectBytes = OfficeStreamReader.ReadAllBytes(stream,
-                    64 * 1024 * 1024);
+                projectBytes = part.ReadBytes(64 * 1024 * 1024);
             } catch (Exception exception) when (exception is IOException
                                                 or InvalidDataException
                                                 or UnauthorizedAccessException) {

@@ -1,10 +1,8 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.CustomProperties;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.VariantTypes;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// <summary>
@@ -17,22 +15,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static readonly ISet<uint> SupportedDocumentSummaryPropertyIds =
             new HashSet<uint> { 1, 2, 3, 7, 8, 9, 14, 15 };
 
+        /// <summary>
+        /// Writes the binary property sets into the presentation's document properties: in its package while it is
+        /// held there, through the SDK otherwise.
+        /// </summary>
         internal static void Apply(PowerPointDocument presentation,
             LegacyPptPackage package) {
             ArgumentNullException.ThrowIfNull(presentation);
             ArgumentNullException.ThrowIfNull(package);
-            ClearMappedProperties(presentation.OpenXmlDocument);
-            if (TryReadSections(package, OfficeOlePropertySetWriter
+            IReadOnlyList<OfficeOlePropertySection>? summarySections =
+                TryReadSections(package, OfficeOlePropertySetWriter
                     .SummaryInformationStreamName, out IReadOnlyList<
-                    OfficeOlePropertySection> summarySections)) {
-                ApplySummary(presentation.OpenXmlDocument, summarySections);
-            }
-            if (TryReadSections(package, OfficeOlePropertySetWriter
+                    OfficeOlePropertySection> summary) ? summary : null;
+            IReadOnlyList<OfficeOlePropertySection>? documentSummarySections =
+                TryReadSections(package, OfficeOlePropertySetWriter
                     .DocumentSummaryInformationStreamName, out IReadOnlyList<
-                    OfficeOlePropertySection> documentSummarySections)) {
-                ApplyDocumentSummary(presentation.OpenXmlDocument,
-                    documentSummarySections);
+                    OfficeOlePropertySection> documentSummary) ? documentSummary : null;
+            if (presentation.EditablePackage is { } editable) {
+                var properties = new PackagePropertyWriter(editable);
+                properties.ClearMapped();
+                if (summarySections != null) ApplySummary(properties, summarySections);
+                if (documentSummarySections != null) ApplyDocumentSummary(properties, documentSummarySections);
+                presentation.MarkPackageEdited();
+                return;
             }
+            ApplyThroughSdk(presentation, summarySections, documentSummarySections);
         }
 
         internal static void ApplyReadOnlyDateOverrides(
@@ -58,17 +65,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static LegacyPptPropertySetProjection CreateProjection(
-            PowerPointDocument presentation, LegacyPptPackage package) {
-            ArgumentNullException.ThrowIfNull(presentation);
+            LegacyPptPackageView view, LegacyPptPackage package) {
+            ArgumentNullException.ThrowIfNull(view);
             ArgumentNullException.ThrowIfNull(package);
             bool summarySafe = CanRewriteSummary(package);
             bool documentSummarySafe = CanRewriteDocumentSummary(package);
             return new LegacyPptPropertySetProjection(
-                CreateSummaryFingerprint(presentation.OpenXmlDocument),
-                CreateDocumentSummaryFingerprint(
-                    presentation.OpenXmlDocument),
-                CreateUnmappedCoreFingerprint(
-                    presentation.OpenXmlDocument), summarySafe,
+                CreateSummaryFingerprint(view),
+                CreateDocumentSummaryFingerprint(view),
+                CreateUnmappedCoreFingerprint(view), summarySafe,
                 documentSummarySafe);
         }
 
@@ -76,15 +81,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointDocument presentation,
             out IReadOnlyList<OfficeCompoundStream> streams,
             out string? reason) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryCreateFreshStreams(view, out streams, out reason);
+        }
+
+        internal static bool TryCreateFreshStreams(
+            LegacyPptPackageView view,
+            out IReadOnlyList<OfficeCompoundStream> streams,
+            out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             var result = new List<OfficeCompoundStream>(2);
             streams = result;
             reason = null;
-            byte[]? summary = CreateSummaryInformation(presentation);
+            var properties = PackageProperties.Read(view);
+            byte[]? summary = CreateSummaryInformation(properties);
             if (summary != null) {
                 result.Add(new OfficeCompoundStream(OfficeOlePropertySetWriter
                     .SummaryInformationStreamName, summary));
             }
-            if (!TryCreateDocumentSummaryInformation(presentation,
+            if (!TryCreateDocumentSummaryInformation(properties,
                     out byte[]? documentSummary, out reason)) {
                 return false;
             }
@@ -97,28 +113,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryBuildReplacementStreams(
-            PowerPointDocument presentation,
+            LegacyPptPackageView view,
             LegacyPptPropertySetProjection projection,
             out IReadOnlyDictionary<string, byte[]> streams) {
+            ArgumentNullException.ThrowIfNull(view);
             var result = new Dictionary<string, byte[]>(
                 StringComparer.OrdinalIgnoreCase);
             streams = result;
-            if (!projection.UnmappedCoreMatches(
-                    presentation.OpenXmlDocument)) return false;
-            bool summaryChanged = !projection.SummaryMatches(
-                presentation.OpenXmlDocument);
-            bool documentSummaryChanged = !projection.DocumentSummaryMatches(
-                presentation.OpenXmlDocument);
+            if (!projection.UnmappedCoreMatches(view)) return false;
+            bool summaryChanged = !projection.SummaryMatches(view);
+            bool documentSummaryChanged = !projection.DocumentSummaryMatches(view);
+            var properties = PackageProperties.Read(view);
             if (summaryChanged) {
                 if (!projection.CanRewriteSummary) return false;
                 result[OfficeOlePropertySetWriter.SummaryInformationStreamName]
-                    = CreateSummaryInformation(presentation)
+                    = CreateSummaryInformation(properties)
                     ?? CreateEmptyPropertySet(
                         OfficeOlePropertySetWriter.SummaryInformationFormatId);
             }
             if (documentSummaryChanged) {
                 if (!projection.CanRewriteDocumentSummary
-                    || !TryCreateDocumentSummaryInformation(presentation,
+                    || !TryCreateDocumentSummaryInformation(properties,
                         out byte[]? documentSummary, out _)) {
                     return false;
                 }
@@ -132,222 +147,149 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static string CreateSummaryFingerprint(
-            PresentationDocument document) {
-            var properties = document.PackageProperties;
-            Ap.Properties? application = document.ExtendedFilePropertiesPart?
-                .Properties;
+            LegacyPptPackageView view) {
+            var properties = PackageProperties.Read(view);
             return string.Join("\u001F", new[] {
-                properties.Title, properties.Subject, properties.Creator,
-                properties.Keywords, properties.Description,
-                properties.LastModifiedBy, properties.Revision,
-                DateText(properties.LastPrinted), DateText(properties.Created),
-                DateText(properties.Modified), application?.Application?.Text,
-                application?.TotalTime?.Text
+                properties.Core("title"), properties.Core("subject"), properties.Core("creator"),
+                properties.Core("keywords"), properties.Core("description"),
+                properties.Core("lastModifiedBy"), properties.Core("revision"),
+                DateText(properties.CoreDate("lastPrinted")), DateText(properties.CoreDate("created")),
+                DateText(properties.CoreDate("modified")), properties.Application("Application"),
+                properties.Application("TotalTime")
             }.Select(value => value ?? string.Empty));
         }
 
         internal static string CreateDocumentSummaryFingerprint(
-            PresentationDocument document) {
-            var properties = document.PackageProperties;
-            Ap.Properties? application = document.ExtendedFilePropertiesPart?
-                .Properties;
-            string custom = document.CustomFilePropertiesPart?.Properties?
-                .OuterXml ?? string.Empty;
+            LegacyPptPackageView view) {
+            var properties = PackageProperties.Read(view);
+            string custom = LegacyPptMasterProjection.Markup(properties.Custom);
             return string.Join("\u001F", new[] {
-                properties.Category, application?.PresentationFormat?.Text,
-                application?.Slides?.Text, application?.Notes?.Text,
-                application?.HiddenSlides?.Text, application?.Manager?.Text,
-                application?.Company?.Text, custom
+                properties.Core("category"), properties.Application("PresentationFormat"),
+                properties.Application("Slides"), properties.Application("Notes"),
+                properties.Application("HiddenSlides"), properties.Application("Manager"),
+                properties.Application("Company"), custom
             }.Select(value => value ?? string.Empty));
         }
 
         internal static string CreateUnmappedCoreFingerprint(
-            PresentationDocument document) {
-            var properties = document.PackageProperties;
+            LegacyPptPackageView view) {
+            var properties = PackageProperties.Read(view);
             return string.Join("\u001F", new[] {
-                properties.ContentStatus, properties.ContentType,
-                properties.Identifier, properties.Language,
-                properties.Version
+                properties.Core("contentStatus"), properties.Core("contentType"),
+                properties.Core("identifier"), properties.Core("language"),
+                properties.Core("version")
             }.Select(value => value ?? string.Empty));
         }
 
-        private static void ClearMappedProperties(PresentationDocument document) {
-            var properties = document.PackageProperties;
-            properties.Title = null;
-            properties.Subject = null;
-            properties.Creator = null;
-            properties.Keywords = null;
-            properties.Description = null;
-            properties.LastModifiedBy = null;
-            properties.Revision = null;
-            properties.LastPrinted = null;
-            properties.Created = null;
-            properties.Modified = null;
-            properties.Category = null;
-            properties.ContentStatus = null;
-            properties.ContentType = null;
-            properties.Identifier = null;
-            properties.Language = null;
-            properties.Version = null;
-            Ap.Properties? application = document.ExtendedFilePropertiesPart?
-                .Properties;
-            if (application != null) {
-                application.Application = null;
-                application.TotalTime = null;
-                application.PresentationFormat = null;
-                application.Slides = null;
-                application.Notes = null;
-                application.HiddenSlides = null;
-                application.Manager = null;
-                application.Company = null;
-            }
-            if (document.CustomFilePropertiesPart != null) {
-                document.DeletePart(document.CustomFilePropertiesPart);
-            }
-        }
-
-        private static void ApplySummary(PresentationDocument document,
+        private static void ApplySummary(IPropertyTarget properties,
             IReadOnlyList<OfficeOlePropertySection> sections) {
             OfficeOlePropertySection? section = sections.FirstOrDefault(item =>
                 item.FormatId == OfficeOlePropertySetWriter
                     .SummaryInformationFormatId);
             if (section == null) return;
-            var properties = document.PackageProperties;
-            properties.Title = ReadString(section, 2);
-            properties.Subject = ReadString(section, 3);
-            properties.Creator = ReadString(section, 4);
-            properties.Keywords = ReadString(section, 5);
-            properties.Description = ReadString(section, 6);
-            properties.LastModifiedBy = ReadString(section, 8);
-            properties.Revision = ReadString(section, 9);
-            properties.LastPrinted = ReadDate(section, 11);
-            properties.Created = ReadDate(section, 12);
-            properties.Modified = ReadDate(section, 13);
-            Ap.Properties application = EnsureApplicationProperties(document);
+            properties.SetCore("title", ReadString(section, 2));
+            properties.SetCore("subject", ReadString(section, 3));
+            properties.SetCore("creator", ReadString(section, 4));
+            properties.SetCore("keywords", ReadString(section, 5));
+            properties.SetCore("description", ReadString(section, 6));
+            properties.SetCore("lastModifiedBy", ReadString(section, 8));
+            properties.SetCore("revision", ReadString(section, 9));
+            properties.SetCoreDate("lastPrinted", ReadDate(section, 11));
+            properties.SetCoreDate("created", ReadDate(section, 12));
+            properties.SetCoreDate("modified", ReadDate(section, 13));
+            properties.EnsureApplication();
             string? applicationName = ReadString(section, 18);
             if (applicationName != null) {
-                application.Application = new Ap.Application(applicationName);
+                properties.SetApplication("Application", applicationName);
             }
-            DateTime? duration = ReadDate(section, 10);
-            if (duration.HasValue) {
-                long ticks = duration.Value.ToFileTimeUtc();
-                application.TotalTime = new Ap.TotalTime(Math.Round(
-                    TimeSpan.FromTicks(ticks).TotalMinutes,
-                    MidpointRounding.AwayFromZero).ToString(
-                        CultureInfo.InvariantCulture));
-            }
+            string? totalTime = ReadTotalMinutes(section);
+            if (totalTime != null) properties.SetApplication("TotalTime", totalTime);
         }
 
-        private static void ApplyDocumentSummary(PresentationDocument document,
+        private static string? ReadTotalMinutes(OfficeOlePropertySection section) {
+            DateTime? duration = ReadDate(section, 10);
+            if (!duration.HasValue) return null;
+            long ticks = duration.Value.ToFileTimeUtc();
+            return Math.Round(TimeSpan.FromTicks(ticks).TotalMinutes,
+                MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static void ApplyDocumentSummary(IPropertyTarget properties,
             IReadOnlyList<OfficeOlePropertySection> sections) {
             OfficeOlePropertySection? builtIn = sections.FirstOrDefault(item =>
                 item.FormatId == OfficeOlePropertySetWriter
                     .DocumentSummaryInformationFormatId);
             if (builtIn != null) {
-                document.PackageProperties.Category = ReadString(builtIn, 2);
-                Ap.Properties application = EnsureApplicationProperties(document);
-                SetApplicationText(ReadString(builtIn, 3), value =>
-                    application.PresentationFormat =
-                        new Ap.PresentationFormat(value));
-                SetApplicationText(ReadIntegerText(builtIn, 7), value =>
-                    application.Slides = new Ap.Slides(value));
-                SetApplicationText(ReadIntegerText(builtIn, 8), value =>
-                    application.Notes = new Ap.Notes(value));
-                SetApplicationText(ReadIntegerText(builtIn, 9), value =>
-                    application.HiddenSlides = new Ap.HiddenSlides(value));
-                SetApplicationText(ReadString(builtIn, 14), value =>
-                    application.Manager = new Ap.Manager(value));
-                SetApplicationText(ReadString(builtIn, 15), value =>
-                    application.Company = new Ap.Company(value));
+                properties.SetCore("category", ReadString(builtIn, 2));
+                properties.EnsureApplication();
+                SetApplicationText(properties, "PresentationFormat", ReadString(builtIn, 3));
+                SetApplicationText(properties, "Slides", ReadIntegerText(builtIn, 7));
+                SetApplicationText(properties, "Notes", ReadIntegerText(builtIn, 8));
+                SetApplicationText(properties, "HiddenSlides", ReadIntegerText(builtIn, 9));
+                SetApplicationText(properties, "Manager", ReadString(builtIn, 14));
+                SetApplicationText(properties, "Company", ReadString(builtIn, 15));
             }
             OfficeOlePropertySection? custom = sections.FirstOrDefault(item =>
                 item.FormatId == OfficeOlePropertySetWriter
                     .UserDefinedPropertiesFormatId);
-            if (custom != null) ApplyCustomProperties(document, custom);
+            if (custom != null) {
+                IReadOnlyList<CustomPropertyValue> values = ReadCustomProperties(custom);
+                if (values.Count > 0) properties.SetCustom(values);
+            }
         }
 
-        private static void ApplyCustomProperties(PresentationDocument document,
+        private static void SetApplicationText(IPropertyTarget properties,
+            string name, string? value) {
+            if (value != null) properties.SetApplication(name, value);
+        }
+
+        /// <summary>The user-defined properties of a binary section, as custom document properties.</summary>
+        private static IReadOnlyList<CustomPropertyValue> ReadCustomProperties(
             OfficeOlePropertySection section) {
-            var values = new List<CustomDocumentProperty>();
+            var values = new List<CustomPropertyValue>();
             int propertyId = 2;
             foreach (KeyValuePair<uint, string> name in section.Dictionary
                          .Where(pair => pair.Key > 1)
                          .OrderBy(pair => pair.Key)) {
                 if (!section.Properties.TryGetValue(name.Key,
-                        out OfficeOlePropertyValue? source)
-                    || !TryCreateCustomProperty(name.Value, propertyId++,
-                        source, out CustomDocumentProperty? property)) {
+                        out OfficeOlePropertyValue? source)) {
                     continue;
                 }
-                values.Add(property!);
+                // The id is taken for every stored value, written or not.
+                int id = propertyId++;
+                if (!TryCreateCustomProperty(source,
+                        out string? variant, out string? text)) {
+                    continue;
+                }
+                values.Add(new CustomPropertyValue(name.Value, id,
+                    variant!, text!));
             }
-            if (values.Count == 0) return;
-            CustomFilePropertiesPart part = document.CustomFilePropertiesPart
-                ?? document.AddCustomFilePropertiesPart();
-            part.Properties = new Properties(values);
-            part.Properties.Save();
+            return values;
         }
 
-        private static bool TryCreateCustomProperty(string name, int propertyId,
-            OfficeOlePropertyValue source,
-            out CustomDocumentProperty? property) {
-            property = new CustomDocumentProperty {
-                FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
-                PropertyId = propertyId,
-                Name = name
+        /// <summary>The <c>vt:</c> element name and text a binary user-defined value is written as.</summary>
+        private static bool TryCreateCustomProperty(OfficeOlePropertyValue source,
+            out string? variant, out string? text) {
+            (variant, text) = source.Value switch {
+                string value => ("lpwstr", value),
+                bool value => ("bool", value ? "true" : "false"),
+                DateTime value => ("filetime", value.ToUniversalTime()
+                    .ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)),
+                float value => ("r4", OfficeRoundTripText.Format(value,
+                    CultureInfo.InvariantCulture)),
+                double value => ("r8", OfficeRoundTripText.Format(value,
+                    CultureInfo.InvariantCulture)),
+                sbyte or short or int => ("i4", Convert.ToInt32(source.Value,
+                    CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture)),
+                byte value => ("ui1", value.ToString(CultureInfo.InvariantCulture)),
+                ushort value => ("ui2", value.ToString(CultureInfo.InvariantCulture)),
+                uint value => ("ui4", value.ToString(CultureInfo.InvariantCulture)),
+                long value => ("i8", value.ToString(CultureInfo.InvariantCulture)),
+                ulong value => ("ui8", value.ToString(CultureInfo.InvariantCulture)),
+                byte[] value => ("blob", Convert.ToBase64String(value)),
+                _ => ((string?)null, (string?)null)
             };
-            switch (source.Value) {
-                case string value:
-                    property.VTLPWSTR = new VTLPWSTR(value);
-                    return true;
-                case bool value:
-                    property.VTBool = new VTBool(value ? "true" : "false");
-                    return true;
-                case DateTime value:
-                    property.VTFileTime = new VTFileTime(value.ToUniversalTime()
-                        .ToString("yyyy-MM-ddTHH:mm:ssZ",
-                            CultureInfo.InvariantCulture));
-                    return true;
-                case float value:
-                    property.VTFloat = new VTFloat(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value,
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case double value:
-                    property.VTDouble = new VTDouble(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value,
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case sbyte or short or int:
-                    property.VTInt32 = new VTInt32(Convert.ToInt32(source.Value,
-                        CultureInfo.InvariantCulture).ToString(
-                            CultureInfo.InvariantCulture));
-                    return true;
-                case byte value:
-                    property.VTUnsignedByte = new VTUnsignedByte(value.ToString(
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case ushort value:
-                    property.VTUnsignedShort = new VTUnsignedShort(value.ToString(
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case uint value:
-                    property.VTUnsignedInt32 = new VTUnsignedInt32(value.ToString(
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case long value:
-                    property.VTInt64 = new VTInt64(value.ToString(
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case ulong value:
-                    property.VTUnsignedInt64 = new VTUnsignedInt64(value.ToString(
-                        CultureInfo.InvariantCulture));
-                    return true;
-                case byte[] value:
-                    property.VTBlob = new VTBlob(Convert.ToBase64String(value));
-                    return true;
-                default:
-                    property = null;
-                    return false;
-            }
+            return variant != null;
         }
 
         private static bool CanRewriteSummary(LegacyPptPackage package) {
@@ -465,19 +407,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ? Convert.ToString(value.Value, CultureInfo.InvariantCulture)
                 : null;
 
-        private static void SetApplicationText(string? value,
-            Action<string> setter) {
-            if (value != null) setter(value);
-        }
-
-        private static Ap.Properties EnsureApplicationProperties(
-            PresentationDocument document) {
-            ExtendedFilePropertiesPart part = document
-                .ExtendedFilePropertiesPart
-                ?? document.AddExtendedFilePropertiesPart();
-            return part.Properties ??= new Ap.Properties();
-        }
-
         private static string DateText(DateTime? value) => value.HasValue
             ? value.Value.ToUniversalTime().Ticks.ToString(
                 CultureInfo.InvariantCulture)
@@ -503,19 +432,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal bool CanRewriteSummary { get; }
         internal bool CanRewriteDocumentSummary { get; }
 
-        internal bool SummaryMatches(PresentationDocument document) =>
+        internal bool SummaryMatches(LegacyPptPackageView view) =>
             string.Equals(SummaryFingerprint,
-                LegacyPptPropertySetCodec.CreateSummaryFingerprint(document),
+                LegacyPptPropertySetCodec.CreateSummaryFingerprint(view),
                 StringComparison.Ordinal);
 
-        internal bool DocumentSummaryMatches(PresentationDocument document) =>
+        internal bool DocumentSummaryMatches(LegacyPptPackageView view) =>
             string.Equals(DocumentSummaryFingerprint,
                 LegacyPptPropertySetCodec.CreateDocumentSummaryFingerprint(
-                    document), StringComparison.Ordinal);
+                    view), StringComparison.Ordinal);
 
-        internal bool UnmappedCoreMatches(PresentationDocument document) =>
+        internal bool UnmappedCoreMatches(LegacyPptPackageView view) =>
             string.Equals(UnmappedCoreFingerprint,
                 LegacyPptPropertySetCodec.CreateUnmappedCoreFingerprint(
-                    document), StringComparison.Ordinal);
+                    view), StringComparison.Ordinal);
     }
 }

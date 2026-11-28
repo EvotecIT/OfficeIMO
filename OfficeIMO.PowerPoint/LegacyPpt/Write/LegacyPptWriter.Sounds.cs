@@ -1,12 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -90,39 +87,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal IReadOnlyList<LegacyPptWriterSound> NewSounds =>
                 new ReadOnlyCollection<LegacyPptWriterSound>(_newSounds);
 
-            internal bool TryGetOrAdd(OpenXmlPart ownerPart, OpenXmlElement soundElement,
+            /// <summary>
+            /// The sound a transition sound (<c>p:snd</c>) or an action sound (<c>a:snd</c>) of
+            /// <paramref name="ownerPart"/> embeds.
+            /// </summary>
+            internal bool TryGetOrAdd(LegacyPptPartView ownerPart, OfficeXmlNode soundElement,
                 out LegacyPptWriterSound? sound, out string? reason) {
-                sound = null;
-                reason = null;
-                string relationshipId;
-                string name;
-                bool builtIn;
-                if (soundElement is P.Sound transitionSound) {
-                    relationshipId = transitionSound.Embed?.Value ?? string.Empty;
-                    name = transitionSound.Name?.Value ?? string.Empty;
-                    builtIn = transitionSound.BuiltIn?.Value == true;
-                } else if (soundElement is A.HyperlinkSound hyperlinkSound) {
-                    relationshipId = hyperlinkSound.Embed?.Value ?? string.Empty;
-                    name = hyperlinkSound.Name?.Value ?? string.Empty;
-                    builtIn = hyperlinkSound.BuiltIn?.Value == true;
-                } else {
+                if (!soundElement.Is(LegacyPptXml.P, "snd")
+                    && !soundElement.Is(LegacyPptXml.A, "snd")) {
+                    sound = null;
                     reason = $"Element '{soundElement.LocalName}' is not a supported embedded sound reference.";
                     return false;
                 }
+                return TryGetOrAdd(ownerPart,
+                    soundElement.Attribute(LegacyPptXml.R, "embed") ?? string.Empty,
+                    soundElement.Attribute("name") ?? string.Empty,
+                    soundElement.Bool("builtIn") == true,
+                    out sound, out reason);
+            }
+
+            /// <summary>The embedded sound with this audio relationship of <paramref name="ownerPart"/>.</summary>
+            internal bool TryGetOrAdd(LegacyPptPartView ownerPart, string relationshipId,
+                string name, bool builtIn,
+                out LegacyPptWriterSound? sound, out string? reason) {
+                sound = null;
+                reason = null;
                 if (string.IsNullOrEmpty(relationshipId)) {
                     reason = "An embedded transition or action sound has no audio relationship.";
                     return false;
                 }
-                DataPartReferenceRelationship[] relationships = ownerPart
-                    .DataPartReferenceRelationships.Where(candidate => string.Equals(
-                        candidate.Id, relationshipId, StringComparison.Ordinal)).ToArray();
-                if (relationships.Length != 1
-                    || relationships[0] is not AudioReferenceRelationship
-                    || relationships[0].DataPart is not MediaDataPart mediaPart) {
+                if (!TryFindEmbeddedAudio(ownerPart, relationshipId,
+                        out LegacyPptPartView mediaPart)) {
                     reason = $"Audio relationship '{relationshipId}' is missing or is not an embedded audio data part.";
                     return false;
                 }
-                string extension = mediaPart.ContentType.ToLowerInvariant() switch {
+                string mediaContentType = mediaPart.ContentType ?? string.Empty;
+                string extension = mediaContentType.ToLowerInvariant() switch {
                     "audio/wav" => ".wav",
                     "audio/x-wav" => ".wav",
                     "audio/aiff" => ".aif",
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     _ => string.Empty
                 };
                 if (extension.Length == 0) {
-                    reason = $"Binary transition and action sounds require WAV or AIFF audio; '{mediaPart.ContentType}' is not representable.";
+                    reason = $"Binary transition and action sounds require WAV or AIFF audio; '{mediaContentType}' is not representable.";
                     return false;
                 }
                 if (name.Length == 0) name = "Sound";
@@ -176,22 +176,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
-            internal bool TryGetOrAddMedia(SlidePart ownerPart,
+            internal bool TryGetOrAddMedia(LegacyPptPartView ownerPart,
                 PowerPointMedia media, out LegacyPptWriterSound? sound,
                 out string? reason) {
-                ArgumentNullException.ThrowIfNull(ownerPart);
+                if (ownerPart.IsNone) throw new ArgumentNullException(nameof(ownerPart));
                 ArgumentNullException.ThrowIfNull(media);
                 sound = null;
                 reason = null;
                 string relationshipId = media.MediaReferenceId
                     ?? string.Empty;
-                DataPartReferenceRelationship[] relationships = ownerPart
-                    .DataPartReferenceRelationships.Where(candidate =>
-                        string.Equals(candidate.Id, relationshipId,
-                            StringComparison.Ordinal)).ToArray();
-                if (relationships.Length != 1
-                    || relationships[0] is not AudioReferenceRelationship
-                    || relationships[0].DataPart is not MediaDataPart mediaPart) {
+                if (!TryFindEmbeddedAudio(ownerPart, relationshipId,
+                        out LegacyPptPartView mediaPart)) {
                     reason = $"Audio relationship '{relationshipId}' is missing or is not an embedded audio data part.";
                     return false;
                 }
@@ -230,15 +225,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
-            private bool TryReadSoundBytes(MediaDataPart mediaPart,
+            // An embedded audio data part: the internal target of an audio relationship.
+            private static bool TryFindEmbeddedAudio(LegacyPptPartView ownerPart,
+                string relationshipId, out LegacyPptPartView mediaPart) {
+                mediaPart = default;
+                if (!ownerPart.TryGetRelationship(relationshipId,
+                        out LegacyPptRelationshipView relationship)
+                    || relationship.IsExternal
+                    || !relationship.IsType(LegacyPptPackageView.AudioRelationshipType)
+                    || relationship.TargetPart.IsNone) {
+                    return false;
+                }
+                mediaPart = relationship.TargetPart;
+                return true;
+            }
+
+            private bool TryReadSoundBytes(LegacyPptPartView mediaPart,
                 out byte[] bytes, out string? reason) {
                 bytes = Array.Empty<byte>();
                 reason = null;
                 try {
-                    using Stream input = mediaPart.GetStream(FileMode.Open,
-                        FileAccess.Read);
-                    bytes = OfficeStreamReader.ReadAllBytes(input,
-                        MaximumSoundBytes);
+                    bytes = mediaPart.ReadBytes(MaximumSoundBytes);
                     return true;
                 } catch (Exception exception) when (exception
                     is IOException or InvalidDataException

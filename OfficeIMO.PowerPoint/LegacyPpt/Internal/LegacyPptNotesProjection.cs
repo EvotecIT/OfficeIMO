@@ -1,10 +1,5 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using OfficeIMO.PowerPoint.LegacyPpt.Write;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps projected speaker-note text to its binary NotesContainer.</summary>
@@ -50,20 +45,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string BackgroundFingerprint { get; }
 
-        internal bool ThemeMatches(NotesSlidePart part) => string.Equals(
+        internal bool ThemeMatches(LegacyPptPartView part) => string.Equals(
             ThemeFingerprint, CreateThemeFingerprint(part),
             StringComparison.Ordinal);
 
-        internal bool BackgroundMatches(NotesSlidePart part) => string.Equals(
+        internal bool BackgroundMatches(LegacyPptPartView part) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(part),
             StringComparison.Ordinal);
 
-        internal bool MasterObjectsMatch(NotesSlidePart part) =>
+        internal bool MasterObjectsMatch(LegacyPptPartView part) =>
             FollowsMasterObjects
-                == (part.NotesSlide?.ShowMasterShapes?.Value != false);
+                == (part.Root.Bool("showMasterSp") != false);
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            NotesSlidePart part) {
+            LegacyPptPartView part) {
             IReadOnlyList<string> current =
                 CreateClassicColorFingerprints(part);
             return Enumerable.Range(0, ClassicColorFingerprints.Count)
@@ -73,41 +68,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .ToArray();
         }
 
-        internal static string CreateThemeFingerprint(NotesSlidePart part) {
-            ArgumentNullException.ThrowIfNull(part);
-            string theme = part.ThemeOverridePart?.ThemeOverride?.OuterXml
-                ?? string.Empty;
-            string colorMap = part.NotesSlide?.ColorMapOverride?.OuterXml
-                ?? string.Empty;
-            return LegacyPptProjectionDigest.Create(theme, colorMap);
+        /// <summary>The theme fingerprint of a notes slide: its theme override and color-map override.</summary>
+        internal static string CreateThemeFingerprint(LegacyPptPartView part) {
+            if (part.IsNone) throw new ArgumentNullException(nameof(part));
+            return LegacyPptProjectionDigest.Create(
+                LegacyPptMasterProjection.Markup(part.ThemeOverride.Root),
+                LegacyPptMasterProjection.Markup(part.Root.Child(LegacyPptXml.P, "clrMapOvr")));
         }
 
         internal static IReadOnlyList<string>
-            CreateClassicColorFingerprints(NotesSlidePart part) {
-            ArgumentNullException.ThrowIfNull(part);
-            A.ColorScheme? colors = part.ThemeOverridePart?.ThemeOverride?
-                .ColorScheme
-                ?? part.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
-                    .ColorScheme;
-            OpenXmlElement?[] slots = {
-                colors?.Light1Color,
-                colors?.Dark1Color,
-                colors?.Accent4Color,
-                colors?.Dark2Color,
-                colors?.Light2Color,
-                colors?.Accent1Color,
-                colors?.Accent2Color,
-                colors?.Accent3Color
-            };
-            return slots.Select(slot => slot?.OuterXml ?? string.Empty)
-                .ToArray();
+            CreateClassicColorFingerprints(LegacyPptPartView part) {
+            if (part.IsNone) throw new ArgumentNullException(nameof(part));
+            OfficeXmlNode colors = part.ThemeOverride.Root.Child(LegacyPptXml.A, "clrScheme");
+            if (colors.IsNone) {
+                colors = LegacyPptMasterProjection.ThemeColorScheme(part
+                    .RelatedPart(LegacyPptPackageView.NotesMasterRelationshipType).Theme);
+            }
+            return LegacyPptMasterProjection.CreateClassicColorFingerprints(colors);
         }
 
         internal static string CreateBackgroundFingerprint(
-            NotesSlidePart part) {
-            ArgumentNullException.ThrowIfNull(part);
-            return LegacyPptBackgroundProjectionFingerprint.Create(part,
-                part.NotesSlide?.CommonSlideData?.Background);
+            LegacyPptPartView part) {
+            if (part.IsNone) throw new ArgumentNullException(nameof(part));
+            return LegacyPptBackgroundProjectionFingerprint.Create(part);
         }
     }
 }

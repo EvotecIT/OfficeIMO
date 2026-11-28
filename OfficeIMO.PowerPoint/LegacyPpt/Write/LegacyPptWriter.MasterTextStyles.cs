@@ -1,11 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -16,15 +13,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWriteMasterTextStyles(
             PowerPointDocument presentation, out string? reason) {
-            if (!TryReadPictureBulletCatalog(presentation,
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            if (!TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out reason)) return false;
-            return TryReadMasterTextStyles(presentation,
+            return TryReadMasterTextStyles(view, presentation,
                 Template.Value.Document, pictureBullets, out _, out reason);
         }
 
         private static bool TryReadMasterTextStyles(
-            PowerPointDocument presentation, LegacyPptRecord templateDocument,
+            LegacyPptPackageView view, PowerPointDocument presentation,
+            LegacyPptRecord templateDocument,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterMasterTextStyleCatalog catalog,
             out string? reason) {
@@ -34,11 +33,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 StringComparer.Ordinal);
             var style9Records = new Dictionary<string,
                 IReadOnlyList<byte[]>>(StringComparer.Ordinal);
-            foreach (SlideMasterPart masterPart in presentation.OpenXmlDocument
-                         .PresentationPart?.SlideMasterParts
-                     ?? Enumerable.Empty<SlideMasterPart>()) {
-                if (!TryBuildMasterTextStyleRecords(
-                        masterPart.SlideMaster?.TextStyles, fonts,
+            foreach (LegacyPptPartView masterPart in SlideMasterPartsInRelationshipOrder(view)) {
+                if (!TryBuildMasterTextStyleRecords(presentation, masterPart.Name,
+                        masterPart.Root.Child(Pml, "txStyles"), fonts,
                         pictureBullets,
                         out IReadOnlyList<byte[]> masterRecords,
                         out IReadOnlyList<byte[]> masterStyle9Records,
@@ -47,8 +44,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         records, style9Records, fonts);
                     return false;
                 }
-                records.Add(masterPart.Uri.ToString(), masterRecords);
-                style9Records.Add(masterPart.Uri.ToString(),
+                records.Add(masterPart.Name, masterRecords);
+                style9Records.Add(masterPart.Name,
                     masterStyle9Records);
             }
             catalog = new LegacyPptWriterMasterTextStyleCatalog(records,
@@ -57,14 +54,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        internal static bool TryBuildMasterTextStyleRecords(P.TextStyles? styles,
-            LegacyPptWriterFontCatalog fonts, out IReadOnlyList<byte[]> records,
-            out IReadOnlyList<byte[]> style9Records,
-            out string? reason) => TryBuildMasterTextStyleRecords(styles,
-                fonts, LegacyPptWriterPictureBulletCatalog.Empty,
-                out records, out style9Records, out reason);
-
-        internal static bool TryBuildMasterTextStyleRecords(P.TextStyles? styles,
+        /// <summary>
+        /// The text master style atoms of a slide master's text styles (<c>p:txStyles</c>, read from the view part
+        /// <paramref name="partName"/> of <paramref name="presentation"/>), and their PPT9 numbering atoms.
+        /// </summary>
+        internal static bool TryBuildMasterTextStyleRecords(
+            PowerPointDocument? presentation, string partName, OfficeXmlNode styles,
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out IReadOnlyList<byte[]> records,
@@ -75,14 +70,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             records = result;
             style9Records = style9Result;
             reason = null;
-            if (styles == null) return true;
-            if (!TryBuildMasterTextStyleRecord(styles.TitleStyle,
+            if (styles.IsNone) return true;
+            var source = new LegacyPptWriterTextStyleSource(presentation, partName);
+            OfficeXmlNode titleStyle = styles.Child(Pml, "titleStyle");
+            OfficeXmlNode bodyStyle = styles.Child(Pml, "bodyStyle");
+            OfficeXmlNode otherStyle = styles.Child(Pml, "otherStyle");
+            if (!TryBuildMasterTextStyleRecord(source, titleStyle,
                     instance: (ushort)LegacyPptTextType.Title, fonts,
                     out byte[] title, out reason)
-                || !TryBuildMasterTextStyleRecord(styles.BodyStyle,
+                || !TryBuildMasterTextStyleRecord(source, bodyStyle,
                     instance: (ushort)LegacyPptTextType.Body, fonts,
                     out byte[] body, out reason)
-                || !TryBuildMasterTextStyleRecord(styles.OtherStyle,
+                || !TryBuildMasterTextStyleRecord(source, otherStyle,
                     instance: (ushort)LegacyPptTextType.Other, fonts,
                     out byte[] other, out reason)) {
                 return false;
@@ -90,15 +89,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             result.Add(title);
             result.Add(body);
             result.Add(other);
-            if (!TryBuildMasterTextStyle9Record(styles.TitleStyle,
+            if (!TryBuildMasterTextStyle9Record(source, titleStyle,
                     instance: (ushort)LegacyPptTextType.Title,
                     pictureBullets,
                     out byte[]? title9, out reason)
-                || !TryBuildMasterTextStyle9Record(styles.BodyStyle,
+                || !TryBuildMasterTextStyle9Record(source, bodyStyle,
                     instance: (ushort)LegacyPptTextType.Body,
                     pictureBullets,
                     out byte[]? body9, out reason)
-                || !TryBuildMasterTextStyle9Record(styles.OtherStyle,
+                || !TryBuildMasterTextStyle9Record(source, otherStyle,
                     instance: (ushort)LegacyPptTextType.Other,
                     pictureBullets,
                     out byte[]? other9, out reason)) return false;
@@ -108,15 +107,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
+        /// <summary>
+        /// Rewrites the text master style atoms of an imported master from a slide master's text styles
+        /// (<c>p:txStyles</c>, read from the view part <paramref name="partName"/> of <paramref name="presentation"/>).
+        /// </summary>
         internal static bool TryRewriteMasterTextStyleRecords(
-            LegacyPptRecord master, P.TextStyles? styles,
-            LegacyPptWriterFontCatalog fonts, out byte[] bytes,
-            out string? reason) => TryRewriteMasterTextStyleRecords(master,
-                styles, fonts, LegacyPptWriterPictureBulletCatalog.Empty,
-                out bytes, out reason);
-
-        internal static bool TryRewriteMasterTextStyleRecords(
-            LegacyPptRecord master, P.TextStyles? styles,
+            LegacyPptRecord master, PowerPointDocument? presentation,
+            string partName, OfficeXmlNode styles,
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out byte[] bytes,
@@ -126,7 +123,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bytes = master.CopyRecordBytes();
             reason = null;
             if (master.Version != 0x0F
-                || !TryBuildMasterTextStyleRecords(styles, fonts,
+                || !TryBuildMasterTextStyleRecords(presentation, partName, styles, fonts,
                     pictureBullets,
                     out IReadOnlyList<byte[]> records,
                     out IReadOnlyList<byte[]> style9Records, out reason)) {
@@ -299,22 +296,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildMasterTextStyleRecord(
-            OpenXmlCompositeElement? style, ushort instance,
+            LegacyPptWriterTextStyleSource source,
+            OfficeXmlNode style, ushort instance,
             LegacyPptWriterFontCatalog fonts, out byte[] record,
             out string? reason) {
             record = Array.Empty<byte>();
             reason = null;
-            if (style == null) {
+            if (style.IsNone) {
                 record = BuildRecord(version: 0, instance,
                     RecordTextMasterStyleAtomForWrite, new byte[2]);
                 return true;
             }
-            if (style.HasAttributes) {
+            if (HasAttributes(style)) {
                 reason = $"The {style.LocalName} master text style has attributes that are not represented by the base binary style atom.";
                 return false;
             }
             if (!TryReadMasterTextStyleLevels(style, out Dictionary<int,
-                    A.TextParagraphPropertiesType> levels,
+                    OfficeXmlNode> levels,
                     out reason)) return false;
             int levelCount = levels.Count == 0 ? 0 : levels.Keys.Max() + 1;
             if (levelCount > 5) {
@@ -324,12 +322,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             using var payload = new MemoryStream();
             WriteUInt16(payload, checked((ushort)levelCount));
             for (int level = 0; level < levelCount; level++) {
-                levels.TryGetValue(level,
-                    out A.TextParagraphPropertiesType? properties);
-                if (!TryWriteParagraphException(payload, properties, fonts,
-                        out reason, allowAutoNumbering: true)
-                    || !TryWriteCharacterException(payload,
-                        properties?.GetFirstChild<A.DefaultRunProperties>(),
+                levels.TryGetValue(level, out OfficeXmlNode properties);
+                if (!TryWriteMasterParagraphException(payload, source, properties, fonts,
+                        out reason)
+                    || !TryWriteMasterCharacterException(payload, source,
+                        properties.Child(Dml, "defRPr"),
                         fonts, out reason)) {
                     return false;
                 }
@@ -340,31 +337,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildMasterTextStyle9Record(
-            OpenXmlCompositeElement? style, ushort instance,
+            LegacyPptWriterTextStyleSource source,
+            OfficeXmlNode style, ushort instance,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out byte[]? record, out string? reason) {
             record = null;
             reason = null;
-            if (style == null) return true;
+            if (style.IsNone) return true;
             if (!TryReadMasterTextStyleLevels(style, out Dictionary<int,
-                    A.TextParagraphPropertiesType> levels,
+                    OfficeXmlNode> levels,
                     out reason)) return false;
-            if (!levels.Values.Any(properties => properties.ChildElements
-                    .Any(child => child is A.AutoNumberedBullet
-                        or A.PictureBullet))) {
+            if (!levels.Values.Any(properties =>
+                    !properties.Child(Dml, "buAutoNum").IsNone
+                    || !properties.Child(Dml, "buBlip").IsNone)) {
                 return true;
             }
             int levelCount = levels.Keys.Max() + 1;
             using var payload = new MemoryStream();
             WriteUInt16(payload, checked((ushort)levelCount));
             for (int level = 0; level < levelCount; level++) {
-                levels.TryGetValue(level,
-                    out A.TextParagraphPropertiesType? properties);
-                A.AutoNumberedBullet? numbering = properties?
-                    .GetFirstChild<A.AutoNumberedBullet>();
-                if (!TryWriteAutomaticNumberingException9(payload,
-                        numbering, numbering?.StartAt?.Value ?? 1,
-                        properties?.GetFirstChild<A.PictureBullet>(),
+                levels.TryGetValue(level, out OfficeXmlNode properties);
+                OfficeXmlNode numbering = properties.Child(Dml, "buAutoNum");
+                if (!TryWriteMasterAutomaticNumberingException9(payload, source,
+                        numbering, numbering.Int("startAt") ?? 1,
+                        properties.Child(Dml, "buBlip"),
                         pictureBullets,
                         out reason)) return false;
                 WriteUInt32(payload, 0);
@@ -375,38 +371,47 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadMasterTextStyleLevels(
-            OpenXmlCompositeElement style,
-            out Dictionary<int, A.TextParagraphPropertiesType> levels,
+            OfficeXmlNode style,
+            out Dictionary<int, OfficeXmlNode> levels,
             out string? reason) {
-            levels = new Dictionary<int, A.TextParagraphPropertiesType>();
+            levels = new Dictionary<int, OfficeXmlNode>();
             reason = null;
-            if (style.HasAttributes) {
+            if (HasAttributes(style)) {
                 reason = $"The {style.LocalName} master text style has attributes that are not represented by the base binary style atom.";
                 return false;
             }
-            foreach (OpenXmlElement child in style.ChildElements) {
-                if (child is not A.TextParagraphPropertiesType properties
-                    || !TryGetMasterTextStyleLevel(properties, out int level)
-                    || levels.ContainsKey(level)) {
+            foreach (OfficeXmlNode child in style.Children()) {
+                int level = GetMasterTextStyleLevel(child);
+                if (level < 0 || levels.ContainsKey(level)) {
                     reason = $"The {style.LocalName} master text style contains unsupported or duplicate level content.";
                     return false;
                 }
-                levels.Add(level, properties);
+                levels.Add(level, child);
             }
             return true;
         }
 
-        private static bool TryGetMasterTextStyleLevel(
-            A.TextParagraphPropertiesType properties, out int level) {
-            level = properties switch {
-                A.Level1ParagraphProperties => 0,
-                A.Level2ParagraphProperties => 1,
-                A.Level3ParagraphProperties => 2,
-                A.Level4ParagraphProperties => 3,
-                A.Level5ParagraphProperties => 4,
+        private static int GetMasterTextStyleLevel(OfficeXmlNode properties) {
+            if (properties.NamespaceId != Dml) return -1;
+            return properties.LocalName switch {
+                "lvl1pPr" => 0,
+                "lvl2pPr" => 1,
+                "lvl3pPr" => 2,
+                "lvl4pPr" => 3,
+                "lvl5pPr" => 4,
                 _ => -1
             };
-            return level >= 0;
+        }
+
+        /// <summary>The live document and view part whose master text styles are being encoded.</summary>
+        private readonly struct LegacyPptWriterTextStyleSource {
+            internal LegacyPptWriterTextStyleSource(PowerPointDocument? presentation, string partName) {
+                Presentation = presentation;
+                PartName = partName;
+            }
+
+            internal PowerPointDocument? Presentation { get; }
+            internal string PartName { get; }
         }
 
         private static void WriteUInt16(Stream stream, ushort value) {
@@ -452,15 +457,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal LegacyPptWriterFontCatalog Fonts { get; }
 
-            internal IReadOnlyList<byte[]> Get(SlideMasterPart masterPart) =>
-                _records.TryGetValue(masterPart.Uri.ToString(),
+            internal IReadOnlyList<byte[]> Get(LegacyPptPartView masterPart) =>
+                _records.TryGetValue(masterPart.Name,
                     out IReadOnlyList<byte[]>? records)
                     ? records
                     : Array.Empty<byte[]>();
 
             internal IReadOnlyList<byte[]> GetStyle9(
-                SlideMasterPart masterPart) => _style9Records.TryGetValue(
-                    masterPart.Uri.ToString(),
+                LegacyPptPartView masterPart) => _style9Records.TryGetValue(
+                    masterPart.Name,
                     out IReadOnlyList<byte[]>? records)
                         ? records
                         : Array.Empty<byte[]>();

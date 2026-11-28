@@ -1,11 +1,8 @@
 using System.Reflection;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -46,44 +43,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] WriteDocument(PowerPointDocument presentation,
             PowerPointSaveOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(view, presentation);
             LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
-            if (!TryReadAllClassicComments(presentation,
+            if (!TryReadAllClassicComments(view, presentation,
                     out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
                     out _)) {
                 commentsBySlide = new Dictionary<string, IReadOnlyList<LegacyPptWriterComment>>(
                     StringComparer.Ordinal);
             }
-            if (!TryReadCustomShows(presentation,
+            if (!TryReadCustomShows(view, presentation,
                     out LegacyPptWriterCustomShowCatalog customShows,
                     out string? customShowReason)) {
                 throw new NotSupportedException(customShowReason);
             }
             var soundCatalog = new LegacyPptWriterSoundCatalog();
-            if (!TryReadInteractions(presentation.Slides, soundCatalog,
+            if (!TryReadInteractions(view, presentation.Slides, soundCatalog,
                     out LegacyPptWriterInteractionCatalog interactionCatalog,
                     out string? interactionReason)) {
                 throw new NotSupportedException(interactionReason);
             }
             uint firstExternalObjectId = checked((uint)
                 interactionCatalog.Hyperlinks.Count + 1U);
-            if (!TryReadMedia(presentation.Slides, firstExternalObjectId,
+            if (!TryReadMedia(view, presentation.Slides, firstExternalObjectId,
                     soundCatalog, out LegacyPptWriterMediaCatalog mediaCatalog,
                     out string? mediaReason)) {
                 throw new NotSupportedException(mediaReason);
             }
-            if (!TryReadOleObjects(presentation.Slides,
+            if (!TryReadOleObjects(view, presentation.Slides,
                     mediaCatalog.NextObjectId,
                     out LegacyPptWriterOleObjectCatalog oleCatalog,
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
             }
-            if (!TryReadPictureBulletCatalog(presentation,
+            if (!TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out string? pictureBulletReason)) {
                 throw new NotSupportedException(pictureBulletReason);
             }
-            if (!TryReadPictureCatalog(presentation,
+            if (!TryReadPictureCatalog(view, presentation,
                     CreateFontCatalogForWrite(), pictureBullets,
                     convertUnsupportedTables: options?.LossPolicy
                         == OfficeConversionLossPolicy.Allow,
@@ -91,29 +89,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _, out string? pictureReason)) {
                 throw new NotSupportedException(pictureReason);
             }
-            if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
+            if (!TryReadClassicAnimations(view, presentation.Slides, soundCatalog,
                     out LegacyPptWriterAnimationCatalog animationCatalog,
                     out string? animationReason)) {
                 throw new NotSupportedException(animationReason);
             }
-            if (!TryReadVbaProject(presentation, out byte[]? vbaProjectBytes,
+            if (!TryReadVbaProject(view, out byte[]? vbaProjectBytes,
                     out string? vbaReason)) {
                 throw new NotSupportedException(vbaReason);
             }
 
             LegacyPptWriterTemplate template = Template.Value;
             var noteSources = new List<(int SlideIndex, string Text,
-                NotesSlidePart? SourcePart)>();
+                LegacyPptPartView SourcePart)>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
-                if (!ShouldWriteNotesPage(slide, out string noteText)) continue;
+                if (!ShouldWriteNotesPage(view, slide, out string noteText)) continue;
                 noteSources.Add((slideIndex, noteText,
-                    slide.SlidePart.NotesSlidePart));
+                    SlidePartView(view, slide).NotesSlide));
             }
-            bool hasHandoutMaster = presentation.OpenXmlDocument.PresentationPart?
-                .HandoutMasterPart != null;
-            int masterCount = presentation.OpenXmlDocument.PresentationPart?
-                .SlideMasterParts.Count() ?? 0;
+            bool hasHandoutMaster = !view.HandoutMaster.IsNone;
+            int masterCount = SlideMasterPartsInRelationshipOrder(view).Count;
             var topology = new LegacyPptWriterTopology(masterCount,
                 presentation.Slides.Count, noteSources.Count,
                 hasHandoutMaster);
@@ -125,7 +121,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     topology.GetNotesPersistId(noteIndex),
                     topology.GetNotesDrawingId(noteIndex), source.SourcePart))
                 .ToList();
-            LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
+            LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(view, presentation,
                 template.Document, template.MainMasterPrototypes,
                 template.NotesMasterPrototype, topology,
                 pictureBullets, pictureCatalog);
@@ -152,17 +148,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
                     : null;
-                commentsBySlide.TryGetValue(slide.SlidePart.Uri.ToString(),
+                commentsBySlide.TryGetValue(slide.PartRef.Name,
                     out IReadOnlyList<LegacyPptWriterComment>? comments);
-                slideRecords.Add(BuildSlideRecord(
+                slideRecords.Add(BuildSlideRecord(view, presentation,
                     template.SlidePrototype, slide, supportedShapes,
-                    topology.GetSlideDrawingId(index), masters.GetMasterId(slide), notesId,
+                    topology.GetSlideDrawingId(index), masters.GetMasterId(view, slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog, mediaCatalog,
                     oleCatalog, pictureCatalog, masters.Fonts,
                     pictureBullets));
             }
-            var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
+            var notesRecords = notes.Select(note => BuildNotesRecord(presentation, template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
                 note.SourcePart, pictureCatalog)).ToArray();
             uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
@@ -170,7 +166,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 : topology.HandoutMasterPersistId;
             var persistObjects = new List<byte[]>(topology.BasePersistObjectCount
                 + oleCatalog.Objects.Count + (vbaProjectBytes == null ? 0 : 1)) {
-                BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
+                BuildDocumentRecord(view, template.Document, presentation, slideShapeCounts, notes,
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
                     topology, handoutMasterPersistId, vbaProjectPersistId,
@@ -253,8 +249,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? animationReason)) {
                 throw new NotSupportedException(animationReason);
             }
-            return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
-                masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
+            PowerPointDocument presentation = OwnerDocumentForWrite(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return BuildSlideRecord(view, presentation, Template.Value.SlidePrototype, slide, shapes, drawingId,
+                masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(view, slide),
                 interactionCatalog, animationCatalog,
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
@@ -281,8 +279,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? animationReason)) {
                 throw new NotSupportedException(animationReason);
             }
-            return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
-                masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
+            PowerPointDocument presentation = OwnerDocumentForWrite(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return BuildSlideRecord(view, presentation, Template.Value.SlidePrototype, slide, shapes, drawingId,
+                masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(view, slide),
                 interactionCatalog, animationCatalog,
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
@@ -292,7 +292,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 layoutIsIndependentMaster);
         }
 
-        private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointDocument presentation,
+        private static byte[] BuildDocumentRecord(LegacyPptPackageView view, LegacyPptRecord document, PowerPointDocument presentation,
             IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterCustomShowCatalog customShows,
@@ -320,7 +320,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[] atom = child.CopyRecordBytes();
                     WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.Width.ToEmus()));
                     WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.Height.ToEmus()));
-                    PatchDocumentSettings(atom, presentation,
+                    PatchDocumentSettings(atom, view, presentation,
                         topology.NotesMasterPersistId,
                         handoutMasterPersistId);
                     children.Add(atom);
@@ -349,7 +349,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         topology, pictureCatalog));
                 } else if (child.Type == RecordHeadersFooters
                            && (child.Instance == 3 || child.Instance == 4)) {
-                    children.Add(BuildDocumentHeaderFooterRecord(presentation,
+                    children.Add(BuildDocumentHeaderFooterRecord(view,
                         child.Instance));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 1) {
                     children.Add(BuildMasterList(masterCount));
@@ -375,7 +375,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,
                 new LegacyPptImportOptions());
             var slideIdsByPartUri = presentation.Slides.Select((slide, index) =>
-                    new KeyValuePair<string, uint>(slide.SlidePart.Uri.ToString(),
+                    new KeyValuePair<string, uint>(slide.PartRef.Name,
                         checked(unchecked((uint)index) + 256U)))
                 .ToDictionary(pair => pair.Key, pair => pair.Value,
                     StringComparer.Ordinal);
@@ -411,38 +411,44 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static void PatchDocumentSettings(byte[] atom,
+            LegacyPptPackageView view,
             PowerPointDocument presentation,
             uint notesMasterPersistId,
             uint handoutMasterPersistId) {
             if (atom.Length < 48) {
                 throw new InvalidDataException("The embedded PowerPoint DocumentAtom template is truncated.");
             }
-            P.Presentation root = presentation.OpenXmlDocument.PresentationPart?.Presentation
-                ?? throw new InvalidDataException("The Open XML presentation root is missing.");
-            P.NotesSize? notesSize = root.NotesSize;
-            if (notesSize?.Cx?.Value > 0 && notesSize.Cy?.Value > 0) {
-                WriteInt32(atom, 16, ToMasterUnits(notesSize.Cx.Value));
-                WriteInt32(atom, 20, ToMasterUnits(notesSize.Cy.Value));
+            OfficeXmlNode root = view.Presentation.Root;
+            if (root.IsNone) throw new InvalidDataException("The Open XML presentation root is missing.");
+            OfficeXmlNode notesSize = root.Child(Pml, "notesSz");
+            long? notesWidth = notesSize.Long("cx");
+            long? notesHeight = notesSize.Long("cy");
+            if (notesWidth > 0 && notesHeight > 0) {
+                WriteInt32(atom, 16, ToMasterUnits(notesWidth.Value));
+                WriteInt32(atom, 20, ToMasterUnits(notesHeight.Value));
             }
-            int serverZoom = root.ServerZoom?.Value ?? 50000;
+            int serverZoom = root.Int("serverZoom") ?? 50000;
             if (serverZoom <= 0) serverZoom = 50000;
             int divisor = GreatestCommonDivisor(serverZoom, 100000);
             WriteInt32(atom, 24, serverZoom / divisor);
             WriteInt32(atom, 28, 100000 / divisor);
             WriteUInt32(atom, 32, notesMasterPersistId);
             WriteUInt32(atom, 36, handoutMasterPersistId);
-            int firstSlideNumber = root.FirstSlideNum?.Value ?? 1;
+            int firstSlideNumber = root.Int("firstSlideNum") ?? 1;
             WriteUInt16(atom, 40, checked((ushort)Math.Min(
                 Math.Max(firstSlideNumber, 0), 9999)));
-            WriteUInt16(atom, 42, MapSlideSizeType(presentation.SlideSize.Type.ToOpenXml()));
-            atom[44] = root.EmbedTrueTypeFonts?.Value == true ? (byte)1 : (byte)0;
-            atom[45] = root.ShowSpecialPlaceholderOnTitleSlide?.Value == false
+            WriteUInt16(atom, 42, MapSlideSizeType(presentation.SlideSize.Type));
+            atom[44] = root.Bool("embedTrueTypeFonts") == true ? (byte)1 : (byte)0;
+            atom[45] = root.Bool("showSpecialPlsOnTitleSld") == false
                 ? (byte)1 : (byte)0;
-            atom[46] = root.RightToLeft?.Value == true ? (byte)1 : (byte)0;
-            atom[47] = presentation.OpenXmlDocument.PresentationPart?
-                .ViewPropertiesPart?.ViewProperties?.ShowComments?.Value == true
+            atom[46] = root.Bool("rtl") == true ? (byte)1 : (byte)0;
+            atom[47] = view.Presentation.RelatedPart(ViewPropertiesRelationshipType)
+                .Root.Bool("showComments") == true
                 ? (byte)1 : (byte)0;
         }
+
+        private const string ViewPropertiesRelationshipType =
+            LegacyPptPackageView.RelationshipTypePrefix + "viewProps";
 
         private static int GreatestCommonDivisor(int left, int right) {
             while (right != 0) {
@@ -453,15 +459,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return left;
         }
 
-        private static ushort MapSlideSizeType(P.SlideSizeValues? type) {
-            if (type == P.SlideSizeValues.Letter) return 1;
-            if (type == P.SlideSizeValues.A4) return 2;
-            if (type == P.SlideSizeValues.Film35mm) return 3;
-            if (type == P.SlideSizeValues.Overhead) return 4;
-            if (type == P.SlideSizeValues.Banner) return 5;
-            if (type == P.SlideSizeValues.Custom) return 6;
-            return 0;
-        }
+        private static ushort MapSlideSizeType(PowerPointSlideSizeType? type) => type switch {
+            PowerPointSlideSizeType.Letter => 1,
+            PowerPointSlideSizeType.A4 => 2,
+            PowerPointSlideSizeType.Film35mm => 3,
+            PowerPointSlideSizeType.Overhead => 4,
+            PowerPointSlideSizeType.Banner => 5,
+            PowerPointSlideSizeType.Custom => 6,
+            _ => 0
+        };
 
         private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
@@ -584,35 +590,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordSlideListWithText, instance: 0, children);
         }
 
+        // Caller in LegacyPptPreservingWriter.ChangePlan.cs and LegacyPptPreservingWriter.Slides.cs not yet passing a view.
         internal static byte[] BuildLayoutPlaceholderTypes(PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes) {
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(OwnerDocumentForWrite(slide));
+            return BuildLayoutPlaceholderTypes(SlidePartView(view, slide), shapes);
+        }
+
+        internal static byte[] BuildLayoutPlaceholderTypes(LegacyPptPartView slidePart,
+            IReadOnlyList<PowerPointShape> shapes) {
             var result = new byte[8];
-            P.ShapeTree? layoutTree = slide.SlidePart.SlideLayoutPart?.SlideLayout?
-                .CommonSlideData?.ShapeTree;
-            if (layoutTree != null) {
-                foreach (OpenXmlElement element in layoutTree.ChildElements) {
-                    P.PlaceholderShape? placeholder = element switch {
-                        P.Shape item => item.NonVisualShapeProperties?
-                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                        P.Picture item => item.NonVisualPictureProperties?
-                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                        P.GraphicFrame item => item.NonVisualGraphicFrameProperties?
-                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                        _ => null
-                    };
-                    if (placeholder == null) continue;
-                    AddLayoutPlaceholderType(result, placeholder.Type?.Value,
-                        placeholder.Orientation?.Value, placeholder.Index?.Value,
-                        replaceExisting: false);
-                }
+            OfficeXmlNode layoutTree = ShapeTree(slidePart.SlideLayout);
+            foreach (OfficeXmlNode element in layoutTree.Children()) {
+                OfficeXmlNode placeholder = PlaceholderOf(element);
+                if (placeholder.IsNone) continue;
+                AddLayoutPlaceholderType(result, placeholder.Attribute("type"),
+                    placeholder.Attribute("orient") == "vert", placeholder.UInt("idx"),
+                    replaceExisting: false);
             }
             foreach (PowerPointShape shape in shapes) {
-                AddLayoutPlaceholderType(result, shape.ShapePlaceholderType.ToOpenXml(),
-                    shape.ShapePlaceholderOrientation.ToOpenXml(), shape.ShapePlaceholderIndex,
-                    replaceExisting: true);
+                AddLayoutPlaceholderType(result, shape.ShapePlaceholderType?.ToOpenXmlToken(),
+                    shape.ShapePlaceholderOrientation == PowerPointPlaceholderDirection.Vertical,
+                    shape.ShapePlaceholderIndex, replaceExisting: true);
             }
             return result;
         }
+
+        /// <summary>The document that holds a slide.</summary>
+        private static PowerPointDocument OwnerDocumentForWrite(PowerPointSlide slide) =>
+            slide.OwnerDocument ?? slide.PartRef.Document
+            ?? throw new InvalidOperationException("The slide is not part of a presentation.");
 
         internal static byte[] BuildShapePlaceholderTypes(
             IReadOnlyList<PowerPointShape> shapes,
@@ -636,9 +644,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static void AddLayoutPlaceholderType(byte[] result,
-            P.PlaceholderValues? type, P.DirectionValues? orientation, uint? requestedIndex,
+            string? type, bool vertical, uint? requestedIndex,
             bool replaceExisting) {
-            byte mapped = MapPlaceholder(type, orientation);
+            byte mapped = MapSlidePlaceholder(type, vertical);
             if (mapped == 0) return;
             int index = requestedIndex.HasValue && requestedIndex.Value < result.Length
                 ? checked((int)requestedIndex.Value)
@@ -646,41 +654,35 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (index >= 0 && (replaceExisting || result[index] == 0)) result[index] = mapped;
         }
 
+        // Caller in LegacyPptPreservingWriter.ChangePlan.cs not yet passing a view.
         internal static LegacyPptSlideLayoutType MapSlideLayout(PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes) {
-            P.SlideLayoutValues? type = slide.SlidePart.SlideLayoutPart?.SlideLayout?.Type?.Value;
-            if (type == P.SlideLayoutValues.Title) return LegacyPptSlideLayoutType.TitleSlide;
-            if (type == P.SlideLayoutValues.Text || type == P.SlideLayoutValues.Table
-                || type == P.SlideLayoutValues.Chart || type == P.SlideLayoutValues.TextAndChart
-                || type == P.SlideLayoutValues.ChartAndText || type == P.SlideLayoutValues.TextAndClipArt
-                || type == P.SlideLayoutValues.ClipArtAndText || type == P.SlideLayoutValues.TextAndObject
-                || type == P.SlideLayoutValues.ObjectAndText || type == P.SlideLayoutValues.TextAndMedia
-                || type == P.SlideLayoutValues.MidiaAndText) {
-                return LegacyPptSlideLayoutType.TitleBody;
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(OwnerDocumentForWrite(slide));
+            return MapSlideLayout(SlidePartView(view, slide), shapes);
+        }
+
+        internal static LegacyPptSlideLayoutType MapSlideLayout(LegacyPptPartView slidePart,
+            IReadOnlyList<PowerPointShape> shapes) {
+            string? type = slidePart.SlideLayout.Root.Attribute("type");
+            switch (type) {
+                case "title": return LegacyPptSlideLayoutType.TitleSlide;
+                case "tx": case "tbl": case "chart": case "txAndChart": case "chartAndTx":
+                case "txAndClipArt": case "clipArtAndTx": case "txAndObj": case "objAndTx":
+                case "txAndMedia": case "mediaAndTx":
+                    return LegacyPptSlideLayoutType.TitleBody;
+                case "titleOnly": return LegacyPptSlideLayoutType.TitleOnly;
+                case "twoColTx": return LegacyPptSlideLayoutType.TwoColumns;
+                case "twoObj": return LegacyPptSlideLayoutType.TwoRows;
+                case "objAndTwoObj": return LegacyPptSlideLayoutType.ColumnTwoRows;
+                case "twoObjAndObj": return LegacyPptSlideLayoutType.TwoRowsColumn;
+                case "twoObjOverTx": return LegacyPptSlideLayoutType.TwoColumnsRow;
+                case "fourObj": return LegacyPptSlideLayoutType.FourObjects;
+                case "objOnly": case "obj": return LegacyPptSlideLayoutType.BigObject;
+                case "vertTitleAndTx": return LegacyPptSlideLayoutType.VerticalTitleBody;
+                case "vertTitleAndTxOverChart": return LegacyPptSlideLayoutType.VerticalTwoRows;
+                case "blank": return LegacyPptSlideLayoutType.Blank;
             }
-            if (type == P.SlideLayoutValues.TitleOnly) return LegacyPptSlideLayoutType.TitleOnly;
-            if (type == P.SlideLayoutValues.TwoColumnText) return LegacyPptSlideLayoutType.TwoColumns;
-            if (type == P.SlideLayoutValues.TwoObjects) return LegacyPptSlideLayoutType.TwoRows;
-            if (type == P.SlideLayoutValues.ObjectAndTwoObjects) {
-                return LegacyPptSlideLayoutType.ColumnTwoRows;
-            }
-            if (type == P.SlideLayoutValues.TwoObjectsAndObject) {
-                return LegacyPptSlideLayoutType.TwoRowsColumn;
-            }
-            if (type == P.SlideLayoutValues.TwoObjectsOverText) {
-                return LegacyPptSlideLayoutType.TwoColumnsRow;
-            }
-            if (type == P.SlideLayoutValues.FourObjects) return LegacyPptSlideLayoutType.FourObjects;
-            if (type == P.SlideLayoutValues.ObjectOnly || type == P.SlideLayoutValues.Object) {
-                return LegacyPptSlideLayoutType.BigObject;
-            }
-            if (type == P.SlideLayoutValues.VerticalTitleAndText) {
-                return LegacyPptSlideLayoutType.VerticalTitleBody;
-            }
-            if (type == P.SlideLayoutValues.VerticalTitleAndTextOverChart) {
-                return LegacyPptSlideLayoutType.VerticalTwoRows;
-            }
-            if (type == P.SlideLayoutValues.Blank) return LegacyPptSlideLayoutType.Blank;
 
             PowerPointShape[] placeholders = shapes
                 .Where(shape => shape.ShapePlaceholderType.HasValue)

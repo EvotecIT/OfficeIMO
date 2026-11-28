@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -11,7 +9,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const uint FirstMasterPersistId = 2U;
         private const ushort RecordHandoutForWrite = 0x0FC9;
 
+        /// <summary>The presentation's slide masters in relationship order, as the SDK listed them.</summary>
+        internal static List<LegacyPptPartView> SlideMasterPartsInRelationshipOrder(
+            LegacyPptPackageView view) =>
+            view.Presentation.RelatedParts(LegacyPptPackageView.SlideMasterRelationshipType);
+
         private static LegacyPptWriterMasterCatalog ReadMasterCatalog(
+            LegacyPptPackageView view,
             PowerPointDocument presentation,
             LegacyPptRecord templateDocument,
             IReadOnlyList<LegacyPptRecord> prototypes,
@@ -19,22 +23,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterTopology topology,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             LegacyPptWriterPictureCatalog pictureCatalog) {
-            SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
-                .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
-            if (masterParts.Length == 0) {
+            List<LegacyPptPartView> masterParts = SlideMasterPartsInRelationshipOrder(view);
+            if (masterParts.Count == 0) {
                 throw new InvalidDataException(
                     "The Open XML presentation has no slide master to encode.");
             }
-            if (masterParts.Length > MaxNativeMasterCount) {
+            if (masterParts.Count > MaxNativeMasterCount) {
                 throw new NotSupportedException(
                     $"The binary PowerPoint persist-directory format supports at most {MaxNativeMasterCount} slide masters; "
-                    + $"the presentation contains {masterParts.Length}.");
+                    + $"the presentation contains {masterParts.Count}.");
             }
             if (prototypes.Count == 0) {
                 throw new InvalidDataException(
                     "The embedded binary PowerPoint template has no slide-master prototype.");
             }
-            if (!TryReadMasterTextStyles(presentation, templateDocument,
+            if (!TryReadMasterTextStyles(view, presentation, templateDocument,
                     pictureBullets,
                     out LegacyPptWriterMasterTextStyleCatalog textStyles,
                     out string? textStyleReason)) {
@@ -46,23 +49,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var drawingShapeCounts = new Dictionary<uint, int>();
             for (int index = 0; index < topology.MasterSlotCount; index++) {
                 LegacyPptRecord prototype = prototypes[index % prototypes.Count];
-                if (index < masterParts.Length) {
-                    SlideMasterPart source = masterParts[index];
-                    if (!TryReadBackground(source,
+                if (index < masterParts.Count) {
+                    LegacyPptPartView source = masterParts[index];
+                    if (!TryReadBackground(presentation, source,
                             out LegacyPptWriterBackground? background,
                             out string? backgroundReason)) {
                         throw new NotSupportedException(backgroundReason);
                     }
                     IReadOnlyList<PowerPointShape> sourceShapes =
-                        ReadMasterShapesForWrite(source, out _);
+                        ReadMasterShapesForWrite(presentation, source, out _);
                     IReadOnlyList<PowerPointShape> supportedShapes = sourceShapes
                         .Where(IsSupportedMasterShape).ToArray();
                     uint drawingId = topology.GetMasterDrawingId(index);
                     IReadOnlyList<byte[]> roundTripThemeRecords =
-                        BuildRoundTripThemeRecords(source.ThemePart?.Theme,
-                            source.SlideMaster?.ColorMap);
+                        BuildRoundTripThemeRecords(source.Theme.Root,
+                            source.Root.Child(Pml, "clrMap"), isOverride: false);
                     persistObjects.Add(BuildMasterRecord(prototype,
-                        ReadColorScheme(source.ThemePart), background,
+                        ReadColorScheme(source.Theme), background,
                         supportedShapes, drawingId,
                         LegacyPptWriterShapeContext.MainMaster,
                         textStyles.Get(source),
@@ -72,34 +75,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         pictureCatalog: pictureCatalog));
                     drawingShapeCounts.Add(drawingId,
                         CountDrawingShapes(supportedShapes, pictureCatalog));
-                    masterIds.Add(masterParts[index].Uri.ToString(),
+                    masterIds.Add(masterParts[index].Name,
                         checked(FirstMasterId + unchecked((uint)index)));
                 } else {
                     persistObjects.Add(prototype.CopyRecordBytes());
                 }
             }
-            NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
-                .PresentationPart?.NotesMasterPart;
+            LegacyPptPartView notesMasterPart = view.NotesMaster;
             LegacyPptWriterBackground? notesBackground = null;
-            if (notesMasterPart != null
-                && !TryReadBackground(notesMasterPart, out notesBackground,
+            if (!notesMasterPart.IsNone
+                && !TryReadBackground(presentation, notesMasterPart, out notesBackground,
                     out string? notesBackgroundReason)) {
                 throw new NotSupportedException(notesBackgroundReason);
             }
-            IReadOnlyList<PowerPointShape>? notesShapes = notesMasterPart == null
+            IReadOnlyList<PowerPointShape>? notesShapes = notesMasterPart.IsNone
                 ? null
-                : ReadMasterShapesForWrite(notesMasterPart, out _)
+                : ReadMasterShapesForWrite(presentation, notesMasterPart, out _)
                     .Where(IsSupportedMasterShape).ToArray();
             uint notesDrawingId = topology.NotesMasterDrawingId;
+            LegacyPptPartView notesTheme = !notesMasterPart.Theme.IsNone
+                ? notesMasterPart.Theme
+                : masterParts[0].Theme;
             byte[] notesMaster = BuildMasterRecord(notesMasterPrototype,
-                ReadColorScheme(notesMasterPart?.ThemePart
-                    ?? masterParts[0].ThemePart), notesBackground,
+                ReadColorScheme(notesTheme), notesBackground,
                 notesShapes, notesDrawingId,
                 LegacyPptWriterShapeContext.NotesMaster,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(
-                    notesMasterPart?.ThemePart?.Theme
-                        ?? masterParts[0].ThemePart?.Theme,
-                    notesMasterPart?.NotesMaster?.ColorMap),
+                    notesTheme.Root,
+                    notesMasterPart.Root.Child(Pml, "clrMap"), isOverride: false),
                 fonts: textStyles.Fonts,
                 pictureBullets: pictureBullets,
                 pictureCatalog: pictureCatalog);
@@ -107,33 +110,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 drawingShapeCounts.Add(notesDrawingId,
                     CountDrawingShapes(notesShapes, pictureCatalog));
             }
-            HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
-                .PresentationPart?.HandoutMasterPart;
+            LegacyPptPartView handoutMasterPart = view.HandoutMaster;
             byte[]? handoutMaster = null;
-            if (handoutMasterPart != null) {
-                if (!TryReadBackground(handoutMasterPart,
+            if (!handoutMasterPart.IsNone) {
+                if (!TryReadBackground(presentation, handoutMasterPart,
                         out LegacyPptWriterBackground? handoutBackground,
                         out string? handoutBackgroundReason)) {
                     throw new NotSupportedException(handoutBackgroundReason);
                 }
                 IReadOnlyList<PowerPointShape> handoutShapes =
-                    ReadMasterShapesForWrite(handoutMasterPart, out _)
+                    ReadMasterShapesForWrite(presentation, handoutMasterPart, out _)
                         .Where(IsSupportedMasterShape).ToArray();
+                LegacyPptPartView handoutTheme = !handoutMasterPart.Theme.IsNone
+                    ? handoutMasterPart.Theme
+                    : masterParts[0].Theme;
                 handoutMaster = BuildHandoutMasterRecord(
                     notesMasterPrototype,
-                    ReadColorScheme(handoutMasterPart.ThemePart
-                        ?? masterParts[0].ThemePart), handoutBackground,
+                    ReadColorScheme(handoutTheme), handoutBackground,
                     handoutShapes, topology.HandoutMasterDrawingId,
                     BuildRoundTripThemeRecords(
-                        handoutMasterPart.ThemePart?.Theme
-                            ?? masterParts[0].ThemePart?.Theme,
-                        handoutMasterPart.HandoutMaster?.ColorMap),
+                        handoutTheme.Root,
+                        handoutMasterPart.Root.Child(Pml, "clrMap"), isOverride: false),
                     textStyles.Fonts, pictureBullets, pictureCatalog);
                 drawingShapeCounts.Add(topology.HandoutMasterDrawingId,
                     CountDrawingShapes(handoutShapes, pictureCatalog));
             }
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
-                notesMaster, handoutMaster, masterParts.Length,
+                notesMaster, handoutMaster, masterParts.Count,
                 drawingShapeCounts, textStyles.Fonts);
         }
 
@@ -251,75 +254,85 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         /// <summary>
-        /// Rewrites only the classic color scheme and DrawingML round-trip theme records of an imported master.
-        /// Every unrelated source child record is retained byte-for-byte.
+        /// Rewrites only the classic color scheme and DrawingML round-trip theme records of an imported master: a slide,
+        /// notes or handout master, or a title master's layout (its theme override). Every unrelated source child record
+        /// is retained byte-for-byte.
         /// </summary>
         internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, SlideMasterPart source,
+            LegacyPptRecord prototype, LegacyPptPartView source,
             IReadOnlyList<int> changedClassicColorSlots) {
             ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
-                source.SlideMaster?.ColorMap, changedClassicColorSlots);
-        }
-
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, NotesMasterPart source,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
-                source.NotesMaster?.ColorMap, changedClassicColorSlots);
-        }
-
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, HandoutMasterPart source,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
-                source.HandoutMaster?.ColorMap, changedClassicColorSlots);
-        }
-
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, SlideLayoutPart source,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
-                ?? throw new InvalidDataException(
-                    "A projected binary title master has no DrawingML theme override to preserve.");
+            if (source.IsNone) throw new ArgumentNullException(nameof(source));
+            if (source.IsSlideLayout) {
+                OfficeXmlNode theme = source.ThemeOverride.Root;
+                if (theme.IsNone) {
+                    throw new InvalidDataException(
+                        "A projected binary title master has no DrawingML theme override to preserve.");
+                }
+                ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
+                OfficeXmlNode effectiveColors = theme.Child(Dml, "clrScheme");
+                if (effectiveColors.IsNone) {
+                    effectiveColors = ThemeElement(source.SlideMaster.Theme, "clrScheme");
+                }
+                return BuildMasterRecord(prototype, ReadColorScheme(effectiveColors),
+                    background: null,
+                    roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
+                        source.Root.Child(Pml, "clrMapOvr"), isOverride: true),
+                    rewriteColorScheme: changedClassicColorSlots.Count > 0,
+                    colorSchemeSlotsToRewrite: changedClassicColorSlots);
+            }
+            LegacyPptPartView themePart = source.Theme;
+            OfficeXmlNode masterTheme = themePart.Root;
+            if (masterTheme.IsNone) {
+                throw new InvalidDataException(
+                    "A projected binary master has no DrawingML theme to preserve.");
+            }
             ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
-            A.ColorScheme? effectiveColors = theme.ColorScheme
-                ?? source.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?
-                    .ColorScheme;
-            return BuildMasterRecord(prototype, ReadColorScheme(effectiveColors),
+            return BuildMasterRecord(prototype, ReadColorScheme(themePart),
                 background: null,
-                roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
-                    source.SlideLayout?.ColorMapOverride),
+                roundTripThemeRecords: BuildRoundTripThemeRecords(
+                    masterTheme, source.Root.Child(Pml, "clrMap"), isOverride: false),
                 rewriteColorScheme: changedClassicColorSlots.Count > 0,
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
         }
 
+        /// <summary>
+        /// Rewrites only the classic color scheme and DrawingML round-trip theme override records of an imported slide
+        /// or notes page.
+        /// </summary>
         internal static byte[] BuildPreservedThemeRecord(
-            LegacyPptRecord prototype, SlidePart source,
+            LegacyPptRecord prototype, LegacyPptPartView source,
             IReadOnlyList<int> changedClassicColorSlots) {
             ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            A.ThemeOverride theme = (source.ThemeOverridePart
-                    ?? source.SlideLayoutPart?.ThemeOverridePart)?.ThemeOverride
-                ?? throw new InvalidDataException(
+            if (source.IsNone) throw new ArgumentNullException(nameof(source));
+            return source.IsNotesSlide
+                ? BuildPreservedNotesThemeRecord(prototype, source, changedClassicColorSlots)
+                : BuildPreservedSlideThemeRecord(prototype, source, changedClassicColorSlots);
+        }
+
+        private static byte[] BuildPreservedSlideThemeRecord(
+            LegacyPptRecord prototype, LegacyPptPartView source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            LegacyPptPartView layout = source.SlideLayout;
+            LegacyPptPartView themePart = !source.ThemeOverride.IsNone
+                ? source.ThemeOverride
+                : layout.ThemeOverride;
+            OfficeXmlNode theme = themePart.Root;
+            if (theme.IsNone) {
+                throw new InvalidDataException(
                     "A projected binary slide has no DrawingML theme override to preserve.");
+            }
             ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
-            A.ColorScheme? effectiveColors = theme.ColorScheme
-                ?? source.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
-                    .ThemeElements?.ColorScheme;
+            OfficeXmlNode effectiveColors = theme.Child(Dml, "clrScheme");
+            if (effectiveColors.IsNone) {
+                effectiveColors = ThemeElement(layout.SlideMaster.Theme, "clrScheme");
+            }
+            OfficeXmlNode colorMap = source.Root.Child(Pml, "clrMapOvr");
+            if (colorMap.IsNone) colorMap = layout.Root.Child(Pml, "clrMapOvr");
             byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(effectiveColors), background: null,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
-                    source.Slide?.ColorMapOverride
-                        ?? source.SlideLayoutPart?.SlideLayout?
-                            .ColorMapOverride),
+                    colorMap, isOverride: true),
                 rewriteColorScheme: changedClassicColorSlots.Count > 0,
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
             if (changedClassicColorSlots.Count == 0) return bytes;
@@ -333,22 +346,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return bytes;
         }
 
-        internal static byte[] BuildPreservedThemeRecord(
-            LegacyPptRecord prototype, NotesSlidePart source,
+        private static byte[] BuildPreservedNotesThemeRecord(
+            LegacyPptRecord prototype, LegacyPptPartView source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
-                ?? throw new InvalidDataException(
+            OfficeXmlNode theme = source.ThemeOverride.Root;
+            if (theme.IsNone) {
+                throw new InvalidDataException(
                     "A projected binary notes page has no DrawingML theme override to preserve.");
+            }
             ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
-            A.ColorScheme? effectiveColors = theme.ColorScheme
-                ?? source.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
-                    .ColorScheme;
+            OfficeXmlNode effectiveColors = theme.Child(Dml, "clrScheme");
+            if (effectiveColors.IsNone) {
+                effectiveColors = ThemeElement(
+                    source.RelatedPart(LegacyPptPackageView.NotesMasterRelationshipType).Theme,
+                    "clrScheme");
+            }
             byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(effectiveColors), background: null,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
-                    source.NotesSlide?.ColorMapOverride),
+                    source.Root.Child(Pml, "clrMapOvr"), isOverride: true),
                 rewriteColorScheme: changedClassicColorSlots.Count > 0,
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
             if (changedClassicColorSlots.Count == 0) return bytes;
@@ -360,22 +376,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             WriteUInt16(bytes, atom.PayloadOffset + 4,
                 unchecked((ushort)(flags & ~0x0002)));
             return bytes;
-        }
-
-        private static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, ThemePart? themePart,
-            DocumentFormat.OpenXml.Presentation.ColorMap? colorMap,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            A.Theme theme = themePart?.Theme
-                ?? throw new InvalidDataException(
-                    "A projected binary master has no DrawingML theme to preserve.");
-            ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
-            return BuildMasterRecord(prototype, ReadColorScheme(themePart),
-                background: null,
-                roundTripThemeRecords: BuildRoundTripThemeRecords(
-                    theme, colorMap),
-                rewriteColorScheme: changedClassicColorSlots.Count > 0,
-                colorSchemeSlotsToRewrite: changedClassicColorSlots);
         }
 
         private static byte[] PatchColorSchemeAtom(LegacyPptRecord source,
@@ -407,7 +407,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ArgumentNullException.ThrowIfNull(prototype);
             ArgumentNullException.ThrowIfNull(background);
             byte[] bytes = BuildMasterRecord(prototype,
-                ReadColorScheme(themePart: null), background,
+                ReadColorScheme(default(OfficeXmlNode)), background,
                 rewriteColorScheme: false,
                 pictureCatalog: pictureCatalog);
             LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(bytes, 0,
@@ -491,45 +491,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildRecord(version: 0, instance: 1, RecordColorSchemeAtom, payload);
         }
 
-        private static LegacyPptWriterColorScheme ReadColorScheme(ThemePart? themePart) {
-            A.ColorScheme? source = themePart?.Theme?.ThemeElements?.ColorScheme;
-            return ReadColorScheme(source);
-        }
+        private static LegacyPptWriterColorScheme ReadColorScheme(LegacyPptPartView themePart) =>
+            ReadColorScheme(ThemeElement(themePart, "clrScheme"));
 
         private static LegacyPptWriterColorScheme ReadColorScheme(
-            A.ColorScheme? source) {
-            string Read(PowerPointThemeColor slot, string fallback) {
-                OpenXmlCompositeElement? element = slot switch {
-                    PowerPointThemeColor.Dark1 => source?.Dark1Color,
-                    PowerPointThemeColor.Light1 => source?.Light1Color,
-                    PowerPointThemeColor.Dark2 => source?.Dark2Color,
-                    PowerPointThemeColor.Light2 => source?.Light2Color,
-                    PowerPointThemeColor.Accent1 => source?.Accent1Color,
-                    PowerPointThemeColor.Accent2 => source?.Accent2Color,
-                    PowerPointThemeColor.Accent3 => source?.Accent3Color,
-                    PowerPointThemeColor.Accent4 => source?.Accent4Color,
-                    _ => null
-                };
-                string? value = element?
-                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()?
-                    .Val?.Value;
+            OfficeXmlNode source) {
+            string Read(string slot, string fallback) {
+                OfficeXmlNode element = source.Child(Dml, slot);
+                string? value = element.Child(Dml, "srgbClr").Attribute("val");
                 if (string.IsNullOrWhiteSpace(value)) {
-                    value = element?
-                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.SystemColor>()?
-                        .LastColor?.Value;
+                    value = element.Child(Dml, "sysClr").Attribute("lastClr");
                 }
                 return NormalizeColor(value, fallback);
             }
 
             return new LegacyPptWriterColorScheme(new[] {
-                Read(PowerPointThemeColor.Light1, "FFFFFF"),
-                Read(PowerPointThemeColor.Dark1, "000000"),
-                Read(PowerPointThemeColor.Accent4, "808080"),
-                Read(PowerPointThemeColor.Dark2, "000000"),
-                Read(PowerPointThemeColor.Light2, "FFFFFF"),
-                Read(PowerPointThemeColor.Accent1, "4472C4"),
-                Read(PowerPointThemeColor.Accent2, "ED7D31"),
-                Read(PowerPointThemeColor.Accent3, "A5A5A5")
+                Read("lt1", "FFFFFF"),
+                Read("dk1", "000000"),
+                Read("accent4", "808080"),
+                Read("dk2", "000000"),
+                Read("lt2", "FFFFFF"),
+                Read("accent1", "4472C4"),
+                Read("accent2", "ED7D31"),
+                Read("accent3", "A5A5A5")
             });
         }
 
@@ -584,10 +568,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal IReadOnlyDictionary<uint, int> DrawingShapeCounts { get; }
             internal LegacyPptWriterFontCatalog Fonts { get; }
 
-            internal uint GetMasterId(PowerPointSlide slide) {
-                SlideMasterPart? masterPart = slide.SlidePart.SlideLayoutPart?.SlideMasterPart;
-                if (masterPart == null
-                    || !_masterIds.TryGetValue(masterPart.Uri.ToString(), out uint masterId)) {
+            internal uint GetMasterId(LegacyPptPackageView view, PowerPointSlide slide) {
+                LegacyPptPartView masterPart = SlidePartView(view, slide).SlideLayout.SlideMaster;
+                if (masterPart.IsNone
+                    || !_masterIds.TryGetValue(masterPart.Name, out uint masterId)) {
                     throw new InvalidDataException(
                         "A slide references a layout whose slide master is not part of the presentation.");
                 }

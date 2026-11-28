@@ -1,10 +1,8 @@
 using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -13,32 +11,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordExternalOleEmbedAtom = 0x0FCD;
         private const ushort RecordExternalObjectRefAtom = 0x0BC1;
 
-        internal static bool TryReadOleObjects(
+        internal static bool TryReadOleObjects(LegacyPptPackageView view,
             IEnumerable<PowerPointSlide> slides, uint firstObjectId,
             out LegacyPptWriterOleObjectCatalog catalog,
             out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             catalog = new LegacyPptWriterOleObjectCatalog();
             reason = null;
             uint nextId = firstObjectId;
             foreach (PowerPointSlide slide in slides) {
+                LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
                 foreach (PowerPointOleObject shape in slide
                              .EnumerateShapesDeep(slide.Shapes,
                                  includeHidden: true)
                              .OfType<PowerPointOleObject>()) {
-                    if (!TryReadOleObject(slide.SlidePart, shape, nextId,
+                    if (!TryReadOleObject(view, slidePart, shape, nextId,
                             out LegacyPptWriterOleObject? ole, out reason)
                         || ole == null) {
                         catalog = new LegacyPptWriterOleObjectCatalog();
                         return false;
                     }
-                    catalog.Add(shape.Element, ole);
+                    catalog.Add(shape, ole);
                     nextId = checked(nextId + 1U);
                 }
             }
             return true;
         }
 
-        private static bool TryReadOleObject(SlidePart slidePart,
+        // The p:oleObj a graphic frame carries, or none.
+        private static OfficeXmlNode OleObjectElement(OfficeXmlNode frame) =>
+            frame.Is(LegacyPptXml.P, "graphicFrame")
+                ? frame.Child(LegacyPptXml.A, "graphic")
+                    .Child(LegacyPptXml.A, "graphicData")
+                    .Child(LegacyPptXml.P, "oleObj")
+                : default;
+
+        private static bool TryReadOleObject(LegacyPptPackageView view,
+            LegacyPptPartView slidePart,
             PowerPointOleObject shape, uint id,
             out LegacyPptWriterOleObject? result, out string? reason) {
             result = null;
@@ -47,50 +56,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "OLE object identifiers cannot use reserved value zero.";
                 return false;
             }
-            if (shape.Element is not P.GraphicFrame frame) {
+            OfficeXmlNode frame = view.Resolve(shape.OwnerPartRef.Name,
+                shape.XmlElement);
+            if (!frame.Is(LegacyPptXml.P, "graphicFrame")) {
                 reason = "The OLE object is not carried by a graphic frame.";
                 return false;
             }
-            P.OleObject? source = frame.Graphic?.GraphicData?
-                .GetFirstChild<P.OleObject>();
-            if (source == null
-                || source.Elements<P.OleObjectEmbed>().Count() != 1
-                || source.Elements<P.OleObjectLink>().Any()) {
+            OfficeXmlNode source = OleObjectElement(frame);
+            if (source.IsNone
+                || source.Children(LegacyPptXml.P, "embed").Count != 1
+                || source.Children(LegacyPptXml.P, "link").Count > 0) {
                 reason = "Linked or malformed Open XML OLE objects are not encoded as embedded binary objects.";
                 return false;
             }
-            P.OleObjectEmbed embed = source
-                .GetFirstChild<P.OleObjectEmbed>()!;
-            if (embed.HasChildren) {
+            OfficeXmlNode embed = source.Child(LegacyPptXml.P, "embed");
+            if (HasChildren(embed)) {
                 reason = "OLE embed extensions have no binary PowerPoint mapping.";
                 return false;
             }
-            string? relationshipId = source.Id?.Value;
+            string? relationshipId = source.Attribute(LegacyPptXml.R, "id");
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 reason = "The OLE object has no embedded-part relationship.";
                 return false;
             }
-            if (slidePart.GetPartById(relationshipId!) is not
-                    EmbeddedObjectPart part) {
+            if (!slidePart.TryGetRelationship(relationshipId,
+                    out LegacyPptRelationshipView relationship)
+                || relationship.IsExternal
+                || relationship.TargetPart.IsNone) {
+                reason = $"The OLE relationship '{relationshipId}' does not target a part of '{slidePart.Name}'.";
+                return false;
+            }
+            LegacyPptPartView part = relationship.TargetPart;
+            if (!relationship.IsType(LegacyPptPackageView.OleObjectRelationshipType)) {
                 reason = "The OLE relationship does not target an EmbeddedObjectPart.";
                 return false;
             }
-            if (part.Parts.Any() || part.ExternalRelationships.Any()
-                || part.HyperlinkRelationships.Any()) {
+            if (part.Relationships.Count > 0) {
                 reason = "Related parts on an embedded OLE storage have no binary PowerPoint mapping.";
                 return false;
             }
-            if (!TryReadOlePreview(slidePart, shape,
-                    out PowerPointImage? preview, out _, out _,
+            if (!TryReadOlePreview(view, slidePart, shape,
+                    out LegacyPptWriterOlePreview? preview, out _, out _,
                     out reason)) {
                 return false;
             }
             byte[] storageBytes;
             try {
-                using Stream stream = part.GetStream(FileMode.Open,
-                    FileAccess.Read);
-                storageBytes = OfficeStreamReader.ReadAllBytes(stream,
-                    64 * 1024 * 1024);
+                storageBytes = part.ReadBytes(64 * 1024 * 1024);
             } catch (Exception exception) when (exception is IOException
                                                 or InvalidDataException
                                                 or UnauthorizedAccessException) {
@@ -102,51 +114,52 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || compound == null) {
                 return false;
             }
-            string progId = source.ProgId?.Value ?? "Package";
+            string progId = source.Attribute("progId") ?? "Package";
             if (!IsValidOleString(progId)) {
                 reason = "The OLE ProgID contains a null character.";
                 return false;
             }
-            string? name = source.Name?.Value;
+            string? name = source.Attribute("name");
             if (!IsValidOleString(name)) {
                 reason = "The OLE display name contains a null character.";
                 return false;
             }
-            P.OleObjectFollowColorSchemeValues? follow =
-                embed.FollowColorScheme?.Value;
-            uint colorFollow = follow ==
-                    P.OleObjectFollowColorSchemeValues.Full
+            string? follow = embed.Attribute("followColorScheme");
+            uint colorFollow = follow == "full"
                 ? 1U
-                : follow == P.OleObjectFollowColorSchemeValues
-                    .TextAndBackground ? 2U : 0U;
+                : follow == "textAndBackground" ? 2U : 0U;
             result = new LegacyPptWriterOleObject(id,
-                source.ShowAsIcon?.Value == true ? 4U : 1U,
+                source.Bool("showAsIcon") == true ? 4U : 1U,
                 MapOleSubType(progId), colorFollow, name, progId,
                 storageBytes, preview);
             return true;
         }
 
-        private static bool TryReadOlePreview(SlidePart slidePart,
-            PowerPointOleObject shape, out PowerPointImage? preview,
+        private static bool TryReadOlePreview(LegacyPptPackageView view,
+            LegacyPptPartView slidePart,
+            PowerPointOleObject shape, out LegacyPptWriterOlePreview? preview,
             out byte[] imageBytes, out string? contentType,
             out string? reason) {
             preview = null;
             imageBytes = Array.Empty<byte>();
             contentType = null;
             reason = null;
-            if (shape.Element is not P.GraphicFrame frame) return true;
-            P.Picture? source = frame.Graphic?.GraphicData?
-                .GetFirstChild<P.OleObject>()?.GetFirstChild<P.Picture>();
-            A.Blip? blip = source?.BlipFill?.Blip;
-            if (source == null || blip == null
-                || string.IsNullOrWhiteSpace(blip.Embed?.Value)
-                    && string.IsNullOrWhiteSpace(blip.Link?.Value)) {
+            OfficeXmlNode frame = view.Resolve(shape.OwnerPartRef.Name,
+                shape.XmlElement);
+            if (!frame.Is(LegacyPptXml.P, "graphicFrame")) return true;
+            OfficeXmlNode source = OleObjectElement(frame)
+                .Child(LegacyPptXml.P, "pic");
+            OfficeXmlNode blip = source.Child(LegacyPptXml.P, "blipFill")
+                .Child(LegacyPptXml.A, "blip");
+            if (source.IsNone || blip.IsNone
+                || string.IsNullOrWhiteSpace(blip.Attribute(LegacyPptXml.R, "embed"))
+                    && string.IsNullOrWhiteSpace(blip.Attribute(LegacyPptXml.R, "link"))) {
                 return true;
             }
 
-            preview = new PowerPointImage(source, slidePart);
-            if (preview.Left.ToEmus() != shape.Left.ToEmus() || preview.Top.ToEmus() != shape.Top.ToEmus()
-                || preview.Width.ToEmus() != shape.Width.ToEmus() || preview.Height.ToEmus() != shape.Height.ToEmus()
+            preview = new LegacyPptWriterOlePreview(source, slidePart);
+            if (preview.Left != shape.Left.ToEmus() || preview.Top != shape.Top.ToEmus()
+                || preview.Width != shape.Width.ToEmus() || preview.Height != shape.Height.ToEmus()
                 || preview.Rotation != shape.Rotation
                 || preview.HorizontalFlip != shape.HorizontalFlip
                 || preview.VerticalFlip != shape.VerticalFlip) {
@@ -160,12 +173,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || (!string.IsNullOrEmpty(preview.AltText)
                     && !string.Equals(preview.AltText,
                         shape.AltText, StringComparison.Ordinal))
-                || !TryReadShapeMetadataForWrite(preview, out _, out reason)) {
+                || !TryReadShapeMetadataForWrite(preview.Title,
+                    preview.Decorative, preview.Name, preview.AltText,
+                    out _, out reason)) {
                 preview = null;
                 reason ??= "The OLE preview carries independent accessibility metadata that one binary OfficeArt object shape cannot preserve.";
                 return false;
             }
-            if (!TryReadShapeVisualStyle(preview, out _, out reason)
+            if (!TryReadShapeVisualStyle(preview.Element, out _, out reason)
                 || !TryReadPicture(preview, out imageBytes,
                     out contentType, out reason)) {
                 preview = null;
@@ -250,16 +265,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal sealed class LegacyPptWriterOleObjectCatalog {
-            private readonly Dictionary<OpenXmlElement,
-                LegacyPptWriterOleObject> _objectsByShape =
-                new(ReferenceComparer.Instance);
+            // Keyed by the OLE shape's write key.
+            private readonly Dictionary<object,
+                LegacyPptWriterOleObject> _objectsByShape = new();
             private readonly List<LegacyPptWriterOleObject> _objects = new();
 
             internal IReadOnlyList<LegacyPptWriterOleObject> Objects =>
                 new ReadOnlyCollection<LegacyPptWriterOleObject>(_objects);
 
             internal LegacyPptWriterOleObject? Get(PowerPointShape shape) =>
-                _objectsByShape.TryGetValue(shape.Element,
+                _objectsByShape.TryGetValue(ShapeKey(shape),
                     out LegacyPptWriterOleObject? value) ? value : null;
 
             internal uint AssignPersistIds(uint firstPersistId) {
@@ -271,18 +286,102 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return next;
             }
 
-            internal void Add(OpenXmlElement shape,
+            internal void Add(PowerPointShape shape,
                 LegacyPptWriterOleObject ole) {
-                _objectsByShape.Add(shape, ole);
+                _objectsByShape.Add(ShapeKey(shape), ole);
                 _objects.Add(ole);
             }
+        }
+
+        /// <summary>
+        /// The preview picture (<c>p:pic</c>) of an OLE object, read from the package view as the shape members read a
+        /// picture: geometry from its transform, accessibility metadata from its non-visual properties, and its image
+        /// from the slide part's relationships.
+        /// </summary>
+        internal sealed class LegacyPptWriterOlePreview {
+            private const string SvgNamespace = "http://schemas.microsoft.com/office/drawing/2016/SVG/main";
+            private const string DecorativeNamespace = "http://schemas.microsoft.com/office/drawing/2017/decorative";
+
+            internal LegacyPptWriterOlePreview(OfficeXmlNode element,
+                LegacyPptPartView ownerPart) {
+                Element = element;
+                OwnerPart = ownerPart;
+            }
+
+            internal OfficeXmlNode Element { get; }
+            internal LegacyPptPartView OwnerPart { get; }
+
+            private OfficeXmlNode Transform => Element
+                .Child(LegacyPptXml.P, "spPr").Child(LegacyPptXml.A, "xfrm");
+
+            private OfficeXmlNode Drawing => Element
+                .Child(LegacyPptXml.P, "nvPicPr").Child(LegacyPptXml.P, "cNvPr");
+
+            internal long Left => Transform.Child(LegacyPptXml.A, "off").Int64Attribute("x") ?? 0L;
+            internal long Top => Transform.Child(LegacyPptXml.A, "off").Int64Attribute("y") ?? 0L;
+            internal long Width => Transform.Child(LegacyPptXml.A, "ext").Int64Attribute("cx") ?? 0L;
+            internal long Height => Transform.Child(LegacyPptXml.A, "ext").Int64Attribute("cy") ?? 0L;
+
+            internal double? Rotation {
+                get {
+                    int? rotation = Transform.Int32Attribute("rot");
+                    return rotation != null ? rotation.Value / 60000d : null;
+                }
+            }
+
+            internal bool? HorizontalFlip => Transform.BooleanAttribute("flipH");
+            internal bool? VerticalFlip => Transform.BooleanAttribute("flipV");
+            internal string? Name => Drawing.Attribute("name");
+            internal string? AltText => Drawing.Attribute("descr");
+            internal string? Title => Drawing.Attribute("title");
+
+            internal bool Decorative {
+                get {
+                    OfficeXmlNode drawing = Drawing;
+                    if (drawing.IsNone) return false;
+                    foreach (OfficeXmlNode element in drawing.EveryDescendant()) {
+                        if (element.Is(DecorativeNamespace, "decorative")
+                            && OfficeXmlViewValues.ParseBoolean(element.Attribute("val")) != false) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+
+            /// <summary>
+            /// The image part: the SVG image for a picture with an SVG extension, the blip's embedded image otherwise.
+            /// </summary>
+            internal LegacyPptPartView ImagePart {
+                get {
+                    OfficeXmlNode blip = Element.Child(LegacyPptXml.P, "blipFill")
+                        .Child(LegacyPptXml.A, "blip");
+                    foreach (OfficeXmlNode vector in blip.EveryDescendant()) {
+                        if (!vector.Is(SvgNamespace, "svgBlip")) continue;
+                        string? svg = vector.Attribute(LegacyPptXml.R, "embed");
+                        if (string.IsNullOrEmpty(svg)) continue;
+                        LegacyPptPartView svgPart = ImagePartById(svg);
+                        if (!svgPart.IsNone) return svgPart;
+                        break;
+                    }
+                    return ImagePartById(blip.Attribute(LegacyPptXml.R, "embed"));
+                }
+            }
+
+            private LegacyPptPartView ImagePartById(string? relationshipId) =>
+                OwnerPart.TryGetRelationship(relationshipId,
+                    out LegacyPptRelationshipView relationship)
+                && !relationship.IsExternal
+                && relationship.IsType(LegacyPptPackageView.ImageRelationshipType)
+                    ? relationship.TargetPart
+                    : default;
         }
 
         internal sealed class LegacyPptWriterOleObject {
             internal LegacyPptWriterOleObject(uint id, uint drawAspect,
                 uint subType, uint colorFollow, string? name,
                 string progId, byte[] storageBytes,
-                PowerPointImage? preview) {
+                LegacyPptWriterOlePreview? preview) {
                 Id = id;
                 DrawAspect = drawAspect;
                 SubType = subType;
@@ -301,7 +400,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal string? Name { get; }
             internal string ProgId { get; }
             internal byte[] StorageBytes { get; }
-            internal PowerPointImage? Preview { get; }
+            internal LegacyPptWriterOlePreview? Preview { get; }
         }
     }
 }

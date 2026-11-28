@@ -167,14 +167,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static uint MapOleColorFollow(
-            DocumentFormat.OpenXml.Presentation
-                .OleObjectFollowColorSchemeValues value) =>
-            value == DocumentFormat.OpenXml.Presentation
-                    .OleObjectFollowColorSchemeValues.Full
-                ? 1U
-                : value == DocumentFormat.OpenXml.Presentation
-                    .OleObjectFollowColorSchemeValues.TextAndBackground
-                    ? 2U
-                    : 0U;
+            PowerPointOleFollowColorScheme value) => value switch {
+                PowerPointOleFollowColorScheme.Full => 1U,
+                PowerPointOleFollowColorScheme.TextAndBackground => 2U,
+                _ => 0U
+            };
     }
 }

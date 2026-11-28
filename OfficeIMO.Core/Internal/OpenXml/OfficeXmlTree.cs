@@ -341,8 +341,9 @@ internal sealed partial class OfficeXmlTree {
     }
 
     /// <summary>
-    /// The name and value of an element's attribute by position, from 0 to <see cref="AttributeCountOf"/> less one,
-    /// namespace declarations included.
+    /// The attribute at <paramref name="index"/> (0 to <see cref="AttributeCountOf"/> - 1) of an element, namespace
+    /// declarations included: its namespace id (<see cref="OfficeXmlNamespaces.None"/> for none; a Strict namespace has
+    /// its transitional id), local name and value.
     /// </summary>
     internal void GetAttributeAt(int node, int index, out int namespaceId, out string localName, out string value) {
         value = GetAttributeAt(node, index, out OfficeXmlName name);

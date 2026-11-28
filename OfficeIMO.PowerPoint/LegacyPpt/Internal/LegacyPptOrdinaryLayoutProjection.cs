@@ -1,8 +1,5 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
@@ -13,9 +10,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptOrdinaryLayoutProjection {
         private readonly IReadOnlyDictionary<uint, string> _shapesById;
 
-        private LegacyPptOrdinaryLayoutProjection(SlideLayoutPart layoutPart,
+        private LegacyPptOrdinaryLayoutProjection(LegacyPptPartView layoutPart,
             IReadOnlyDictionary<uint, string> shapesById) {
-            PartUri = layoutPart.Uri.ToString();
+            PartUri = layoutPart.Name;
             ShapeTreeFingerprint = CreateShapeTreeFingerprint(layoutPart);
             TypeFingerprint = CreateTypeFingerprint(layoutPart);
             _shapesById = new ReadOnlyDictionary<uint, string>(
@@ -29,17 +26,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string TypeFingerprint { get; }
 
-        internal bool ShapeTreeMatches(SlideLayoutPart layoutPart) =>
+        internal bool ShapeTreeMatches(LegacyPptPartView layoutPart) =>
             string.Equals(ShapeTreeFingerprint,
                 CreateShapeTreeFingerprint(layoutPart),
                 StringComparison.Ordinal);
 
-        internal bool TypeMatches(SlideLayoutPart layoutPart) =>
+        internal bool TypeMatches(LegacyPptPartView layoutPart) =>
             string.Equals(TypeFingerprint,
                 CreateTypeFingerprint(layoutPart),
                 StringComparison.Ordinal);
 
-        internal bool TryGetAddedShapeIds(SlideLayoutPart layoutPart,
+        internal bool TryGetAddedShapeIds(LegacyPptPartView layoutPart,
             out IReadOnlyList<uint> addedShapeIds) {
             addedShapeIds = Array.Empty<uint>();
             if (!TryCreateShapeSnapshot(layoutPart,
@@ -61,16 +58,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static IReadOnlyList<LegacyPptOrdinaryLayoutProjection>
-            Create(PowerPointDocument presentation,
+            Create(LegacyPptPackageView view,
                 IReadOnlyList<LegacyPptMasterProjection> titleMasters) {
+            ArgumentNullException.ThrowIfNull(view);
             var titlePartUris = new HashSet<string>(titleMasters.Select(
                 master => master.MasterPartUri), StringComparer.Ordinal);
             var result = new List<LegacyPptOrdinaryLayoutProjection>();
-            foreach (SlideLayoutPart layout in presentation.OpenXmlDocument
-                         .PresentationPart?.SlideMasterParts.SelectMany(
-                             master => master.SlideLayoutParts)
-                     ?? Enumerable.Empty<SlideLayoutPart>()) {
-                if (titlePartUris.Contains(layout.Uri.ToString())
+            foreach (LegacyPptPartView layout in LegacyPptPackageFingerprint.SlideMasterParts(view).SelectMany(
+                         LegacyPptPackageFingerprint.SlideLayoutParts)) {
+                if (titlePartUris.Contains(layout.Name)
                     || !TryCreateShapeSnapshot(layout,
                         out IReadOnlyDictionary<uint, string> shapes)) {
                     continue;
@@ -81,62 +77,56 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return result;
         }
 
+        private static OfficeXmlNode ShapeTree(LegacyPptPartView layoutPart) =>
+            layoutPart.Root.Path(LegacyPptXml.P, "cSld", "spTree");
+
         private static string CreateShapeTreeFingerprint(
-            SlideLayoutPart layoutPart) => layoutPart.SlideLayout?
-                .CommonSlideData?.ShapeTree?.OuterXml ?? string.Empty;
+            LegacyPptPartView layoutPart) => LegacyPptMasterProjection.Markup(ShapeTree(layoutPart));
 
         private static string CreateTypeFingerprint(
-            SlideLayoutPart layoutPart) => layoutPart.SlideLayout?.Type?
-                .InnerText ?? string.Empty;
+            LegacyPptPartView layoutPart) => layoutPart.Root.Attribute("type") ?? string.Empty;
 
         private static bool TryCreateShapeSnapshot(
-            SlideLayoutPart layoutPart,
+            LegacyPptPartView layoutPart,
             out IReadOnlyDictionary<uint, string> snapshot) {
             var result = new Dictionary<uint, string>();
             snapshot = result;
-            foreach (OpenXmlElement element in layoutPart.SlideLayout?
-                         .CommonSlideData?.ShapeTree?.ChildElements
-                     ?? Enumerable.Empty<OpenXmlElement>()) {
-                if (element is P.NonVisualGroupShapeProperties
-                    or P.GroupShapeProperties) continue;
+            foreach (OfficeXmlNode element in ShapeTree(layoutPart).Children()) {
+                if (element.Is(LegacyPptXml.P, "nvGrpSpPr")
+                    || element.Is(LegacyPptXml.P, "grpSpPr")) continue;
                 uint? id = GetShapeId(element);
                 if (!id.HasValue || result.ContainsKey(id.Value)) {
                     return false;
                 }
-                OpenXmlElement normalized = element.CloneNode(true);
-                if (normalized is P.Shape shape
-                    && IsHeaderFooterPlaceholder(shape)) {
-                    shape.TextBody?.RemoveAllChildren<A.Paragraph>();
+                OfficeXmlNode normalized = element.Clone();
+                if (normalized.Is(LegacyPptXml.P, "sp")
+                    && IsHeaderFooterPlaceholder(normalized)) {
+                    OfficeXmlNode text = normalized.Child(LegacyPptXml.P, "txBody");
+                    if (!text.IsNone) text.RemoveChildren(LegacyPptXml.A, "p");
                 }
-                result.Add(id.Value, normalized.OuterXml);
+                result.Add(id.Value, LegacyPptXml.Digest(normalized));
             }
             return true;
         }
 
-        private static uint? GetShapeId(OpenXmlElement element) =>
-            element switch {
-                P.Shape shape => shape.NonVisualShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                P.Picture picture => picture.NonVisualPictureProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                P.ConnectionShape connector => connector
-                    .NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                P.GroupShape group => group.NonVisualGroupShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                P.GraphicFrame frame => frame
-                    .NonVisualGraphicFrameProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
+        /// <summary>The <c>p:cNvPr</c> id of a shape-tree element, or null for an element that is not a shape.</summary>
+        internal static uint? GetShapeId(OfficeXmlNode element) {
+            if (element.NamespaceId != LegacyPptXml.P) return null;
+            string? container = element.LocalName switch {
+                "sp" => "nvSpPr",
+                "pic" => "nvPicPr",
+                "cxnSp" => "nvCxnSpPr",
+                "grpSp" => "nvGrpSpPr",
+                "graphicFrame" => "nvGraphicFramePr",
                 _ => null
             };
-
-        private static bool IsHeaderFooterPlaceholder(P.Shape shape) {
-            P.PlaceholderValues? type = shape.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
-                .Type?.Value;
-            return type == P.PlaceholderValues.DateAndTime
-                || type == P.PlaceholderValues.Footer
-                || type == P.PlaceholderValues.SlideNumber;
+            return container == null
+                ? null
+                : element.Path(LegacyPptXml.P, container, "cNvPr").UInt("id");
         }
+
+        private static bool IsHeaderFooterPlaceholder(OfficeXmlNode shape) =>
+            shape.Path(LegacyPptXml.P, "nvSpPr", "nvPr", "ph").Attribute("type")
+                is "dt" or "ftr" or "sldNum";
     }
 }

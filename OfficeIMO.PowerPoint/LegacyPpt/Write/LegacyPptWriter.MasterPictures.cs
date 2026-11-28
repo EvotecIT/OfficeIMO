@@ -1,30 +1,31 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        /// <summary>
+        /// Fails when a layout of the view holds a picture (<c>p:pic</c>) that no slide materialized: one missing from
+        /// <paramref name="materializedPictures"/>, which holds pictures of the same view.
+        /// </summary>
         private static bool TryValidateMaterializedLayoutPictures(
-            PowerPointDocument presentation,
-            ISet<OpenXmlElement> materializedPictures,
+            LegacyPptPackageView view,
+            ISet<string> materializedPictures,
             out string? reason) {
-            IEnumerable<SlideLayoutPart> layoutParts = presentation
-                .OpenXmlDocument.PresentationPart?.SlideMasterParts
-                .SelectMany(master => master.SlideLayoutParts)
-                ?? Enumerable.Empty<SlideLayoutPart>();
-            foreach (SlideLayoutPart part in layoutParts) {
-                P.Picture? unmaterialized = part.SlideLayout?.CommonSlideData?
-                    .ShapeTree?.Descendants<P.Picture>().FirstOrDefault(
-                        picture => !materializedPictures.Contains(picture));
-                if (unmaterialized == null) continue;
-                string name = part.SlideLayout?.CommonSlideData?.Name?.Value
-                    ?? part.Uri.ToString();
-                string pictureName = unmaterialized
-                    .NonVisualPictureProperties?.NonVisualDrawingProperties?
-                    .Name?.Value ?? "unnamed picture";
-                reason = $"Slide layout '{name}' contains '{pictureName}', which does not materialize into any owning slide; classic binary PowerPoint has no independent ordinary-layout persist object in which to retain it.";
-                return false;
+            foreach (LegacyPptPartView master in SlideMasterPartsInRelationshipOrder(view)) {
+                foreach (LegacyPptPartView part in master.RelatedParts(
+                             LegacyPptPackageView.SlideLayoutRelationshipType)) {
+                    OfficeXmlNode unmaterialized = ShapeTree(part).SchemaDescendants(Pml, "pic")
+                        .FirstOrDefault(picture => !materializedPictures.Contains(
+                            LegacyPptWriterXml.ElementPath(part.Name, picture)));
+                    if (unmaterialized.IsNone) continue;
+                    string name = CommonSlideData(part).Attribute("name")
+                        ?? part.Name;
+                    string pictureName = unmaterialized.Path(Pml, "nvPicPr", "cNvPr")
+                        .Attribute("name") ?? "unnamed picture";
+                    reason = $"Slide layout '{name}' contains '{pictureName}', which does not materialize into any owning slide; classic binary PowerPoint has no independent ordinary-layout persist object in which to retain it.";
+                    return false;
+                }
             }
             reason = null;
             return true;

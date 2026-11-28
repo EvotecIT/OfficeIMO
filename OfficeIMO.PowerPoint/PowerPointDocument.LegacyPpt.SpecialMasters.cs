@@ -1,145 +1,162 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static void ProjectLegacySpecialMasters(PowerPointDocument presentation,
+        private static void ProjectLegacySpecialMasters(LegacyPptImportParts parts,
             LegacyPptDocument legacy,
             LegacyPptSoundProjectionContext soundContext,
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
             if (legacy.NotesMaster != null) {
-                ProjectLegacyNotesMaster(presentation, legacy.NotesMaster,
+                ProjectLegacyNotesMaster(parts, legacy.NotesMaster,
                     legacy.NotesHeaderFooterDefaults, soundContext,
                     deferredInteractions);
             }
             if (legacy.HandoutMaster != null) {
-                ProjectLegacyHandoutMaster(presentation, legacy.HandoutMaster,
+                ProjectLegacyHandoutMaster(parts, legacy.HandoutMaster,
                     legacy.NotesHeaderFooterDefaults, soundContext,
                     deferredInteractions);
             }
         }
 
-        private static void ProjectLegacyNotesMaster(PowerPointDocument presentation,
+        private static void ProjectLegacyNotesMaster(LegacyPptImportParts parts,
             LegacyPptSpecialMaster source,
             LegacyPptHeaderFooterSettings? headerFooter,
             LegacyPptSoundProjectionContext soundContext,
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
-            NotesMasterPart part = PowerPointUtils.EnsureNotesMasterPart(
-                presentation.SdkPresentationPart);
-            NotesMaster target = part.NotesMaster
-                ?? throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
-            target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
+            PowerPointPartRef presentationPart = parts.PresentationPart;
+            PowerPointPartRef part = presentationPart.RelatedPart(LegacyNotesMasterRelationshipType);
+            OfficeXmlNode target = part.IsNone ? default : part.Root;
+            if (target.IsNone || !target.Is(LegacyPptXml.P, "notesMaster")
+                || part.RelatedPart(LegacyThemeRelationshipType).IsNone) {
+                throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
+            }
+            OfficeXmlNode commonSlideData = target.SetChild(LegacyPptXml.P, "cSld", LegacyPptImportXml.NotesMasterOrder);
+            WriteLegacySpecialMasterCommonSlideData(part, commonSlideData, source,
                 "Binary Notes Master", soundContext, deferredInteractions);
-            ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
+            ApplyLegacyMasterRoundTripTheme(parts, part, source.RoundTripTheme);
             if (source.RoundTripTheme?.ThemeXml == null) {
-                ApplyLegacySpecialMasterTheme(part.ThemePart,
+                ApplyLegacySpecialMasterTheme(part.RelatedPart(LegacyThemeRelationshipType),
                     source.ColorScheme);
             }
-            ApplyLegacyHeaderFooter(target, target.CommonSlideData,
+            ApplyLegacyHeaderFooter(target, commonSlideData,
                 headerFooter, allowHeader: true);
-            target.Save();
+            part.MarkEdited();
         }
 
-        private static void ProjectLegacyHandoutMaster(PowerPointDocument presentation,
+        private static void ProjectLegacyHandoutMaster(LegacyPptImportParts parts,
             LegacyPptSpecialMaster source,
             LegacyPptHeaderFooterSettings? headerFooter,
             LegacyPptSoundProjectionContext soundContext,
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
-            PresentationPart presentationPart = presentation.SdkPresentationPart;
-            HandoutMasterPart part = presentationPart.HandoutMasterPart
-                ?? presentationPart.AddNewPart<HandoutMasterPart>();
-            EnsureLegacySpecialMasterTheme(part, presentationPart);
+            PowerPointPartRef presentationPart = parts.PresentationPart;
+            PowerPointPartRef part = presentationPart.RelatedPart(LegacyHandoutMasterRelationshipType);
+            OfficeXmlNode handoutMaster;
+            if (part.IsNone) {
+                parts.AddXmlPart(presentationPart, LegacyHandoutMasterRelationshipType,
+                    "/ppt/handoutMasters/handoutMaster.xml", LegacyHandoutMasterContentType,
+                    LegacyPptXml.P, "handoutMaster", _ => { }, out LegacyPptImportPart added);
+                part = PowerPointPartRef.Package(parts.Document, added.PartName!);
+            }
+            EnsureLegacySpecialMasterTheme(parts, part, presentationPart);
 
-            CommonSlideData commonSlideData = CreateLegacySpecialMasterCommonSlideData(part,
+            handoutMaster = part.Root;
+            foreach (OfficeXmlNode child in handoutMaster.Children().ToList()) child.Remove();
+            OfficeXmlNode commonSlideData = handoutMaster.AddP("cSld");
+            WriteLegacySpecialMasterCommonSlideData(part, commonSlideData,
                 source, "Binary Handout Master", soundContext,
                 deferredInteractions);
-            ColorMap colorMap = CloneLegacyColorMap(presentationPart);
-            part.HandoutMaster = new HandoutMaster(commonSlideData, colorMap);
-            ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
+            OfficeXmlNode colorMap = handoutMaster.AddP("clrMap");
+            WriteLegacyColorMap(colorMap, presentationPart);
+            ApplyLegacyMasterRoundTripTheme(parts, part, source.RoundTripTheme);
             if (source.RoundTripTheme?.ThemeXml == null) {
-                ApplyLegacySpecialMasterTheme(part.ThemePart,
+                ApplyLegacySpecialMasterTheme(part.RelatedPart(LegacyThemeRelationshipType),
                     source.ColorScheme);
             }
-            ApplyLegacyHeaderFooter(part.HandoutMaster, commonSlideData,
+            ApplyLegacyHeaderFooter(handoutMaster, commonSlideData,
                 headerFooter, allowHeader: true);
-            part.HandoutMaster.Save();
+            part.MarkEdited();
 
-            Presentation root = presentationPart.Presentation ??= new Presentation();
-            HandoutMasterIdList list = root.HandoutMasterIdList ??= new HandoutMasterIdList();
-            string relationshipId = presentationPart.GetIdOfPart(part);
-            if (!list.Elements<HandoutMasterId>().Any(item =>
-                    PowerPointUtils.GetRelationshipIdValue(item) == relationshipId)) {
-                var id = new HandoutMasterId();
-                PowerPointUtils.SetRelationshipIdValue(id, relationshipId);
-                list.Append(id);
+            OfficeXmlNode root = presentationPart.Root;
+            OfficeXmlNode list = root.GetOrAddChild(LegacyPptXml.P, "handoutMasterIdLst", PPresentationView.Order);
+            string? relationshipId = parts.RelationshipIdTo(presentationPart, part);
+            if (!list.Children(LegacyPptXml.P, "handoutMasterId").ToList().Any(item =>
+                    item.RelationshipId() == relationshipId)) {
+                list.AddP("handoutMasterId").SetRelationship("id", relationshipId);
             }
+            presentationPart.MarkEdited();
         }
 
-        private static CommonSlideData CreateLegacySpecialMasterCommonSlideData(
-            OpenXmlPart ownerPart, LegacyPptSpecialMaster source, string name,
+        private static void WriteLegacySpecialMasterCommonSlideData(
+            PowerPointPartRef ownerPart, OfficeXmlNode commonSlideData, LegacyPptSpecialMaster source, string name,
             LegacyPptSoundProjectionContext soundContext,
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
-            var result = new CommonSlideData(CreateLegacyShapeTree(ownerPart, source.Shapes,
+            commonSlideData.Set("name", name);
+            WriteLegacyShapeTree(commonSlideData.AddP("spTree"), ownerPart, source.Shapes,
                 source.ConnectorRules, soundContext: soundContext,
-                deferredInteractions: deferredInteractions)) { Name = name };
+                deferredInteractions: deferredInteractions);
             if (source.Background != null) {
-                ApplyLegacyBackground(ownerPart, result, source.Background);
+                ApplyLegacyBackground(ownerPart, commonSlideData, source.Background);
             } else if (source.ColorScheme != null) {
-                ApplyLegacyBackground(result, source.ColorScheme.Background);
+                ApplyLegacyBackground(commonSlideData, source.ColorScheme.Background);
             }
-            return result;
         }
 
-        private static void EnsureLegacySpecialMasterTheme(HandoutMasterPart target,
-            PresentationPart presentationPart) {
-            if (target.ThemePart != null) return;
-            ThemePart targetTheme = target.AddNewPart<ThemePart>();
-            A.Theme? source = presentationPart.SlideMasterParts.FirstOrDefault()?
-                .ThemePart?.Theme;
-            targetTheme.Theme = source?.CloneNode(true) as A.Theme
-                ?? new A.Theme {
-                    Name = "Binary PowerPoint",
-                    ThemeElements = new A.ThemeElements()
-                };
+        private static void EnsureLegacySpecialMasterTheme(LegacyPptImportParts parts, PowerPointPartRef target,
+            PowerPointPartRef presentationPart) {
+            if (!target.RelatedPart(LegacyThemeRelationshipType).IsNone) return;
+            PowerPointPartRef firstMaster = presentationPart.RelatedPart(LegacySlideMasterRelationshipType);
+            PowerPointPartRef sourceTheme = firstMaster.IsNone ? default : firstMaster.RelatedPart(LegacyThemeRelationshipType);
+            OfficeXmlNode source = sourceTheme.IsNone ? default : sourceTheme.Root;
+            string themePartName = LegacyPartFolder(target) + "theme/theme.xml";
+            if (!source.IsNone && source.Is(LegacyPptXml.A, "theme")) {
+                // A copy of the whole theme, its namespace declarations included.
+                parts.AddXmlPart(target, LegacyThemeRelationshipType, themePartName, LegacyThemeContentType,
+                    System.Text.Encoding.UTF8.GetString(source.OuterXml()), out _);
+                return;
+            }
+            parts.AddXmlPart(target, LegacyThemeRelationshipType, themePartName,
+                LegacyThemeContentType, LegacyPptXml.A, "theme", theme => {
+                    theme.Set("name", "Binary PowerPoint");
+                    theme.AddA("themeElements");
+                }, out _);
         }
 
-        private static void ApplyLegacySpecialMasterTheme(ThemePart? themePart,
+        private static void ApplyLegacySpecialMasterTheme(PowerPointPartRef themePart,
             LegacyPptColorScheme? source) {
-            if (themePart == null || source == null) return;
-            A.Theme theme = themePart.Theme ??= new A.Theme {
-                Name = "Binary PowerPoint",
-                ThemeElements = new A.ThemeElements()
-            };
-            theme.ThemeElements ??= new A.ThemeElements();
-            A.ColorScheme target = theme.ThemeElements.ColorScheme
-                ??= new A.ColorScheme { Name = "Binary PowerPoint" };
+            if (themePart.IsNone || source == null) return;
+            OfficeXmlNode theme = themePart.Root;
+            if (theme.IsNone) return;
+            OfficeXmlNode elements = theme.GetOrAddChild(LegacyPptXml.A, "themeElements", LegacyPptImportXml.ThemeOrder);
+            OfficeXmlNode target = elements.Child(LegacyPptXml.A, "clrScheme");
+            if (target.IsNone) {
+                target = elements.AddOrdered(LegacyPptXml.A, "clrScheme", LegacyPptImportXml.ThemeElementsOrder)
+                    .Set("name", "Binary PowerPoint");
+            }
             SetLegacyThemeColors(target, source);
-            theme.Save();
+            themePart.MarkEdited();
         }
 
-        private static ColorMap CloneLegacyColorMap(PresentationPart presentationPart) =>
-            presentationPart.SlideMasterParts.FirstOrDefault()?.SlideMaster?.ColorMap?
-                .CloneNode(true) as ColorMap
-            ?? new ColorMap {
-                Background1 = A.ColorSchemeIndexValues.Light1,
-                Text1 = A.ColorSchemeIndexValues.Dark1,
-                Background2 = A.ColorSchemeIndexValues.Light2,
-                Text2 = A.ColorSchemeIndexValues.Dark2,
-                Accent1 = A.ColorSchemeIndexValues.Accent1,
-                Accent2 = A.ColorSchemeIndexValues.Accent2,
-                Accent3 = A.ColorSchemeIndexValues.Accent3,
-                Accent4 = A.ColorSchemeIndexValues.Accent4,
-                Accent5 = A.ColorSchemeIndexValues.Accent5,
-                Accent6 = A.ColorSchemeIndexValues.Accent6,
-                Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
-                FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
-            };
+        // The first slide master's colour map, or the default mapping when it has none.
+        private static void WriteLegacyColorMap(OfficeXmlNode target, PowerPointPartRef presentationPart) {
+            PowerPointPartRef firstMaster = presentationPart.RelatedPart(LegacySlideMasterRelationshipType);
+            OfficeXmlNode source = firstMaster.IsNone ? default : firstMaster.Root.Child(LegacyPptXml.P, "clrMap");
+            if (!source.IsNone) {
+                CopyLegacyAttributes(source, target);
+                target.AppendCopiesOfChildren(source);
+                return;
+            }
+            target.Set("bg1", "lt1").Set("tx1", "dk1").Set("bg2", "lt2").Set("tx2", "dk2")
+                .Set("accent1", "accent1").Set("accent2", "accent2").Set("accent3", "accent3")
+                .Set("accent4", "accent4").Set("accent5", "accent5").Set("accent6", "accent6")
+                .Set("hlink", "hlink").Set("folHlink", "folHlink");
+        }
     }
 }

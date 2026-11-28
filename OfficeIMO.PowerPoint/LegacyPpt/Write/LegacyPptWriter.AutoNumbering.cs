@@ -1,36 +1,30 @@
 using System.Text;
-using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private const ushort RecordStyleTextProp9AtomForWrite = 0x0FAC;
 
         private static bool TryBuildStyleTextProp9Record(
-            IReadOnlyList<A.Paragraph> paragraphs,
+            IReadOnlyList<OfficeXmlNode> paragraphs,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out byte[]? record,
             out string? reason) {
             record = null;
             reason = null;
-            if (!paragraphs.Any(paragraph => paragraph
-                    .ParagraphProperties?.ChildElements.Any(child => child
-                        is A.AutoNumberedBullet or A.PictureBullet) == true)) {
+            if (!paragraphs.Any(paragraph => HasStyle9Bullet(paragraph.Child(A, "pPr")))) {
                 return true;
             }
             using var payload = new MemoryStream();
             var numberingState = new Dictionary<int, int>();
-            foreach (A.Paragraph paragraph in paragraphs) {
-                A.AutoNumberedBullet? numbering = paragraph
-                    .ParagraphProperties?
-                    .GetFirstChild<A.AutoNumberedBullet>();
-                A.PictureBullet? pictureBullet = paragraph
-                    .ParagraphProperties?
-                    .GetFirstChild<A.PictureBullet>();
+            foreach (OfficeXmlNode paragraph in paragraphs) {
+                OfficeXmlNode properties = paragraph.Child(A, "pPr");
+                OfficeXmlNode numbering = properties.Child(A, "buAutoNum");
+                OfficeXmlNode pictureBullet = properties.Child(A, "buBlip");
                 int? numberingStart = null;
-                if (numbering != null) {
-                    int level = paragraph.ParagraphProperties?.Level?.Value
-                        ?? 0;
-                    numberingStart = numbering.StartAt?.Value
+                if (!numbering.IsNone) {
+                    int level = properties.Int("lvl") ?? 0;
+                    numberingStart = numbering.Int("startAt")
                         ?? (numberingState.TryGetValue(level,
                                 out int previous)
                             ? checked(previous + 1)
@@ -52,18 +46,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryWriteAutomaticNumberingException9(
-            Stream output, A.AutoNumberedBullet? numbering,
+            Stream output, OfficeXmlNode numbering,
             int? numberingStart,
-            A.PictureBullet? pictureBullet,
+            OfficeXmlNode pictureBullet,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
             reason = null;
-            if (numbering != null && pictureBullet != null) {
+            if (!numbering.IsNone && !pictureBullet.IsNone) {
                 reason = "A paragraph cannot use automatic numbering and a picture bullet at the same time.";
                 return false;
             }
             ushort? pictureReference = null;
-            if (pictureBullet != null) {
+            if (!pictureBullet.IsNone) {
                 if (!pictureBullets.TryGetIndex(pictureBullet,
                         out ushort index)) {
                     reason = "A picture bullet is not present in the bounded PPT9 picture-bullet catalog.";
@@ -71,24 +65,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 pictureReference = index;
             }
-            if (numbering == null && !pictureReference.HasValue) {
+            if (numbering.IsNone && !pictureReference.HasValue) {
                 WriteUInt32(output, 0);
                 return true;
             }
-            if (numbering == null) {
+            if (numbering.IsNone) {
                 WriteUInt32(output, 1U << 23);
                 WriteUInt16(output, pictureReference!.Value);
                 return true;
             }
+            // Every ST_TextAutonumberScheme token has a binary scheme, so an unmapped token is one outside the schema.
             if (!HasOnlyAttributes(numbering, "type", "startAt")
-                || numbering.ChildElements.Count != 0
-                || numbering.Type?.HasValue != true) {
-                reason = "An automatic-numbering bullet has unsupported metadata or no numbering scheme.";
-                return false;
-            }
-            if (!TryMapAutoNumberScheme(numbering.Type.Value,
+                || HasChildElements(numbering)
+                || !TryMapAutoNumberScheme(numbering.Attribute("type"),
                     out ushort scheme)) {
-                reason = "An automatic-numbering scheme has no classic binary PowerPoint equivalent.";
+                reason = "An automatic-numbering bullet has unsupported metadata or no numbering scheme.";
                 return false;
             }
             int rawStart = numberingStart ?? 1;
@@ -124,54 +115,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new[] { tagName, data });
         }
 
-        private static bool TryMapAutoNumberScheme(
-            A.TextAutoNumberSchemeValues value, out ushort scheme) {
-            if (value == A.TextAutoNumberSchemeValues.AlphaLowerCharacterPeriod) scheme = 0x0000;
-            else if (value == A.TextAutoNumberSchemeValues.AlphaUpperCharacterPeriod) scheme = 0x0001;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicParenR) scheme = 0x0002;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicPeriod) scheme = 0x0003;
-            else if (value == A.TextAutoNumberSchemeValues.RomanLowerCharacterParenBoth) scheme = 0x0004;
-            else if (value == A.TextAutoNumberSchemeValues.RomanLowerCharacterParenR) scheme = 0x0005;
-            else if (value == A.TextAutoNumberSchemeValues.RomanLowerCharacterPeriod) scheme = 0x0006;
-            else if (value == A.TextAutoNumberSchemeValues.RomanUpperCharacterPeriod) scheme = 0x0007;
-            else if (value == A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenBoth) scheme = 0x0008;
-            else if (value == A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR) scheme = 0x0009;
-            else if (value == A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenBoth) scheme = 0x000A;
-            else if (value == A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenR) scheme = 0x000B;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicParenBoth) scheme = 0x000C;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicPlain) scheme = 0x000D;
-            else if (value == A.TextAutoNumberSchemeValues.RomanUpperCharacterParenBoth) scheme = 0x000E;
-            else if (value == A.TextAutoNumberSchemeValues.RomanUpperCharacterParenR) scheme = 0x000F;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePlain) scheme = 0x0010;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePeriod) scheme = 0x0011;
-            else if (value == A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain) scheme = 0x0012;
-            else if (value == A.TextAutoNumberSchemeValues.CircleNumberWingdingsWhitePlain) scheme = 0x0013;
-            else if (value == A.TextAutoNumberSchemeValues.CircleNumberWingdingsBlackPlain) scheme = 0x0014;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePlain) scheme = 0x0015;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePeriod) scheme = 0x0016;
-            else if (value == A.TextAutoNumberSchemeValues.Arabic1Minus) scheme = 0x0017;
-            else if (value == A.TextAutoNumberSchemeValues.Arabic2Minus) scheme = 0x0018;
-            else if (value == A.TextAutoNumberSchemeValues.Hebrew2Minus) scheme = 0x0019;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPlain) scheme = 0x001A;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPeriod) scheme = 0x001B;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicDoubleBytePlain) scheme = 0x001C;
-            else if (value == A.TextAutoNumberSchemeValues.ArabicDoubleBytePeriod) scheme = 0x001D;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiAlphaPeriod) scheme = 0x001E;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisRight) scheme = 0x001F;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisBoth) scheme = 0x0020;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiNumberPeriod) scheme = 0x0021;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiNumberParenthesisRight) scheme = 0x0022;
-            else if (value == A.TextAutoNumberSchemeValues.ThaiNumberParenthesisBoth) scheme = 0x0023;
-            else if (value == A.TextAutoNumberSchemeValues.HindiAlphaPeriod) scheme = 0x0024;
-            else if (value == A.TextAutoNumberSchemeValues.HindiNumPeriod) scheme = 0x0025;
-            else if (value == A.TextAutoNumberSchemeValues.EastAsianJapaneseDoubleBytePeriod) scheme = 0x0026;
-            else if (value == A.TextAutoNumberSchemeValues.HindiNumberParenthesisRight) scheme = 0x0027;
-            else if (value == A.TextAutoNumberSchemeValues.HindiAlpha1Period) scheme = 0x0028;
-            else {
-                scheme = 0;
-                return false;
+        private static bool HasStyle9Bullet(OfficeXmlNode properties) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "buAutoNum") || child.Is(A, "buBlip")) return true;
             }
-            return true;
+            return false;
         }
+
+        private static bool TryMapAutoNumberScheme(
+            string? token, out ushort scheme) {
+            int index = token == null ? -1 : Array.IndexOf(AutoNumberSchemeTokens, token);
+            scheme = index < 0 ? (ushort)0 : checked((ushort)index);
+            return index >= 0;
+        }
+
+        // ST_TextAutonumberScheme tokens in the order of the binary scheme values.
+        private static readonly string[] AutoNumberSchemeTokens = {
+            "alphaLcPeriod", "alphaUcPeriod", "arabicParenR", "arabicPeriod",
+            "romanLcParenBoth", "romanLcParenR", "romanLcPeriod", "romanUcPeriod",
+            "alphaLcParenBoth", "alphaLcParenR", "alphaUcParenBoth", "alphaUcParenR",
+            "arabicParenBoth", "arabicPlain", "romanUcParenBoth", "romanUcParenR",
+            "ea1ChsPlain", "ea1ChsPeriod", "circleNumDbPlain", "circleNumWdWhitePlain",
+            "circleNumWdBlackPlain", "ea1ChtPlain", "ea1ChtPeriod", "arabic1Minus",
+            "arabic2Minus", "hebrew2Minus", "ea1JpnKorPlain", "ea1JpnKorPeriod",
+            "arabicDbPlain", "arabicDbPeriod", "thaiAlphaPeriod", "thaiAlphaParenR",
+            "thaiAlphaParenBoth", "thaiNumPeriod", "thaiNumParenR", "thaiNumParenBoth",
+            "hindiAlphaPeriod", "hindiNumPeriod", "ea1JpnChsDbPeriod", "hindiNumParenR",
+            "hindiAlpha1Period"
+        };
     }
 }

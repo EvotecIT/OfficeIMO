@@ -92,6 +92,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EmbeddedOleObject_WithMissingRelationshipIsReportedByPreflight() {
+            using PowerPointDocument created = PowerPointDocument.Create();
+            PowerPointSlide slide = created.AddSlide(PowerPointSlideLayoutType.Blank);
+            using var storage = new MemoryStream(CreateOleTestStorage("Missing part"), writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
+            ((P.GraphicFrame)ole.Element).Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!.Id = "rIdMissing";
+
+            LegacyPptWritePreflightReport preflight = created.AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Description.Contains("rIdMissing", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void FreshEmbeddedOleObject_WritesExplicitPreviewImageAndEffects() {
             byte[] storageBytes = CreateOleTestStorage("OLE preview");
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(23, 91, 177);

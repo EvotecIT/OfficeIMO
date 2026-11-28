@@ -43,13 +43,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     _referenceCountDeltas[index] = checked(currentDelta - 1);
                 }
                 if (!background.RequiresPictureCatalog) return true;
-                if (background.PictureFill == null
-                    || background.PictureBytes.Length == 0
+                if (background.PictureBytes.Length == 0
                     || string.IsNullOrWhiteSpace(
                         background.PictureContentType)) return false;
-                return _catalog!.TryAdd(background.PictureFill,
-                    background.PictureBytes, background.PictureContentType!,
-                    out _);
+                return _catalog!.TryAdd(background, out _);
             }
 
             internal bool TryBuildDocumentAndPictures(byte[]? currentDocumentBytes,

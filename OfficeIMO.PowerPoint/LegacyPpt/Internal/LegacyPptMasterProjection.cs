@@ -1,10 +1,5 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using OfficeIMO.PowerPoint.LegacyPpt.Write;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps one projected slide master and its editable theme back to a binary persist object.</summary>
@@ -67,196 +62,88 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             out LegacyPptShapeProjection? projection) =>
             _shapesByOpenXmlId.TryGetValue(openXmlShapeId, out projection);
 
-        internal bool ThemeMatches(SlideMasterPart masterPart) => string.Equals(
+        internal bool ThemeMatches(LegacyPptPartView masterPart) => string.Equals(
             ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
 
-        internal bool ThemeMatches(NotesMasterPart masterPart) => string.Equals(
-            ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
-
-        internal bool ThemeMatches(HandoutMasterPart masterPart) => string.Equals(
-            ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
-
-        internal bool ThemeMatches(SlideLayoutPart masterPart) => string.Equals(
-            ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
-
-        internal bool BackgroundMatches(SlideMasterPart masterPart) => string.Equals(
+        internal bool BackgroundMatches(LegacyPptPartView masterPart) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
             StringComparison.Ordinal);
 
-        internal bool BackgroundMatches(NotesMasterPart masterPart) => string.Equals(
-            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
-            StringComparison.Ordinal);
-
-        internal bool BackgroundMatches(HandoutMasterPart masterPart) => string.Equals(
-            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
-            StringComparison.Ordinal);
-
-        internal bool BackgroundMatches(SlideLayoutPart masterPart) => string.Equals(
-            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
-            StringComparison.Ordinal);
-
-        internal bool TextStylesMatch(SlideMasterPart masterPart) =>
+        internal bool TextStylesMatch(LegacyPptPartView masterPart) =>
             TextStylesFingerprint == null || string.Equals(
                 TextStylesFingerprint, CreateTextStylesFingerprint(masterPart),
                 StringComparison.Ordinal);
 
-        internal bool MasterObjectsMatch(SlideLayoutPart masterPart) =>
+        internal bool MasterObjectsMatch(LegacyPptPartView masterPart) =>
             !FollowsMasterObjects.HasValue
             || FollowsMasterObjects.Value
-                == (masterPart.SlideLayout?.ShowMasterShapes?.Value != false);
+                == (masterPart.Root.Bool("showMasterSp") != false);
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            SlideMasterPart masterPart) {
+            LegacyPptPartView masterPart) {
             IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
-            return GetChangedClassicColorSlots(current);
-        }
-
-        internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            NotesMasterPart masterPart) {
-            IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
-            return GetChangedClassicColorSlots(current);
-        }
-
-        internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            HandoutMasterPart masterPart) {
-            IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
-            return GetChangedClassicColorSlots(current);
-        }
-
-        internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            SlideLayoutPart masterPart) {
-            IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
-            return GetChangedClassicColorSlots(current);
-        }
-
-        private IReadOnlyList<int> GetChangedClassicColorSlots(
-            IReadOnlyList<string> current) {
             return Enumerable.Range(0, ClassicColorFingerprints.Count)
                 .Where(index => !string.Equals(ClassicColorFingerprints[index],
                     current[index], StringComparison.Ordinal))
                 .ToArray();
         }
 
-        internal static string CreateThemeFingerprint(SlideMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateThemeFingerprint(masterPart.ThemePart,
-                masterPart.SlideMaster?.ColorMap);
-        }
-
-        internal static string CreateThemeFingerprint(NotesMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateThemeFingerprint(masterPart.ThemePart,
-                masterPart.NotesMaster?.ColorMap);
-        }
-
-        internal static string CreateThemeFingerprint(HandoutMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateThemeFingerprint(masterPart.ThemePart,
-                masterPart.HandoutMaster?.ColorMap);
-        }
-
-        internal static string CreateThemeFingerprint(SlideLayoutPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            string theme = masterPart.ThemeOverridePart?.ThemeOverride?.OuterXml
-                ?? string.Empty;
-            string colorMap = masterPart.SlideLayout?.ColorMapOverride?.OuterXml
-                ?? string.Empty;
-            return LegacyPptProjectionDigest.Create(theme, colorMap);
-        }
-
-        private static string CreateThemeFingerprint(ThemePart? themePart,
-            OpenXmlElement? colorMap) {
-            string theme = themePart?.Theme?.OuterXml ?? string.Empty;
-            return LegacyPptProjectionDigest.Create(theme,
-                colorMap?.OuterXml);
+        /// <summary>
+        /// The theme fingerprint of a slide, notes or handout master (its theme and color map), or of a title-master
+        /// layout (its theme override and color-map override).
+        /// </summary>
+        internal static string CreateThemeFingerprint(LegacyPptPartView masterPart) {
+            if (masterPart.IsNone) throw new ArgumentNullException(nameof(masterPart));
+            if (masterPart.IsSlideLayout) {
+                return LegacyPptProjectionDigest.Create(
+                    Markup(masterPart.ThemeOverride.Root),
+                    Markup(masterPart.Root.Child(LegacyPptXml.P, "clrMapOvr")));
+            }
+            return LegacyPptProjectionDigest.Create(Markup(masterPart.Theme.Root),
+                Markup(masterPart.Root.Child(LegacyPptXml.P, "clrMap")));
         }
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
-            SlideMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateClassicColorFingerprints(masterPart.ThemePart);
+            LegacyPptPartView masterPart) {
+            if (masterPart.IsNone) throw new ArgumentNullException(nameof(masterPart));
+            if (masterPart.IsSlideLayout) {
+                OfficeXmlNode colors = masterPart.ThemeOverride.Root.Child(LegacyPptXml.A, "clrScheme");
+                if (colors.IsNone) colors = ThemeColorScheme(masterPart.SlideMaster.Theme);
+                return CreateClassicColorFingerprints(colors);
+            }
+            return CreateClassicColorFingerprints(ThemeColorScheme(masterPart.Theme));
         }
 
+        /// <summary>The <c>a:clrScheme</c> of a theme part's theme elements.</summary>
+        internal static OfficeXmlNode ThemeColorScheme(LegacyPptPartView themePart) =>
+            themePart.Root.Path(LegacyPptXml.A, "themeElements", "clrScheme");
+
+        /// <summary>The eight classic color-scheme slots of a DrawingML color scheme, in binary order.</summary>
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
-            NotesMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateClassicColorFingerprints(masterPart.ThemePart);
-        }
-
-        internal static IReadOnlyList<string> CreateClassicColorFingerprints(
-            HandoutMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return CreateClassicColorFingerprints(masterPart.ThemePart);
-        }
-
-        internal static IReadOnlyList<string> CreateClassicColorFingerprints(
-            SlideLayoutPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            DocumentFormat.OpenXml.Drawing.ColorScheme? colors = masterPart
-                .ThemeOverridePart?.ThemeOverride?.ColorScheme
-                ?? masterPart.SlideMasterPart?.ThemePart?.Theme?
-                    .ThemeElements?.ColorScheme;
-            return CreateClassicColorFingerprints(colors);
-        }
-
-        private static IReadOnlyList<string> CreateClassicColorFingerprints(
-            ThemePart? themePart) {
-            DocumentFormat.OpenXml.Drawing.ColorScheme? colors = themePart?
-                .Theme?.ThemeElements?.ColorScheme;
-            return CreateClassicColorFingerprints(colors);
-        }
-
-        private static IReadOnlyList<string> CreateClassicColorFingerprints(
-            DocumentFormat.OpenXml.Drawing.ColorScheme? colors) {
-            OpenXmlElement?[] slots = {
-                colors?.Light1Color,
-                colors?.Dark1Color,
-                colors?.Accent4Color,
-                colors?.Dark2Color,
-                colors?.Light2Color,
-                colors?.Accent1Color,
-                colors?.Accent2Color,
-                colors?.Accent3Color
+            OfficeXmlNode colors) {
+            string[] slots = {
+                "lt1", "dk1", "accent4", "dk2", "lt2", "accent1", "accent2", "accent3"
             };
-            return slots.Select(slot => slot?.OuterXml ?? string.Empty).ToArray();
+            return slots.Select(slot => Markup(colors.Child(LegacyPptXml.A, slot))).ToArray();
         }
 
         internal static string CreateBackgroundFingerprint(
-            SlideMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
-                masterPart.SlideMaster?.CommonSlideData?.Background);
+            LegacyPptPartView masterPart) {
+            if (masterPart.IsNone) throw new ArgumentNullException(nameof(masterPart));
+            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart);
         }
 
         internal static string CreateTextStylesFingerprint(
-            SlideMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return (masterPart.SlideMaster?.TextStyles?.OuterXml
-                    ?? string.Empty)
-                + LegacyPptTextProjection
-                    .CreatePictureBulletImageFingerprint(masterPart
-                        .SlideMaster?.TextStyles, masterPart);
+            LegacyPptPartView masterPart) {
+            if (masterPart.IsNone) throw new ArgumentNullException(nameof(masterPart));
+            OfficeXmlNode textStyles = masterPart.Root.Child(LegacyPptXml.P, "txStyles");
+            return Markup(textStyles)
+                + LegacyPptShapeProjection.CreatePictureBulletImageFingerprint(
+                    textStyles, masterPart);
         }
 
-        internal static string CreateBackgroundFingerprint(
-            NotesMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
-                masterPart.NotesMaster?.CommonSlideData?.Background);
-        }
-
-        internal static string CreateBackgroundFingerprint(
-            HandoutMasterPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
-                masterPart.HandoutMaster?.CommonSlideData?.Background);
-        }
-
-        internal static string CreateBackgroundFingerprint(
-            SlideLayoutPart masterPart) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
-                masterPart.SlideLayout?.CommonSlideData?.Background);
-        }
+        /// <summary>The canonical digest of an element, or empty for none.</summary>
+        internal static string Markup(OfficeXmlNode element) =>
+            element.IsNone ? string.Empty : LegacyPptXml.Digest(element);
     }
 }

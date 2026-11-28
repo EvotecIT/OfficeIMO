@@ -406,7 +406,10 @@ namespace OfficeIMO.Tests {
                     imported.LegacyPptProjectionMap!.Slides[0].Shapes,
                     candidate => candidate.OpenXmlShapeId == textBox.Id);
                 Assert.True(projection.CanEditTextFrame);
-                Assert.True(projection.TextFrameMatches(textBox));
+                using (LegacyPptPackageView view = LegacyPptPackageView.Capture(imported)) {
+                    Assert.True(projection.TextFrameMatches(
+                        LegacyPptProjectedShape.Resolve(view, textBox)));
+                }
                 textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(7), global::OfficeIMO.OfficeLength.Points(9), global::OfficeIMO.OfficeLength.Points(11));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Bottom;
@@ -418,7 +421,10 @@ namespace OfficeIMO.Tests {
                 body.AnchorCenter = false;
                 Assert.True(LegacyPptWriter.TryReadTextFrameForWrite(
                     textBox, out _, out string? frameReason), frameReason);
-                Assert.False(projection.TextFrameMatches(textBox));
+                using (LegacyPptPackageView view = LegacyPptPackageView.Capture(imported)) {
+                    Assert.False(projection.TextFrameMatches(
+                        LegacyPptProjectedShape.Resolve(view, textBox)));
+                }
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();

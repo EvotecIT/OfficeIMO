@@ -1,5 +1,8 @@
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -20,28 +23,25 @@ namespace OfficeIMO.PowerPoint {
             slide.TransitionAdvanceAfterSeconds = source.AutoAdvance
                 ? source.SlideTimeMilliseconds / 1000.0
                 : null;
-            DocumentFormat.OpenXml.Presentation.Transition? target =
-                slide.SlidePart.Slide?.Transition;
-            if (target == null) return;
+            PowerPointPartRef slidePart = slide.PartRef;
+            OfficeXmlNode target = slidePart.Root.Child(LegacyPptXml.P, "transition");
+            if (target.IsNone) return;
             if (source.PlaySound
-                       && soundContext.TryProject(slide.SlidePart, source.SoundId,
+                       && soundContext.TryProject(slidePart, source.SoundId,
                            out LegacyPptSound? sound, out string? relationshipId)) {
-                target.RemoveAllChildren<DocumentFormat.OpenXml.Presentation.SoundAction>();
-                var embeddedSound = new DocumentFormat.OpenXml.Presentation.Sound {
-                    Embed = relationshipId,
-                    Name = sound!.Name,
-                    BuiltIn = sound.BuiltInId.HasValue
-                };
-                target.RemoveAllChildren<DocumentFormat.OpenXml.Presentation.SoundAction>();
-                target.Append(new DocumentFormat.OpenXml.Presentation.SoundAction(
-                    new DocumentFormat.OpenXml.Presentation.StartSoundAction(
-                        embeddedSound) { Loop = source.LoopSound }));
+                target.RemoveChildren(LegacyPptXml.P, "sndAc");
+                target.AddP("sndAc").AddP("stSnd")
+                    .Set("loop", source.LoopSound)
+                    .AddP("snd")
+                    .SetRelationship("embed", relationshipId)
+                    .Set("name", sound!.Name)
+                    .Set("builtIn", sound.BuiltInId.HasValue);
+                slidePart.MarkEdited();
             } else if (source.StopSound) {
-                target.RemoveAllChildren<DocumentFormat.OpenXml.Presentation.SoundAction>();
-                target.Append(new DocumentFormat.OpenXml.Presentation.SoundAction(
-                    new DocumentFormat.OpenXml.Presentation.EndSoundAction()));
+                target.RemoveChildren(LegacyPptXml.P, "sndAc");
+                target.AddP("sndAc").AddP("endSnd");
+                slidePart.MarkEdited();
             }
         }
-
     }
 }

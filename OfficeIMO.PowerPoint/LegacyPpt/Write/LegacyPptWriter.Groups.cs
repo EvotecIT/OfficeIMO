@@ -1,7 +1,5 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -14,27 +12,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ArgumentNullException.ThrowIfNull(group);
             children = ReadGroupChildrenForWrite(group, out reason);
             if (reason != null) return false;
-            P.GroupShapeProperties? properties = group.GroupShape
-                .GroupShapeProperties;
-            A.TransformGroup? transform = properties?.TransformGroup;
-            if (properties == null || transform == null
-                || properties.HasAttributes
-                || properties.ChildElements.Any(child =>
-                    child is not A.TransformGroup)
-                || transform.GetAttributes().Any(attribute =>
-                    attribute.LocalName is not "rot"
-                        and not "flipH" and not "flipV")
-                || transform.ChildElements.Any(child =>
-                    child is not A.Offset and not A.Extents
-                        and not A.ChildOffset and not A.ChildExtents)
-                || transform.Offset?.X?.Value is not long left
-                || transform.Offset.Y?.Value is not long top
-                || transform.Extents?.Cx?.Value is not long width
-                || transform.Extents.Cy?.Value is not long height
-                || transform.ChildOffset?.X?.Value is not long childLeft
-                || transform.ChildOffset.Y?.Value is not long childTop
-                || transform.ChildExtents?.Cx?.Value is not long childWidth
-                || transform.ChildExtents.Cy?.Value is not long childHeight
+            OfficeXmlNode groupElement = ShapeXml(group);
+            OfficeXmlNode properties = groupElement.Child(LegacyPptXml.P,
+                "grpSpPr");
+            OfficeXmlNode transform = properties.Child(LegacyPptXml.A, "xfrm");
+            if (properties.IsNone || transform.IsNone
+                || HasAttributes(properties)
+                || AnyChildOtherThan(properties, LegacyPptXml.A, "xfrm")
+                || HasAttributeOtherThan(transform, "rot", "flipH", "flipV")
+                || HasGroupTransformChildOtherThanPoints(transform)
+                || transform.Child(LegacyPptXml.A, "off").Long("x") is not long left
+                || transform.Child(LegacyPptXml.A, "off").Long("y") is not long top
+                || transform.Child(LegacyPptXml.A, "ext").Long("cx") is not long width
+                || transform.Child(LegacyPptXml.A, "ext").Long("cy") is not long height
+                || transform.Child(LegacyPptXml.A, "chOff").Long("x") is not long childLeft
+                || transform.Child(LegacyPptXml.A, "chOff").Long("y") is not long childTop
+                || transform.Child(LegacyPptXml.A, "chExt").Long("cx") is not long childWidth
+                || transform.Child(LegacyPptXml.A, "chExt").Long("cy") is not long childHeight
                 || width < 0L || height < 0L
                 || childWidth <= 0L || childHeight <= 0L) {
                 reason = "The group requires one complete offset, extent, child-offset, and child-extent transform with no unsupported group properties.";
@@ -54,16 +48,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryReadShapeTransform(group, out _, out reason)) {
                 return false;
             }
-            P.NonVisualGroupShapeDrawingProperties? drawing = group
-                .GroupShape.NonVisualGroupShapeProperties?
-                .NonVisualGroupShapeDrawingProperties;
-            if (drawing is { HasAttributes: true }
-                || drawing is { HasChildren: true }) {
+            OfficeXmlNode drawing = groupElement
+                .Child(LegacyPptXml.P, "nvGrpSpPr")
+                .Child(LegacyPptXml.P, "cNvGrpSpPr");
+            if (!drawing.IsNone
+                && (HasAttributes(drawing) || HasChildren(drawing))) {
                 reason = "Group-shape locks and non-visual extensions are not yet encoded by the binary PowerPoint writer.";
                 return false;
             }
             reason = null;
             return true;
+        }
+
+        private static bool HasGroupTransformChildOtherThanPoints(
+            OfficeXmlNode transform) {
+            foreach (OfficeXmlNode child in transform.Children()) {
+                if (!child.Is(LegacyPptXml.A, "off")
+                    && !child.Is(LegacyPptXml.A, "ext")
+                    && !child.Is(LegacyPptXml.A, "chOff")
+                    && !child.Is(LegacyPptXml.A, "chExt")) return true;
+            }
+            return false;
         }
 
         internal static int CountDrawingShapes(
@@ -191,14 +196,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static void GetGroupCoordinateValues(
             PowerPointGroupShape group, out int left, out int top,
             out int right, out int bottom) {
-            A.TransformGroup transform = group.GroupShape
-                .GroupShapeProperties!.TransformGroup!;
-            left = ToMasterUnits(transform.ChildOffset!.X!.Value);
-            top = ToMasterUnits(transform.ChildOffset.Y!.Value);
+            OfficeXmlNode transform = ShapeXml(group)
+                .Child(LegacyPptXml.P, "grpSpPr")
+                .Child(LegacyPptXml.A, "xfrm");
+            OfficeXmlNode childOffset = transform.Child(LegacyPptXml.A, "chOff");
+            OfficeXmlNode childExtents = transform.Child(LegacyPptXml.A, "chExt");
+            left = ToMasterUnits(childOffset.Long("x")
+                ?? throw new InvalidOperationException("The group transform has no child offset."));
+            top = ToMasterUnits(childOffset.Long("y")
+                ?? throw new InvalidOperationException("The group transform has no child offset."));
             right = checked(left
-                + ToMasterUnits(transform.ChildExtents!.Cx!.Value));
+                + ToMasterUnits(childExtents.Long("cx")
+                    ?? throw new InvalidOperationException("The group transform has no child extents.")));
             bottom = checked(top
-                + ToMasterUnits(transform.ChildExtents.Cy!.Value));
+                + ToMasterUnits(childExtents.Long("cy")
+                    ?? throw new InvalidOperationException("The group transform has no child extents.")));
         }
     }
 }

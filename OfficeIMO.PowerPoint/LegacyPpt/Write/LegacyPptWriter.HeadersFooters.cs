@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml;
-using P = DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -9,65 +8,67 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordCString = 0x0FBA;
 
         private static byte[] BuildDocumentHeaderFooterRecord(
-            PowerPointDocument presentation, ushort instance) {
+            LegacyPptPackageView view, ushort instance) {
             LegacyPptWriterHeaderFooter settings = instance == 4
-                ? ReadNotesHeaderFooter(presentation)
-                : ReadSlideHeaderFooterDefaults(presentation);
+                ? ReadNotesHeaderFooter(view)
+                : ReadSlideHeaderFooterDefaults(view);
             return BuildHeaderFooterRecord(settings, instance,
                 allowHeader: instance == 4);
         }
 
+        // Caller in LegacyPptPreservingWriter.ChangePlan.cs not yet passing a view.
         internal static LegacyPptWriterHeaderFooter? ReadSlideHeaderFooter(
             PowerPointSlide slide) {
-            P.SlideLayout? layout = slide.SlidePart.SlideLayoutPart?.SlideLayout;
-            P.HeaderFooter? headerFooter = layout?.GetFirstChild<P.HeaderFooter>();
-            return headerFooter == null ? null : ReadHeaderFooter(
-                headerFooter, layout?.CommonSlideData, allowHeader: false);
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(OwnerDocumentForWrite(slide));
+            return ReadSlideHeaderFooter(SlidePartView(view, slide));
+        }
+
+        internal static LegacyPptWriterHeaderFooter? ReadSlideHeaderFooter(
+            LegacyPptPartView slidePart) {
+            OfficeXmlNode layout = slidePart.SlideLayout.Root;
+            OfficeXmlNode headerFooter = layout.Child(Pml, "hf");
+            return headerFooter.IsNone ? null : ReadHeaderFooter(
+                headerFooter, layout.Child(Pml, "cSld"), allowHeader: false);
         }
 
         private static LegacyPptWriterHeaderFooter ReadSlideHeaderFooterDefaults(
-            PowerPointDocument presentation) {
-            P.SlideMaster? master = presentation.OpenXmlDocument.PresentationPart?
-                .SlideMasterParts.FirstOrDefault()?.SlideMaster;
-            P.HeaderFooter? headerFooter = master?.GetFirstChild<P.HeaderFooter>();
-            return headerFooter == null
+            LegacyPptPackageView view) {
+            List<LegacyPptPartView> masters = SlideMasterPartsInRelationshipOrder(view);
+            OfficeXmlNode master = masters.Count == 0 ? default : masters[0].Root;
+            OfficeXmlNode headerFooter = master.Child(Pml, "hf");
+            return headerFooter.IsNone
                 ? LegacyPptWriterHeaderFooter.Empty
-                : ReadHeaderFooter(headerFooter, master?.CommonSlideData,
+                : ReadHeaderFooter(headerFooter, master.Child(Pml, "cSld"),
                     allowHeader: false);
         }
 
         private static LegacyPptWriterHeaderFooter ReadNotesHeaderFooter(
-            PowerPointDocument presentation) {
-            P.NotesMaster? notesMaster = presentation.OpenXmlDocument.PresentationPart?
-                .NotesMasterPart?.NotesMaster;
-            P.HeaderFooter? notesHeaderFooter = notesMaster?
-                .GetFirstChild<P.HeaderFooter>();
-            if (notesHeaderFooter != null) {
+            LegacyPptPackageView view) {
+            OfficeXmlNode notesMaster = view.NotesMaster.Root;
+            OfficeXmlNode notesHeaderFooter = notesMaster.Child(Pml, "hf");
+            if (!notesHeaderFooter.IsNone) {
                 return ReadHeaderFooter(notesHeaderFooter,
-                    notesMaster?.CommonSlideData, allowHeader: true);
+                    notesMaster.Child(Pml, "cSld"), allowHeader: true);
             }
 
-            P.HandoutMaster? handoutMaster = presentation.OpenXmlDocument.PresentationPart?
-                .HandoutMasterPart?.HandoutMaster;
-            P.HeaderFooter? handoutHeaderFooter = handoutMaster?
-                .GetFirstChild<P.HeaderFooter>();
-            return handoutHeaderFooter == null
+            OfficeXmlNode handoutMaster = view.HandoutMaster.Root;
+            OfficeXmlNode handoutHeaderFooter = handoutMaster.Child(Pml, "hf");
+            return handoutHeaderFooter.IsNone
                 ? LegacyPptWriterHeaderFooter.Empty
                 : ReadHeaderFooter(handoutHeaderFooter,
-                    handoutMaster?.CommonSlideData, allowHeader: true);
+                    handoutMaster.Child(Pml, "cSld"), allowHeader: true);
         }
 
         private static LegacyPptWriterHeaderFooter ReadHeaderFooter(
-            P.HeaderFooter headerFooter, P.CommonSlideData? commonSlideData,
+            OfficeXmlNode headerFooter, OfficeXmlNode commonSlideData,
             bool allowHeader) {
-            string userDate = ReadPlaceholderText(commonSlideData,
-                P.PlaceholderValues.DateAndTime);
+            string userDate = ReadPlaceholderText(commonSlideData, "dt");
             string header = allowHeader
-                ? ReadPlaceholderText(commonSlideData, P.PlaceholderValues.Header)
+                ? ReadPlaceholderText(commonSlideData, "hdr")
                 : string.Empty;
-            string footer = ReadPlaceholderText(commonSlideData,
-                P.PlaceholderValues.Footer);
-            bool showDate = ReadHeaderFooterBoolean(headerFooter.DateTime);
+            string footer = ReadPlaceholderText(commonSlideData, "ftr");
+            bool showDate = headerFooter.Bool("dt") != false;
             bool useUserDate = showDate && userDate.Length > 0
                 && !ContainsDateTimeField(commonSlideData);
             return new LegacyPptWriterHeaderFooter(
@@ -75,31 +76,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 showDate,
                 useAutomaticDateTime: showDate && !useUserDate,
                 useUserDate,
-                showSlideNumber: ReadHeaderFooterBoolean(headerFooter.SlideNumber),
-                showHeader: allowHeader && ReadHeaderFooterBoolean(headerFooter.Header),
-                showFooter: ReadHeaderFooterBoolean(headerFooter.Footer),
+                showSlideNumber: headerFooter.Bool("sldNum") != false,
+                showHeader: allowHeader && headerFooter.Bool("hdr") != false,
+                showFooter: headerFooter.Bool("ftr") != false,
                 userDate, header, footer);
         }
 
-        private static bool ReadHeaderFooterBoolean(BooleanValue? value) =>
-            value?.Value != false;
-
-        private static string ReadPlaceholderText(P.CommonSlideData? commonSlideData,
-            P.PlaceholderValues type) {
-            P.Shape? shape = commonSlideData?.ShapeTree?.Elements<P.Shape>()
-                .FirstOrDefault(candidate => candidate.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == type);
-            return shape == null ? string.Empty : string.Concat(
-                shape.TextBody?.Descendants<A.Text>().Select(text => text.Text)
-                ?? Enumerable.Empty<string>());
+        // The first p:sp of the shape tree whose placeholder has this type.
+        private static OfficeXmlNode FindPlaceholderShape(OfficeXmlNode commonSlideData,
+            string type) {
+            foreach (OfficeXmlNode shape in commonSlideData.Child(Pml, "spTree").Children(Pml, "sp")) {
+                if (string.Equals(shape.Path(Pml, "nvSpPr", "nvPr", "ph").Attribute("type"), type,
+                        StringComparison.Ordinal)) return shape;
+            }
+            return default;
         }
 
-        private static bool ContainsDateTimeField(P.CommonSlideData? commonSlideData) {
-            P.Shape? shape = commonSlideData?.ShapeTree?.Elements<P.Shape>()
-                .FirstOrDefault(candidate => candidate.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value
-                    == P.PlaceholderValues.DateAndTime);
-            return shape?.TextBody?.Descendants<A.Field>().Any() == true;
+        private static string ReadPlaceholderText(OfficeXmlNode commonSlideData,
+            string type) {
+            OfficeXmlNode shape = FindPlaceholderShape(commonSlideData, type);
+            if (shape.IsNone) return string.Empty;
+            OfficeXmlNode body = shape.Child(Pml, "txBody");
+            return body.IsNone ? string.Empty : string.Concat(
+                body.SchemaDescendants(Dml, "t").Select(text => text.InnerText));
+        }
+
+        private static bool ContainsDateTimeField(OfficeXmlNode commonSlideData) {
+            OfficeXmlNode shape = FindPlaceholderShape(commonSlideData, "dt");
+            return shape.Child(Pml, "txBody").SchemaDescendants(Dml, "fld").Count > 0;
         }
 
         internal static byte[] BuildHeaderFooterRecord(

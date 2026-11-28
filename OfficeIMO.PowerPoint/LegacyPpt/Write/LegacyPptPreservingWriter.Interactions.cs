@@ -345,11 +345,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         if (nextSlideId >= 0x7FFFFFFFU) continue;
                         binarySlideId = ++nextSlideId;
                     }
-                    string partUri = slide.SlidePart.Uri.ToString();
+                    OpenXml.PowerPointPartRef slidePart = slide.PartRef;
+                    string partUri = slidePart.Name;
                     _slideTargetsByPartUri[partUri] =
                         new LegacyPptWriter.LegacyPptWriterSlideTarget(
                             partUri, binarySlideId, index + 1,
-                            slide.SlidePart.Slide?.CommonSlideData?.Name?.Value);
+                            slidePart.Root.Child(LegacyPptXml.P, "cSld").Attribute("name"));
                 }
                 foreach (LegacyPptHyperlink hyperlink in projectionMap.Hyperlinks) {
                     _nextId = Math.Max(_nextId, hyperlink.Id);
@@ -429,7 +430,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptWriter.LegacyPptWriterShapeInteractions interactions =
                         source.Get(shape);
                     if (interactions.HasInteractions) {
-                        result.Add(shape.Element, Remap(interactions));
+                        result.Add(shape, Remap(interactions));
                     }
                 }
                 return result;

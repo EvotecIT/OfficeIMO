@@ -383,13 +383,17 @@ namespace OfficeIMO.Tests {
             Assert.True(presentation.LegacyPptProjectionMap!
                 .IsEditableProjectedOrdinaryLayoutPart(
                     layoutPart.Uri.ToString()));
-            Assert.False(presentation.LegacyPptProjectionMap
-                .OrdinaryLayoutTypeMatches(layoutPart));
+            using (LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation)) {
+                Assert.False(presentation.LegacyPptProjectionMap
+                    .OrdinaryLayoutTypeMatches(view.Part(layoutPart.Uri.ToString())));
+            }
             IReadOnlyList<PowerPointShape> writableShapes = LegacyPptWriter
                 .ReadSlideShapesForWrite(slide, out string? reason);
             Assert.Null(reason);
-            Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
-                LegacyPptWriter.MapSlideLayout(slide, writableShapes));
+            using (LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation)) {
+                Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
+                    LegacyPptWriter.MapSlideLayout(view.Part(slide.PartRef.Name), writableShapes));
+            }
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 

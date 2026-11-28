@@ -1,14 +1,12 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Text;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryBuildModifiedPersistObjects(PowerPointDocument presentation,
+            LegacyPptPackageView view,
             out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
             out IReadOnlyList<uint> currentSlideIds,
             out byte[]? replacementPicturesStream) {
@@ -19,12 +17,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             replacementPicturesStream = null;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
-            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptPreservableChanges
+            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptPreservableChangesIn(view)
                 || presentation.Slides.Count > 4082) {
                 return false;
             }
             if (LegacyPptWriter.HasModernComments(presentation)
-                || !LegacyPptWriter.TryReadAllClassicComments(presentation,
+                || !LegacyPptWriter.TryReadAllClassicComments(view, presentation,
                     out IReadOnlyDictionary<string,
                         IReadOnlyList<LegacyPptWriter.LegacyPptWriterComment>> commentsBySlide,
                     out _)) {
@@ -32,15 +30,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var soundCatalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog(
                 projectionMap.Sounds, projectionMap.SoundIdSeed);
-            if (!LegacyPptWriter.TryReadInteractions(presentation.Slides,
+            if (!LegacyPptWriter.TryReadInteractions(view, presentation.Slides,
                     soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
-                || !LegacyPptWriter.TryReadClassicAnimations(presentation.Slides,
+                || !LegacyPptWriter.TryReadClassicAnimations(view, presentation.Slides,
                     soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterAnimationCatalog animationCatalog,
                     out _)
-                || !LegacyPptWriter.TryReadCustomShows(presentation,
+                || !LegacyPptWriter.TryReadCustomShows(view, presentation,
                     out LegacyPptWriter.LegacyPptWriterCustomShowCatalog customShows,
                     out _)
                 || !TryCreateInteractionContext(presentation, package, projectionMap,
@@ -53,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation.LegacyPptImportDiagnostics.Any(diagnostic =>
                     diagnostic.Code.StartsWith("ppt-picture-bullet",
                         StringComparison.Ordinal))
-                || !LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
+                || !LegacyPptWriter.TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriter
                         .LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out _)) return false;
@@ -63,18 +61,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             try {
                 var oleObjectEdits = new List<LegacyPptOleObjectEdit>();
                 var pictureStore = new PreservingPictureStoreUpdate(package);
-                if (!TryBuildModifiedMasterPersistObjects(presentation, package,
+                if (!TryBuildModifiedMasterPersistObjects(presentation, view, package,
                         projectionMap, rewritten, textFonts,
                         pictureBullets, pictureStore)) {
                     return false;
                 }
                 if (!TryBuildModifiedTitleMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten, textFonts,
+                        view, package, projectionMap, rewritten, textFonts,
                         pictureBullets, pictureStore)) {
                     return false;
                 }
                 if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten, textFonts,
+                        view, package, projectionMap, rewritten, textFonts,
                         pictureBullets, pictureStore)) {
                     return false;
                 }
@@ -100,6 +98,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     currentSlideOrder.Add(slideProjection);
                     slideIds.Add(slideProjection.SlideId);
+                    LegacyPptPartView slideView = view.Part(slide.PartRef.Name);
 
                     string currentNotes = slide.Notes.TryGetText(out string noteText)
                         ? NormalizeLogicalText(noteText)
@@ -107,27 +106,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (slideProjection.Notes == null) {
                         if (currentNotes.Length > 0) return false;
                     } else {
-                        NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart
-                            ?? throw new InvalidDataException(
+                        LegacyPptPartView notesView = slideView.NotesSlide;
+                        if (notesView.IsNone) {
+                            throw new InvalidDataException(
                                 "The projected binary notes page has no notes-slide part.");
+                        }
                         bool notesTextChanged = !string.Equals(currentNotes,
                             NormalizeLogicalText(slideProjection.Notes.Text),
                             StringComparison.Ordinal);
                         bool notesMasterObjectsChanged = !slideProjection.Notes
-                            .MasterObjectsMatch(notesPart);
+                            .MasterObjectsMatch(notesView);
                         bool notesThemeChanged = !slideProjection.Notes
-                            .ThemeMatches(notesPart);
-                        if (notesThemeChanged && notesPart.ThemeOverridePart?
-                                .ThemeOverride == null) {
+                            .ThemeMatches(notesView);
+                        if (notesThemeChanged && notesView.ThemeOverride.Root.IsNone) {
                             return false;
                         }
                         bool notesBackgroundChanged = !slideProjection.Notes
-                            .BackgroundMatches(notesPart);
+                            .BackgroundMatches(notesView);
                         LegacyPptWriter.LegacyPptWriterBackground?
                             currentNotesBackground = null;
                         if (notesBackgroundChanged
-                            && (!LegacyPptWriter.TryReadBackground(notesPart,
-                                    out currentNotesBackground, out _)
+                            && (!LegacyPptWriter.TryReadBackground(presentation,
+                                    notesView, out currentNotesBackground, out _)
                                 || currentNotesBackground == null)) {
                             return false;
                         }
@@ -157,8 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 notesBytes = LegacyPptWriter
                                     .BuildPreservedMasterObjectInheritanceRecord(
                                         inheritanceRecord,
-                                        notesPart.NotesSlide?
-                                            .ShowMasterShapes?.Value != false);
+                                        notesView.Root.Bool("showMasterSp") != false);
                             }
                             if (notesBackgroundChanged) {
                                 LegacyPptRecord backgroundRecord =
@@ -179,27 +178,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                         0, new LegacyPptImportOptions());
                                 notesBytes = LegacyPptWriter
                                     .BuildPreservedThemeRecord(themedRecord,
-                                        notesPart, slideProjection.Notes
+                                        notesView, slideProjection.Notes
                                             .GetChangedClassicColorSlots(
-                                                notesPart));
+                                                notesView));
                             }
                             rewritten.Add(slideProjection.Notes.PersistId,
                                 notesBytes);
                         }
                     }
 
-                    SlideLayoutPart? ordinaryLayoutPart = slide.SlidePart
-                        .SlideLayoutPart;
-                    bool ordinaryLayoutShapesChanged = ordinaryLayoutPart != null
+                    LegacyPptPartView ordinaryLayoutPart = slideView.SlideLayout;
+                    bool ordinaryLayoutShapesChanged = !ordinaryLayoutPart.IsNone
                         && projectionMap
                             .IsEditableProjectedOrdinaryLayoutPart(
-                                ordinaryLayoutPart.Uri.ToString())
+                                ordinaryLayoutPart.Name)
                         && !projectionMap.OrdinaryLayoutMatches(
                             ordinaryLayoutPart);
-                    bool ordinaryLayoutTypeChanged = ordinaryLayoutPart != null
+                    bool ordinaryLayoutTypeChanged = !ordinaryLayoutPart.IsNone
                         && projectionMap
                             .IsEditableProjectedOrdinaryLayoutPart(
-                                ordinaryLayoutPart.Uri.ToString())
+                                ordinaryLayoutPart.Name)
                         && !projectionMap.OrdinaryLayoutTypeMatches(
                             ordinaryLayoutPart);
                     IReadOnlyList<PowerPointShape> writableShapes =
@@ -211,7 +209,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (ordinaryLayoutShapesChanged
                         && !projectionMap
                             .TryGetOrdinaryLayoutAddedShapeIds(
-                                ordinaryLayoutPart!,
+                                ordinaryLayoutPart,
                                 out addedLayoutShapeIds)) return false;
                     var addedLayoutShapeIdSet = new HashSet<uint>(
                         addedLayoutShapeIds);
@@ -251,10 +249,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             || !MatchesProjectedKind(shape, shapeProjection.Kind)) {
                             return false;
                         }
-                        if (shape is PowerPointOleObject oleShape) {
+                        LegacyPptProjectedShape projected = LegacyPptProjectedShape.Resolve(view, shape);
+                        if (shape is PowerPointOleObject) {
                             if (shapeProjection.OleObject == null
                                 || !shapeProjection.OleObject.TryGetChange(
-                                    oleShape,
+                                    projected.Part, projected.Element,
                                     out LegacyPptOleObjectEdit? oleEdit)) {
                                 return false;
                             }
@@ -284,7 +283,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             .PlaceholderMatches(currentPlaceholder);
                         PowerPointShape? changedShapeTransform = null;
                         if (shapeProjection.CanEditShapeTransform
-                            && !shapeProjection.ShapeTransformMatches(shape)) {
+                            && !shapeProjection.ShapeTransformMatches(projected)) {
                             if (!LegacyPptWriter.TryReadShapeTransform(shape,
                                     out _, out _)) {
                                 return false;
@@ -293,9 +292,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         PowerPointShape? changedShapeGeometry = null;
                         if (shapeProjection.CanEditShapeGeometry
-                            && !shapeProjection.ShapeGeometryMatches(shape)) {
+                            && !shapeProjection.ShapeGeometryMatches(projected)) {
                             if (LegacyPptShapeProjection
-                                    .CreateShapeGeometryFingerprint(shape)
+                                    .CreateShapeGeometryFingerprint(projected)
                                 == null) {
                                 return false;
                             }
@@ -303,10 +302,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         PowerPointGroupShape? changedGroupCoordinate = null;
                         if (shapeProjection.CanEditGroupCoordinate
-                            && !shapeProjection.GroupCoordinateMatches(shape)) {
+                            && !shapeProjection.GroupCoordinateMatches(projected)) {
                             if (shape is not PowerPointGroupShape group
                                 || LegacyPptShapeProjection
-                                    .CreateGroupCoordinateFingerprint(group)
+                                    .CreateGroupCoordinateFingerprint(projected)
                                 == null) {
                                 return false;
                             }
@@ -315,7 +314,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         PowerPointShape? changedShapeVisualStyle = null;
                         if (shapeProjection.CanEditShapeVisualStyle
                             && !shapeProjection.ShapeVisualStyleMatches(
-                                shape)) {
+                                projected)) {
                             if (!LegacyPptWriter.TryReadShapeVisualStyle(shape,
                                     out _, out _)) {
                                 return false;
@@ -347,7 +346,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             && picture is not PowerPointMedia
                             && shapeProjection.CanEditPictureFormatting
                             && !shapeProjection.PictureFormattingMatches(
-                                picture)) {
+                                projected)) {
                             if (!LegacyPptWriter.TryValidatePictureForWrite(
                                     picture, out _)) {
                                 return false;
@@ -358,7 +357,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         PowerPointTextBox? changedTextFormatting = null;
                         PowerPointTextBox? changedTextFrame = null;
                         if (shape is PowerPointTextBox textBox) {
-                            if (!shapeProjection.TextFrameMatches(textBox)) {
+                            if (!shapeProjection.TextFrameMatches(projected)) {
                                 if (!shapeProjection.CanEditTextFrame
                                     || !LegacyPptWriter
                                         .TryReadTextFrameForWrite(textBox,
@@ -366,8 +365,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 changedTextFrame = textBox;
                             }
                             bool formattingMatches =
-                                MatchesProjectedTextFormatting(textBox,
-                                    shapeProjection, slide.SlidePart);
+                                MatchesProjectedTextFormatting(projected,
+                                    shapeProjection);
                             if (!formattingMatches) {
                                 if (!shapeProjection.CanEditTextFormatting
                                     || !LegacyPptWriter
@@ -465,10 +464,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
-                    bool currentFollowsMasterObjects = slide.SlidePart.Slide?
-                        .ShowMasterShapes?.Value != false;
+                    bool currentFollowsMasterObjects = slideView.Root
+                        .Bool("showMasterSp") != false;
                     bool? followsMasterObjects = slideProjection
-                        .MasterObjectsMatch(slide)
+                        .MasterObjectsMatch(slideView)
                         ? null
                         : currentFollowsMasterObjects;
                     LegacyPptWriter.LegacyPptWriterHeaderFooter? currentHeaderFooter =
@@ -489,20 +488,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ? currentTransition != null
                         : !originalTransition.IsEquivalentTo(currentTransition);
                     IReadOnlyList<LegacyPptWriter.LegacyPptWriterComment> currentComments =
-                        commentsBySlide[slide.SlidePart.Uri.ToString()];
+                        commentsBySlide[slideView.Name];
                     bool commentsChanged = !CommentsEqual(slideProjection.Comments,
                         currentComments);
-                    bool themeChanged = !slideProjection.ThemeMatches(slide);
-                    if (themeChanged && (slide.SlidePart.ThemeOverridePart
-                            ?? slide.SlidePart.SlideLayoutPart?
-                                .ThemeOverridePart)?.ThemeOverride == null) {
+                    bool themeChanged = !slideProjection.ThemeMatches(slideView);
+                    if (themeChanged && LegacyPptSlideProjection
+                            .EffectiveThemeOverride(slideView).Root.IsNone) {
                         return false;
                     }
-                    bool backgroundChanged = !slideProjection.BackgroundMatches(slide);
+                    bool backgroundChanged = !slideProjection.BackgroundMatches(slideView);
                     if (backgroundChanged && !slideProjection.HasExplicitBackground
-                        && slide.SlidePart.Slide?.CommonSlideData?.Background == null
-                        && slide.SlidePart.SlideLayoutPart is SlideLayoutPart layoutPart
-                        && projectionMap.TryGetTitleMaster(layoutPart, out _)) {
+                        && slideView.Root.Child(LegacyPptXml.P, "cSld").Child(LegacyPptXml.P, "bg").IsNone
+                        && !slideView.SlideLayout.IsNone
+                        && projectionMap.TryGetTitleMaster(slideView.SlideLayout.Name, out _)) {
                         backgroundChanged = false;
                     }
                     LegacyPptWriter.LegacyPptWriterBackground? currentBackground = null;
@@ -576,8 +574,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             .ReadSingle(slideBytes, 0,
                                 new LegacyPptImportOptions());
                         slideBytes = LegacyPptWriter.BuildPreservedThemeRecord(
-                            themedRecord, slide.SlidePart,
-                            slideProjection.GetChangedClassicColorSlots(slide));
+                            themedRecord, slideView,
+                            slideProjection.GetChangedClassicColorSlots(slideView));
                     }
                     rewritten.Add(slideProjection.PersistId, slideBytes);
                 }
@@ -663,7 +661,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     rewritten[package.DocumentPersistId] =
                         documentWithPictureBullets;
                 }
-                if (!TryRewriteVbaProject(presentation, package,
+                if (!TryRewriteVbaProject(view, package,
                         projectionMap, rewritten)) {
                     return false;
                 }

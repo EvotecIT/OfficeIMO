@@ -1,10 +1,9 @@
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Text;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// <summary>
@@ -34,17 +33,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWriteDocument(PowerPointDocument presentation) {
             ArgumentNullException.ThrowIfNull(presentation);
-            return TryBuildModifiedPersistObjects(presentation, out _, out _,
+            if (presentation.LegacyPptPackage == null || presentation.LegacyPptProjectionMap == null) return false;
+            // One copy of the package serves every read of this check.
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryBuildModifiedPersistObjects(presentation, view, out _, out _,
                     out _)
                 && LegacyPptPropertySetCodec.TryBuildReplacementStreams(
-                    presentation, presentation.LegacyPptProjectionMap!
+                    view, presentation.LegacyPptProjectionMap!
                         .PropertySets, out _);
         }
 
         internal static bool TryWriteDocument(PowerPointDocument presentation, out byte[] bytes) {
             ArgumentNullException.ThrowIfNull(presentation);
             bytes = Array.Empty<byte>();
-            if (!TryBuildModifiedPersistObjects(presentation,
+            if (presentation.LegacyPptPackage == null || presentation.LegacyPptProjectionMap == null) return false;
+            // One copy of the package serves every read of this save.
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            if (!TryBuildModifiedPersistObjects(presentation, view,
                     out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
                     out IReadOnlyList<uint> currentSlideIds,
                     out byte[]? replacementPicturesStream)) {
@@ -55,7 +60,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptProjectionMap projectionMap = presentation
                 .LegacyPptProjectionMap!;
             if (!LegacyPptPropertySetCodec.TryBuildReplacementStreams(
-                    presentation, projectionMap.PropertySets,
+                    view, projectionMap.PropertySets,
                     out IReadOnlyDictionary<string, byte[]>
                         propertyStreams)) {
                 return false;
@@ -427,32 +432,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return kind == LegacyPptShapeKind.Line && autoShape.ShapeType == OfficePresetShapeType.Line;
         }
 
-        private static bool HasOnlyPlainProjectedText(PowerPointTextBox textBox) {
-            P.Shape? shape = textBox.Element as P.Shape;
-            if (shape?.TextBody == null) return true;
-            if (shape.TextBody.Descendants<A.Field>().Any()) {
+        private static bool HasOnlyPlainProjectedText(OfficeXmlNode shape) {
+            OfficeXmlNode textBody = shape.Is(LegacyPptXml.P, "sp")
+                ? shape.Child(LegacyPptXml.P, "txBody")
+                : default;
+            if (textBody.IsNone) return true;
+            if (textBody.SchemaDescendants(LegacyPptXml.A, "fld").Count > 0) {
                 return false;
             }
-            return !shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
-                       properties.HasAttributes || properties.ChildElements.Any(child =>
-                           child is not A.HyperlinkOnClick
-                               and not A.HyperlinkOnMouseOver))
-                && !shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
-                    properties.HasAttributes || properties.HasChildren)
-                && !shape.TextBody.Descendants<A.EndParagraphRunProperties>().Any(properties =>
-                    properties.HasAttributes || properties.HasChildren);
+            return !textBody.SchemaDescendants(LegacyPptXml.A, "rPr").Any(properties =>
+                       HasAttributes(properties) || properties.Children().ToList().Any(child =>
+                           !child.Is(LegacyPptXml.A, "hlinkClick")
+                           && !child.Is(LegacyPptXml.A, "hlinkMouseOver")))
+                && !textBody.SchemaDescendants(LegacyPptXml.A, "pPr").Any(properties =>
+                    HasAttributes(properties) || !properties.FirstChild.IsNone)
+                && !textBody.SchemaDescendants(LegacyPptXml.A, "endParaRPr").Any(properties =>
+                    HasAttributes(properties) || !properties.FirstChild.IsNone);
         }
 
-        private static bool MatchesProjectedTextFormatting(PowerPointTextBox textBox,
-            LegacyPptShapeProjection projection,
-            OpenXmlPart? ownerPart = null) {
-            if (projection.TextFormattingFingerprint == null) return HasOnlyPlainProjectedText(textBox);
-            P.Shape? shape = textBox.Element as P.Shape;
-            return string.Equals(projection.TextFormattingFingerprint,
-                LegacyPptTextProjection.CreateFormattingFingerprint(
-                    shape?.TextBody, ownerPart),
-                StringComparison.Ordinal);
+        private static bool HasAttributes(OfficeXmlNode element) {
+            if (element.Tree is not { } tree) return false;
+            int count = tree.AttributeCountOf(element.Node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string localName, out _);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns
+                    || namespaceId == OfficeXmlNamespaces.None && localName == "xmlns") continue;
+                return true;
+            }
+            return false;
         }
+
+        private static bool MatchesProjectedTextFormatting(LegacyPptProjectedShape textBox,
+            LegacyPptShapeProjection projection) =>
+            projection.TextFormattingFingerprint == null
+                ? HasOnlyPlainProjectedText(textBox.Element)
+                : projection.TextFormattingMatches(textBox);
 
         private static bool BoundsEqual(LegacyPptBounds left, LegacyPptBounds right) =>
             left.Left == right.Left && left.Top == right.Top && left.Width == right.Width && left.Height == right.Height;

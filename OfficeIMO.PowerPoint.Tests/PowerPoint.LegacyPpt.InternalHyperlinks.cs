@@ -201,16 +201,21 @@ namespace OfficeIMO.Tests {
             });
             Assert.Empty(projected.ValidateDocument());
 
-            LegacyPptProjectionFingerprint fingerprint =
-                LegacyPptProjectionFingerprint.Create(
-                    projected.OpenXmlDocument,
-                    projected.LegacyPptProjectionMap!);
-            Assert.True(fingerprint.Matches(projected.OpenXmlDocument,
-                projected.LegacyPptProjectionMap!));
+            LegacyPptProjectionFingerprint fingerprint;
+            using (LegacyPptPackageView view = LegacyPptPackageView.Capture(projected)) {
+                fingerprint = LegacyPptProjectionFingerprint.Create(
+                    view, projected.LegacyPptProjectionMap!);
+            }
+            using (LegacyPptPackageView view = LegacyPptPackageView.Capture(projected)) {
+                Assert.True(fingerprint.Matches(view,
+                    projected.LegacyPptProjectionMap!));
+            }
             foreach (A.HyperlinkOnClick link in links) link.Remove();
             projectedMaster.SlideMaster.Save();
-            Assert.False(fingerprint.Matches(projected.OpenXmlDocument,
-                projected.LegacyPptProjectionMap!));
+            using (LegacyPptPackageView view = LegacyPptPackageView.Capture(projected)) {
+                Assert.False(fingerprint.Matches(view,
+                    projected.LegacyPptProjectionMap!));
+            }
         }
 
         [Fact]

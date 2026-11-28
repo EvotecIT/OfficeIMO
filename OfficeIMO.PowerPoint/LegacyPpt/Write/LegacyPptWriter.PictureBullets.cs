@@ -1,10 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Security.Cryptography;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -193,73 +192,108 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new[] { name, data });
         }
 
+
+        /// <summary>Reads the picture-bullet catalog of the presentation captured for the write.</summary>
         internal static bool TryReadPictureBulletCatalog(
-            PowerPointDocument presentation,
+            LegacyPptPackageView view,
+            out LegacyPptWriterPictureBulletCatalog catalog,
+            out string? reason) => TryReadPictureBulletCatalog(view, null,
+                out catalog, out reason);
+
+        /// <summary>
+        /// Reads the picture-bullet catalog of the presentation captured for the write; with <paramref name="liveDocument"/>,
+        /// its bullets are also found by the live document's elements.
+        /// </summary>
+        internal static bool TryReadPictureBulletCatalog(
+            LegacyPptPackageView view, PowerPointDocument? liveDocument,
             out LegacyPptWriterPictureBulletCatalog catalog,
             out string? reason) {
-            ArgumentNullException.ThrowIfNull(presentation);
-            PresentationPart? presentationPart = presentation
-                .OpenXmlDocument.PresentationPart;
-            if (presentationPart == null) {
+            ArgumentNullException.ThrowIfNull(view);
+            if (view.Presentation.IsNone) {
                 catalog = LegacyPptWriterPictureBulletCatalog.Empty;
                 reason = "The Open XML presentation has no presentation part.";
                 return false;
             }
-            return TryReadPictureBulletCatalog(presentationPart,
-                out catalog, out reason);
-        }
-
-        internal static bool TryReadPictureBulletCatalog(
-            PresentationPart presentationPart,
-            out LegacyPptWriterPictureBulletCatalog catalog,
-            out string? reason) {
-            ArgumentNullException.ThrowIfNull(presentationPart);
             var entries = new List<LegacyPptWriterPictureBulletEntry>();
-            var byElement = new Dictionary<A.PictureBullet,
+            var byElement = new Dictionary<OfficeXmlNode,
                 LegacyPptWriterPictureBulletEntry>();
             var byHash = new Dictionary<string,
                 List<LegacyPptWriterPictureBulletEntry>>(
                 StringComparer.Ordinal);
-            foreach (OpenXmlPart ownerPart in EnumeratePictureBulletParts(
-                         presentationPart)) {
-                OpenXmlPartRootElement? root = ownerPart.RootElement;
-                if (root == null) continue;
-                foreach (A.PictureBullet bullet in root
-                             .Descendants<A.PictureBullet>()) {
+            foreach (LegacyPptPartView ownerPart in EnumeratePictureBulletParts(
+                         view.Presentation)) {
+                // Only presentation markup carries picture bullets; custom XML and other payloads stay unread, as the typed
+                // SDK lookup never parsed them.
+                if (!LegacyPptPackageView.IsPresentationMarkup(ownerPart.ContentType)) continue;
+                OfficeXmlNode root = ownerPart.Root;
+                if (root.IsNone) continue;
+                OfficeXmlNode liveRoot = default;
+                foreach (OfficeXmlNode bullet in root.SchemaDescendants(A, "buBlip")) {
                     if (!TryReadPictureBullet(ownerPart, bullet,
                             entries, byHash,
                             out LegacyPptWriterPictureBulletEntry? entry,
                             out reason) || entry == null) {
                         catalog = new LegacyPptWriterPictureBulletCatalog(
-                            entries, byElement);
+                            entries, byElement, view);
                         return false;
                     }
                     byElement.Add(bullet, entry);
+                    if (liveDocument == null) continue;
+                    if (liveRoot.IsNone) liveRoot = PowerPointPartRef.Package(liveDocument, ownerPart.Name).Root;
+                    OfficeXmlNode live = FindAtSamePlace(root, bullet, liveRoot);
+                    if (!live.IsNone && !byElement.ContainsKey(live)) byElement.Add(live, entry);
                 }
             }
             catalog = new LegacyPptWriterPictureBulletCatalog(entries,
-                byElement);
+                byElement, view);
             reason = null;
             return true;
         }
 
-        private static IEnumerable<OpenXmlPart>
-            EnumeratePictureBulletParts(OpenXmlPart root) {
-            var pending = new Stack<OpenXmlPart>();
-            var visited = new HashSet<OpenXmlPart>();
+        // The element under otherRoot at the same child positions as element under root, or none.
+        private static OfficeXmlNode FindAtSamePlace(OfficeXmlNode root,
+            OfficeXmlNode element, OfficeXmlNode otherRoot) {
+            if (otherRoot.IsNone) return default;
+            var path = new Stack<int>();
+            for (OfficeXmlNode current = element; current != root; current = current.Parent) {
+                if (current.IsNone) return default;
+                int index = 0;
+                for (OfficeXmlNode sibling = current.PreviousSibling; !sibling.IsNone; sibling = sibling.PreviousSibling) index++;
+                path.Push(index);
+            }
+            OfficeXmlNode found = otherRoot;
+            while (path.Count > 0) {
+                int index = path.Pop();
+                OfficeXmlNode child = found.FirstChild;
+                for (int position = 0; position < index && !child.IsNone; position++) child = child.NextSibling;
+                if (child.IsNone) return default;
+                found = child;
+            }
+            return found.Is(A, "buBlip") ? found : default;
+        }
+
+        // Every part reachable from the presentation once, each part's targets taken last relationship first.
+        private static IEnumerable<LegacyPptPartView>
+            EnumeratePictureBulletParts(LegacyPptPartView root) {
+            var pending = new Stack<LegacyPptPartView>();
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             pending.Push(root);
             while (pending.Count > 0) {
-                OpenXmlPart part = pending.Pop();
-                if (!visited.Add(part)) continue;
+                LegacyPptPartView part = pending.Pop();
+                if (!visited.Add(part.Name)) continue;
                 yield return part;
-                foreach (IdPartPair child in part.Parts) {
-                    pending.Push(child.OpenXmlPart);
+                foreach (LegacyPptRelationshipView relationship in part.Relationships) {
+                    // Custom XML and parts of unknown relationship types are opaque to the typed SDK reads, whatever
+                    // content type they declare.
+                    if (!relationship.TargetPart.IsNone && LegacyPptPackageView.IsTypedRelationship(relationship)) {
+                        pending.Push(relationship.TargetPart);
+                    }
                 }
             }
         }
 
-        private static bool TryReadPictureBullet(OpenXmlPart ownerPart,
-            A.PictureBullet bullet,
+        private static bool TryReadPictureBullet(LegacyPptPartView ownerPart,
+            OfficeXmlNode bullet,
             ICollection<LegacyPptWriterPictureBulletEntry> entries,
             IDictionary<string, List<LegacyPptWriterPictureBulletEntry>>
                 byHash,
@@ -267,53 +301,54 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out string? reason) {
             entry = null;
             reason = null;
-            if (bullet.HasAttributes
-                || bullet.ChildElements.Count != 1
-                || bullet.GetFirstChild<A.Blip>() is not { } blip
+            OfficeXmlNode blip = bullet.Child(A, "blip");
+            string? relationshipId = blip.IsNone ? null : blip.Attribute(R, "embed");
+            if (HasAnyAttribute(bullet)
+                || bullet.Children().Count != 1
+                || blip.IsNone
                 || !HasOnlyAttributes(blip, "embed")
-                || blip.ChildElements.Count != 0
-                || string.IsNullOrWhiteSpace(blip.Embed?.Value)) {
+                || HasChildElements(blip)
+                || string.IsNullOrWhiteSpace(relationshipId)) {
                 reason = "A picture bullet must contain exactly one unmodified embedded DrawingML blip.";
                 return false;
             }
-            string relationshipId = blip.Embed?.Value ?? string.Empty;
-            OpenXmlPart? relatedPart = ownerPart.Parts
-                .Where(pair => string.Equals(pair.RelationshipId,
-                    relationshipId, StringComparison.Ordinal))
-                .Select(pair => pair.OpenXmlPart).FirstOrDefault();
-            if (relatedPart is not ImagePart imagePart) {
+            LegacyPptPartView imagePart = default;
+            if (ownerPart.TryGetRelationship(relationshipId, out LegacyPptRelationshipView relationship)
+                && relationship.IsType(LegacyPptPackageView.ImageRelationshipType)) {
+                imagePart = relationship.TargetPart;
+            }
+            if (imagePart.IsNone) {
                 reason = "A picture bullet references a missing or non-image package part.";
                 return false;
             }
-            if (!TryGetPictureBulletBlipType(imagePart.ContentType,
+            string contentType = imagePart.ContentType ?? string.Empty;
+            if (!TryGetPictureBulletBlipType(contentType,
                     out byte preferredType)) {
-                reason = $"Picture bullets do not support image content type '{imagePart.ContentType}' in classic binary PowerPoint.";
+                reason = $"Picture bullets do not support image content type '{contentType}' in classic binary PowerPoint.";
                 return false;
             }
             byte[] imageBytes;
-            using (Stream stream = imagePart.GetStream(FileMode.Open,
-                       FileAccess.Read)) {
-                if (stream.Length <= 0
-                    || stream.Length > MaximumPictureBulletBytes) {
-                    reason = "A picture-bullet image is empty or exceeds the 64 MiB bounded binary-writing limit.";
-                    return false;
-                }
-                using var memory = new MemoryStream(
-                    checked((int)stream.Length));
-                stream.CopyTo(memory);
-                imageBytes = memory.ToArray();
+            try {
+                imageBytes = imagePart.ReadBytes(MaximumPictureBulletBytes);
+            } catch (InvalidDataException) {
+                imageBytes = Array.Empty<byte>();
+            }
+            if (imageBytes.Length <= 0
+                || imageBytes.Length > MaximumPictureBulletBytes) {
+                reason = "A picture-bullet image is empty or exceeds the 64 MiB bounded binary-writing limit.";
+                return false;
             }
             byte[] blipRecord;
             try {
                 blipRecord = OfficeArtBlipStoreEntryWriter
-                    .CreateBlipRecord(imageBytes, imagePart.ContentType);
+                    .CreateBlipRecord(imageBytes, contentType);
             } catch (Exception exception) when (exception
                 is NotSupportedException or ArgumentException
                     or InvalidDataException or OverflowException) {
                 reason = exception.Message;
                 return false;
             }
-            string key = imagePart.ContentType.ToLowerInvariant() + ":"
+            string key = contentType.ToLowerInvariant() + ":"
                 + ComputePictureBulletHash(imageBytes);
             if (byHash.TryGetValue(key,
                     out List<LegacyPptWriterPictureBulletEntry>? matches)) {
@@ -327,7 +362,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             entry = new LegacyPptWriterPictureBulletEntry(
                 checked((ushort)entries.Count), preferredType,
-                imagePart.ContentType, imageBytes, blipRecord);
+                contentType, imageBytes, blipRecord);
             entries.Add(entry);
             if (matches == null) {
                 matches = new List<LegacyPptWriterPictureBulletEntry>();
@@ -357,31 +392,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal sealed class LegacyPptWriterPictureBulletCatalog {
-            private readonly IReadOnlyDictionary<A.PictureBullet,
+            private readonly IReadOnlyDictionary<OfficeXmlNode,
                 LegacyPptWriterPictureBulletEntry> _byElement;
 
             internal LegacyPptWriterPictureBulletCatalog(
                 IEnumerable<LegacyPptWriterPictureBulletEntry> entries,
-                IDictionary<A.PictureBullet,
-                    LegacyPptWriterPictureBulletEntry> byElement) {
+                IDictionary<OfficeXmlNode,
+                    LegacyPptWriterPictureBulletEntry> byElement,
+                LegacyPptPackageView? view = null) {
                 Entries = new ReadOnlyCollection<
                     LegacyPptWriterPictureBulletEntry>(entries.ToArray());
-                _byElement = new ReadOnlyDictionary<A.PictureBullet,
+                _byElement = new ReadOnlyDictionary<OfficeXmlNode,
                     LegacyPptWriterPictureBulletEntry>(
-                    new Dictionary<A.PictureBullet,
+                    new Dictionary<OfficeXmlNode,
                         LegacyPptWriterPictureBulletEntry>(byElement));
+                View = view;
             }
 
             internal static LegacyPptWriterPictureBulletCatalog Empty {
                 get;
             } = new(Array.Empty<LegacyPptWriterPictureBulletEntry>(),
-                new Dictionary<A.PictureBullet,
+                new Dictionary<OfficeXmlNode,
                     LegacyPptWriterPictureBulletEntry>());
+
+            /// <summary>The presentation the catalog was read from, whose elements it identifies; null when empty.</summary>
+            internal LegacyPptPackageView? View { get; }
 
             internal IReadOnlyList<LegacyPptWriterPictureBulletEntry>
                 Entries { get; }
 
-            internal bool TryGetIndex(A.PictureBullet bullet,
+            internal bool TryGetIndex(OfficeXmlNode bullet,
                 out ushort index) {
                 if (_byElement.TryGetValue(bullet,
                         out LegacyPptWriterPictureBulletEntry? entry)) {

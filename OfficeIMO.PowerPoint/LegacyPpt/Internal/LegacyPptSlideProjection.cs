@@ -1,10 +1,6 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using OfficeIMO.PowerPoint.LegacyPpt.Write;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps one projected slide to its binary persist object.</summary>
@@ -99,38 +95,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal IReadOnlyList<string> ClassicColorFingerprints { get; }
 
-        internal bool BackgroundMatches(PowerPointSlide slide) => string.Equals(
-            BackgroundFingerprint, CreateBackgroundFingerprint(slide),
+        internal bool BackgroundMatches(LegacyPptPartView slidePart) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(slidePart),
             StringComparison.Ordinal);
 
-        internal bool MasterObjectsMatch(PowerPointSlide slide) =>
+        internal bool MasterObjectsMatch(LegacyPptPartView slidePart) =>
             FollowsMasterObjects
-                == (slide.SlidePart.Slide?.ShowMasterShapes?.Value != false);
+                == (slidePart.Root.Bool("showMasterSp") != false);
 
+        /// <summary>
+        /// The background fingerprint of a slide: its own background, or the background its layout supplies when it
+        /// has none.
+        /// </summary>
         internal static string CreateBackgroundFingerprint(
-            PowerPointSlide slide) {
-            ArgumentNullException.ThrowIfNull(slide);
-            P.Background? background = slide.SlidePart.Slide?.CommonSlideData?
-                .Background;
-            if (background != null) {
+            LegacyPptPartView slidePart) {
+            if (slidePart.IsNone) throw new ArgumentNullException(nameof(slidePart));
+            OfficeXmlNode background = slidePart.Root.Child(LegacyPptXml.P, "cSld").Child(LegacyPptXml.P, "bg");
+            if (!background.IsNone) {
                 return LegacyPptBackgroundProjectionFingerprint.Create(
-                    slide.SlidePart, background);
+                    slidePart, background);
             }
-            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
-            return layoutPart == null
+            LegacyPptPartView layoutPart = slidePart.SlideLayout;
+            return layoutPart.IsNone
                 ? string.Empty
-                : LegacyPptBackgroundProjectionFingerprint.Create(layoutPart,
-                    layoutPart.SlideLayout?.CommonSlideData?.Background);
+                : LegacyPptBackgroundProjectionFingerprint.Create(layoutPart);
         }
 
-        internal bool ThemeMatches(PowerPointSlide slide) => string.Equals(
-            ThemeFingerprint, CreateThemeFingerprint(slide),
+        internal bool ThemeMatches(LegacyPptPartView slidePart) => string.Equals(
+            ThemeFingerprint, CreateThemeFingerprint(slidePart),
             StringComparison.Ordinal);
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
-            PowerPointSlide slide) {
+            LegacyPptPartView slidePart) {
             IReadOnlyList<string> current =
-                CreateClassicColorFingerprints(slide);
+                CreateClassicColorFingerprints(slidePart);
             return Enumerable.Range(0, ClassicColorFingerprints.Count)
                 .Where(index => !string.Equals(
                     ClassicColorFingerprints[index], current[index],
@@ -138,39 +136,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .ToArray();
         }
 
+        /// <summary>The theme override a slide uses: its own, or its layout's.</summary>
+        internal static LegacyPptPartView EffectiveThemeOverride(LegacyPptPartView slidePart) {
+            LegacyPptPartView themeOverride = slidePart.ThemeOverride;
+            return themeOverride.IsNone ? slidePart.SlideLayout.ThemeOverride : themeOverride;
+        }
+
         internal static string CreateThemeFingerprint(
-            PowerPointSlide slide) {
-            ArgumentNullException.ThrowIfNull(slide);
-            string theme = (slide.SlidePart.ThemeOverridePart
-                    ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
-                .ThemeOverride?.OuterXml ?? string.Empty;
-            string colorMap = (slide.SlidePart.Slide?.ColorMapOverride
-                    ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
-                        .ColorMapOverride)?.OuterXml
-                ?? string.Empty;
-            return LegacyPptProjectionDigest.Create(theme, colorMap);
+            LegacyPptPartView slidePart) {
+            if (slidePart.IsNone) throw new ArgumentNullException(nameof(slidePart));
+            string theme = LegacyPptMasterProjection.Markup(EffectiveThemeOverride(slidePart).Root);
+            OfficeXmlNode colorMap = slidePart.Root.Child(LegacyPptXml.P, "clrMapOvr");
+            if (colorMap.IsNone) colorMap = slidePart.SlideLayout.Root.Child(LegacyPptXml.P, "clrMapOvr");
+            return LegacyPptProjectionDigest.Create(theme, LegacyPptMasterProjection.Markup(colorMap));
         }
 
         internal static IReadOnlyList<string>
-            CreateClassicColorFingerprints(PowerPointSlide slide) {
-            ArgumentNullException.ThrowIfNull(slide);
-            A.ColorScheme? colors = (slide.SlidePart.ThemeOverridePart
-                    ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
-                .ThemeOverride?.ColorScheme
-                ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
-                    .Theme?.ThemeElements?.ColorScheme;
-            OpenXmlElement?[] slots = {
-                colors?.Light1Color,
-                colors?.Dark1Color,
-                colors?.Accent4Color,
-                colors?.Dark2Color,
-                colors?.Light2Color,
-                colors?.Accent1Color,
-                colors?.Accent2Color,
-                colors?.Accent3Color
-            };
-            return slots.Select(slot => slot?.OuterXml ?? string.Empty)
-                .ToArray();
+            CreateClassicColorFingerprints(LegacyPptPartView slidePart) {
+            if (slidePart.IsNone) throw new ArgumentNullException(nameof(slidePart));
+            OfficeXmlNode colors = EffectiveThemeOverride(slidePart).Root.Child(LegacyPptXml.A, "clrScheme");
+            if (colors.IsNone) {
+                colors = LegacyPptMasterProjection.ThemeColorScheme(slidePart.SlideLayout.SlideMaster.Theme);
+            }
+            return LegacyPptMasterProjection.CreateClassicColorFingerprints(colors);
         }
 
         internal LegacyPptTransition? Transition { get; }

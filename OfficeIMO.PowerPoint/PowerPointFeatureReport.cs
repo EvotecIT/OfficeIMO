@@ -647,19 +647,24 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
             foreach (PowerPointSlide slide in LoadedSlides) {
-                foreach (A.HyperlinkType hyperlink in slide.SlidePart.Slide?
-                             .Descendants<A.HyperlinkType>()
-                         ?? Enumerable.Empty<A.HyperlinkType>()) {
-                    string? action = hyperlink.Action?.Value;
+                LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
+                // Hyperlinks inside extension metadata define no slide action, as the typed SDK scan didn't see them.
+                foreach (OfficeXmlNode hyperlink in slidePart.Root.EveryDescendant()) {
+                    if (hyperlink.HasAncestor(LegacyPptXml.A, "extLst") || hyperlink.HasAncestor(LegacyPptXml.P, "extLst")) continue;
+                    if (!hyperlink.Is(LegacyPptXml.A, "hlinkClick")
+                        && !hyperlink.Is(LegacyPptXml.A, "hlinkHover")
+                        && !hyperlink.Is(LegacyPptXml.A, "hlinkMouseOver")) continue;
+                    string? action = hyperlink.Attribute("action");
                     if (!PowerPointCustomShowAction.IsCustomShowAction(action)) {
                         LegacyPptWriter.TryRegisterHyperlinkSound(
-                            slide.SlidePart, hyperlink, soundCatalog,
+                            slidePart, hyperlink, soundCatalog,
                             out _, out _);
                         continue;
                     }
                     if (!LegacyPptWriter.TryValidateCustomShowHyperlink(
-                            slide.SlidePart, hyperlink, soundCatalog,
+                            slidePart, hyperlink, soundCatalog,
                             out uint targetId, out _, out _,
                             out string? reason)) {
                         details.Add("A slide contains an unsupported custom-show hyperlink: "

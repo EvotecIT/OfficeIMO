@@ -10,6 +10,10 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
+        // The projected text body, read back as the SDK element the assertions inspect.
+        private static P.TextBody CreateProjectedLegacyTextBody(LegacyPptTextBody body) =>
+            new(System.Text.Encoding.UTF8.GetString(LegacyPptTextProjection.CreateTextBody(body).OuterXml()));
+
         [Fact]
         public void TextRulerProjectionRetainsSourceStopsBeyondTheDrawingMlLimit() {
             using var stream = new MemoryStream();
@@ -31,7 +35,7 @@ namespace OfficeIMO.Tests {
             LegacyPptTextBody body = LegacyPptTextStyleReader.Read("A\tB", 3, null, colorScheme: null,
                 fonts: null, ruler: ruler,
                 hasRulerRecord: true);
-            P.TextBody projected = LegacyPptTextProjection.CreateTextBody(body);
+            P.TextBody projected = CreateProjectedLegacyTextBody(body);
             Assert.Equal(32, Assert.Single(projected.Descendants<A.TabStopList>()).ChildElements.Count);
             Assert.Equal(40, ruler.TabStops.Count);
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(projected));
@@ -86,7 +90,7 @@ namespace OfficeIMO.Tests {
                 },
                 second => AssertRun(second, "B", 1, bold: true));
 
-            P.TextBody projected = LegacyPptTextProjection.CreateTextBody(result);
+            P.TextBody projected = CreateProjectedLegacyTextBody(result);
             A.Run[] runs = Assert.Single(projected.Elements<A.Paragraph>()).Elements<A.Run>().ToArray();
             Assert.False(runs[0].RunProperties!.Bold!.Value);
             Assert.True(runs[0].RunProperties.Italic!.Value);
@@ -155,7 +159,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptTextDirection.RightToLeft, paragraph.TextDirection);
 
             A.ParagraphProperties properties = Assert.Single(
-                LegacyPptTextProjection.CreateTextBody(result).Elements<A.Paragraph>())
+                CreateProjectedLegacyTextBody(result).Elements<A.Paragraph>())
                 .ParagraphProperties!;
             Assert.Equal(2, properties.Level!.Value);
             Assert.Equal(A.TextAlignmentTypeValues.Right, properties.Alignment!.Value);
@@ -229,7 +233,7 @@ namespace OfficeIMO.Tests {
                 colorScheme: null, textType: LegacyPptTextType.Other, ruler: ruler,
                 hasRulerRecord: true);
             A.ParagraphProperties properties = Assert.Single(
-                LegacyPptTextProjection.CreateTextBody(body).Elements<A.Paragraph>())
+                CreateProjectedLegacyTextBody(body).Elements<A.Paragraph>())
                 .ParagraphProperties!;
             Assert.Equal(228600, properties.LeftMargin!.Value);
             Assert.Equal(-114300, properties.Indent!.Value);
@@ -275,7 +279,7 @@ namespace OfficeIMO.Tests {
                 hasUnprojectedParagraphFormatting: false);
 
             A.Paragraph projected = Assert.Single(
-                LegacyPptTextProjection.CreateTextBody(body)
+                CreateProjectedLegacyTextBody(body)
                     .Elements<A.Paragraph>());
             A.ParagraphProperties paragraphProperties =
                 projected.ParagraphProperties!;

@@ -65,9 +65,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Testing",
                 reopened.Properties.Category);
             Assert.Equal(created,
-                reopened.Properties.Created);
+                reopened.Properties.Created?.ToUniversalTime());
             Assert.Equal(created.AddHours(1),
-                reopened.Properties.Modified);
+                reopened.Properties.Modified?.ToUniversalTime());
             Assert.Equal("OfficeIMO.PowerPoint",
                 reopened.ApplicationProperties.Application);
             Assert.Equal("42", reopened.ApplicationProperties.TotalTime);
