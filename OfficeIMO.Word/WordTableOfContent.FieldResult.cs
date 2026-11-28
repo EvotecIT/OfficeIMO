@@ -4,6 +4,36 @@ using System.Globalization;
 
 namespace OfficeIMO.Word {
     public partial class WordTableOfContent {
+        private OfficeXmlNode ResetTocContentWithTitle(string text) {
+            OfficeXmlNode content = ContentNode;
+            if (content.IsNone) throw new InvalidOperationException("Table of contents content block is missing.");
+
+            OfficeXmlNode title = GetTitleParagraphNode();
+            if (title.Exists) {
+                OfficeXmlNode[] runs = EnumerateTocElements(title, "t").ToArray();
+                if (runs.Length == 0) title.Append(CreateTocTextRun(title, "t", text, preserveSpace: true));
+                else {
+                    runs[0].SetInnerText(text);
+                    for (int i = 1; i < runs.Length; i++) runs[i].SetInnerText(string.Empty);
+                }
+                title.Remove();
+            } else {
+                title = CreateStyledResultParagraph(content, "TOCHeading", text);
+            }
+
+            while (content.FirstChild.Exists) content.FirstChild.Remove();
+            content.Append(title);
+            return content;
+        }
+
+        private static OfficeXmlNode CreateStyledResultParagraph(OfficeXmlNode content, string style, string text) {
+            const int W = TocNamespace;
+            OfficeXmlNode paragraph = content.CreateElement(W, "p");
+            AppendTocChild(AppendTocChild(paragraph, "pPr"), "pStyle").SetAttribute(W, "val", style);
+            paragraph.Append(CreateTocTextRun(paragraph, "t", text, preserveSpace: true));
+            return paragraph;
+        }
+
         private void ReplaceContentWithFieldResult(string instruction, string noContentText, IReadOnlyList<TocHeadingEntry> entries,
             ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
             const int W = TocNamespace;

@@ -19,12 +19,7 @@ namespace OfficeIMO.Word {
 
             bool layOut = !options.DateTimeFieldsOnly && options.UseLayoutPagination;
             bool refreshToc = !options.DateTimeFieldsOnly && (options.UpdateTablesOfContents || options.TablesOfContentsOnly);
-            List<WordTableOfContent>? ownedTables = null;
-            if (layOut) {
-                document.OpenSdkPackage("Layout field evaluation");
-            } else if (refreshToc && !WordTableOfContent.TryGetOwnedTablesForRefresh(document, out ownedTables)) {
-                document.OpenSdkPackage("Imported table of contents field evaluation");
-            }
+            if (layOut) document.OpenSdkPackage("Layout field evaluation");
             var state = new FieldEvaluationState();
             List<MutableFieldCandidate> candidates = EnumerateFields(document);
             if (!options.DateTimeFieldsOnly && document._ownedModel is { } owned &&
@@ -34,9 +29,7 @@ namespace OfficeIMO.Word {
             }
             state.LockedTocFields.AddRange(candidates.Where(IsLockedToc));
             if (refreshToc) {
-                var tables = document._ownedModel != null && ownedTables != null
-                    ? ownedTables : WordTableOfContent.GetTablesOfContents(document);
-                RegenerateTablesOfContents(document, state, tables);
+                RegenerateTablesOfContents(document, state, WordTableOfContent.GetTablesOfContents(document));
                 if (state.RegeneratedTablesOfContents.Count != 0) candidates = EnumerateFields(document);
             }
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;

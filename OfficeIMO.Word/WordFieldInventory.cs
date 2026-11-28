@@ -137,11 +137,11 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        internal static IEnumerable<NodeFieldRoot> EnumerateStories(WordDocument document) =>
-            WordPackageView.For(document).Main is { } main ? EnumerateFieldRoots(main) : Enumerable.Empty<NodeFieldRoot>();
+        internal static IEnumerable<NodeFieldRoot> EnumerateStories(WordDocument document, bool includeNotes = true) =>
+            WordPackageView.For(document).Main is { } main ? EnumerateFieldRoots(main, includeNotes) : Enumerable.Empty<NodeFieldRoot>();
 
         /// <summary>The body, headers, footers, footnotes and endnotes of a package, in the order fields are inspected.</summary>
-        internal static IEnumerable<NodeFieldRoot> EnumerateFieldRoots(WordPartView mainPart) {
+        internal static IEnumerable<NodeFieldRoot> EnumerateFieldRoots(WordPartView mainPart, bool includeNotes = true) {
             const int W = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.WordprocessingML;
             OfficeXmlNode body = mainPart.RootNamed(W, "document").Child(W, "body");
             if (!body.IsNone) {
@@ -163,6 +163,8 @@ namespace OfficeIMO.Word {
                     yield return new NodeFieldRoot(footer, WordFieldLocationKind.Footer, footerPart.PartName, footerPart);
                 }
             }
+
+            if (!includeNotes) yield break;
 
             WordPartView? footnotesPart = mainPart.FirstPart(WordPackageView.FootnotesRelationshipType);
             OfficeXmlNode footnotes = footnotesPart?.RootNamed(W, "footnotes") ?? default;

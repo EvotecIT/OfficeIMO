@@ -1,7 +1,6 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 using System.Globalization;
 using System.Text;
 
@@ -58,10 +57,11 @@ namespace OfficeIMO.Word {
         }
 
         private WordIndexRefreshReport RefreshIndexCore(string? title, IndexRefreshOptions options) {
-            if (_sdtBlock.SdtContentBlock == null) {
+            if (ContentNode.IsNone) {
                 throw new InvalidOperationException("Table of contents content block is missing.");
             }
 
+            _ = ReadTocUpdateOnOpen();
             var entries = CollectIndexEntries(options, out int skippedEntryCount).ToArray();
             ReplaceIndexContent(string.IsNullOrWhiteSpace(title) ? "Index" : title!.Trim(), entries, options);
             QueueUpdateOnOpen(force: true);
@@ -74,25 +74,25 @@ namespace OfficeIMO.Word {
         }
 
         private IReadOnlyList<IndexEntry> CollectIndexEntries(IndexRefreshOptions options, out int skippedEntryCount) {
-            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("Main document part is missing.");
-            Body body = mainPart.Document?.Body
-                ?? throw new InvalidOperationException("Document body is missing.");
+            OfficeXmlNode body = WordFieldInventory.BodyNode(_document);
+            if (body.IsNone) throw new InvalidOperationException("Document body is missing.");
+            if (_document._ownedModel is { } model) WordOwnedEdits.PrepareBodyEdit(model);
 
             var candidates = new List<IndexEntryCandidate>();
-            var roots = WordFieldInventory.EnumerateFieldRoots(mainPart).ToArray();
             BookmarkRange? bookmarkRange = options.BookmarkName == null
                 ? null
                 : FindBookmarkRange(body, options.BookmarkName);
-            Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body, _sdtBlock);
-            Dictionary<string, int> footnotePages = BuildFootnoteAnchorPageMap(body, paragraphPages);
-            Dictionary<string, int> endnotePages = BuildEndnoteAnchorPageMap(body, paragraphPages);
+            HashSet<OfficeXmlNode>? scoped = bookmarkRange is { } range ? CollectScopedParagraphs(body, range) : null;
+            OfficeXmlNode control = SdtNode;
+            Dictionary<OfficeXmlNode, int> paragraphPages = BuildParagraphPageMap(body, control);
+            Dictionary<int, int> footnotePages = BuildNoteAnchorPageMap(body, paragraphPages, "footnoteReference");
+            Dictionary<int, int> endnotePages = BuildNoteAnchorPageMap(body, paragraphPages, "endnoteReference");
             skippedEntryCount = 0;
 
-            foreach (WordFieldInventory.FieldRoot root in roots) {
-                SdtBlock? excludedBlock = root.LocationKind == WordFieldLocationKind.Body ? _sdtBlock : null;
-                foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(root.Root, excludedBlock)) {
-                    if (options.BookmarkName == null || (bookmarkRange.HasValue && IsParagraphInsideBookmarkRange(paragraph, bookmarkRange.Value))) {
+            foreach (WordFieldInventory.NodeFieldRoot root in WordFieldInventory.EnumerateStories(_document)) {
+                OfficeXmlNode excludedBlock = root.LocationKind == WordFieldLocationKind.Body ? control : default;
+                foreach (OfficeXmlNode paragraph in EnumerateTocSourceParagraphs(root.Root, excludedBlock)) {
+                    if (options.BookmarkName == null || scoped?.Contains(paragraph) == true) {
                         foreach (string instruction in EnumerateIndexInstructions(paragraph)) {
                             int pageNumber = GetParagraphPageNumber(paragraph, paragraphPages, footnotePages, endnotePages);
                             if (TryCreateIndexCandidate(instruction, pageNumber, bookmarkName => TryGetBookmarkPageRange(body, paragraphPages, bookmarkName, out IndexPageReference range) ? range : null, out IndexEntryCandidate? candidate)) {
@@ -121,10 +121,8 @@ namespace OfficeIMO.Word {
                 .ToArray();
         }
 
-        private static IEnumerable<string> EnumerateIndexInstructions(Paragraph paragraph) {
-            OfficeXmlNode source = OfficeXmlNode.FromSdk(paragraph);
-            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(source)) {
-                if (!field.Is(TocNamespace, "fldSimple")) continue;
+        private static IEnumerable<string> EnumerateIndexInstructions(OfficeXmlNode paragraph) {
+            foreach (OfficeXmlNode field in EnumerateTocElements(paragraph, "fldSimple")) {
                 string instruction = field.Attribute(TocNamespace, "instr") ?? string.Empty;
                 if (IsIndexEntryInstruction(instruction)) {
                     yield return instruction;
@@ -142,17 +140,13 @@ namespace OfficeIMO.Word {
                 yield break;
             }
 
-            foreach (OfficeXmlNode field in WordFieldInventory.EnumerateFieldContent(source)) {
-                if (!field.Is(TocNamespace, "instrText")) continue;
+            foreach (OfficeXmlNode field in EnumerateTocElements(paragraph, "instrText")) {
                 string instruction = field.InnerText;
                 if (IsIndexEntryInstruction(instruction)) {
                     yield return instruction;
                 }
             }
         }
-
-        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph) =>
-            EnumerateComplexFieldInstructions(OfficeXmlNode.FromSdk(paragraph));
 
         private static IEnumerable<string> EnumerateComplexFieldInstructions(OfficeXmlNode paragraph) {
             const int W = TocNamespace;
@@ -185,122 +179,67 @@ namespace OfficeIMO.Word {
             return parsed.FieldType == WordFieldType.XE;
         }
 
-        private static Dictionary<Paragraph, int> BuildParagraphPageMap(Body body, SdtBlock? excludedBlock) {
-            var paragraphPages = new Dictionary<Paragraph, int>();
+        private static Dictionary<OfficeXmlNode, int> BuildParagraphPageMap(OfficeXmlNode body, OfficeXmlNode excludedBlock) {
+            const int W = TocNamespace;
+            var paragraphPages = new Dictionary<OfficeXmlNode, int>();
             int pageNumber = 1;
 
-            foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(body, excludedBlock)) {
-                if (WordParagraph.HasPageBreakBefore(paragraph)) {
-                    pageNumber++;
-                }
-
+            foreach (OfficeXmlNode paragraph in EnumerateTocSourceParagraphs(body, excludedBlock)) {
+                OfficeXmlNode properties = paragraph.Child(W, "pPr");
+                if (HasTocPageBreakBefore(properties)) pageNumber++;
                 paragraphPages[paragraph] = pageNumber;
-
-                pageNumber += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
-
-                if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
-                    pageNumber++;
-                }
+                pageNumber += EnumerateTocElements(paragraph, "br").Count(node => node.Attribute(W, "type") == "page");
+                if (StartsNewPage(properties.Child(W, "sectPr"))) pageNumber++;
             }
 
             return paragraphPages;
         }
 
-        private static Dictionary<string, int> BuildFootnoteAnchorPageMap(Body body, IReadOnlyDictionary<Paragraph, int> paragraphPages) {
-            var pages = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
-                int pageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage) ? mappedPage : 1;
-                foreach (FootnoteReference reference in paragraph.Descendants<FootnoteReference>()) {
-                    string? id = reference.Id?.Value.ToString(CultureInfo.InvariantCulture);
-                    if (!string.IsNullOrWhiteSpace(id)) {
-                        pages[id!] = pageNumber;
-                    }
+        private static Dictionary<int, int> BuildNoteAnchorPageMap(OfficeXmlNode body,
+            IReadOnlyDictionary<OfficeXmlNode, int> paragraphPages, string referenceName) {
+            var pages = new Dictionary<int, int>();
+            foreach (OfficeXmlNode paragraph in EnumerateTocElements(body, "p")) {
+                int page = paragraphPages.TryGetValue(paragraph, out int mapped) ? mapped : 1;
+                foreach (OfficeXmlNode reference in EnumerateTocElements(paragraph, referenceName)) {
+                    if (OfficeXmlViewValues.ParseInt32(reference.Attribute(TocNamespace, "id")) is int id) pages[id] = page;
                 }
             }
-
             return pages;
         }
 
-        private static Dictionary<string, int> BuildEndnoteAnchorPageMap(Body body, IReadOnlyDictionary<Paragraph, int> paragraphPages) {
-            var pages = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
-                int pageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage) ? mappedPage : 1;
-                foreach (EndnoteReference reference in paragraph.Descendants<EndnoteReference>()) {
-                    string? id = reference.Id?.Value.ToString(CultureInfo.InvariantCulture);
-                    if (!string.IsNullOrWhiteSpace(id)) {
-                        pages[id!] = pageNumber;
-                    }
-                }
-            }
-
-            return pages;
-        }
-
-        private static int GetParagraphPageNumber(
-            Paragraph paragraph,
-            IReadOnlyDictionary<Paragraph, int> paragraphPages,
-            IReadOnlyDictionary<string, int> footnotePages,
-            IReadOnlyDictionary<string, int> endnotePages) {
-            if (paragraphPages.TryGetValue(paragraph, out int pageNumber)) {
-                return pageNumber;
-            }
-
-            Footnote? footnote = paragraph.Ancestors<Footnote>().FirstOrDefault();
-            string? footnoteId = footnote?.Id?.Value.ToString(CultureInfo.InvariantCulture);
-            if (!string.IsNullOrWhiteSpace(footnoteId) && footnotePages.TryGetValue(footnoteId!, out pageNumber)) {
-                return pageNumber;
-            }
-
-            Endnote? endnote = paragraph.Ancestors<Endnote>().FirstOrDefault();
-            string? endnoteId = endnote?.Id?.Value.ToString(CultureInfo.InvariantCulture);
-            if (!string.IsNullOrWhiteSpace(endnoteId) && endnotePages.TryGetValue(endnoteId!, out pageNumber)) {
-                return pageNumber;
-            }
-
+        private static int GetParagraphPageNumber(OfficeXmlNode paragraph,
+            IReadOnlyDictionary<OfficeXmlNode, int> paragraphPages, IReadOnlyDictionary<int, int> footnotePages,
+            IReadOnlyDictionary<int, int> endnotePages) {
+            if (paragraphPages.TryGetValue(paragraph, out int page)) return page;
+            if (OfficeXmlViewValues.ParseInt32(paragraph.AncestorOrSelf(TocNamespace, "footnote").Attribute(TocNamespace, "id")) is int footnote &&
+                footnotePages.TryGetValue(footnote, out page)) return page;
+            if (OfficeXmlViewValues.ParseInt32(paragraph.AncestorOrSelf(TocNamespace, "endnote").Attribute(TocNamespace, "id")) is int endnote &&
+                endnotePages.TryGetValue(endnote, out page)) return page;
             return 1;
         }
 
-        private static IEnumerable<Paragraph> EnumerateIndexSourceParagraphs(OpenXmlElement container, SdtBlock? excludedBlock) {
-            foreach (OpenXmlElement child in container.ChildElements) {
-                if (excludedBlock != null && ReferenceEquals(child, excludedBlock)) {
+        private static IEnumerable<OfficeXmlNode> EnumerateTocSourceParagraphs(OfficeXmlNode container, OfficeXmlNode excludedBlock) {
+            const int W = TocNamespace;
+            foreach (OfficeXmlNode child in container.Children()) {
+                if (child == excludedBlock) continue;
+                if (child.Is(W, "p")) {
+                    yield return child;
                     continue;
                 }
-
-                if (child is Paragraph paragraph) {
-                    yield return paragraph;
-                    continue;
-                }
-
-                if (child is Table || child is SdtBlock) {
-                    foreach (Paragraph nestedParagraph in EnumerateNestedIndexSourceParagraphs(child)) {
-                        yield return nestedParagraph;
-                    }
-                    continue;
-                }
-
-                if (child is Footnote footnote && IsVisibleNote(footnote)) {
-                    foreach (Paragraph nestedParagraph in EnumerateNestedIndexSourceParagraphs(footnote)) {
-                        yield return nestedParagraph;
-                    }
-                    continue;
-                }
-
-                if (child is Endnote endnote && IsVisibleNote(endnote)) {
-                    foreach (Paragraph nestedParagraph in EnumerateNestedIndexSourceParagraphs(endnote)) {
-                        yield return nestedParagraph;
-                    }
+                if (!(child.Is(W, "tbl") || child.Is(W, "sdt") ||
+                      (child.Is(W, "footnote") || child.Is(W, "endnote")) && WordNoteResolver.IsOrdinary(child))) continue;
+                foreach (OfficeXmlNode paragraph in EnumerateTocElements(child, "p")) {
+                    if (paragraph.AncestorOrSelf(W, "txbxContent").IsNone) yield return paragraph;
                 }
             }
         }
 
-        private static IEnumerable<Paragraph> EnumerateNestedIndexSourceParagraphs(OpenXmlElement container) {
-            foreach (Paragraph nestedParagraph in container.Descendants<Paragraph>()) {
-                if (nestedParagraph.Ancestors<TextBoxContent>().Any()) {
-                    continue;
-                }
+        private static IEnumerable<OfficeXmlNode> EnumerateTocElements(OfficeXmlNode root, string localName) =>
+            WordFieldInventory.EnumerateFieldContent(root).Where(node => node.Is(TocNamespace, localName));
 
-                yield return nestedParagraph;
-            }
+        private static bool HasTocPageBreakBefore(OfficeXmlNode properties) {
+            OfficeXmlNode pageBreak = properties.Child(TocNamespace, "pageBreakBefore");
+            return pageBreak.Exists && (pageBreak.Attribute(TocNamespace, "val") == null || WordFieldInventory.ReadFlag(pageBreak, "val"));
         }
 
         private static bool TryCreateIndexCandidate(string instruction, int pageNumber, Func<string, IndexPageReference?> resolvePageRange, out IndexEntryCandidate? candidate) {
@@ -377,42 +316,37 @@ namespace OfficeIMO.Word {
 
         private void ReplaceIndexContent(string title, IReadOnlyList<IndexEntry> entries, IndexRefreshOptions options) {
             string noContentText = GetNoContentText("No index entries found.");
-            SdtContentBlock content = _sdtBlock.SdtContentBlock
-                ?? throw new InvalidOperationException("Table of contents content block is missing.");
-
-            Paragraph titleParagraph = GetTitleParagraph() ?? CreateTitleParagraph(title);
-            SetParagraphText(titleParagraph, title);
-            RemoveIfAttached(titleParagraph);
-
-            content.RemoveAllChildren();
-            content.Append(titleParagraph);
-            var result = new SdtContentBlock();
+            OfficeXmlNode content = ResetTocContentWithTitle(title);
+            var result = new List<OfficeXmlNode>();
             string? previousHeadingKey = null;
             foreach (IndexNode node in BuildIndexTree(entries)) {
                 if (options.HeadingSeparator != null &&
                     options.HeadingSeparator.Value.TryCreateHeading(node.Name, out string headingText, out string headingKey) &&
                     !string.Equals(previousHeadingKey, headingKey, StringComparison.Ordinal)) {
-                    result.Append(CreateIndexHeadingParagraph(headingText));
+                    result.Add(CreateStyledResultParagraph(content, "IndexHeading", headingText));
                     previousHeadingKey = headingKey;
                 }
-
-                AppendIndexNode(result, node, options.Separators);
+                AppendIndexNode(content, result, node, options.Separators);
             }
-            AppendGeneratedFieldResult(OfficeXmlNode.FromSdk(content), CreateIndexInstruction(options),
-                result.Elements<Paragraph>().Select(OfficeXmlNode.FromSdk), noContentText);
+            AppendGeneratedFieldResult(content, CreateIndexInstruction(options), result, noContentText);
         }
 
-        private static void AppendIndexNode(SdtContentBlock content, IndexNode node, IndexSeparators separators) {
-            if (node.Entries.Count > 0) {
-                foreach (IndexEntry entry in node.Entries.OrderBy(entry => entry.IsCrossReference)) {
-                    content.Append(CreateIndexEntryParagraph(node.Name, entry, node.Level, separators));
+        private static void AppendIndexNode(OfficeXmlNode content, List<OfficeXmlNode> result, IndexNode root, IndexSeparators separators) {
+            var pending = new Stack<IndexNode>();
+            pending.Push(root);
+            while (pending.Count > 0) {
+                IndexNode node = pending.Pop();
+                string style = GetIndexStyleId(node.Level);
+                if (node.Entries.Count == 0) {
+                    result.Add(CreateStyledResultParagraph(content, style, node.Name));
+                } else {
+                    foreach (IndexEntry entry in node.Entries.OrderBy(item => item.IsCrossReference)) {
+                        OfficeXmlNode paragraph = CreateStyledResultParagraph(content, style, node.Name);
+                        AppendIndexEntry(paragraph, entry, separators);
+                        result.Add(paragraph);
+                    }
                 }
-            } else {
-                content.Append(CreateIndexTermParagraph(node.Name, node.Level));
-            }
-
-            foreach (IndexNode child in node.Children.Values.OrderBy(child => child.Name, StringComparer.OrdinalIgnoreCase)) {
-                AppendIndexNode(content, child, separators);
+                foreach (IndexNode child in node.Children.Values.Reverse()) pending.Push(child);
             }
         }
 
@@ -440,54 +374,31 @@ namespace OfficeIMO.Word {
             return roots.Values.ToArray();
         }
 
-        private static Paragraph CreateIndexTermParagraph(string text, int level) {
-            return new Paragraph(
-                new ParagraphProperties(new ParagraphStyleId { Val = GetIndexStyleId(level) }),
-                new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
-        }
-
-        private static Paragraph CreateIndexHeadingParagraph(string text) {
-            return new Paragraph(
-                new ParagraphProperties(new ParagraphStyleId { Val = "IndexHeading" }),
-                new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
-        }
-
-        private static Paragraph CreateIndexEntryParagraph(string text, IndexEntry entry, int level, IndexSeparators separators) {
-            var paragraph = new Paragraph(
-                new ParagraphProperties(new ParagraphStyleId { Val = GetIndexStyleId(level) }));
-
-            paragraph.Append(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+        private static void AppendIndexEntry(OfficeXmlNode paragraph, IndexEntry entry, IndexSeparators separators) {
             if (entry.IsCrossReference) {
                 AppendIndexSeparatorRuns(paragraph, separators.CrossReferenceSeparator);
-                paragraph.Append(new Run(new Text(entry.CrossReferenceText!)));
+                paragraph.Append(CreateTocTextRun(paragraph, "t", entry.CrossReferenceText!, preserveSpace: false));
             } else {
                 string pageText = string.Join(
                     separators.PageReferenceSeparator,
                     entry.PageReferences.Select(reference => reference.ToDisplayText(separators.PageRangeSeparator)));
                 AppendIndexSeparatorRuns(paragraph, separators.EntryPageSeparator);
-                paragraph.Append(new Run(new Text(pageText) { Space = SpaceProcessingModeValues.Preserve }));
+                paragraph.Append(CreateTocTextRun(paragraph, "t", pageText, preserveSpace: true));
             }
-
-            return paragraph;
         }
 
-        private static void AppendIndexSeparatorRuns(Paragraph paragraph, string separator) {
+        private static void AppendIndexSeparatorRuns(OfficeXmlNode paragraph, string separator) {
             int textStart = 0;
             for (int i = 0; i < separator.Length; i++) {
-                if (separator[i] != '\t') {
-                    continue;
-                }
-
+                if (separator[i] != '\t') continue;
                 if (i > textStart) {
-                    paragraph.Append(new Run(new Text(separator.Substring(textStart, i - textStart)) { Space = SpaceProcessingModeValues.Preserve }));
+                    paragraph.Append(CreateTocTextRun(paragraph, "t", separator.Substring(textStart, i - textStart), preserveSpace: true));
                 }
-
-                paragraph.Append(new Run(new TabChar()));
+                AppendTocChild(AppendTocChild(paragraph, "r"), "tab");
                 textStart = i + 1;
             }
-
             if (textStart < separator.Length) {
-                paragraph.Append(new Run(new Text(separator.Substring(textStart)) { Space = SpaceProcessingModeValues.Preserve }));
+                paragraph.Append(CreateTocTextRun(paragraph, "t", separator.Substring(textStart), preserveSpace: true));
             }
         }
 
@@ -497,15 +408,15 @@ namespace OfficeIMO.Word {
         }
 
         private IndexRefreshOptions GetExistingIndexRefreshOptions() {
-            foreach (SimpleField simpleField in _sdtBlock.Descendants<SimpleField>()) {
-                string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
+            foreach (OfficeXmlNode simpleField in EnumerateTocElements(SdtNode, "fldSimple")) {
+                string? instruction = simpleField.Attribute(TocNamespace, "instr");
                 IndexRefreshOptions? options = GetIndexRefreshOptions(instruction ?? string.Empty);
                 if (options != null) {
                     return options.Value;
                 }
             }
 
-            foreach (Paragraph paragraph in _sdtBlock.Descendants<Paragraph>()) {
+            foreach (OfficeXmlNode paragraph in EnumerateTocElements(SdtNode, "p")) {
                 foreach (string instruction in EnumerateComplexFieldInstructions(paragraph)) {
                     IndexRefreshOptions? options = GetIndexRefreshOptions(instruction);
                     if (options != null) {
@@ -514,8 +425,8 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (FieldCode fieldCode in _sdtBlock.Descendants<FieldCode>()) {
-                IndexRefreshOptions? options = GetIndexRefreshOptions(fieldCode.Text ?? string.Empty);
+            foreach (OfficeXmlNode fieldCode in EnumerateTocElements(SdtNode, "instrText")) {
+                IndexRefreshOptions? options = GetIndexRefreshOptions(fieldCode.InnerText);
                 if (options != null) {
                     return options.Value;
                 }
@@ -757,85 +668,30 @@ namespace OfficeIMO.Word {
             return value.Replace("\t", "\\t");
         }
 
-        private static BookmarkRange? FindBookmarkRange(Body body, string bookmarkName) {
-            BookmarkStart? start = body.Descendants<BookmarkStart>()
-                .FirstOrDefault(bookmark => string.Equals(bookmark.Name?.Value, bookmarkName, StringComparison.Ordinal));
-            string? id = start?.Id?.Value;
-            if (start == null || string.IsNullOrWhiteSpace(id)) {
-                return null;
-            }
+        private static BookmarkRange? FindBookmarkRange(OfficeXmlNode body, string bookmarkName) {
+            const int W = TocNamespace;
+            OfficeXmlNode start = EnumerateTocElements(body, "bookmarkStart")
+                .FirstOrDefault(node => node.Attribute(W, "name") == bookmarkName);
+            string? id = start.Attribute(W, "id");
+            if (string.IsNullOrWhiteSpace(id)) return null;
 
-            BookmarkEnd? end = body.Descendants<BookmarkEnd>()
-                .FirstOrDefault(bookmark => string.Equals(bookmark.Id?.Value, id, StringComparison.Ordinal));
-            return end == null ? null : new BookmarkRange(start, end);
+            OfficeXmlNode end = EnumerateTocElements(body, "bookmarkEnd")
+                .FirstOrDefault(node => node.Attribute(W, "id") == id);
+            return end.IsNone ? null : new BookmarkRange(start, end);
         }
 
-        private static bool TryGetBookmarkPageRange(Body body, IReadOnlyDictionary<Paragraph, int> paragraphPages, string bookmarkName, out IndexPageReference pageRange) {
+        private static bool TryGetBookmarkPageRange(OfficeXmlNode body, IReadOnlyDictionary<OfficeXmlNode, int> paragraphPages,
+            string bookmarkName, out IndexPageReference pageRange) {
             pageRange = default;
-            BookmarkRange? bookmarkRange = FindBookmarkRange(body, bookmarkName);
-            if (bookmarkRange == null) {
-                return false;
-            }
+            if (FindBookmarkRange(body, bookmarkName) is not { } range) return false;
 
-            Paragraph? startParagraph = FindBookmarkStartParagraph(bookmarkRange.Value.Start);
-            Paragraph? endParagraph = FindBookmarkEndParagraph(bookmarkRange.Value.End);
-            if (startParagraph == null ||
-                endParagraph == null ||
-                !paragraphPages.TryGetValue(startParagraph, out int startPage) ||
-                !paragraphPages.TryGetValue(endParagraph, out int endPage)) {
-                return false;
-            }
+            OfficeXmlNode start = FindBookmarkBoundaryParagraph(range.Start, atStart: true);
+            OfficeXmlNode end = FindBookmarkBoundaryParagraph(range.End, atStart: false);
+            if (!paragraphPages.TryGetValue(start, out int startPage) ||
+                !paragraphPages.TryGetValue(end, out int endPage)) return false;
 
             pageRange = new IndexPageReference(startPage, endPage);
             return true;
-        }
-
-        private static bool IsParagraphInsideBookmarkRange(Paragraph paragraph, BookmarkRange range) {
-            Paragraph? startParagraph = FindBookmarkStartParagraph(range.Start);
-            Paragraph? endParagraph = FindBookmarkEndParagraph(range.End);
-            return ReferenceEquals(paragraph, startParagraph) ||
-                   ReferenceEquals(paragraph, endParagraph) ||
-                   (paragraph.IsAfter(range.Start) && paragraph.IsBefore(range.End));
-        }
-
-        private static Paragraph? FindBookmarkStartParagraph(BookmarkStart start) {
-            Paragraph? paragraph = start.Ancestors<Paragraph>().FirstOrDefault();
-            if (paragraph != null) {
-                return paragraph;
-            }
-
-            for (OpenXmlElement? sibling = start.NextSibling(); sibling != null; sibling = sibling.NextSibling()) {
-                if (sibling is Paragraph nextParagraph) {
-                    return nextParagraph;
-                }
-
-                Paragraph? descendantParagraph = sibling.Descendants<Paragraph>().FirstOrDefault();
-                if (descendantParagraph != null) {
-                    return descendantParagraph;
-                }
-            }
-
-            return null;
-        }
-
-        private static Paragraph? FindBookmarkEndParagraph(BookmarkEnd end) {
-            Paragraph? paragraph = end.Ancestors<Paragraph>().FirstOrDefault();
-            if (paragraph != null) {
-                return paragraph;
-            }
-
-            for (OpenXmlElement? sibling = end.PreviousSibling(); sibling != null; sibling = sibling.PreviousSibling()) {
-                if (sibling is Paragraph previousParagraph) {
-                    return previousParagraph;
-                }
-
-                Paragraph? descendantParagraph = sibling.Descendants<Paragraph>().LastOrDefault();
-                if (descendantParagraph != null) {
-                    return descendantParagraph;
-                }
-            }
-
-            return null;
         }
 
         private static string TrimIndexQuotes(string value) {
@@ -977,14 +833,14 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct BookmarkRange {
-            internal BookmarkRange(BookmarkStart start, BookmarkEnd end) {
+            internal BookmarkRange(OfficeXmlNode start, OfficeXmlNode end) {
                 Start = start;
                 End = end;
             }
 
-            internal BookmarkStart Start { get; }
+            internal OfficeXmlNode Start { get; }
 
-            internal BookmarkEnd End { get; }
+            internal OfficeXmlNode End { get; }
         }
 
         private readonly struct IndexPageReference : IEquatable<IndexPageReference>, IComparable<IndexPageReference> {

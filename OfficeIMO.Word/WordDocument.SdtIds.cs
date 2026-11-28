@@ -77,8 +77,7 @@ namespace OfficeIMO.Word {
         private IEnumerable<int> EnumerateExistingSdtIds() {
             if (_ownedModel != null) {
                 const int W = OfficeXmlNamespaces.WordprocessingML;
-                foreach (var story in WordFieldInventory.EnumerateStories(this)) {
-                    if (story.LocationKind is WordFieldLocationKind.Footnote or WordFieldLocationKind.Endnote) continue;
+                foreach (var story in WordFieldInventory.EnumerateStories(this, includeNotes: false)) {
                     // Keep controls in every preserved branch distinct when another reader selects it.
                     foreach (OfficeXmlNode properties in WordFieldInventory.EnumerateFieldContent(story.Root, reserveInactiveCompatibilityIds: true)) {
                         if (properties.Is(W, "sdtPr") &&
