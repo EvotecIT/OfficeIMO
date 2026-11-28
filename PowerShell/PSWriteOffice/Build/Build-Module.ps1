@@ -26,9 +26,10 @@ if ($RunMode -eq 'Publish' -and (-not $IncludePackages -or -not $SignModule)) {
 if ($RunMode -eq 'Publish' -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'Publish requires Windows so the module includes both PowerShell 7 and Windows PowerShell 5.1 payloads.'
 }
-# Packing OfficeIMO.Tool's per-platform ReadyToRun packages needs PSPublishModule 3.0.196; module-only builds and
-# configuration-only (-JsonOnly) runs don't pack anything.
-$psPublishModuleMinimum = if ($IncludePackages -and -not $JsonOnly) { '3.0.196' } else { '3.0.194' }
+# Packing OfficeIMO.Tool's per-platform ReadyToRun packages needs PSPublishModule 3.0.196. Only Build and Publish runs
+# with packages pack them; module-only, Documentation, Manifest and configuration-only (-JsonOnly) runs don't.
+$packsPackages = $IncludePackages -and $RunMode -in @('Build', 'Publish') -and -not $JsonOnly
+$psPublishModuleMinimum = if ($packsPackages) { '3.0.196' } else { '3.0.194' }
 Import-Module PSPublishModule -MinimumVersion $psPublishModuleMinimum -Force -ErrorAction Stop
 
 Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $RunMode {
