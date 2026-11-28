@@ -2,7 +2,7 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
-        private enum IndexedXmlNamespaceStatus { Accepted, RequiresSdk, UnexpectedNamespace }
+        private enum IndexedXmlNamespaceStatus { Accepted, NeedsGeneralProjection, UnexpectedNamespace }
 
         /// <summary>Tracks the namespace and ancestry invariants required by the byte index.</summary>
         private sealed class IndexedWorksheetNamespaceValidator {
@@ -21,10 +21,10 @@ namespace OfficeIMO.Excel {
                         || string.Equals(reader.NamespaceURI, StrictSpreadsheetNamespace, StringComparison.Ordinal);
                     if (_strictOuterShape) {
                         if (reader.Depth == 0 && (reader.LocalName != "worksheet" || !spreadsheetElement))
-                            return IndexedXmlNamespaceStatus.RequiresSdk;
+                            return IndexedXmlNamespaceStatus.NeedsGeneralProjection;
                         if ((reader.LocalName == "dimension" || reader.LocalName == "sheetData")
                             && (reader.Depth != 1 || !spreadsheetElement))
-                            return IndexedXmlNamespaceStatus.RequiresSdk;
+                            return IndexedXmlNamespaceStatus.NeedsGeneralProjection;
                     }
                     if (reader.LocalName == "sheetData") {
                         if (_indexedSheetDataCompleted) return IndexedXmlNamespaceStatus.Accepted;

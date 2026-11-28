@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -123,7 +122,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int ri = checked((int)row.RowIndex!.Value);
+                    int ri = row.Index;
                     if (ri < r1) continue;
                     if (ri > r2) break;
 
@@ -152,13 +151,13 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            var map = new Dictionary<int, Row>(GetSnapshotCapacity(height));
+            var map = new Dictionary<int, ReaderRow>(GetSnapshotCapacity(height));
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int ri = checked((int)row.RowIndex!.Value);
+                int ri = row.Index;
                 if (ri < r1) continue;
                 if (ri > r2) continue;
                 map[ri] = row;
@@ -174,17 +173,17 @@ namespace OfficeIMO.Excel {
                 yield return ReadRowValue(row, c1, c2, width, ct);
             }
 
-            object?[]? ReadRowValue(Row row, int firstColumn, int lastColumn, int rowWidth, CancellationToken token) {
+            object?[]? ReadRowValue(ReaderRow row, int firstColumn, int lastColumn, int rowWidth, CancellationToken token) {
                 object?[]? arr = null;
                 bool canCancelCell = token.CanBeCanceled;
 
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancelCell) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int cc = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cc = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cc < firstColumn || cc > lastColumn) continue;
                     arr ??= new object?[rowWidth];
                     if (TryConvertCell(cell, out object? value)) {
@@ -216,7 +215,7 @@ namespace OfficeIMO.Excel {
             HashSet<int>? sparseOffsetSet = null;
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -391,7 +390,7 @@ namespace OfficeIMO.Excel {
             rows = new object?[height][];
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -443,7 +442,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<object?[]?> ReadRowsXmlFast(int r1, int c1, int r2, int c2, int width, CancellationToken ct) {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();

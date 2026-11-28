@@ -302,7 +302,7 @@ internal sealed partial class OfficeXmlPullReader {
 
     private bool ReadDeclaration() {
         if (StartsWith(_position, "<!--")) {
-            SkipPast("-->", 4);
+            SkipComment();
             MarkCommentOrInstruction();
             return false;
         }
@@ -310,10 +310,7 @@ internal sealed partial class OfficeXmlPullReader {
             int start = _position + 9;
             int end = IndexOf(start, "]]>");
             if (end < 0) throw Malformed("A CDATA section is not closed.");
-            for (int index = start; index < end; index++) {
-                byte value = _data[index];
-                if (value < 0x20 && value != (byte)'\t' && value != (byte)'\n' && value != (byte)'\r' || value == 0xEF) RejectNonCharacter(index);
-            }
+            ValidateLiteralCharacters(start, end);
             _position = end + 3;
             if (_frameCount == 0) throw Malformed("The part has a CDATA section outside its root element.");
             if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;

@@ -1,6 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Data;
 using System.Globalization;
 using System.Xml;
@@ -15,11 +16,13 @@ namespace OfficeIMO.Excel {
         private const string StrictSpreadsheetNamespace =
             SpreadsheetXmlContent.StrictSpreadsheetNamespace;
         private readonly string _sheetName;
-        // Typed as the base part so loading this reader does not load the Open XML SDK on the native
-        // route; SDK-only members go through SdkWorksheetPart.
-        private readonly OpenXmlPart _wsPart;
+        private const int SpreadsheetXml = OfficeXmlNamespaces.SpreadsheetML;
+        private readonly ExcelPartRef _worksheetPart;
+        private readonly bool _hasLiveWorksheetPart;
+        private readonly ExcelReaderPackage? _package;
+        private readonly bool _readOnlySnapshot;
         private readonly string _worksheetPartName;
-        private readonly bool _hasSdkWorksheetPart;
+        private readonly bool _allowGeneralProjection;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
         private readonly ExcelReaderOptions _opt;
@@ -28,6 +31,7 @@ namespace OfficeIMO.Excel {
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
         private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private StylesCache? _stylesCache;
+        private OfficeXmlNode _packageWorksheetRoot;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
         private char[]? _xmlValueTextBuffer;
@@ -38,25 +42,26 @@ namespace OfficeIMO.Excel {
 
         internal ExcelSheetReader(
             string sheetName,
-            WorksheetPart wsPart,
+            ExcelPartRef worksheetPart,
             SharedStringCache sst,
             StylesCacheProvider styles,
             ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             bool canStreamWorksheetPart,
-            OpenXmlPackagePartBufferReader? partBufferReader = null) {
+            OpenXmlPackagePartBufferReader? partBufferReader,
+            Lazy<RichValueErrorLookup> richValueErrors) {
             _sheetName = sheetName;
-            _wsPart = wsPart;
-            _worksheetPartName = wsPart.Uri.OriginalString;
-            _hasSdkWorksheetPart = true;
+            _worksheetPart = worksheetPart;
+            _hasLiveWorksheetPart = true;
+            _worksheetPartName = worksheetPart.Name;
+            _allowGeneralProjection = true;
             _sst = sst;
             _styles = styles;
             _opt = opt;
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
             _partBufferReader = partBufferReader;
-            _richValueErrors = new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.FromWorkbook(
-                (wsPart.OpenXmlPackage as SpreadsheetDocument)?.WorkbookPart, Math.Min(_opt.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes)));
+            _richValueErrors = richValueErrors;
         }
 
         internal ExcelSheetReader(
@@ -67,27 +72,45 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             OpenXmlPackagePartBufferReader partBufferReader,
-            Lazy<RichValueErrorLookup>? richValueErrors = null) {
+            Lazy<RichValueErrorLookup>? richValueErrors = null,
+            ExcelReaderPackage? package = null,
+            bool canStreamWorksheetPart = true,
+            bool readOnlySnapshot = false) {
             _sheetName = sheetName;
-            _wsPart = null!;
             _worksheetPartName = worksheetPartName;
-            _hasSdkWorksheetPart = false;
+            _allowGeneralProjection = package != null;
+            _package = package;
+            _readOnlySnapshot = readOnlySnapshot;
             _sst = sst;
             _styles = styles;
             _opt = opt;
             _dateSystem = dateSystem;
-            _canStreamWorksheetPart = true;
+            _canStreamWorksheetPart = canStreamWorksheetPart;
             _partBufferReader = partBufferReader;
             _richValueErrors = richValueErrors ?? new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.Empty);
             _hasWorksheetPartStreamContent = true;
         }
 
-        private WorksheetPart SdkWorksheetPart => (WorksheetPart)_wsPart;
+        private OfficeXmlNode WorksheetRoot {
+            get {
+                OfficeXmlNode root;
+                if (_hasLiveWorksheetPart) {
+                    root = _worksheetPart.Root;
+                } else {
+                    if (_packageWorksheetRoot.Exists) return _packageWorksheetRoot;
+                    using Stream stream = OpenReaderWorksheetStream(_opt.CancellationToken);
+                    root = ExcelReaderPackage.ReadPartRoot(stream, _opt.CancellationToken, validateMarkup: true);
+                }
+                if (!root.Is(SpreadsheetXml, "worksheet")) throw new InvalidOperationException("Worksheet is null.");
+                if (!_hasLiveWorksheetPart) _packageWorksheetRoot = root;
+                return root;
+            }
+        }
 
-        private void RequireSdkWorksheetPart() {
-            if (!_hasSdkWorksheetPart) {
+        private void RequireGeneralProjection() {
+            if (!_allowGeneralProjection) {
                 throw new XlsxTabularFastPathNotSupportedException(
-                    $"Worksheet '{_sheetName}' requires the Open XML SDK fallback path.");
+                    $"Worksheet '{_sheetName}' requires the general worksheet projection.");
             }
         }
 
@@ -100,11 +123,8 @@ namespace OfficeIMO.Excel {
                 && length >= 0 && length <= int.MaxValue) {
                 return _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct);
             }
-            if (_hasSdkWorksheetPart) {
-                return _wsPart.GetStream(FileMode.Open, FileAccess.Read);
-            }
-            RequireSdkWorksheetPart();
-            throw new InvalidOperationException("No worksheet stream is available.");
+            if (_hasLiveWorksheetPart) return _worksheetPart.OpenRead();
+            throw new InvalidDataException($"Worksheet '{_sheetName}' has no readable worksheet part.");
         }
 
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : ExcelDateSystemConverter.FromElapsedSerial(serial);
@@ -137,7 +157,7 @@ namespace OfficeIMO.Excel {
         public string Name => _sheetName;
 
         /// <summary>
-        /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
+        /// Enumerates non-empty cells as (ReaderRow, Column, Value). Values are typed when possible.
         /// </summary>
         public IEnumerable<ExcelCellValueInfo> EnumerateCells(CancellationToken ct = default) {
             return CanUseEnumerateCellsXmlReader()
@@ -180,14 +200,14 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = row.Index;
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int cIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (cIndex <= 0) continue;
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
@@ -197,7 +217,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsXmlFast(CancellationToken ct) {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
@@ -297,47 +317,34 @@ namespace OfficeIMO.Excel {
 
         // ---------- Internals ----------
 
-        private static bool CellHasExplicitBlank(Cell cell) {
-            return cell.CellValue is not null && string.IsNullOrEmpty(cell.CellValue.InnerText);
-        }
+        private static bool CellHasExplicitBlank(ReaderCell cell) =>
+            cell.Value is { Length: 0 };
 
-        private IEnumerable<Row> EnumerateWorksheetRows(CancellationToken ct = default) {
+        private IEnumerable<ReaderRow> EnumerateWorksheetRows(CancellationToken ct = default) {
             if (CanStreamWorksheetPart()) {
-                foreach (var row in EnumerateRowsWithCoordinates(EnumerateWorksheetRowsFromPart(ct), ct)) {
-                    yield return row;
-                }
-
-                yield break;
+                return EnumerateWorksheetRowsFromPart(ct);
             }
 
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                yield break;
-            }
-
-            bool canCancel = ct.CanBeCanceled;
-            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                yield return row;
-            }
+            return EnumerateRowsWithCoordinates(WorksheetRoot.Child(SpreadsheetXml, "sheetData"), ct);
         }
 
-        private IEnumerable<Row> EnumerateWorksheetRowsFromPart(CancellationToken ct) {
-            bool canCancel = ct.CanBeCanceled;
-            using var reader = OpenXmlReader.Create(_wsPart);
+        private IEnumerable<ReaderRow> EnumerateWorksheetRowsFromPart(CancellationToken ct) {
+            using Stream stream = OpenReaderWorksheetStream(ct);
+            RewindWorksheetStream(stream);
+            using XmlReader reader = OpenCellEnumerationXmlReader(stream);
+            var rows = new WorksheetXmlRowSelector();
+            var namespaces = new OfficeXmlNamespaces.Table();
+            int previousIndex = 0;
             while (reader.Read()) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
+                ct.ThrowIfCancellationRequested();
+                if (!rows.IsRowElement(reader)) continue;
 
-                if (reader.IsStartElement && reader.ElementType == typeof(Row)) {
-                    if (reader.LoadCurrentElement() is Row row) {
-                        yield return row;
-                    }
-                }
+                using XmlReader fragment = reader.ReadSubtree();
+                fragment.MoveToContent();
+                byte[] xml = Encoding.UTF8.GetBytes(fragment.ReadOuterXml());
+                OfficeXmlTree tree = OfficeXmlTree.Parse(xml, xml.Length, namespaces);
+                var row = new OfficeXmlNode(tree, tree.Root);
+                yield return new ReaderRow(row, ResolveRowIndex(row, ref previousIndex));
             }
         }
 
@@ -357,7 +364,7 @@ namespace OfficeIMO.Excel {
 
         private bool HasWorksheetPartStreamContent() {
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 return !stream.CanSeek || stream.Length > 0;
             } catch (IOException) {
@@ -413,66 +420,40 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static string? ExtractInlineString(InlineString? inline, CellValues? typeHint) {
-            if (typeHint != CellValues.InlineString && inline is null) return null;
-
-            if (inline?.Text?.Text != null) return Utilities.ExcelSanitizer.DecodeXString(inline.Text.Text);
-            if (inline?.HasChildren == true) {
-                return SharedStringCache.GetRunText(inline);
-            }
-            return null;
+        private static string? ExtractInlineString(OfficeXmlNode inline) {
+            if (inline.IsNone) return null;
+            OfficeXmlNode text = inline.Child(SpreadsheetXml, "t");
+            if (text.Exists) return Utilities.ExcelSanitizer.DecodeXString(text.InnerText);
+            return inline.FirstChild.Exists ? SharedStringCache.GetRunText(inline) : null;
         }
 
-        private object? ConvertCell(Cell cell) {
+        private object? ConvertCell(ReaderCell cell) {
             TryConvertCell(cell, out var value);
             return value;
         }
 
-        /// <summary>
-        /// Converts a cell of this worksheet's loaded DOM the way cell enumeration does, so a caller that already
-        /// walks the DOM does not read the worksheet part a second time for its values.
-        /// </summary>
-        internal object? ConvertLoadedCell(Cell cell) => ConvertCell(cell);
+        /// <summary>Converts a cell already loaded by a caller inspecting the live workbook.</summary>
+        internal object? ConvertLoadedCell(object cell) => ConvertCell(new ReaderCell(OfficeXmlNode.FromSdk(cell)));
 
-        /// <summary>The SDK's child properties each allocate a lookup key, which dominates reading a large worksheet.</summary>
-        internal static void GetCellChildren(Cell cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString) {
-            formula = null;
-            cellValue = null;
-            inlineString = null;
-            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
-                switch (child) {
-                    case CellFormula candidate:
-                        formula ??= candidate;
-                        break;
-                    case CellValue candidate:
-                        cellValue ??= candidate;
-                        break;
-                    case InlineString candidate:
-                        inlineString ??= candidate;
-                        break;
-                }
-            }
-        }
-
-        private bool TryConvertCell(Cell cell, out object? value) {
+        private bool TryConvertCell(ReaderCell cell, out object? value) {
             value = null;
-            CellValues? typeHint = cell.DataType?.Value;
-            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+            ExcelCellValueType? typeHint = cell.Type;
+            cell.GetChildren(out string? formula, out string? cellValue, out OfficeXmlNode inlineString);
             bool hasFormula = formula is not null;
             string? formulaText = null;
             if (hasFormula) {
-                formulaText = formula!.Text;
+                formulaText = formula;
                 if (!_opt.UseCachedFormulaResult && formulaText != null) {
                     value = formulaText;
                     return true;
                 }
             }
 
-            string? cellText = cellValue?.InnerText;
-            string? rawText = typeHint == CellValues.Error && cell.ValueMetaIndex != null
+            string? cellText = cellValue;
+            string? rawText = typeHint == ExcelCellValueType.Error && cell.ValueMetaIndex != null
                 ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellText)
                 : cellText;
-            string? inlineText = ExtractInlineString(inlineString, typeHint);
+            string? inlineText = ExtractInlineString(inlineString);
             if (hasFormula && _opt.UseCachedFormulaResult && rawText == null && formulaText != null) {
                 value = formulaText;
                 return true;
@@ -489,12 +470,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            uint? styleIndex = cell.StyleIndex?.Value;
+            uint? styleIndex = cell.Style;
             uint? displayStyle = styleIndex;
             if (!displayStyle.HasValue && _opt.DisplayText != null) {
-                Row? displayRow = cell.Parent as Row;
-                uint? rowStyle = displayRow?.CustomFormat?.Value == true ? displayRow.StyleIndex?.Value : null;
-                displayStyle = ResolveInheritedDisplayStyle(rowStyle, GetReferenceColumn(cell.CellReference?.Value));
+                displayStyle = ResolveInheritedDisplayStyle(cell.RowStyle, GetReferenceColumn(cell.Reference));
             }
             if (_opt.CellValueConverter == null && TryFormatDisplayText(typeHint, displayStyle, rawText, out string displayed)) {
                 value = displayed;
@@ -506,28 +485,28 @@ namespace OfficeIMO.Excel {
 
             value = TryConvertWithoutCustomHook(typeHint, styleIndex, rawText, inlineText, out object? converted)
                 ? converted
-                : ConvertByHints(typeHint, styleIndex ?? cell.StyleIndex?.Value, rawText, inlineText);
+                : ConvertByHints(typeHint, styleIndex ?? cell.Style, rawText, inlineText);
             return true;
         }
 
         /// <summary>Applies displayed-text mode to a numeric or ISO date cell whose style has a number format.</summary>
-        private bool TryFormatDisplayText(CellValues? type, uint? styleIndex, string? rawText, out string text) {
+        private bool TryFormatDisplayText(ExcelCellValueType? type, uint? styleIndex, string? rawText, out string text) {
             text = string.Empty;
             ExcelCellDisplayText? display = _opt.DisplayText;
             if (display == null || rawText == null || !display.IsFormatted(styleIndex)) return false;
-            bool numeric = type == null || type == CellValues.Number;
-            return display.TryFormatRaw(numeric, type == CellValues.Date, rawText, styleIndex, out text);
+            bool numeric = type == null || type == ExcelCellValueType.Number;
+            return display.TryFormatRaw(numeric, type == ExcelCellValueType.Date, rawText, styleIndex, out text);
         }
 
-        private bool NeedsStyleForConversion(CellValues? typeHint, string? rawText, uint? styleIndex) {
+        private bool NeedsStyleForConversion(ExcelCellValueType? typeHint, string? rawText, uint? styleIndex) {
             return rawText != null
                 && styleIndex is not null
                 && _opt.TreatDatesUsingNumberFormat
-                && typeHint != CellValues.SharedString
-                && typeHint != CellValues.Boolean
-                && typeHint != CellValues.String
-                && typeHint != CellValues.InlineString
-                && typeHint != CellValues.Date
+                && typeHint != ExcelCellValueType.SharedString
+                && typeHint != ExcelCellValueType.Boolean
+                && typeHint != ExcelCellValueType.String
+                && typeHint != ExcelCellValueType.InlineString
+                && typeHint != ExcelCellValueType.Date
                 && Styles.HasDateStyles;
         }
 
@@ -562,36 +541,36 @@ namespace OfficeIMO.Excel {
                 || kind == XmlCellKind.Unknown;
         }
 
-        private static CellValues? ToCellValueType(XmlCellKind kind) {
+        private static ExcelCellValueType? ToCellValueType(XmlCellKind kind) {
             return kind switch {
-                XmlCellKind.Boolean => CellValues.Boolean,
-                XmlCellKind.Date => CellValues.Date,
-                XmlCellKind.Error => CellValues.Error,
-                XmlCellKind.InlineString => CellValues.InlineString,
-                XmlCellKind.Number => CellValues.Number,
-                XmlCellKind.SharedString => CellValues.SharedString,
-                XmlCellKind.String => CellValues.String,
+                XmlCellKind.Boolean => ExcelCellValueType.Boolean,
+                XmlCellKind.Date => ExcelCellValueType.Date,
+                XmlCellKind.Error => ExcelCellValueType.Error,
+                XmlCellKind.InlineString => ExcelCellValueType.InlineString,
+                XmlCellKind.Number => ExcelCellValueType.Number,
+                XmlCellKind.SharedString => ExcelCellValueType.SharedString,
+                XmlCellKind.String => ExcelCellValueType.String,
                 _ => null
             };
         }
 
-        private CellRaw SnapshotCell(Cell cell, int row = 0, int col = 0) {
-            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+        private CellRaw SnapshotCell(ReaderCell cell, int row = 0, int col = 0) {
+            cell.GetChildren(out string? formula, out string? cellValue, out OfficeXmlNode inlineString);
             var hasFormula = formula is not null;
-            var formulaText = formula?.Text;
+            var formulaText = formula;
             var preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
-            var typeHint = cell.DataType?.Value;
+            var typeHint = cell.Type;
 
             return new CellRaw {
                 Row = row,
                 Col = col,
                 TypeHint = typeHint,
-                StyleIndex = cell.StyleIndex?.Value,
+                StyleIndex = cell.Style,
                 HasFormula = hasFormula,
                 FormulaText = formulaText,
-                RawText = preferFormulaText ? null : typeHint == CellValues.Error && cell.ValueMetaIndex != null
-                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellValue?.InnerText) : cellValue?.InnerText,
-                InlineText = preferFormulaText ? null : ExtractInlineString(inlineString, typeHint)
+                RawText = preferFormulaText ? null : typeHint == ExcelCellValueType.Error && cell.ValueMetaIndex != null
+                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellValue) : cellValue,
+                InlineText = preferFormulaText ? null : ExtractInlineString(inlineString)
             };
         }
 
@@ -619,7 +598,7 @@ namespace OfficeIMO.Excel {
             return raw;
         }
 
-        private bool TryConvertWithoutCustomHook(CellValues? type, uint? styleIndex, string? rawText, string? inlineText, out object? value) {
+        private bool TryConvertWithoutCustomHook(ExcelCellValueType? type, uint? styleIndex, string? rawText, string? inlineText, out object? value) {
             value = null;
             if (_opt.CellValueConverter != null) {
                 return false;
@@ -630,7 +609,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (type == CellValues.SharedString) {
+            if (type == ExcelCellValueType.SharedString) {
                 if (TryParseSharedStringIndex(rawText, out var sstIndex)) {
                     value = GetSharedString(sstIndex);
                     return true;
@@ -640,17 +619,17 @@ namespace OfficeIMO.Excel {
                 return rawText != null;
             }
 
-            if (type == CellValues.Boolean && rawText != null) {
+            if (type == ExcelCellValueType.Boolean && rawText != null) {
                 value = BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
                 return true;
             }
 
-            if (type == CellValues.String || type == CellValues.InlineString) {
+            if (type == ExcelCellValueType.String || type == ExcelCellValueType.InlineString) {
                 value = rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText;
                 return value != null;
             }
 
-            if (type == CellValues.Date && rawText != null) {
+            if (type == ExcelCellValueType.Date && rawText != null) {
                 if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
                     value = dt;
                 } else {
@@ -733,28 +712,28 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) =>
+        private object? ConvertByHints(ExcelCellValueType? type, uint? styleIndex, string? rawText, string? inlineText) =>
             ConvertByHints(type, styleIndex, rawText, inlineText, out _);
 
-        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText, out bool customHandled) {
+        private object? ConvertByHints(ExcelCellValueType? type, uint? styleIndex, string? rawText, string? inlineText, out bool customHandled) {
             customHandled = false;
             // Custom converter hook (cell-level). If provided and handled, honor it.
             var hook = _opt.CellValueConverter;
             if (hook != null) {
-                var ctx = new ExcelCellContext(type.ToOfficeEnum(), styleIndex, rawText, inlineText, _opt.Culture);
+                var ctx = new ExcelCellContext(type, styleIndex, rawText, inlineText, _opt.Culture);
                 var res = hook(ctx);
                 if (res.Handled) { customHandled = true; return res.Value; }
                 if (TryFormatDisplayText(type, styleIndex, rawText, out string displayed)) return displayed;
             }
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 
-            if (type == CellValues.SharedString && TryParseSharedStringIndex(rawText, out var sstIndex))
+            if (type == ExcelCellValueType.SharedString && TryParseSharedStringIndex(rawText, out var sstIndex))
                 return GetSharedString(sstIndex);
 
-            if (type == CellValues.Boolean && rawText != null)
+            if (type == ExcelCellValueType.Boolean && rawText != null)
                 return BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
 
-            if (type == CellValues.Number && rawText != null) {
+            if (type == ExcelCellValueType.Number && rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
                         || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
@@ -773,14 +752,14 @@ namespace OfficeIMO.Excel {
                 return rawText;
             }
 
-            if (type == CellValues.Date && rawText != null) {
+            if (type == ExcelCellValueType.Date && rawText != null) {
                 if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, System.Globalization.DateTimeStyles.AssumeLocal, out var dt))
                     return dt;
                 return rawText;
             }
 
-            if (type == CellValues.String || type == CellValues.InlineString || type == CellValues.SharedString) {
-                if (type == CellValues.SharedString && TryParseSharedStringIndex(rawText, out var idx))
+            if (type == ExcelCellValueType.String || type == ExcelCellValueType.InlineString || type == ExcelCellValueType.SharedString) {
+                if (type == ExcelCellValueType.SharedString && TryParseSharedStringIndex(rawText, out var idx))
                     return GetSharedString(idx);
                 return rawText != null ? Utilities.ExcelSanitizer.DecodeXString(rawText) : inlineText;
             }
@@ -811,7 +790,7 @@ namespace OfficeIMO.Excel {
         private struct CellRaw {
             public int Row;
             public int Col;
-            public CellValues? TypeHint;
+            public ExcelCellValueType? TypeHint;
             public uint? StyleIndex;
             public bool HasFormula;
             public bool CustomValueHandled;

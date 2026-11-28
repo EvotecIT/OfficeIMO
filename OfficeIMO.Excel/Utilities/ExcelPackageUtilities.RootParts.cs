@@ -6,6 +6,10 @@ using System.Xml.Linq;
 namespace OfficeIMO.Excel.Utilities;
 
 internal static partial class ExcelPackageUtilities {
+    // Preserve the reader's unsupported-container exception without opening a package.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    internal static Exception UnreadablePackageContainer() => new FileFormatException("File contains corrupted data.");
+
     /// <summary>Resolves the actual workbook carrier instead of assuming the SDK retained its original part name.</summary>
     internal static string? GetWorkbookPartName(ZipArchive archive) => ReadRootParts(archive).Workbook;
 

@@ -1,3 +1,5 @@
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
@@ -9,8 +11,7 @@ namespace OfficeIMO.Excel {
         private bool _readSnapshotAllowed;
 
         /// <summary>
-        /// Creates the reader behind cell enumeration. A converter also sees cells without content,
-        /// which only the SDK route visits.
+        /// Creates the reader behind cell enumeration, including the live cells of an edited workbook.
         /// </summary>
         internal ExcelDocumentReader CreateCellEnumerationReader(ExcelSheet sheet, ExcelReaderOptions options) {
             OpenDeferredSdkBeforeReadingRecordedChanges();
@@ -37,24 +38,20 @@ namespace OfficeIMO.Excel {
                 : CreateTabularReader(sheet, new ExcelReaderOptions());
 
         /// <summary>
-        /// Creates the reader behind the data reader, table and typed routes. Their fast paths
-        /// resolve malformed cells and oversized chunks differently from the SDK route, so each
-        /// worksheet that does not qualify keeps that route.
+        /// Creates the reader behind the data reader, table and typed routes. Each worksheet can
+        /// use the indexed projection when its shape and the requested limits permit it.
         /// </summary>
         internal ExcelDocumentReader CreateTabularReader(ExcelSheet? sheet, ExcelReaderOptions options) {
             OpenDeferredSdkBeforeReadingRecordedChanges();
             if (sheet != null && AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) {
-                return ExcelDocumentReader.WrapTabular(unsaved, options, () => {
-                    MaterializeDeferredDataSetImport();
-                    return ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
-                });
+                return ExcelDocumentReader.Wrap(unsaved, options, tabular: true);
             }
 
             MaterializeDeferredDataSetImport();
             FlushPendingPackageEditsIfAny();
             ExcelPackageReadSnapshot? snapshot = options.CellValueConverter == null ? AcquireReadSnapshot() : null;
             if (snapshot != null) {
-                return ExcelDocumentReader.WrapTabular(snapshot, options, () => ExcelDocumentReader.Wrap(_spreadSheetDocument, options));
+                return ExcelDocumentReader.Wrap(snapshot, options, tabular: true, readOnlySnapshot: FileOpenAccess == FileAccess.Read);
             }
 
             SpreadsheetDocument document = _spreadSheetDocument;
@@ -64,6 +61,19 @@ namespace OfficeIMO.Excel {
             return baseline != null
                 ? ExcelDocumentReader.WrapEdited(document, baseline, options, tabular: true)
                 : ExcelDocumentReader.Wrap(document, options);
+        }
+
+        internal OfficeXmlNode ReadDisplayStyles(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OpenDeferredSdkBeforeReadingRecordedChanges();
+            MaterializeDeferredDataSetImport(cancellationToken);
+            ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
+            if (snapshot == null) return ExcelPartRef.Workbook(this).WorkbookStyles.Root;
+            try {
+                return snapshot.Package.ReadStyles(cancellationToken);
+            } finally {
+                snapshot.Release();
+            }
         }
 
         /// <summary>
