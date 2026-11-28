@@ -215,9 +215,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt16(payload, bold ? (ushort)700 : (ushort)400);
             WriteUInt16(payload, Child(font, "vertAlign").Attribute("val") switch { "superscript" => (ushort)1, "subscript" => (ushort)2, _ => (ushort)0 });
             OfficeXmlNode underline = Child(font, "u");
-            payload.WriteByte(underline.IsNone ? (byte)0 : (underline.Attribute("val") ?? "single") switch {
+            byte underlineCode = (underline.IsNone ? null : underline.Attribute("val") ?? "single") switch {
                 "single" => 1, "double" => 2, "singleAccounting" => 0x21, "doubleAccounting" => 0x22, _ => 0
-            });
+            };
+            payload.WriteByte(underlineCode);
             payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadInt32(Child(font, "family"), "val") ?? 0)));
             payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadInt32(Child(font, "charset"), "val") ?? 1)));
             payload.WriteByte(0);
