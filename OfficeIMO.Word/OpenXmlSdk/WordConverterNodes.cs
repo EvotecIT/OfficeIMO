@@ -664,15 +664,16 @@ internal static class WordConverterNodes {
     /// <c>table</c>, <c>numbering</c>), as <see cref="WordStyleCatalog.EnumerateChain"/> reads them.
     /// </summary>
     internal static IEnumerable<OfficeXmlNode> StyleChainNodes(this WordStyleCatalog catalog, string? styleId, string type) {
-        W.StyleValues styleType = type switch {
-            "paragraph" => W.StyleValues.Paragraph,
-            "character" => W.StyleValues.Character,
-            "table" => W.StyleValues.Table,
-            "numbering" => W.StyleValues.Numbering,
-            _ => new W.StyleValues(type)
-        };
-        foreach (W.Style style in catalog.EnumerateChain(styleId, styleType)) yield return OfficeXmlNode.FromSdk(style);
+        foreach (W.Style style in catalog.EnumerateChain(styleId, StyleType(type))) yield return OfficeXmlNode.FromSdk(style);
     }
+
+    private static W.StyleValues StyleType(string type) => type switch {
+        "paragraph" => W.StyleValues.Paragraph,
+        "character" => W.StyleValues.Character,
+        "table" => W.StyleValues.Table,
+        "numbering" => W.StyleValues.Numbering,
+        _ => new W.StyleValues(type)
+    };
 
     /// <summary>The first <c>w:style</c> with this identifier, as <see cref="WordStyleCatalog.FindById"/>.</summary>
     internal static OfficeXmlNode FindStyleNodeById(this WordStyleCatalog catalog, string? styleId) =>
@@ -938,4 +939,32 @@ internal static class WordConverterNodes {
 
     /// <summary>The <c>wp:positionH</c> of an anchored image; throws for an inline image, as the model does.</summary>
     internal static OfficeXmlNode HorizontalPositionNode(this WordImage image) => OfficeXmlNode.FromSdk(image.horizontalPosition);
+
+    // ---- Word.Markdown ---
+
+    /// <summary>The run a run view shows when a field narrowed it to its visible children, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode VisibleRunNode(this WordParagraph run) => OfficeXmlNode.FromSdk(run._visibleRun);
+
+    /// <summary>
+    /// The identifier of the first default style of the <c>w:type</c> token <paramref name="type"/>, as
+    /// <see cref="WordStyleCatalog.DefaultStyleId"/> reads it.
+    /// </summary>
+    internal static string? DefaultStyleId(this WordStyleCatalog catalog, string type) => catalog.DefaultStyleId(StyleType(type));
+
+    /// <summary>
+    /// A detached <c>w:style</c> holding the theme's table body or header text defaults, as
+    /// <see cref="WordThemeDefaults.CreateTableTextStyle"/> builds it.
+    /// </summary>
+    internal static OfficeXmlNode CreateTableTextStyleNode(OfficeTheme theme, bool header) =>
+        OfficeXmlNode.FromSdk(WordThemeDefaults.CreateTableTextStyle(theme, header));
+
+    /// <summary>Whether the <c>w:tc</c> takes the theme's header text, as <see cref="WordDocument.IsThemeHeaderCell"/>.</summary>
+    internal static bool IsThemeHeaderCell(OfficeXmlNode cell) => WordDocument.IsThemeHeaderCell((W.TableCell)cell.SdkElement!);
+
+    /// <summary>
+    /// Replaces the children of <paramref name="target"/> named as <paramref name="value"/> with a copy of it, in schema
+    /// order, as <see cref="WordThemeDefaults.SetVisualChild"/>.
+    /// </summary>
+    internal static void SetVisualChild(OfficeXmlNode target, OfficeXmlNode value) =>
+        WordThemeDefaults.SetVisualChild((OpenXmlCompositeElement)target.SdkElement!, (OpenXmlElement)value.SdkElement!);
 }

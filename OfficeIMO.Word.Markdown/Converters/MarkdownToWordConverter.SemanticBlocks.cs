@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -428,11 +428,11 @@ namespace OfficeIMO.Word.Markdown {
                 for (int column = 0; column < columns; column++) {
                     double longestWord = 0;
                     double cellTotal = 0;
-                    foreach (var paragraph in row.Cells[column]._tableCell.Elements<Paragraph>()) {
+                    foreach (OfficeXmlNode paragraph in row.Cells[column].Node().WElements("p")) {
                         double current = 0;
-                        foreach (var run in paragraph.Descendants<Run>()) {
-                            string runText = string.Concat(run.Elements<Text>().Select(text => text.Text));
-                            double factor = IsMonospaceFont(run.RunProperties?.RunFonts?.Ascii?.Value) ? MonospaceWidthFactor : 1D;
+                        foreach (OfficeXmlNode run in paragraph.ModelDescendants("r")) {
+                            string runText = string.Concat(run.WElements("t").Select(text => text.InnerText));
+                            double factor = IsMonospaceFont(run.WChild("rPr").WChild("rFonts").WAttr("ascii")) ? MonospaceWidthFactor : 1D;
                             foreach (char character in runText) {
                                 if (char.IsWhiteSpace(character)) {
                                     longestWord = Math.Max(longestWord, current);

@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Word.Markdown {

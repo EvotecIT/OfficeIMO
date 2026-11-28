@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 

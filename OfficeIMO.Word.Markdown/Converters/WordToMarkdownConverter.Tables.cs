@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
         internal string ConvertTable(WordTable table, WordMarkdownExportOptions options) {

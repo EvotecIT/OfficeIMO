@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.

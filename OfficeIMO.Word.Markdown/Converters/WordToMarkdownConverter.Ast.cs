@@ -1,14 +1,7 @@
+using OfficeIMO.OpenXml.Internal;
 using System.Diagnostics;
 using System.Text;
-using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using M = DocumentFormat.OpenXml.Math;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
-using V = DocumentFormat.OpenXml.Vml;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OmdListItem = OfficeIMO.Markdown.ListItem;
@@ -462,9 +455,7 @@ namespace OfficeIMO.Word.Markdown {
             const string codeLangPrefix = "CodeLang_";
             var blocks = new List<IMarkdownBlock>();
 
-            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(
-                paragraph._document,
-                paragraph._paragraph);
+            IReadOnlyList<WordEquationOccurrence> equations = paragraph._document.EquationOccurrences(paragraph.Node());
             if (equations.Count > 0) {
                 return BuildParagraphBlocksWithOrderedEquations(
                     paragraph,
@@ -520,18 +511,17 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static bool IsHorizontalRuleParagraph(WordParagraph paragraph) {
-            var bottom = paragraph._paragraph.ParagraphProperties?.ParagraphBorders?.BottomBorder;
-            if (bottom?.Val == null || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.None
-                || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.Nil) return false;
-            var paragraphElement = paragraph._paragraph;
-            if (paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text))) return false;
-            return !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.EmbeddedObject>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.FieldChar>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SimpleField>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SdtRun>().Any()
-                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any();
+            OfficeXmlNode paragraphElement = paragraph.Node();
+            string? bottom = paragraphElement.WChild("pPr").WChild("pBdr").WChild("bottom").WVal();
+            if (bottom == null || bottom == "none" || bottom == "nil") return false;
+            if (paragraphElement.ModelDescendants("t").Any(text => !string.IsNullOrWhiteSpace(text.InnerText))) return false;
+            return !HasModelDescendant(paragraphElement, WordXml.W, "drawing")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "pict")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "object")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "fldChar")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "fldSimple")
+                && !paragraphElement.ModelDescendants("sdt").Any(sdt => sdt.IsRunContentControl())
+                && !HasModelDescendant(paragraphElement, WordXml.M, "oMath");
         }
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
@@ -580,7 +570,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
             }
 
-            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(paragraph._paragraph, equations)) {
+            foreach (WordEquationContentSegment segment in WordConverterNodes.VisibleEquationContentSegments(paragraph.Node(), equations)) {
                 if (segment.Equation != null) {
                     FlushInlines();
                     string latex = segment.Equation.ToLatex();
@@ -590,12 +580,9 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                WordParagraph sourceRun = segment.CreateSourceParagraph(
-                    paragraph._document,
-                    paragraph._paragraph,
-                    paragraph);
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph);
                 if (segment.IsRunArtifact) {
-                    if ((segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) &&
+                    if (IsBreakArtifact(segment.ArtifactNode()) &&
                         sourceRun.PageBreak != null) {
                         FlushInlines();
                         IMarkdownBlock? pageBreak = CreatePageBreakBlock(options);
@@ -720,9 +707,9 @@ namespace OfficeIMO.Word.Markdown {
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
             bool checkboxPending = hasCheckbox;
-            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
-            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
-            var expandedEquationContainers = new HashSet<OpenXmlElement>();
+            List<OfficeXmlNode> paragraphChildren = paragraph.Node().Elements().ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = paragraph._document.EquationOccurrences(paragraph.Node());
+            var expandedEquationContainers = new HashSet<OfficeXmlNode>();
 
             if (paragraph.PageBreakBefore) {
                 var pageBreakBlock = CreatePageBreakBlock(options);
@@ -736,11 +723,9 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                OpenXmlElement? runContentContainer = run._hyperlink
-                    ?? (OpenXmlElement?)run._stdRun
-                    ?? run._run;
-                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
-                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                OfficeXmlNode runContentContainer = RunContentContainer(run);
+                OfficeXmlNode runContainer = WordConverterNodes.GetDirectParagraphChild(run.Node(), runContentContainer);
+                int runIndex = runContainer.IsNone ? -1 : paragraphChildren.IndexOf(runContainer);
                 if (runIndex >= 0) {
                     AppendUnexpandedEquationContainersBefore(
                         segment, paragraph, paragraphChildren, equations, expandedEquationContainers,
@@ -750,7 +735,7 @@ namespace OfficeIMO.Word.Markdown {
                     .Where(equation => equation.ContainsChildIndex(runIndex))
                     .ToList();
                 if (coveringEquations.Count > 0) {
-                    if (runContainer != null &&
+                    if (runContainer.Exists &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
                         AppendEquationContainerText(
@@ -893,8 +878,9 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            return (run._visibleRun ?? run._run)?.Descendants<Break>()
-                .Any(br => br.Type?.Value == BreakValues.Page) == true;
+            OfficeXmlNode visibleRun = run.VisibleRunNode();
+            if (visibleRun.IsNone) visibleRun = run.RunNode();
+            return visibleRun.ModelDescendants("br").Any(br => br.WAttr("type") == "page");
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -952,16 +938,14 @@ namespace OfficeIMO.Word.Markdown {
             var sequence = CreateInlineSequence();
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
-            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
-            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
-            var expandedEquationContainers = new HashSet<OpenXmlElement>();
+            List<OfficeXmlNode> paragraphChildren = paragraph.Node().Elements().ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = paragraph._document.EquationOccurrences(paragraph.Node());
+            var expandedEquationContainers = new HashSet<OfficeXmlNode>();
 
             foreach (var run in paragraph.GetRuns()) {
-                OpenXmlElement? runContentContainer = run._hyperlink
-                    ?? (OpenXmlElement?)run._stdRun
-                    ?? run._run;
-                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
-                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                OfficeXmlNode runContentContainer = RunContentContainer(run);
+                OfficeXmlNode runContainer = WordConverterNodes.GetDirectParagraphChild(run.Node(), runContentContainer);
+                int runIndex = runContainer.IsNone ? -1 : paragraphChildren.IndexOf(runContainer);
                 if (runIndex >= 0) {
                     AppendUnexpandedEquationContainersBefore(
                         sequence, paragraph, paragraphChildren, equations, expandedEquationContainers,
@@ -971,7 +955,7 @@ namespace OfficeIMO.Word.Markdown {
                     .Where(equation => equation.ContainsChildIndex(runIndex))
                     .ToList();
                 if (coveringEquations.Count > 0) {
-                    if (runContainer != null &&
+                    if (runContainer.Exists &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
                         AppendEquationContainerText(
@@ -1004,9 +988,9 @@ namespace OfficeIMO.Word.Markdown {
         private void AppendUnexpandedEquationContainersBefore(
             InlineSequence sequence,
             WordParagraph paragraph,
-            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<OfficeXmlNode> paragraphChildren,
             IReadOnlyList<WordEquationOccurrence> equations,
-            ISet<OpenXmlElement> expandedEquationContainers,
+            ISet<OfficeXmlNode> expandedEquationContainers,
             int childIndex,
             WordParagraph fallbackRun,
             WordMarkdownExportOptions options,
@@ -1015,8 +999,8 @@ namespace OfficeIMO.Word.Markdown {
             foreach (WordEquationOccurrence occurrence in equations.Where(equation => equation.StartChildIndex < childIndex)) {
                 int equationChildIndex = occurrence.StartChildIndex;
                 if (equationChildIndex < 0 || equationChildIndex >= paragraphChildren.Count) continue;
-                OpenXmlElement container = paragraphChildren[equationChildIndex];
-                if (!WordEquation.IsVisibleEquationContentContainer(container) ||
+                OfficeXmlNode container = paragraphChildren[equationChildIndex];
+                if (!WordConverterNodes.IsVisibleEquationContentContainer(container) ||
                     !expandedEquationContainers.Add(container)) {
                     continue;
                 }
@@ -1039,18 +1023,15 @@ namespace OfficeIMO.Word.Markdown {
         private void AppendEquationContainerText(
             InlineSequence sequence,
             WordParagraph paragraph,
-            OpenXmlElement container,
+            OfficeXmlNode container,
             IReadOnlyList<WordEquationOccurrence> coveringEquations,
             WordParagraph fallbackRun,
             WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
-            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
+            foreach (WordEquationContentSegment segment in WordConverterNodes.VisibleEquationContentSegments(container, coveringEquations)) {
                 if (segment.Equation != null) continue;
-                WordParagraph sourceRun = segment.CreateSourceParagraph(
-                    paragraph._document,
-                    paragraph._paragraph,
-                    fallbackRun);
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph.Node(), fallbackRun);
                 if (segment.IsRunArtifact) {
                     AppendEquationArtifact(
                         sequence,
@@ -1116,18 +1097,19 @@ namespace OfficeIMO.Word.Markdown {
             WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
-            if (segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) {
+            OfficeXmlNode artifact = segment.ArtifactNode();
+            if (IsBreakArtifact(artifact)) {
                 if (sourceRun.PageBreak == null) sequence.HardBreak();
                 return;
             }
 
-            if (segment.ArtifactElement is FootnoteReference &&
+            if (artifact.IsW("footnoteReference") &&
                 sourceRun.FootNote?.ReferenceId is long footnoteId) {
                 sequence.FootnoteRef(footnoteId.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 return;
             }
 
-            if (segment.ArtifactElement is SdtRun &&
+            if (artifact.IsRunContentControl() &&
                 !string.IsNullOrEmpty(segment.ArtifactVisibleText)) {
                 AppendRunInlines(
                     sequence,
@@ -1139,11 +1121,20 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            if ((segment.ArtifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
-                 segment.ArtifactElement is V.ImageData) &&
+            if ((artifact.IsW("drawing") || artifact.Is(WordXml.V, "imagedata")) &&
                 sourceRun.Image != null) {
                 sequence.AddRaw(CreateImageInline(sourceRun.Image, options));
             }
+        }
+
+        private static bool IsBreakArtifact(OfficeXmlNode artifact) => artifact.IsW("br") || artifact.IsW("cr");
+
+        /// <summary>The paragraph child that holds the run's content: its hyperlink, inline content control or run.</summary>
+        private static OfficeXmlNode RunContentContainer(WordParagraph run) {
+            OfficeXmlNode container = run.HyperlinkNode();
+            if (container.IsNone) container = run.SdtRunNode();
+            if (container.IsNone) container = run.RunNode();
+            return container;
         }
 
         private static IMarkdownBlock? CreatePageBreakBlock(WordMarkdownExportOptions options) {
@@ -1198,35 +1189,43 @@ namespace OfficeIMO.Word.Markdown {
             return normalized > 9 ? 9 : normalized;
         }
 
+        // Name-matched walks also reach elements held untyped inside unknown markup; the model's typed walks never did.
+        private static bool HasModelDescendant(OfficeXmlNode element, int namespaceId, string localName) =>
+            element.DescendantElements(namespaceId, localName).Any(WordConverterNodes.IsModelElement);
+
+        private static bool HasModelDescendant(OfficeXmlNode element, string namespaceUri, string localName) =>
+            element.DescendantElements(namespaceUri, localName).Any(WordConverterNodes.IsModelElement);
+
         private static bool TryGetUnsupportedParagraphContentKind(WordParagraph paragraph, out string kind) {
-            if (paragraph.IsChart || paragraph._paragraph.Descendants<C.ChartReference>().Any()) {
+            OfficeXmlNode element = paragraph.Node();
+            if (paragraph.IsChart || HasModelDescendant(element, WordXml.C, "chart")) {
                 kind = "chart";
                 return true;
             }
 
-            if (paragraph.IsSmartArt || paragraph._paragraph.Descendants<A.GraphicData>().Any(data => string.Equals(data.Uri, "http://schemas.openxmlformats.org/drawingml/2006/diagram", StringComparison.Ordinal))) {
+            if (paragraph.IsSmartArt || element.DescendantElements(WordXml.A, "graphicData").Any(data => data.IsModelElement() && string.Equals(data.Attr("uri"), "http://schemas.openxmlformats.org/drawingml/2006/diagram", StringComparison.Ordinal))) {
                 kind = "SmartArt";
                 return true;
             }
 
             if (paragraph.IsShape ||
-                paragraph._paragraph.Descendants<Wps.WordprocessingShape>().Any() ||
-                paragraph._paragraph.Descendants<V.Shape>().Any() ||
-                paragraph._paragraph.Descendants<V.Rectangle>().Any() ||
-                paragraph._paragraph.Descendants<V.RoundRectangle>().Any() ||
-                paragraph._paragraph.Descendants<V.Oval>().Any() ||
-                paragraph._paragraph.Descendants<V.Line>().Any() ||
-                paragraph._paragraph.Descendants<V.PolyLine>().Any()) {
+                HasModelDescendant(element, WordXml.Wps, "wsp") ||
+                HasModelDescendant(element, WordXml.V, "shape") ||
+                HasModelDescendant(element, WordXml.V, "rect") ||
+                HasModelDescendant(element, WordXml.V, "roundrect") ||
+                HasModelDescendant(element, WordXml.V, "oval") ||
+                HasModelDescendant(element, WordXml.V, "line") ||
+                HasModelDescendant(element, WordXml.V, "polyline")) {
                 kind = "shape";
                 return true;
             }
 
-            if (paragraph.IsEmbeddedObject || paragraph._paragraph.Descendants<Ovml.OleObject>().Any()) {
+            if (paragraph.IsEmbeddedObject || HasModelDescendant(element, WordXml.O, "OLEObject")) {
                 kind = "embedded object";
                 return true;
             }
 
-            if (paragraph.IsEquation || paragraph._paragraph.Descendants<M.OfficeMath>().Any() || paragraph._paragraph.Descendants<M.Paragraph>().Any()) {
+            if (paragraph.IsEquation || HasModelDescendant(element, WordXml.M, "oMath") || HasModelDescendant(element, WordXml.M, "oMathPara")) {
                 kind = "equation";
                 return true;
             }
@@ -1252,7 +1251,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             if (string.Equals(unsupportedParagraphKind, "equation", StringComparison.OrdinalIgnoreCase) &&
-                WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0) {
                 return blocks;
             }
 
@@ -1683,7 +1682,7 @@ namespace OfficeIMO.Word.Markdown {
                 cell.ColumnSpan > 1 || cell.RowSpan > 1 ||
                 cell.HasHorizontalMerge || cell.HasVerticalMerge));
             bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
-                cell._tableCell.TableCellProperties?.TableCellBorders?.ChildElements.Count > 0));
+                cell.Node().WChild("tcPr").WChild("tcBorders").HasChildren()));
             bool hasTableBorders = HasAuthoredTableBorders(table);
             if (hasMergedCells)
                 options.OnWarning?.Invoke("Word table cell merges cannot be represented by a Markdown table; cell layout was flattened.");
@@ -1722,40 +1721,41 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static bool HasAuthoredTableBorders(WordTable table) {
-            if (table._tableProperties?.TableBorders?.ChildElements.Count > 0) return true;
+            OfficeXmlNode tableProperties = table.PropertiesNode();
+            if (tableProperties.WChild("tblBorders").HasChildren()) return true;
 
             WordStyleCatalog styles = WordStyleCatalog.For(table.Document);
-            string? styleId = table._tableProperties?.TableStyle?.Val?.Value ?? styles.DefaultStyleId(StyleValues.Table);
+            string? styleId = tableProperties.ChildVal("tblStyle") ?? styles.DefaultStyleId("table");
             var visited = new HashSet<string>(StringComparer.Ordinal);
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-                Style? style = styles.FindById(styleId);
-                if (style == null) break;
-                if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
+                OfficeXmlNode style = styles.FindStyleNodeById(styleId);
+                if (style.IsNone) break;
+                if (style.WChild("tblPr").WChild("tblBorders").HasChildren())
                     return true;
-                if (style.Elements<TableStyleProperties>().Any(properties =>
-                    IsActiveConditionalTableStyle(properties.Type?.Value, table) &&
-                    (properties.Descendants<TableBorders>().Any(borders => borders.HasChildren) ||
-                     properties.Descendants<TableCellBorders>().Any(borders => borders.HasChildren))))
+                if (style.WElements("tblStylePr").Any(properties =>
+                    IsActiveConditionalTableStyle(properties.WAttr("type"), table) &&
+                    (properties.ModelDescendants("tblBorders").Any(borders => borders.HasChildren()) ||
+                     properties.ModelDescendants("tcBorders").Any(borders => borders.HasChildren()))))
                     return true;
-                styleId = style.BasedOn?.Val?.Value;
+                styleId = style.ChildVal("basedOn");
             }
             return false;
         }
 
-        private static bool IsActiveConditionalTableStyle(TableStyleOverrideValues? type, WordTable table) {
-            if (type == TableStyleOverrideValues.WholeTable) return true;
-            if (type == TableStyleOverrideValues.FirstRow) return table.ConditionalFormattingFirstRow == true;
-            if (type == TableStyleOverrideValues.LastRow) return table.ConditionalFormattingLastRow == true;
-            if (type == TableStyleOverrideValues.FirstColumn) return table.ConditionalFormattingFirstColumn == true;
-            if (type == TableStyleOverrideValues.LastColumn) return table.ConditionalFormattingLastColumn == true;
-            if (type == TableStyleOverrideValues.Band1Horizontal) return table.ConditionalFormattingNoHorizontalBand != true;
-            if (type == TableStyleOverrideValues.Band2Horizontal) return table.ConditionalFormattingNoHorizontalBand != true && table.Rows.Count > 1;
-            if (type == TableStyleOverrideValues.Band1Vertical) return table.ConditionalFormattingNoVerticalBand != true;
-            if (type == TableStyleOverrideValues.Band2Vertical) return table.ConditionalFormattingNoVerticalBand != true && table.Rows.Any(row => row.Cells.Count > 1);
-            if (type == TableStyleOverrideValues.NorthWestCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingFirstColumn == true;
-            if (type == TableStyleOverrideValues.NorthEastCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingLastColumn == true;
-            if (type == TableStyleOverrideValues.SouthWestCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingFirstColumn == true;
-            if (type == TableStyleOverrideValues.SouthEastCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingLastColumn == true;
+        private static bool IsActiveConditionalTableStyle(string? type, WordTable table) {
+            if (type == "wholeTable") return true;
+            if (type == "firstRow") return table.ConditionalFormattingFirstRow == true;
+            if (type == "lastRow") return table.ConditionalFormattingLastRow == true;
+            if (type == "firstCol") return table.ConditionalFormattingFirstColumn == true;
+            if (type == "lastCol") return table.ConditionalFormattingLastColumn == true;
+            if (type == "band1Horz") return table.ConditionalFormattingNoHorizontalBand != true;
+            if (type == "band2Horz") return table.ConditionalFormattingNoHorizontalBand != true && table.Rows.Count > 1;
+            if (type == "band1Vert") return table.ConditionalFormattingNoVerticalBand != true;
+            if (type == "band2Vert") return table.ConditionalFormattingNoVerticalBand != true && table.Rows.Any(row => row.Cells.Count > 1);
+            if (type == "nwCell") return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == "neCell") return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingLastColumn == true;
+            if (type == "swCell") return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == "seCell") return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingLastColumn == true;
             return false;
         }
 

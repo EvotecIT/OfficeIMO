@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -322,7 +321,7 @@ namespace OfficeIMO.Word.Markdown {
             ex is WordImageFormatNotSupportedException ||
             ex is System.IO.InvalidDataException ||
             ex is ArgumentException ||
-            ex is DocumentFormat.OpenXml.Packaging.OpenXmlPackageException;
+            WordConverterNodes.IsPackageReadException(ex);
 
         private static bool TryDecodeDataUriImage(
             string source,
@@ -438,14 +437,14 @@ namespace OfficeIMO.Word.Markdown {
             var fallbackText = !string.IsNullOrEmpty(alt) ? alt! : fallback ?? string.Empty;
             var text = AddContextText(paragraph, fallbackText, options, format);
             var defaultFont = ResolveDefaultFontFamily(options);
-            if (format.NativeDefaults == null && !string.IsNullOrEmpty(defaultFont)) {
+            if (format.NativeDefaults.IsNone && !string.IsNullOrEmpty(defaultFont)) {
                 text.SetFontFamily(defaultFont!);
             }
         }
 
         private static void AddImageFallbackLink(WordParagraph paragraph, string text, Uri uri, MarkdownWordExportOptions options, InlineFormatState format) {
             WordParagraph link = paragraph.AddHyperLink(text, uri).Paragraph;
-            if (format.NativeDefaults != null) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(options), options);
+            if (format.NativeDefaults.Exists) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(options), options);
         }
 
         private static double? ResolveContextWidthLimitPixels(

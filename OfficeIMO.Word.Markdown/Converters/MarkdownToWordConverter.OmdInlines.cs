@@ -1,5 +1,5 @@
+using OfficeIMO.OpenXml.Internal;
 using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
@@ -9,10 +9,10 @@ namespace OfficeIMO.Word.Markdown {
                 bool bold,
                 bool italic,
                 bool strike,
-                UnderlineValues? underline,
-                HighlightColorValues? highlight,
-                VerticalPositionValues? verticalTextAlignment,
-                StyleRunProperties? nativeDefaults = null) {
+                WordUnderlineStyle? underline,
+                WordHighlightColor? highlight,
+                WordVerticalTextPosition? verticalTextAlignment,
+                OfficeXmlNode nativeDefaults = default) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -25,17 +25,18 @@ namespace OfficeIMO.Word.Markdown {
             public bool Bold { get; }
             public bool Italic { get; }
             public bool Strike { get; }
-            public UnderlineValues? Underline { get; }
-            public HighlightColorValues? Highlight { get; }
-            public VerticalPositionValues? VerticalTextAlignment { get; }
-            public StyleRunProperties? NativeDefaults { get; }
+            public WordUnderlineStyle? Underline { get; }
+            public WordHighlightColor? Highlight { get; }
+            public WordVerticalTextPosition? VerticalTextAlignment { get; }
+            /// <summary>The native table text role's run properties, or <see cref="OfficeXmlNode.None"/>.</summary>
+            public OfficeXmlNode NativeDefaults { get; }
 
             public InlineFormatState WithBold() => new InlineFormatState(bold: true, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
             public InlineFormatState WithItalic() => new InlineFormatState(bold: Bold, italic: true, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
             public InlineFormatState WithStrike() => new InlineFormatState(bold: Bold, italic: Italic, strike: true, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
-            public InlineFormatState WithUnderline(UnderlineValues underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
-            public InlineFormatState WithHighlight(HighlightColorValues highlight) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
-            public InlineFormatState WithVerticalTextAlignment(VerticalPositionValues verticalTextAlignment) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: verticalTextAlignment, nativeDefaults: NativeDefaults);
+            public InlineFormatState WithUnderline(WordUnderlineStyle underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
+            public InlineFormatState WithHighlight(WordHighlightColor highlight) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: highlight, verticalTextAlignment: VerticalTextAlignment, nativeDefaults: NativeDefaults);
+            public InlineFormatState WithVerticalTextAlignment(WordVerticalTextPosition verticalTextAlignment) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: verticalTextAlignment, nativeDefaults: NativeDefaults);
         }
 
         private static WordParagraph AddRun(WordParagraph paragraph, string? text, InlineFormatState fmt, string? defaultFont, string? defaultTextColorHex) {
@@ -48,10 +49,10 @@ namespace OfficeIMO.Word.Markdown {
             ApplyNativeTableRunDefaults(run, fmt, omitFont: !string.IsNullOrEmpty(defaultFont));
             if (fmt.Bold) run.SetBold();
             if (fmt.Italic) run.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
+            if (fmt.Underline.HasValue && fmt.Underline.Value != WordUnderlineStyle.None) run.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) run.SetStrikethrough();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
-            if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != WordHighlightColor.None) run.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
             if (!string.IsNullOrEmpty(defaultTextColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(defaultTextColorHex!));
         }
@@ -62,30 +63,28 @@ namespace OfficeIMO.Word.Markdown {
         private const double InlineCodeSizeRatio = 0.9D;
         private const int DefaultBodyFontSize = 11;
 
-        private static void ApplyInlineCodeSize(WordParagraph run, WordParagraph paragraph, WordDocument document, StyleRunProperties? nativeDefaults = null) {
-            if (run.FontSize.HasValue && nativeDefaults == null) return;
+        private static void ApplyInlineCodeSize(WordParagraph run, WordParagraph paragraph, WordDocument document, OfficeXmlNode nativeDefaults = default) {
+            if (run.FontSize.HasValue && nativeDefaults.IsNone) return;
             WordParagraphStyles? style = paragraph.Style;
             if (style.HasValue && style.Value != WordParagraphStyles.Normal && style.Value != WordParagraphStyles.ListParagraph) return;
-            double bodySize = nativeDefaults != null && run.FontSize.HasValue
+            double bodySize = nativeDefaults.Exists && run.FontSize.HasValue
                 ? run.FontSize.Value.ToPoints() : document.Settings.FontSize?.ToPoints() ?? DefaultBodyFontSize;
             run.FontSize = OfficeLength.Points(Math.Max(1, (int)Math.Round(bodySize * InlineCodeSizeRatio, MidpointRounding.AwayFromZero)));
         }
 
         private static WordParagraph CreateDetachedRun(WordDocument document, string? text, InlineFormatState fmt, string? defaultFont, bool forceMonospace = false) {
-            var paragraph = new Paragraph();
-            var run = new Run(new Text(text ?? string.Empty) {
-                Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve
-            });
-            paragraph.Append(run);
+            OfficeXmlNode paragraph = WordConverterNodes.CreateDetachedParagraph();
+            OfficeXmlNode run = paragraph.Append(paragraph.CreateElement(WordXml.W, "r"));
+            run.Append(WordConverterNodes.CreateDetachedPreservedText(text ?? string.Empty));
 
-            var wrapper = new WordParagraph(document, paragraph, run);
+            var wrapper = document.RunView(paragraph, run);
             ApplyNativeTableRunDefaults(wrapper, fmt, omitFont: forceMonospace || !string.IsNullOrEmpty(defaultFont));
             if (fmt.Bold) wrapper.SetBold();
             if (fmt.Italic) wrapper.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
+            if (fmt.Underline.HasValue && fmt.Underline.Value != WordUnderlineStyle.None) wrapper.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) wrapper.SetStrikethrough();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
-            if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != WordHighlightColor.None) wrapper.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
 
             if (forceMonospace) {
                 wrapper.SetFontFamily(WordFontResolver.Resolve("monospace") ?? "Consolas");
@@ -209,19 +208,19 @@ namespace OfficeIMO.Word.Markdown {
                 _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithStrike(), _defaultFont));
 
             protected override void VisitHighlightInline(Omd.HighlightInline inline) =>
-                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithHighlight(HighlightColorValues.Yellow), _defaultFont));
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithHighlight(WordHighlightColor.Yellow), _defaultFont));
 
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
-                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(WordUnderlineStyle.Single), _defaultFont));
 
             protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
-                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(WordUnderlineStyle.Single), _defaultFont));
 
             protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
-                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont));
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript), _defaultFont));
 
             protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
-                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont));
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript), _defaultFont));
 
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
@@ -236,28 +235,28 @@ namespace OfficeIMO.Word.Markdown {
                 VisitNested(inline.Inlines, _fmt.WithStrike());
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+                VisitNested(inline.Inlines, _fmt.WithHighlight(WordHighlightColor.Yellow));
 
             protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+                VisitNested(inline.Inlines, _fmt.WithUnderline(WordUnderlineStyle.Single));
 
             protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript));
 
             protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
                     case "u":
                     case "ins":
-                        VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+                        VisitNested(inline.Inlines, _fmt.WithUnderline(WordUnderlineStyle.Single));
                         break;
                     case "sup":
-                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript));
                         break;
                     case "sub":
-                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
+                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript));
                         break;
                     case "q":
                         _runs.Add(CreateDetachedRun(_document, "\"", _fmt, _defaultFont));
@@ -286,7 +285,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static InlineFormatState CreateDefaultInlineFormatState(StyleRunProperties? nativeDefaults = null) =>
+        private static InlineFormatState CreateDefaultInlineFormatState(OfficeXmlNode nativeDefaults = default) =>
             new InlineFormatState(
                 bold: false,
                 italic: false,
@@ -313,7 +312,7 @@ namespace OfficeIMO.Word.Markdown {
 
             string? defaultFont = ResolveDefaultFontFamily(options);
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
-            StyleRunProperties? nativeDefaults = PrepareNativeTableTextDefaults(paragraph, theme);
+            OfficeXmlNode nativeDefaults = PrepareNativeTableTextDefaults(paragraph, theme);
             string? defaultTextColorHex = theme?.SourceTheme == null ? theme?.PaletteSnapshot.Text.ToRgbHex() : null;
             new ParagraphInlineWriter(
                 paragraph,
@@ -402,7 +401,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitCodeSpanInline(Omd.CodeSpanInline inline) {
                 var run = AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
                 var mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
-                if (run.ScopedRunProperties is { } properties) properties.RunFonts = null;
+                WordXmlEdits.RemoveChild(run.ScopedRunPropertiesNode(), "rFonts");
                 run.SetFontFamily(mono);
                 ApplyInlineCodeSize(run, _paragraph, _document, _fmt.NativeDefaults);
             }
@@ -517,19 +516,19 @@ namespace OfficeIMO.Word.Markdown {
                 AddRun(_paragraph, inline.Text, _fmt.WithStrike(), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitHighlightInline(Omd.HighlightInline inline) =>
-                AddRun(_paragraph, inline.Text, _fmt.WithHighlight(HighlightColorValues.Yellow), _defaultFont, _defaultTextColorHex);
+                AddRun(_paragraph, inline.Text, _fmt.WithHighlight(WordHighlightColor.Yellow), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
-                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
+                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(WordUnderlineStyle.Single), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
-                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
+                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(WordUnderlineStyle.Single), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
-                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont, _defaultTextColorHex);
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
-                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont, _defaultTextColorHex);
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript), _defaultFont, _defaultTextColorHex);
 
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
@@ -544,28 +543,28 @@ namespace OfficeIMO.Word.Markdown {
                 VisitNested(inline.Inlines, _fmt.WithStrike());
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+                VisitNested(inline.Inlines, _fmt.WithHighlight(WordHighlightColor.Yellow));
 
             protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+                VisitNested(inline.Inlines, _fmt.WithUnderline(WordUnderlineStyle.Single));
 
             protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript));
 
             protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
-                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
                     case "u":
                     case "ins":
-                        VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+                        VisitNested(inline.Inlines, _fmt.WithUnderline(WordUnderlineStyle.Single));
                         break;
                     case "sup":
-                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Superscript));
                         break;
                     case "sub":
-                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
+                        VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(WordVerticalTextPosition.Subscript));
                         break;
                     case "q":
                         AddRun(_paragraph, "\"", _fmt, _defaultFont, _defaultTextColorHex);
@@ -617,10 +616,10 @@ namespace OfficeIMO.Word.Markdown {
             ApplyNativeTableRunDefaults(hyperlink, fmt, omitFont: !string.IsNullOrEmpty(defaultFont));
             if (fmt.Bold) hyperlink.SetBold();
             if (fmt.Italic) hyperlink.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
+            if (fmt.Underline.HasValue && fmt.Underline.Value != WordUnderlineStyle.None) hyperlink.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) hyperlink.SetStrikethrough();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
-            if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != WordHighlightColor.None) hyperlink.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
             if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);
             string? accentHex = ResolveLinkColor(options);
             if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColor(OfficeIMO.OfficeColor.Parse(accentHex!));

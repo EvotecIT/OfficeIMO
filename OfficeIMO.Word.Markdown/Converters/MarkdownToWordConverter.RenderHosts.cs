@@ -1,5 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -110,26 +109,23 @@ namespace OfficeIMO.Word.Markdown {
 
         private sealed class BodyInsertionPointWordBlockRenderHost : IWordBlockRenderHost {
             private readonly WordDocument _document;
-            private readonly OpenXmlElement _anchor;
-            private readonly List<Paragraph> _listSeeds = new();
+            private readonly OfficeXmlNode _anchor;
+            private readonly List<OfficeXmlNode> _listSeeds = new();
 
-            public BodyInsertionPointWordBlockRenderHost(WordDocument document, OpenXmlElement anchor) {
+            public BodyInsertionPointWordBlockRenderHost(WordDocument document, OfficeXmlNode anchor) {
                 _document = document ?? throw new ArgumentNullException(nameof(document));
-                _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
-                if (_anchor.Parent == null) {
+                if (anchor.IsNone) throw new ArgumentNullException(nameof(anchor));
+                _anchor = anchor;
+                if (_anchor.Parent.IsNone) {
                     throw new InvalidOperationException("Insertion anchor must be attached to a Word document.");
                 }
             }
 
-            public WordParagraph CreateParagraph() {
-                var paragraph = new Paragraph();
-                _anchor.InsertBeforeSelf(paragraph);
-                return new WordParagraph(_document, paragraph);
-            }
+            public WordParagraph CreateParagraph() => _document.ParagraphView(InsertParagraphBeforeAnchor());
 
             public WordList CreateList(WordListStyle style) {
                 var seed = CreateSeedParagraph();
-                _listSeeds.Add(seed._paragraph);
+                _listSeeds.Add(seed.Node());
                 return seed.AddList(style);
             }
 
@@ -146,12 +142,12 @@ namespace OfficeIMO.Word.Markdown {
                 var toc = _document.AddTableOfContent(minLevel: minLevel, maxLevel: maxLevel);
                 toc.Text = string.IsNullOrWhiteSpace(title) ? string.Empty : title!;
 
-                var block = toc.SdtBlock;
+                OfficeXmlNode block = toc.SdtBlockNode();
                 block.Remove();
-                _anchor.InsertBeforeSelf(block);
+                block = _anchor.Parent.InsertBefore(block, _anchor);
 
-                var body = _document.BodyRoot;
-                _document._tableOfContentIndex = body.ChildElements.ToList().IndexOf(block);
+                OfficeXmlNode body = BodyRoot(_document);
+                _document._tableOfContentIndex = body.Elements().ToList().IndexOf(block);
                 return true;
             }
 
@@ -167,10 +163,11 @@ namespace OfficeIMO.Word.Markdown {
                 _listSeeds.Clear();
             }
 
-            private WordParagraph CreateSeedParagraph() {
-                var paragraph = new Paragraph();
-                _anchor.InsertBeforeSelf(paragraph);
-                return new WordParagraph(_document, paragraph);
+            private WordParagraph CreateSeedParagraph() => _document.ParagraphView(InsertParagraphBeforeAnchor());
+
+            private OfficeXmlNode InsertParagraphBeforeAnchor() {
+                OfficeXmlNode parent = _anchor.Parent;
+                return parent.InsertBefore(parent.CreateElement(WordXml.W, "p"), _anchor);
             }
         }
     }

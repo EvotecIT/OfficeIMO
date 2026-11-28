@@ -1,5 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
@@ -19,7 +18,7 @@ namespace OfficeIMO.Word.Markdown {
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
             RenderMarkdownDocument(markdown, host, document, options, pageContentWidthPixels, cancellationToken);
 
-            if (insertion.RemoveAfterRender && insertion.Anchor.Parent != null) {
+            if (insertion.RemoveAfterRender && insertion.Anchor.Parent.Exists) {
                 insertion.Anchor.Remove();
             }
 
@@ -75,7 +74,7 @@ namespace OfficeIMO.Word.Markdown {
         private static TemplateInsertion ResolveTemplateInsertion(WordDocument document, MarkdownWordExportOptions options) {
             if (!string.IsNullOrWhiteSpace(options.ContentControlTag) || !string.IsNullOrWhiteSpace(options.ContentControlAlias)) {
                 var contentControl = FindBlockContentControl(document, options);
-                if (contentControl == null) {
+                if (contentControl.IsNone) {
                     throw new InvalidOperationException("The requested block content control insertion point was not found.");
                 }
 
@@ -84,64 +83,68 @@ namespace OfficeIMO.Word.Markdown {
 
             if (!string.IsNullOrWhiteSpace(options.BookmarkName)) {
                 var bookmarkParagraph = FindBookmarkParagraph(document, options.BookmarkName!);
-                if (bookmarkParagraph == null) {
+                if (bookmarkParagraph.IsNone) {
                     throw new InvalidOperationException($"Bookmark '{options.BookmarkName}' was not found.");
                 }
 
                 return new TemplateInsertion(bookmarkParagraph, options.ReplacePlaceholder);
             }
 
-            var marker = new Paragraph();
-            var sectionProperties = document.BodyRoot.Elements<SectionProperties>().LastOrDefault();
-            if (sectionProperties != null) {
-                document.BodyRoot.InsertBefore(marker, sectionProperties);
-            } else {
-                document.BodyRoot.Append(marker);
-            }
+            OfficeXmlNode body = BodyRoot(document);
+            OfficeXmlNode marker = body.CreateElement(WordXml.W, "p");
+            OfficeXmlNode sectionProperties = body.WElements("sectPr").LastOrDefault();
+            marker = body.InsertBefore(marker, sectionProperties);
 
             return new TemplateInsertion(marker, removeAfterRender: true);
         }
 
-        private static SdtBlock? FindBlockContentControl(WordDocument document, MarkdownWordExportOptions options) {
-            return document.BodyRoot
-                .Descendants<SdtBlock>()
+        /// <summary>The main document body; throws when the document has none, as the model's body accessor does.</summary>
+        private static OfficeXmlNode BodyRoot(WordDocument document) {
+            OfficeXmlNode body = document.BodyNode();
+            return body.Exists ? body : throw new InvalidOperationException("Document body is missing.");
+        }
+
+        private static OfficeXmlNode FindBlockContentControl(WordDocument document, MarkdownWordExportOptions options) {
+            return BodyRoot(document)
+                .ModelDescendants("sdt")
+                .Where(sdt => sdt.ContentControlLevel() == WordContentControlLevel.Block)
                 .FirstOrDefault(sdt =>
                     MatchesContentControlTag(sdt, options.ContentControlTag) &&
                     MatchesContentControlAlias(sdt, options.ContentControlAlias));
         }
 
-        private static bool MatchesContentControlTag(SdtBlock sdt, string? tag) {
+        private static bool MatchesContentControlTag(OfficeXmlNode sdt, string? tag) {
             if (string.IsNullOrWhiteSpace(tag)) {
                 return true;
             }
 
-            var actual = sdt.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value;
+            var actual = sdt.WChild("sdtPr").ChildVal("tag");
             return string.Equals(actual, tag, StringComparison.Ordinal);
         }
 
-        private static bool MatchesContentControlAlias(SdtBlock sdt, string? alias) {
+        private static bool MatchesContentControlAlias(OfficeXmlNode sdt, string? alias) {
             if (string.IsNullOrWhiteSpace(alias)) {
                 return true;
             }
 
-            var actual = sdt.SdtProperties?.GetFirstChild<SdtAlias>()?.Val?.Value;
+            var actual = sdt.WChild("sdtPr").ChildVal("alias");
             return string.Equals(actual, alias, StringComparison.Ordinal);
         }
 
-        private static Paragraph? FindBookmarkParagraph(WordDocument document, string bookmarkName) {
-            var bookmark = document.BodyRoot
-                .Descendants<BookmarkStart>()
-                .FirstOrDefault(start => string.Equals(start.Name?.Value, bookmarkName, StringComparison.Ordinal));
-            return bookmark?.Ancestors<Paragraph>().FirstOrDefault();
+        private static OfficeXmlNode FindBookmarkParagraph(WordDocument document, string bookmarkName) {
+            var bookmark = BodyRoot(document)
+                .ModelDescendants("bookmarkStart")
+                .FirstOrDefault(start => string.Equals(start.WAttr("name"), bookmarkName, StringComparison.Ordinal));
+            return bookmark.Ancestor(WordXml.W, "p");
         }
 
         private readonly struct TemplateInsertion {
-            public TemplateInsertion(OpenXmlElement anchor, bool removeAfterRender) {
+            public TemplateInsertion(OfficeXmlNode anchor, bool removeAfterRender) {
                 Anchor = anchor;
                 RemoveAfterRender = removeAfterRender;
             }
 
-            public OpenXmlElement Anchor { get; }
+            public OfficeXmlNode Anchor { get; }
             public bool RemoveAfterRender { get; }
         }
     }
