@@ -404,21 +404,65 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void CreateFromTemplate_ConvertsPotxToEditablePptx() {
+        [Theory]
+        [InlineData(null)]
+        [InlineData("external relationship")]
+        [InlineData("reserved main name")]
+        [InlineData("mixed relationship types")]
+        [InlineData("discarded Strict slide")]
+        [InlineData("unbound content type")]
+        [InlineData("invalid content type catalog")]
+        [InlineData("invalid media type")]
+        public void CreateFromTemplate_ConvertsPotxToEditablePptx(string? carrierCase) {
             string sourcePptx = CreateTemplatePresentation();
             string sourcePotx = TempPath(".potx");
             string outputPath = TempPath(".pptx");
+            string sdkCopy = TempPath(".pptx");
             try {
                 File.Copy(sourcePptx, sourcePotx);
-                using (PresentationDocument template = PresentationDocument.Open(sourcePotx, true)) {
-                    template.ChangeDocumentType(PresentationDocumentType.Template);
-                    template.Save();
+                ChangeTemplateDocumentTypeThroughSdk(sourcePotx, PresentationDocumentType.Template);
+                if (carrierCase != null) EditTemplateCarrierFixture(sourcePotx, carrierCase);
+                File.Copy(sourcePotx, sdkCopy);
+                if (carrierCase is "invalid content type catalog" or "invalid media type" or "discarded Strict slide") {
+                    Exception expectedError = Assert.ThrowsAny<Exception>(() => ChangeTemplateDocumentTypeThroughSdk(sdkCopy, PresentationDocumentType.Presentation));
+                    Assert.IsType(expectedError.GetType(), Record.Exception(() => PowerPointTemplate.CreateDocument(sourcePotx, outputPath).Dispose()));
+                    Assert.False(File.Exists(outputPath));
+                    return;
                 }
+                ChangeTemplateDocumentTypeThroughSdk(sdkCopy, PresentationDocumentType.Presentation);
+                bool retainAll = carrierCase is "unbound content type" or "mixed relationship types";
+                using (PowerPointDocument reference = PowerPointDocument.Load(sdkCopy)) {
+                    if (!retainAll) reference.ClearSlides();
+                    reference.Save();
+                }
+                var options = new PowerPointTemplateCreationOptions {
+                    SlideRetention = retainAll ? PowerPointTemplateSlideRetention.All : PowerPointTemplateSlideRetention.None
+                };
 
                 using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(sourcePotx,
-                           outputPath)) {
-                    Assert.Empty(presentation.Slides);
+                           outputPath, options)) {
+                    Assert.Equal(retainAll ? 3 : 0, presentation.Slides.Count);
+                    using (var expected = OfficeOpcPackage.Open(File.OpenRead(sdkCopy)))
+                    using (var actual = OfficeOpcPackage.Open(File.OpenRead(outputPath))) {
+                        OfficeOpcRelationship expectedMain = Assert.Single(expected.GetRelationships(null),
+                            edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType && !edge.IsExternal);
+                        OfficeOpcRelationship actualMain = Assert.Single(actual.GetRelationships(null),
+                            edge => edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType && !edge.IsExternal);
+                        Assert.Equal(expectedMain.Id, actualMain.Id);
+                        Assert.Equal(expectedMain.TargetPartName, actualMain.TargetPartName);
+                        Assert.Equal(expected.GetRelationships(null).Where(edge => edge.IsExternal).Select(edge => (edge.Id, edge.Type, edge.Target)),
+                            actual.GetRelationships(null).Where(edge => edge.IsExternal).Select(edge => (edge.Id, edge.Type, edge.Target)));
+                        if (carrierCase == "mixed relationship types") {
+                            string slide = expected.GetRelatedPartName(expectedMain.TargetPartName, OfficeOpcPackage.SlideRelationshipType)!;
+                            string part = OfficeOpcPartNames.GetRelationshipsPartName(slide);
+                            Assert.Equal(ReadTemplateXml(expected, part).Elements().Select(edge => (string?)edge.Attribute("Type")),
+                                ReadTemplateXml(actual, part).Elements().Select(edge => (string?)edge.Attribute("Type")));
+                        }
+                        if (carrierCase == "unbound content type") {
+                            Assert.Contains(ReadTemplateXml(expected, "/[Content_Types].xml").Elements(), item => (string?)item.Attribute("PartName") == "/ppt/ghost.xml");
+                            Assert.Contains(ReadTemplateXml(actual, "/[Content_Types].xml").Elements(), item => (string?)item.Attribute("PartName") == "/ppt/ghost.xml");
+                        }
+                    }
                     presentation.AddSlide();
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -427,8 +471,64 @@ namespace OfficeIMO.Tests {
                 using PresentationDocument package = PresentationDocument.Open(outputPath, false);
                 Assert.Equal(PresentationDocumentType.Presentation, package.DocumentType);
             } finally {
-                Delete(sourcePptx, sourcePotx, outputPath);
+                Delete(sourcePptx, sourcePotx, outputPath, sdkCopy);
             }
+        }
+
+        private static void ChangeTemplateDocumentTypeThroughSdk(string path, PresentationDocumentType type) {
+            using var document = PresentationDocument.Open(path, true);
+            document.ChangeDocumentType(type);
+            document.Save();
+        }
+
+        private static XElement ReadTemplateXml(OfficeOpcPackage package, string part) {
+            using var bytes = package.ReadPart(part);
+            using var stream = new MemoryStream(bytes.Array, 0, bytes.Length, writable: false);
+            return XElement.Load(stream);
+        }
+
+        private static void EditTemplateCarrierFixture(string path, string carrierCase) {
+            byte[] data = File.ReadAllBytes(path);
+            using var original = OfficeOpcPackage.Open(new MemoryStream(data, writable: false));
+            string main = original.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slide = original.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            using var editable = OfficeOpcEditablePackage.Open(new MemoryStream(data, writable: false));
+            switch (carrierCase) {
+                case "external relationship":
+                    editable.AddRelationship(null, "urn:officeimo:template-reference", "https://example.invalid/template", external: true);
+                    break;
+                case "reserved main name":
+                    string occupied = main.Insert(main.LastIndexOf('.'), "2");
+                    editable.CreateBinaryPart(occupied, "application/octet-stream", new byte[] { 1 });
+                    editable.AddRelationship(slide, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "package", occupied);
+                    break;
+                case "discarded Strict slide":
+                case "mixed relationship types":
+                    OfficeXmlTree relationships = editable.GetRelationships(slide);
+                    for (int edge = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                         edge != OfficeXmlTree.NoNode; edge = relationships.FindNextSibling(edge, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                        if (relationships.GetAttribute(edge, OfficeXmlNamespaces.None, "Type") == OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slideLayout") {
+                            relationships.SetAttribute(edge, OfficeXmlNamespaces.None, "Type", "http://purl.oclc.org/ooxml/officeDocument/relationships/slideLayout");
+                        }
+                    }
+                    if (carrierCase == "discarded Strict slide") {
+                        byte[] malformed = Encoding.UTF8.GetBytes("<p:sld xmlns:p='http://schemas.openxmlformats.org/presentationml/2006/main'><p:cSld>");
+                        editable.ReplacePart(slide, malformed, malformed.Length);
+                    }
+                    break;
+                case "unbound content type":
+                    editable.SetOverride("/ppt/ghost.xml", "application/xml");
+                    break;
+                case "invalid content type catalog":
+                    editable.ContentTypes.SetAttribute(editable.ContentTypes.Root, OfficeXmlNamespaces.None, "unexpected", "1");
+                    break;
+                case "invalid media type":
+                    editable.AddDefaultContentType("bogus", "invalidmime");
+                    break;
+            }
+            using var modified = new MemoryStream();
+            editable.Save(modified);
+            File.WriteAllBytes(path, modified.ToArray());
         }
 
         [Fact]

@@ -144,7 +144,7 @@ public sealed partial class PowerPointDocument {
     }
 
     private static IReadOnlyList<OfficeOpcRelationship>? ReadEditablePackageRelationships(OfficeOpcEditablePackage package, string? owner,
-        bool strictXml = false) {
+        bool strictXml = false, bool requireTransitionalTypes = false) {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(owner);
         if (!package.PartExists(relationshipsPart)) return Array.Empty<OfficeOpcRelationship>();
         OfficeXmlTree tree = package.GetXml(relationshipsPart);
@@ -162,7 +162,9 @@ public sealed partial class PowerPointDocument {
             if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id) || target == null || !ids.Add(id!)) return null;
             string? mode = tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode");
             if (mode != null && mode != "Internal" && mode != "External") return null;
-            relationships.Add(new OfficeOpcRelationship(directory, id!, OfficeXmlNamespaces.NormalizeRelationshipType(type!), target, mode == "External"));
+            string normalized = OfficeXmlNamespaces.NormalizeRelationshipType(type!);
+            if (requireTransitionalTypes && normalized != type) return null;
+            relationships.Add(new OfficeOpcRelationship(directory, id!, normalized, target, mode == "External"));
         }
         return relationships;
     }

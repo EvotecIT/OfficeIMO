@@ -2,6 +2,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Controls which source slides remain in a presentation created from a template.</summary>
@@ -61,15 +63,16 @@ namespace OfficeIMO.PowerPoint {
             OfficeFileCommit.EnsureTargetDirectory(destination);
             string stagingPath = OfficeFileCommit.CreateStagingPath(destination);
             try {
-                File.Copy(source, stagingPath, overwrite: false);
+                bool isTemplate = string.Equals(sourceExtension, ".potx", StringComparison.OrdinalIgnoreCase);
+                if (!isTemplate || !TryCreateOwnedTemplate(source, stagingPath, resolved)) {
+                    File.Copy(source, stagingPath, overwrite: false);
+                    if (isTemplate) {
+                        using PresentationDocument document = PresentationDocument.Open(stagingPath, true);
+                        document.ChangeDocumentType(PresentationDocumentType.Presentation);
+                        document.Save();
+                    }
 
-                if (string.Equals(sourceExtension, ".potx", StringComparison.OrdinalIgnoreCase)) {
-                    using PresentationDocument document = PresentationDocument.Open(stagingPath, true);
-                    document.ChangeDocumentType(PresentationDocumentType.Presentation);
-                    document.Save();
-                }
-
-                using (PowerPointDocument presentation = Load(stagingPath)) {
+                    using PowerPointDocument presentation = Load(stagingPath);
                     presentation.ApplyTemplateSlideRetention(resolved);
                     presentation.Save();
                 }
@@ -85,6 +88,56 @@ namespace OfficeIMO.PowerPoint {
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);
             }
+        }
+
+        private static bool TryCreateOwnedTemplate(string inputPath, string stagingPath, PowerPointTemplateCreationOptions options) {
+            if (options.HideRetainedSourceSlides || options.SlideRetention is not (PowerPointTemplateSlideRetention.None or PowerPointTemplateSlideRetention.All)
+                || new FileInfo(inputPath).IsReadOnly) return false;
+            byte[] converted;
+            try {
+                using Stream source = File.OpenRead(inputPath);
+                using PowerPointDocument? template = TryOpenDeferredPackage(source, filePath: null, associatedStream: null,
+                    new PowerPointLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+                if (template == null || template._loadedDocumentType != PresentationDocumentType.Template ||
+                    template._loadedPackage is not { HasDuplicateContentTypes: false } package ||
+                    package.GetRelationships(null).Any(edge => edge.IsExternal) || template.EditablePackage is not { } editable ||
+                    !CanProjectTemplateContentTypes(editable)) return false;
+                if (options.SlideRetention == PowerPointTemplateSlideRetention.None) {
+                    if (package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType) is not { } main) return false;
+                    // The old type change chooses the name before removing the slides, including parts that clear may delete.
+                    _ = NextSubtypeMainPartName(editable, main, out bool collision);
+                    if (collision || !template.TryClearPackageSlides(requireTransitionalTypes: true)) return false;
+                }
+                if (!template.TryCreateOwnedPackageBytes(keepsSubtype: false, PresentationMainContentType,
+                    preserveVbaProject: false, out converted, requireTransitionalTypes: true)) return false;
+            } catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or FormatException or NotSupportedException or OverflowException) {
+                return false;
+            }
+            using Stream output = File.Open(stagingPath, FileMode.CreateNew);
+            output.Write(converted, 0, converted.Length);
+            return true;
+        }
+
+        private static bool CanProjectTemplateContentTypes(OfficeOpcEditablePackage package) {
+            const int ns = OfficeXmlNamespaces.ContentTypes;
+            OfficeXmlTree types = package.ContentTypes;
+            var root = new OfficeXmlNode(types, types.Root);
+            if (!root.Is(ns, "Types") || root.HasAttributes || HasRelationshipText(root)) return false;
+            var checkedTypes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode entry in root.Children()) {
+                bool byExtension = entry.Is(ns, "Default");
+                if (!byExtension && !entry.Is(ns, "Override")) return false;
+                string key = byExtension ? "Extension" : "PartName";
+                string? name = types.GetAttribute(entry.Node, OfficeXmlNamespaces.None, key);
+                string? mediaType = types.GetAttribute(entry.Node, OfficeXmlNamespaces.None, "ContentType");
+                if (string.IsNullOrEmpty(name) || (!byExtension && !package.PartExists(name!)) || string.IsNullOrEmpty(mediaType) ||
+                    entry.FirstChild.Exists || HasRelationshipText(entry)) return false;
+                if (checkedTypes.Add(mediaType!) && new System.Net.Mime.ContentType(mediaType!).MediaType != mediaType) return false;
+                foreach (OfficeXmlAttribute attribute in entry.Attributes()) {
+                    if (attribute.NamespaceUri.Length != 0 || attribute.LocalName != key && attribute.LocalName != "ContentType") return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>Removes all slides while preserving reusable template masters, layouts, themes, and assets.</summary>

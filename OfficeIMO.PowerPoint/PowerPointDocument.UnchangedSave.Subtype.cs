@@ -5,12 +5,13 @@ using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package, string? renamedPart) {
+        private static bool CanSaveCurrentSubtype(OfficeOpcEditablePackage package, string? renamedPart, bool requireTransitionalTypes = false) {
             // The SDK clone writes only its relationship graph. Keep the same behavior for opaque or orphaned ZIP parts.
             var reachable = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance) { OfficeOpcEditablePackage.ContentTypesPartName };
             try {
                 IReadOnlyList<OfficeOpcRelationship>? Relationships(string? owner) {
-                    IReadOnlyList<OfficeOpcRelationship>? edges = ReadEditablePackageRelationships(package, owner, strictXml: true);
+                    IReadOnlyList<OfficeOpcRelationship>? edges = ReadEditablePackageRelationships(package, owner, strictXml: true,
+                        requireTransitionalTypes: requireTransitionalTypes);
                     if (edges is { Count: > 0 }) {
                         string part = OfficeOpcPartNames.GetRelationshipsPartName(owner);
                         if (renamedPart != null && edges.Any(edge => !edge.IsExternal && edge.TargetPartName is { } target &&

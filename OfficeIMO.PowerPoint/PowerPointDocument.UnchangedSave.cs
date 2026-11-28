@@ -25,7 +25,8 @@ namespace OfficeIMO.PowerPoint {
         /// Writes the package held by the owned engine with refreshed document properties. A subtype change or VBA
         /// removal applies to the saved copy, while the open document retains its source subtype and project.
         /// </summary>
-        private bool TryCreateOwnedPackageBytes(bool keepsSubtype, string? destinationContentType, bool preserveVbaProject, out byte[] bytes) {
+        private bool TryCreateOwnedPackageBytes(bool keepsSubtype, string? destinationContentType, bool preserveVbaProject, out byte[] bytes,
+            bool requireTransitionalTypes = false) {
             bytes = Array.Empty<byte>();
             if (!_sdkDeferred || IsSdkLoaded || !keepsSubtype && destinationContentType == null
                 || _packageStream is not { CanRead: true, CanSeek: true } packageStream) {
@@ -54,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
                 bool projectOutput = !keepsSubtype || stripVba;
                 if (stripVba && destinationContentType == null) return false;
                 bool validateSubtype = projectOutput || !IsLoadedStandardPresentation;
-                if (validateSubtype && !CanSaveCurrentSubtype(editable, keepsSubtype ? null : values.MainPart)) return false;
+                if (validateSubtype && !CanSaveCurrentSubtype(editable, keepsSubtype ? null : values.MainPart, requireTransitionalTypes)) return false;
                 PackageSaveProjection? projection = null;
                 if (projectOutput && !TryPlanPackageSaveProjection(editable, values.MainPart, keepsSubtype ? null : destinationContentType,
                     stripVba, out projection)) return false;

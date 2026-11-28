@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
                 if (rootPart == null || ReadEditablePackageRelationships(package, null, strictXml: true) is not { } packageLinks) return false;
                 if (destinationContentType != null) {
                     if (main.IndexOf('%') >= 0 || main.Any(char.IsWhiteSpace)) return false;
-                    string destination = NextSubtypeMainPartName(package, main);
+                    string destination = NextSubtypeMainPartName(package, main, out _);
                     OfficeOpcRelationship[] mainLinks = packageLinks.Where(edge => !edge.IsExternal &&
                         edge.Type == OfficeOpcPackage.OfficeDocumentRelationshipType).ToArray();
                     if (mainLinks.Length != 1) return false;
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string NextSubtypeMainPartName(OfficeOpcEditablePackage package, string main) {
+        private static string NextSubtypeMainPartName(OfficeOpcEditablePackage package, string main, out bool hadCollision) {
             int dot = main.LastIndexOf('.');
             bool hasExtension = dot > main.LastIndexOf('/');
             string stem = hasExtension ? main.Substring(0, dot) : main;
@@ -72,6 +72,7 @@ namespace OfficeIMO.PowerPoint {
                 destination = stem + suffix.ToString(CultureInfo.InvariantCulture) + extension;
                 suffix++;
             } while (package.PartExists(destination) || package.PartExists(OfficeOpcPartNames.GetRelationshipsPartName(destination)));
+            hadCollision = suffix > 3;
             return destination;
         }
 

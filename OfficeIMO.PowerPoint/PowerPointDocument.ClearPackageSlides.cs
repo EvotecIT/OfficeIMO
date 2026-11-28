@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private bool TryClearPackageSlides() {
+        private bool TryClearPackageSlides(bool requireTransitionalTypes = false) {
             if (EditablePackage is not { } package) return false;
             // ClearSlides has historically left caller-held text usable on the detached SDK nodes.
             if (_packageBindings?.Exists(reference => reference.TryGetTarget(out _)) == true ||
@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
                 slides = PackageSlideList.Read(package);
                 if (slides == null) return false;
                 var excluded = new HashSet<string>(slides.Entries.Select(entry => entry.Relationship), StringComparer.Ordinal);
-                if (!TryPlanClearedSlideParts(package, slides.Main, excluded, out removedParts)) return false;
+                if (!TryPlanClearedSlideParts(package, slides.Main, excluded, requireTransitionalTypes, out removedParts)) return false;
                 if (slides.Entries.Count > 0) {
                     var removedIdentities = new HashSet<string>(removedParts.Select(PartIdentity), OfficeAsciiIgnoreCaseComparer.Instance);
                     if (slides.Entries.Any(entry => !removedIdentities.Contains(PartIdentity(entry.Part)))) return false;
@@ -59,13 +59,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryPlanClearedSlideParts(OfficeOpcEditablePackage package, string main,
-            HashSet<string> excluded, out string[] removedParts) {
+            HashSet<string> excluded, bool requireTransitionalTypes, out string[] removedParts) {
             removedParts = Array.Empty<string>();
             string mainIdentity = PartIdentity(main);
             var linksByOwner = new Dictionary<string, IReadOnlyList<OfficeOpcRelationship>>(OfficeAsciiIgnoreCaseComparer.Instance);
             IReadOnlyList<OfficeOpcRelationship>? ReadRelationships(string? owner) {
                 string key = owner == null ? string.Empty : PartIdentity(owner);
-                IReadOnlyList<OfficeOpcRelationship>? links = ReadEditablePackageRelationships(package, owner, strictXml: true);
+                IReadOnlyList<OfficeOpcRelationship>? links = ReadEditablePackageRelationships(package, owner, strictXml: true,
+                    requireTransitionalTypes: requireTransitionalTypes);
                 if (links == null) return null;
                 foreach (OfficeOpcRelationship edge in links) {
                     if (edge.IsExternal) continue;
