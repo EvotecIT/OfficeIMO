@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint;
+using System.Buffers;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -12,6 +13,149 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public sealed class PowerPointMutationLifecycleTests {
+        [Fact]
+        public void RemovingShapeKeepsSharedLinkAndDetachedTextThroughLateSdkBinding() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide initial = source.AddSlide();
+            string expected = new('Q', 32781);
+            PowerPointTextBox first = initial.AddTextBox(expected);
+            var target = new Uri("https://example.test/shared");
+            first.Hyperlink = target;
+            initial.DuplicateShape(first);
+            byte[] saved = source.ToBytes();
+            using var storage = OfficeOpcEditablePackage.Open(new MemoryStream(saved, writable: false));
+            Assert.True(storage.TryGetStoredLength("/ppt/slides/slide1.xml", out long sourceBufferLength));
+            using var document = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+            PowerPointSlide slide = Assert.Single(document.Slides);
+            PowerPointTextBox removed = slide.TextBoxes.First();
+            PowerPointTextBox retained = slide.TextBoxes.Last();
+            PowerPointParagraph paragraph = Assert.Single(removed.Paragraphs);
+            PowerPointTextRun run = Assert.Single(paragraph.Runs);
+
+            slide.RemoveShape(removed);
+
+            Assert.Same(retained, Assert.Single(slide.Shapes));
+            Assert.Equal(target, retained.Hyperlink);
+            Assert.False(document.IsSdkLoaded);
+            _ = document.OpenXmlDocument;
+            var borrowed = new List<byte[]>();
+            try {
+                // Reuse cleared buffers from the bucket that held the loaded slide's XML.
+                for (int i = 0; i < 12; i++) {
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(checked((int)sourceBufferLength));
+                    borrowed.Add(buffer);
+                    Array.Clear(buffer, 0, buffer.Length);
+                }
+                Assert.Equal(expected, removed.Text);
+                Assert.Equal(expected, paragraph.Text);
+                Assert.Equal(expected, run.Text);
+                run.Text = "Detached edit";
+                Assert.Equal("Detached edit", removed.Text);
+                Assert.Equal(expected, retained.Text);
+            } finally {
+                foreach (byte[] buffer in borrowed) ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        [Fact]
+        public void RemovingTableShapeKeepsAnAlreadyHeldCellThroughLateSdkBinding() {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTable table = slide.AddTable(1, 1);
+            PowerPointTableCell cell = table.GetCell(0, 0);
+            cell.Text = "Detached cell";
+
+            slide.RemoveShape(table);
+            Assert.False(presentation.IsSdkLoaded);
+            _ = presentation.OpenXmlDocument;
+            Assert.Equal("Detached cell", cell.Text);
+            Assert.Empty(slide.Shapes);
+        }
+
+        [Fact]
+        public void RemovedLinkedOleShapeKeepsItsSdkMetadata() {
+            using var source = PowerPointDocument.Create();
+            source.AddSlide().AddLinkedOleObject(new Uri("https://example.test/ole.xlsx"), "Excel.Sheet.12");
+            using var document = PowerPointDocument.Load(new MemoryStream(source.ToBytes()));
+            PowerPointSlide slide = Assert.Single(document.Slides);
+            PowerPointOleObject shape = Assert.Single(slide.OleObjects);
+
+            slide.RemoveShape(shape);
+
+            Assert.Empty(slide.Shapes);
+            Assert.Equal("Excel.Sheet.12", shape.ProgId);
+        }
+
+        [Fact]
+        public void RemovingPictureWithDependentPartRetainsExistingCascadeBehavior() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            using var png = new MemoryStream(Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=="));
+            slide.AddImage(png, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            using var bytes = new MemoryStream(source.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(bytes, leaveOpen: true);
+            string picturePart = package.PartNames.Single(name => name.StartsWith("/ppt/media/image", StringComparison.Ordinal));
+            const string dependency = "/ppt/media/picture-data.bin";
+            package.CreateBinaryPart(dependency, "application/octet-stream", new byte[] { 1, 2, 3 });
+            package.AddRelationship(picturePart, "urn:test:picture-dependency", "picture-data.bin");
+            using var input = new MemoryStream();
+            package.Save(input);
+            input.Position = 0;
+
+            using var document = PowerPointDocument.Load(input);
+            PowerPointSlide restored = Assert.Single(document.Slides);
+            restored.RemoveShape(Assert.Single(restored.Images));
+
+            using var saved = new MemoryStream(document.ToBytes());
+            using OfficeOpcEditablePackage result = OfficeOpcEditablePackage.Open(saved);
+            Assert.False(result.PartExists(picturePart));
+            Assert.False(result.PartExists(OfficeOpcPartNames.GetRelationshipsPartName(picturePart)));
+            Assert.False(result.PartExists(dependency));
+        }
+
+        [Fact]
+        public void ShapeRemovalIgnoresDrawingIdsInsideExtensionsAndKeepsTheirRelationshipReferences() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            PowerPointTextBox removed = slide.AddTextBox("Remove");
+            removed.Hyperlink = new Uri("https://example.test/extension-target");
+            PowerPointTextBox retained = slide.AddTextBox("Keep");
+            slide.AddClassicAnimation(retained, PowerPointClassicAnimationEffect.Fade);
+            using var bytes = new MemoryStream(source.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(bytes, leaveOpen: true);
+            const string part = "/ppt/slides/slide1.xml";
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            XNamespace fixture = "urn:test:shape-removal";
+            XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(part)));
+            XElement first = xml.Root!.Element(p + "cSld")!.Element(p + "spTree")!.Elements(p + "sp").First();
+            XElement drawing = first.Element(p + "nvSpPr")!.Element(p + "cNvPr")!;
+            string relationshipId = drawing.Element(a + "hlinkClick")!.Attribute(r + "id")!.Value;
+            first.Add(new XElement(p + "extLst", new XElement(p + "ext", new XAttribute("uri", "{85B2D381-E619-4EC5-BB3C-6920645AFC71}"),
+                new XElement(p + "cNvPr", new XAttribute("id", retained.Id!.Value), new XAttribute("name", "Producer drawing")))));
+            xml.Root.Element(p + "extLst")!.Add(new XElement(p + "ext", new XAttribute("uri", "{97A1D84F-8286-4318-A98E-FA248367555C}"),
+                new XElement(fixture + "reference", new XAttribute(r + "id", relationshipId))));
+            byte[] modified = Encoding.UTF8.GetBytes(xml.ToString(SaveOptions.DisableFormatting));
+            package.ReplacePart(part, modified, modified.Length);
+            using var input = new MemoryStream();
+            package.Save(input);
+            input.Position = 0;
+
+            using var restored = PowerPointDocument.Load(input);
+            PowerPointSlide restoredSlide = Assert.Single(restored.Slides);
+            restoredSlide.RemoveShape(restoredSlide.TextBoxes.First());
+            Assert.Equal(retained.Id, Assert.Single(restoredSlide.ClassicAnimations).ShapeId);
+            using var output = new MemoryStream(restored.ToBytes());
+            Assert.False(restored.IsSdkLoaded);
+            using OfficeOpcEditablePackage result = OfficeOpcEditablePackage.Open(output);
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(part);
+            Assert.Equal("https://example.test/extension-target",
+                XDocument.Parse(Encoding.UTF8.GetString(result.ReadPartBytes(relationshipsPart))).Root!.Elements()
+                    .Single(edge => (string?)edge.Attribute("Id") == relationshipId).Attribute("Target")!.Value);
+        }
+
         [Fact]
         public void RemovingOnlyCustomShowSlideRemovesShowAndActions() {
             using PowerPointDocument presentation =

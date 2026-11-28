@@ -49,7 +49,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
-            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached)) _removed = true;
+            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached
+                && _packageSlide?.IsInDetachedPackageShape(_element) != true)) _removed = true;
         }
 
         private void ThrowIfRemoved() {

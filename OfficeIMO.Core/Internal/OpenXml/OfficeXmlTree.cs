@@ -32,14 +32,14 @@ internal sealed partial class OfficeXmlTree {
     private int _sourceNodeCount;
     private Attr[] _attrs;
     private int _attrCount;
-    private readonly byte[]? _source;
+    private byte[]? _source;
     private readonly int _sourceLength;
     private readonly int _prologEnd;
     private readonly int _epilogStart;
     // The value of the declaration's encoding of a part transcoded from UTF-16, which is written as UTF-8; -1 otherwise.
     private readonly int _encodingStart;
     private readonly int _encodingEnd;
-    private readonly OfficeXmlPullReader? _decoder;
+    private OfficeXmlPullReader? _decoder;
     // Bindings a moved or re-scoped element keeps from where it was written, so its names and any QName values in its
     // attributes or text mean what they meant there. The writer declares those its new scope binds differently.
     private Dictionary<int, List<CarriedBinding>>? _carried;
@@ -78,6 +78,16 @@ internal sealed partial class OfficeXmlTree {
 
     /// <summary>Whether the tree was parsed from bytes rather than created empty.</summary>
     internal bool IsParsed => _source != null;
+
+    /// <summary>Copies the input buffer when held nodes must survive the package that lent it to this tree.</summary>
+    internal void RetainSourceBytes() {
+        if (_source == null || _decoder is { Transcoded: true }) return;
+        var copy = new byte[_sourceLength];
+        Buffer.BlockCopy(_source, 0, copy, 0, _sourceLength);
+        // Lazy text and attribute reads must also use the retained bytes.
+        _decoder = new OfficeXmlPullReader(copy, copy.Length, Namespaces, processMarkupCompatibility: false, recycle: _decoder);
+        _source = copy;
+    }
 
     /// <summary>Whether anything changed since the tree was parsed; a created tree always counts as changed.</summary>
     internal bool IsChanged => _source == null || Root != NoNode && (_nodes[Root].Flags & SubtreeChanged) != 0;
