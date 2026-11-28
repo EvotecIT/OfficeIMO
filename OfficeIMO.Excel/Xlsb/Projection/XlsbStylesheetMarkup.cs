@@ -70,10 +70,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (source.Weight >= 700) Add(node, "b");
             if ((source.Flags & 0x0002) != 0) Add(node, "i");
             if ((source.Flags & 0x0008) != 0) Add(node, "strike");
-            if ((source.Flags & 0x0010) != 0) Add(node, "outline");
-            if ((source.Flags & 0x0020) != 0) Add(node, "shadow");
             if ((source.Flags & 0x0040) != 0) Add(node, "condense");
             if ((source.Flags & 0x0080) != 0) Add(node, "extend");
+            if ((source.Flags & 0x0010) != 0) Add(node, "outline");
+            if ((source.Flags & 0x0020) != 0) Add(node, "shadow");
             string? underline = source.Underline switch {
                 1 => "single", 2 => "double", 0x21 => "singleAccounting", 0x22 => "doubleAccounting", _ => null
             };

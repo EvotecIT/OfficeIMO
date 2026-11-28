@@ -112,6 +112,22 @@ public sealed class ExcelXlsbWorksheetFeatureTests {
     }
 
     [Fact]
+    public void Native_save_limit_applies_to_the_xlsb_output() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using ExcelDocument unrestricted = ExcelDocument.Load(new MemoryStream(source));
+        unrestricted["Data"].Cell(1, 1).SetValue(2);
+        byte[] expected = unrestricted.ToBytes(options);
+        Assert.True(unrestricted.ToBytes().Length > expected.Length);
+
+        using ExcelDocument bounded = ExcelDocument.Load(new MemoryStream(source));
+        Assert.True(bounded.IsSdkDeferred);
+        bounded["Data"].Cell(1, 1).SetValue(2);
+        options.MaxInMemoryPackageBytes = expected.Length;
+        Assert.Equal(expected, bounded.ToBytes(options));
+    }
+
+    [Fact]
     public async Task Cancelled_native_save_leaves_the_destination_and_pending_edit_intact() {
         byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));

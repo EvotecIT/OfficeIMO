@@ -8,13 +8,19 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     internal sealed class XlsbOwnedRelatedParts {
         private readonly OfficeOpcEditablePackage _package;
         private readonly XlsbWorkbook _workbook;
+        private readonly HashSet<string> _reserved;
         private readonly CancellationToken _cancellationToken;
         private readonly Dictionary<string, (string Target, string RelationshipType)> _copied = new(StringComparer.OrdinalIgnoreCase);
         private int _nextGeneratedName;
 
-        internal XlsbOwnedRelatedParts(OfficeOpcEditablePackage package, XlsbWorkbook workbook, CancellationToken cancellationToken) {
+        internal XlsbOwnedRelatedParts(OfficeOpcEditablePackage package, XlsbWorkbook workbook,
+            IReadOnlyList<string> relativeSheetParts, CancellationToken cancellationToken) {
             _package = package;
             _workbook = workbook;
+            _reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "/xl/theme/theme2.xml", "/xl/sharedStrings.xml", "/docProps/core.xml", "/docProps/app.xml"
+            };
+            foreach (string name in relativeSheetParts) _reserved.Add("/xl/" + name);
             _cancellationToken = cancellationToken;
         }
 
@@ -56,7 +62,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
             XlsbProjectedPart part = _workbook.RelatedParts[source];
             string target = "/" + source.TrimStart('/');
-            while (_package.PartExists(target)) {
+            while (_reserved.Contains(target) || _package.PartExists(target)) {
                 string extension = Path.GetExtension(source);
                 target = "/xl/officeimo-native/part" + (++_nextGeneratedName).ToString(CultureInfo.InvariantCulture)
                     + (extension.Length == 0 ? ".bin" : extension);

@@ -39,7 +39,14 @@ namespace OfficeIMO.Excel {
                             MaxPartBytes = _xlsbAdvancedWorkbook.MaxPartBytes,
                             CancellationToken = cancellationToken
                         });
-                    if (!TryCreateDeferredPackageBytesCore(taken, maximumBytes, out byte[] projection)) return false;
+                    byte[] projection;
+                    try {
+                        if (!TryCreateDeferredPackageBytesCore(taken, maximumBytes, out projection)) return false;
+                    } catch (InvalidDataException exception) when (IsPackageMaterializationLimitException(exception)) {
+                        // The limit applies to the native output. The standard writer can use the editable model
+                        // if its internal XLSX projection needs a larger buffer.
+                        return false;
+                    }
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Like an owned XLSX save, publish the edited document state before writing to a destination.

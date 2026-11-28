@@ -312,6 +312,13 @@ def normalized_xml(data, part, ids, relationships, aliases):
     return ET.canonicalize(ET.tostring(root, encoding="unicode"), rewrite_prefixes=True)
 
 
+def has_dangling_content_types(archive):
+    names = set(archive.namelist())
+    root = ET.fromstring(archive.read("[Content_Types].xml"))
+    return any(part.get("PartName", "").lstrip("/") not in names
+               for part in root if part.tag.endswith("}Override"))
+
+
 def compare_packages(left, right, allow_markup_equivalence, allow_part_rename=False):
     if left.read_bytes() == right.read_bytes():
         return "identical", []
@@ -332,12 +339,16 @@ def compare_packages(left, right, allow_markup_equivalence, allow_part_rename=Fa
             ]
         left_ids, left_relationships = stable_relationships(left_parts, {})
         right_ids, right_relationships = stable_relationships(right_parts, aliases)
+        renamed = any(source != target for source, target in aliases.items())
+        if renamed and any(has_dangling_content_types(archive) for archive in (baseline, candidate)):
+            return "different", ["[Content_Types].xml has an override for a missing part"]
         changed = []
         for part in left_names:
             before = baseline.read(part)
             after = candidate.read(right_names[part])
             has_relationship_ids = part in left_ids or part in right_ids
-            if before == after and not has_relationship_ids and part not in left_relationships:
+            if (before == after and not has_relationship_ids and part not in left_relationships
+                    and not (renamed and part == "[Content_Types].xml")):
                 continue
             if part.endswith((".xml", ".rels", ".vml")):
                 try:

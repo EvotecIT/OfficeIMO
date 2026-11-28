@@ -54,6 +54,21 @@ public partial class Excel {
     }
 
     [Fact]
+    public void Xlsb_OwnedProjectionPreservesFractionalCorePropertyDates() {
+        DateTime created = XlsbPropertiesCreated.AddTicks(1_234_567);
+        using var source = ExcelDocument.Create();
+        source.AddSheet("Data").Cell(1, 1).SetValue(1);
+        source.Properties.Created = created;
+        byte[] native = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+
+        using var imported = ExcelDocument.Load(new MemoryStream(native));
+        Assert.True(imported.IsSdkDeferred);
+        byte[] projected = imported.ToBytes();
+        using var reopened = ExcelDocument.Load(new MemoryStream(projected));
+        Assert.Equal(created, reopened.Properties.Created!.Value.ToUniversalTime());
+    }
+
+    [Fact]
     public void Xlsb_ResaveKeepsLoadedPropertiesAndWritesPropertyEditsOnce() {
         string sourcePath = Path.Combine(AppContext.BaseDirectory, "Documents", "XlsbCorpus", "excel-generated", "basic-values-formula.xlsb");
         string cellEditPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");

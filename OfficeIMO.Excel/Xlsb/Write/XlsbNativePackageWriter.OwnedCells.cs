@@ -75,11 +75,16 @@ internal static partial class XlsbNativePackageWriter {
         }
 
         if (remaining.Count != 0) {
+            // A new cell in a formatted row or column can acquire a style from the Excel model.
+            var styledRows = new HashSet<int>(sheet.Rows.Where(row => row.CustomFormat).Select(row => row.Row));
+            bool[]? styledColumns = null;
+            foreach (XlsbColumnInfo column in sheet.Columns) {
+                if (column.StyleIndex == 0) continue;
+                styledColumns ??= new bool[ExcelA1.MaxColumns + 1];
+                styledColumns.AsSpan(column.FirstColumn, column.LastColumn - column.FirstColumn + 1).Fill(true);
+            }
             foreach (ExcelDeferredCellEdit edit in remaining.Values) {
-                // A new cell in a formatted row or column can acquire a style from the Excel model.
-                if (sheet.Rows.Any(row => row.Row == edit.Row && row.CustomFormat)
-                    || sheet.Columns.Any(column => column.FirstColumn <= edit.Column && edit.Column <= column.LastColumn
-                        && column.StyleIndex != 0)) return false;
+                if (styledRows.Contains(edit.Row) || styledColumns?[edit.Column] == true) return false;
                 XlsbWriteCell? replacement = ConvertScalarEdit(edit, style: 0U);
                 if (replacement == null) return false;
                 result.Add(replacement);

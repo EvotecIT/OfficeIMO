@@ -26,7 +26,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             CancellationToken cancellationToken) {
             OfficeXmlTree workbookTree = package.GetXml(WorkbookPart);
             var workbook = new OfficeXmlNode(workbookTree, workbookTree.Root);
-            var related = new XlsbOwnedRelatedParts(package, native, cancellationToken);
+            string[] relativeSheetParts = NameSheetParts(native.Sheets);
+            var related = new XlsbOwnedRelatedParts(package, native, relativeSheetParts, cancellationToken);
             if (native.Stylesheet != null) {
                 OfficeXmlTree styles = package.GetXml(StylesPart);
                 var root = new OfficeXmlNode(styles, styles.Root);
@@ -54,23 +55,21 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
             ExcelDeferredSharedStrings strings = ExcelDeferredSharedStrings.Load(package, partName: null)!;
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int worksheetIndex = 0, chartIndex = 0, tabIndex = 0;
+            int tabIndex = 0;
             foreach (XlsbSheet source in native.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string name = source.IsChartSheet ? source.Name : worksheetName(source.Name, names);
                 names.Add(name);
                 bool selected = active != originalActive && tabIndex == active
                     || (active == originalActive || tabIndex != originalActive) && source.TabSelected == true;
-                string relativeName;
+                string relativeName = relativeSheetParts[tabIndex];
                 string relationshipType;
                 if (source.IsChartSheet) {
-                    relativeName = "chartsheets/sheet" + (++chartIndex).ToString(CultureInfo.InvariantCulture) + ".xml";
                     relationshipType = RelationshipPrefix + "chartsheet";
                     string nameInPackage = "/xl/" + relativeName;
                     OfficeXmlTree tree = package.CreateXmlPart(nameInPackage, ChartsheetContentType, Spreadsheet, "chartsheet");
                     XlsbOwnedWorksheetMarkup.WriteChartSheet(new OfficeXmlNode(tree, tree.Root), source, selected, nameInPackage, related);
                 } else {
-                    relativeName = "worksheets/sheet" + (++worksheetIndex).ToString(CultureInfo.InvariantCulture) + ".xml";
                     relationshipType = RelationshipPrefix + "worksheet";
                     string nameInPackage = "/xl/" + relativeName;
                     OfficeXmlNode layout = XlsbOwnedWorksheetMarkup.Create(package, nameInPackage, source, selected, related);
@@ -109,6 +108,17 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 int index = strings.IndexOf(text);
                 return index < 0 ? null : index;
             }
+        }
+
+        private static string[] NameSheetParts(IReadOnlyList<XlsbSheet> sheets) {
+            var parts = new string[sheets.Count];
+            int worksheetIndex = 0, chartIndex = 0;
+            for (int index = 0; index < sheets.Count; index++) {
+                parts[index] = sheets[index].IsChartSheet
+                    ? "chartsheets/sheet" + (++chartIndex).ToString(CultureInfo.InvariantCulture) + ".xml"
+                    : "worksheets/sheet" + (++worksheetIndex).ToString(CultureInfo.InvariantCulture) + ".xml";
+            }
+            return parts;
         }
 
         private static int ChooseVisibleTab(IReadOnlyList<XlsbSheet> sheets, int active) {

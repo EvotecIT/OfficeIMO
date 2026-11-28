@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Core.Internal.OpenXml;
@@ -44,7 +43,7 @@ internal static partial class XlsbDocumentPropertiesProjector {
             if (Array.IndexOf(CoreNames, child.Name) < 0) continue;
             if (child.Name == Core + "lastPrinted" || child.Name.Namespace == Terms) {
                 if (ParseDate(child.Value) is not DateTime date) continue;
-                var normalized = new XElement(child.Name, date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture));
+                var normalized = new XElement(child.Name, XmlConvert.ToString(date, XmlDateTimeSerializationMode.Utc));
                 if (child.Name.Namespace == Terms) normalized.SetAttributeValue(XmlSchemaInstance + "type", "dcterms:W3CDTF");
                 values[child.Name] = normalized;
             } else {

@@ -108,10 +108,11 @@ namespace OfficeIMO.Excel {
             byte[] bytes = existingSource
                 ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, CancellationToken.None, out directWrite, out generatedWorkbook);
+            bool adopt = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (adopt) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -139,10 +140,11 @@ namespace OfficeIMO.Excel {
             byte[] bytes = existingSource
                 ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, cancellationToken, out directWrite, out generatedWorkbook);
+            bool adopt = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (adopt) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource

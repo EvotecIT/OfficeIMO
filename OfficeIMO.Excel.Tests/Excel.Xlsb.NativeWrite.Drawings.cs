@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using System.IO.Compression;
+using System.Text;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -31,6 +32,46 @@ public sealed class ExcelXlsbDrawingTests {
         Assert.Equal(2, image.ColumnIndex);
         Assert.Equal(OfficeLength.Pixels(64), image.Width);
         Assert.Equal(OfficeLength.Pixels(32), image.Height);
+    }
+
+    [Fact]
+    public void Native_drawing_cannot_take_the_name_of_a_projected_worksheet() {
+        byte[] png = Png();
+        byte[] source = SaveAsXlsb(CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.Cell(1, 1).SetValue("Logo");
+            sheet.AddImage(3, 2, png, new ExcelImageOptions { ContentType = "image/png" });
+            document.AddSheet("Other").Cell(1, 1).SetValue(42);
+        }));
+        using var modified = new MemoryStream();
+        using (var input = new ZipArchive(new MemoryStream(source), ZipArchiveMode.Read))
+        using (var output = new ZipArchive(modified, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in input.Entries) {
+                string name = entry.FullName switch {
+                    "xl/drawings/drawing1.xml" => "xl/worksheets/sheet2.xml",
+                    "xl/drawings/_rels/drawing1.xml.rels" => "xl/worksheets/_rels/sheet2.xml.rels",
+                    _ => entry.FullName
+                };
+                using Stream part = entry.Open();
+                using Stream replacement = output.CreateEntry(name).Open();
+                if (name is "[Content_Types].xml" or "xl/worksheets/_rels/sheet1.bin.rels") {
+                    using var reader = new StreamReader(part);
+                    string oldTarget = name == "[Content_Types].xml" ? "/xl/drawings/drawing1.xml" : "../drawings/drawing1.xml";
+                    string newTarget = name == "[Content_Types].xml" ? "/xl/worksheets/sheet2.xml" : "sheet2.xml";
+                    string xml = reader.ReadToEnd();
+                    Assert.Contains(oldTarget, xml, StringComparison.Ordinal);
+                    byte[] bytes = Encoding.UTF8.GetBytes(xml.Replace(oldTarget, newTarget, StringComparison.Ordinal));
+                    replacement.Write(bytes, 0, bytes.Length);
+                } else {
+                    part.CopyTo(replacement);
+                }
+            }
+        }
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(modified.ToArray()));
+        Assert.True(reloaded.IsSdkDeferred);
+        Assert.Equal(42, reloaded["Other"].Cell(1, 1).GetValue<int>());
+        Assert.Equal(png, Assert.Single(reloaded["Images"].Images).ToBytes());
     }
 
     [Theory]
