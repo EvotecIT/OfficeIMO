@@ -935,12 +935,12 @@ namespace OfficeIMO.Word.Html {
                 if (!WordConverterNodes.FieldVisibilityForParagraph(paragraph).IsVisible) {
                     return false;
                 }
-                if (paragraph.WChild("pPr").HasChildren()) {
+                if (WordConverterNodes.FirstChildIncludingMarkup(paragraph.WChild("pPr")).Exists) {
                     return false;
                 }
 
                 StringBuilder? text = null;
-                foreach (OfficeXmlNode child in paragraph.Elements()) {
+                foreach (OfficeXmlNode child in WordConverterNodes.ChildNodesIncludingMarkup(paragraph)) {
                     if (child.IsW("pPr")) {
                         continue;
                     }
@@ -948,7 +948,7 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
 
-                    foreach (OfficeXmlNode runChild in child.Elements()) {
+                    foreach (OfficeXmlNode runChild in WordConverterNodes.ChildNodesIncludingMarkup(child)) {
                         if (!runChild.IsW("t") || !runChild.IsModelElement()) {
                             return false;
                         }
