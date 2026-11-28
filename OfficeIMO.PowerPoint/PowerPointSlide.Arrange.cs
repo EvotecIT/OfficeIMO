@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -64,7 +65,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode parent = RequireShapeParent(element);
 
             element.Remove();
-            parent.InsertBefore(element, next.XmlElement.NextNode);
+            parent.InsertBefore(element, next.XmlElement.NextNode());
             part.MarkEdited();
 
             ShapeList[index] = next;
@@ -110,12 +111,34 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode element = shape.XmlElement;
             OfficeXmlNode parent = RequireShapeParent(element);
 
+            OfficeXmlNode extension = FindTerminalPresentationExtension(parent);
             element.Remove();
-            parent.Append(element);
+            parent.InsertBefore(element, extension);
             part.MarkEdited();
 
             ShapeList.RemoveAt(index);
             ShapeList.Add(shape);
+        }
+
+        private static OfficeXmlNode FindTerminalPresentationExtension(OfficeXmlNode tree) {
+            OfficeXmlNode last = tree.LastChild;
+            if (last.Is(OfficeXmlNamespaces.PresentationML, "extLst")) return last;
+            if (!last.Is(MarkupCompatibilityNamespace, "AlternateContent")) return OfficeXmlNode.None;
+
+            // Keep a terminal wrapper in place if any compatibility view supplies the extension list.
+            var pending = new Stack<OfficeXmlNode>();
+            pending.Push(last);
+            while (pending.Count > 0) {
+                foreach (OfficeXmlNode branch in pending.Pop().Children()) {
+                    if (!branch.Is(MarkupCompatibilityNamespace, "Choice") &&
+                        !branch.Is(MarkupCompatibilityNamespace, "Fallback")) continue;
+                    if (branch.Child(OfficeXmlNamespaces.PresentationML, "extLst").Exists) return last;
+                    foreach (OfficeXmlNode nested in branch.Children(OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent")) {
+                        pending.Push(nested);
+                    }
+                }
+            }
+            return OfficeXmlNode.None;
         }
 
         /// <summary>

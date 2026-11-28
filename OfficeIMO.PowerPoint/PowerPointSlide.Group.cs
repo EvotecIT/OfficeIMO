@@ -77,10 +77,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Ungroups a group shape back into its child shapes.
         /// </summary>
+        /// <exception cref="InvalidOperationException">The group owns extension or compatibility markup that cannot be moved to the slide.</exception>
         public IReadOnlyList<PowerPointShape> UngroupShape(PowerPointGroupShape groupShape) {
             ArgumentNullException.ThrowIfNull(groupShape);
 
             int index = EnsureShapeOnSlide(groupShape);
+            foreach (OfficeXmlNode child in groupShape.XmlElement.Children()) {
+                if (child.Is(OfficeXmlNamespaces.PresentationML, "extLst") ||
+                    child.Is(MarkupCompatibilityNamespace, "AlternateContent")) {
+                    throw new InvalidOperationException("Cannot ungroup a shape with group-owned extension or compatibility markup.");
+                }
+            }
+
             PowerPointPartRef part = PartRef.ForMovingXmlNodes();
             OfficeXmlNode group = groupShape.XmlElement;
             OfficeXmlNode parent = group.Parent;
