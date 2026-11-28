@@ -10,7 +10,8 @@ $types = @(
     'w:CT_OnOff', 'w:CT_HpsMeasure', 'w:CT_Color', 'w:CT_Underline', 'w:CT_Highlight', 'w:CT_Fonts', 'w:CT_Jc',
     'w:CT_String', 'w:CT_VerticalAlignRun', 'w:CT_SectPr', 'w:CT_Spacing', 'w:CT_Ind', 'w:CT_SignedTwipsMeasure',
     'w:CT_TextEffect', 'w:CT_Shd', 'w:CT_Em', 'w:CT_Language',
-    'w:CT_Numbering', 'w:CT_AbstractNum', 'w:CT_Lvl', 'w:CT_Num', 'w:CT_NumLvl'
+    'w:CT_Numbering', 'w:CT_AbstractNum', 'w:CT_Lvl', 'w:CT_Num', 'w:CT_NumLvl',
+    'w:CT_TblPr', 'w:CT_TcPr'
 )
 
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlViews.ps1') `

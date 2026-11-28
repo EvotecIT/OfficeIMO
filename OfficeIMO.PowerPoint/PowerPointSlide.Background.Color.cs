@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -11,7 +11,10 @@ public partial class PowerPointSlide {
     /// <summary>Removes the slide's background override so the layout or master can supply its background.</summary>
     public void ClearBackground() {
         ClearBackgroundImage();
-        CommonSlideData? common = SlideRoot.CommonSlideData;
-        if (common != null) common.Background = null;
+        PowerPointPartRef part = PartRef;
+        var background = BackgroundOf(part);
+        if (background.IsNone) return;
+        background.Remove();
+        part.MarkEdited();
     }
 }

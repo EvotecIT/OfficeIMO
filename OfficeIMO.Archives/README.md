@@ -1,6 +1,6 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It decompresses Zstandard streams in managed code. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, stored RAR5, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It decompresses Zstandard streams in managed code. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
 
 ## Install
 
@@ -233,3 +233,18 @@ Pass the same `ArchiveOperationBudget` to related operations and `CreateNested()
 `ResourceUsage` on an inspection, verification result or extraction result reports a detached snapshot of the shared counters. Quota exceptions use `Operation.MaxInputBytes`, `Operation.MaxEntryCount`, `Operation.MaxExpandedBytes`, `Operation.MaxSelectedBytes`, `Operation.MaxDecompressionWorkBytes` or `Operation.MaxDepth` for shared-limit identity. CAB processing charges each reached frame as described above, including unselected solid-folder work. ZIP reads reserve compressed bytes plus twice declared expansion to account for framing validation and decoding; these units are not exact CPU time. Metadata-only traversal charges input and physical entries, and traversal of an existing inspection does not charge its input twice.
 
 See [the opt-in qualification consumer](../Build/Archives/README.md) for independent producer and package validation, including evidence boundaries.
+
+## Read and extract stored RAR5 archives
+
+```csharp
+using var source = File.OpenRead("comic.cbr");
+Rar5ArchiveInfo archive = ArchiveReader.InspectRar5(source);
+foreach (Rar5ArchiveEntry entry in archive.Entries) {
+    Console.WriteLine(entry.RelativePath);
+}
+```
+
+Use `ReadRar5` for verified file bytes or `ArchiveExtractor.Extract` to
+publish a fresh directory. Pass explicit paths in volume order to
+`ArchiveExtractor.ExtractRar5Volumes` for a split archive. See
+[RAR5 reading](SUPPORT.md#rar5-reading) for integrity checks, metadata and limits.

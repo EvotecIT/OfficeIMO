@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -28,6 +29,19 @@ public sealed class PowerPointSelectedSlideExportTests {
         Assert.True(OfficePngReader.TryDecode(images[1].Bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.FromRgb(18, 52, 86), image!.GetPixel(5, 5));
         Assert.Single(images[1].Diagnostics, diagnostic => diagnostic.Code == "embedded-image-limit");
+    }
+
+    [Fact]
+    public void OversizedSavedBackgroundImageReportsThePdfLimitAndStillExports() {
+        using var source = PowerPointDocument.Create();
+        byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+        source.AddSlide(PowerPointSlideLayoutType.Blank).SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
+
+        using var reopened = PowerPointDocument.Load(new MemoryStream(source.ToBytes()));
+        var result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { MaximumEmbeddedImageBytes = picture.Length - 1 });
+
+        Assert.Single(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.EmbeddedImageLimit);
+        Assert.NotEmpty(result.ToBytes());
     }
 
     [Fact]

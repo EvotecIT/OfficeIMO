@@ -355,6 +355,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointShapeContentType.Media, shape.Kind);
         }
 
+        [Fact]
+        public void AddingTextReservesDrawingIdsUsedByCompatibilityBranches() {
+            using var document = PowerPointDocument.Load(new MemoryStream(CreateCraftedDeck(), writable: false));
+            PowerPointSlide slide = document.Slides[0];
+
+            PowerPointTextBox added = slide.AddTextBox("New text");
+
+            Assert.Equal(22U, added.Id);
+            Assert.False(document.IsSdkLoaded);
+        }
+
         private static byte[] CreateCraftedDeck(string? secondSlideXml = null) {
             using var stream = new MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {

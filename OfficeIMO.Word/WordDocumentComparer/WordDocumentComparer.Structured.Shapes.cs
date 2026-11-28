@@ -1,14 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using A = DocumentFormat.OpenXml.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
-using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -16,8 +9,8 @@ namespace OfficeIMO.Word {
         private const string WordprocessingGroupUri = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
 
         private static void AnalyzeShapes(
-            WordDocument source,
-            WordDocument target,
+            WordPackageView source,
+            WordPackageView target,
             WordComparisonResult result,
             WordComparisonOptions options) {
             IReadOnlyList<ShapeSnapshot> sourceShapes = GetShapeSnapshots(source, options);
@@ -142,26 +135,26 @@ namespace OfficeIMO.Word {
                 shape.DocumentOrder);
         }
 
-        private static List<ShapeSnapshot> GetShapeSnapshots(WordDocument document, WordComparisonOptions options) {
+        private static List<ShapeSnapshot> GetShapeSnapshots(WordPackageView document, WordComparisonOptions options) {
             var snapshots = new List<ShapeSnapshot>();
-            MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddShapeSnapshots(snapshots, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase, options);
+            WordPartView? mainPart = document.Main;
+            AddShapeSnapshots(snapshots, BodyOf(mainPart), BodyPartKey, BodyPartOrderBase, options);
             if (mainPart == null) return snapshots;
 
             int headerIndex = 0;
-            foreach (KeyValuePair<HeaderPart, string> part in CreateOrderedHeaderPartKeys(mainPart)) {
-                AddShapeSnapshots(snapshots, part.Key.Header, part.Value, HeaderPartOrderBase + (headerIndex++ * RelatedPartOrderStride), options);
+            foreach (KeyValuePair<WordPartView, string> part in CreateOrderedHeaderPartKeys(mainPart)) {
+                AddShapeSnapshots(snapshots, HeaderRoot(part.Key), part.Value, HeaderPartOrderBase + (headerIndex++ * RelatedPartOrderStride), options);
             }
             int footerIndex = 0;
-            foreach (KeyValuePair<FooterPart, string> part in CreateOrderedFooterPartKeys(mainPart)) {
-                AddShapeSnapshots(snapshots, part.Key.Footer, part.Value, FooterPartOrderBase + (footerIndex++ * RelatedPartOrderStride), options);
+            foreach (KeyValuePair<WordPartView, string> part in CreateOrderedFooterPartKeys(mainPart)) {
+                AddShapeSnapshots(snapshots, FooterRoot(part.Key), part.Value, FooterPartOrderBase + (footerIndex++ * RelatedPartOrderStride), options);
             }
-            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
             for (int index = 0; index < footnotes.Count; index++) {
                 string id = GetNotePartKeyId(footnotes[index], index);
                 AddShapeSnapshots(snapshots, footnotes[index], FootnotePartKeyPrefix + id, FootnotePartOrderBase + (index * RelatedPartOrderStride), options);
             }
-            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
             for (int index = 0; index < endnotes.Count; index++) {
                 string id = GetNotePartKeyId(endnotes[index], index);
                 AddShapeSnapshots(snapshots, endnotes[index], EndnotePartKeyPrefix + id, EndnotePartOrderBase + (index * RelatedPartOrderStride), options);
@@ -171,37 +164,37 @@ namespace OfficeIMO.Word {
 
         private static void AddShapeSnapshots(
             List<ShapeSnapshot> snapshots,
-            OpenXmlElement? container,
+            OfficeXmlNode container,
             string partKey,
             int orderBase,
             WordComparisonOptions options) {
-            if (container == null) return;
+            if (container.IsNone) return;
             int partIndex = 0;
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not WordDrawing drawing || !TryGetShapeGraphicData(drawing, out A.GraphicData? graphicData)) continue;
-                snapshots.Add(CreateShapeSnapshot(drawing, graphicData!, partKey, partIndex++, ordered.DocumentOrder, options));
+                if (!ordered.Element.Is(W, "drawing") || !TryGetShapeGraphicData(ordered.Element, out OfficeXmlNode graphicData)) continue;
+                snapshots.Add(CreateShapeSnapshot(ordered.Element, graphicData, partKey, partIndex++, ordered.DocumentOrder, options));
             }
         }
 
-        private static bool TryGetShapeGraphicData(WordDrawing drawing, out A.GraphicData? graphicData) {
-            graphicData = drawing.Descendants<A.GraphicData>().FirstOrDefault(data => {
-                string uri = data.Uri?.Value ?? string.Empty;
+        private static bool TryGetShapeGraphicData(OfficeXmlNode drawing, out OfficeXmlNode graphicData) {
+            graphicData = DescendantsOf(drawing, Dml, "graphicData").FirstOrDefault(data => {
+                string uri = data.Attribute("uri") ?? string.Empty;
                 return string.Equals(uri, WordprocessingShapeUri, StringComparison.Ordinal) ||
                        string.Equals(uri, WordprocessingGroupUri, StringComparison.Ordinal);
             });
-            return graphicData != null;
+            return !graphicData.IsNone;
         }
 
         private static ShapeSnapshot CreateShapeSnapshot(
-            WordDrawing drawing,
-            A.GraphicData graphicData,
+            OfficeXmlNode drawing,
+            OfficeXmlNode graphicData,
             string partKey,
             int partIndex,
             int documentOrder,
             WordComparisonOptions options) {
-            bool group = graphicData.Descendants<Wpg.WordprocessingGroup>().Any();
-            List<string> presets = graphicData.Descendants<A.PresetGeometry>()
-                .Select(geometry => geometry.Preset?.InnerText ?? string.Empty)
+            bool group = TypedDescendants(graphicData).Any(element => element.Is(WordprocessingGroupUri, "wgp"));
+            List<string> presets = DescendantsOf(graphicData, Dml, "prstGeom")
+                .Select(geometry => geometry.Attribute("prst") ?? string.Empty)
                 .Where(value => value.Length > 0)
                 .ToList();
             string kind = group ? "shape-group" : "shape";
@@ -224,18 +217,17 @@ namespace OfficeIMO.Word {
                 display);
         }
 
-        private static string HashShapeContent(A.GraphicData graphicData, bool compareGeneratedIds) {
-            A.GraphicData clone = (A.GraphicData)graphicData.CloneNode(true);
-            if (!compareGeneratedIds) RemoveGeneratedShapeAttributes(clone);
+        private static string HashShapeContent(OfficeXmlNode graphicData, bool compareGeneratedIds) {
+            string signature = GetElementSignature(graphicData, compareGeneratedIds ? SignatureRules.None : GeneratedShapeAttributeRules.Instance);
             using SHA256 sha = SHA256.Create();
-            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(clone.OuterXml)));
+            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(signature)));
         }
 
-        private static string GetShapeLayoutFingerprint(WordDrawing drawing, WordDrawingLayoutInfo? layout, bool compareGeneratedIds) {
+        private static string GetShapeLayoutFingerprint(OfficeXmlNode drawing, WordDrawingLayoutInfo? layout, bool compareGeneratedIds) {
             string generated = string.Empty;
             if (compareGeneratedIds) {
-                DW.DocProperties? properties = drawing.Descendants<DW.DocProperties>().FirstOrDefault();
-                generated = ";id=" + (properties?.Id?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+                OfficeXmlNode properties = FirstDescendant(drawing, Wp, "docPr");
+                generated = ";id=" + (properties.IsNone ? string.Empty : ParseUInt32(properties.Attribute("id"))?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
             }
             return (layout?.Placement.ToString() ?? string.Empty) + ";" +
                    (layout?.Name ?? string.Empty) + ";" +
@@ -256,17 +248,16 @@ namespace OfficeIMO.Word {
                    (layout?.IsGroup.ToString() ?? string.Empty) + generated;
         }
 
-        private static void RemoveGeneratedShapeAttributes(OpenXmlElement root) {
-            foreach (OpenXmlElement element in root.Descendants().Prepend(root)) {
-                foreach (OpenXmlAttribute attribute in element.GetAttributes()
-                    .Where(attribute => attribute.LocalName.Equals("anchorId", StringComparison.OrdinalIgnoreCase) ||
-                                        attribute.LocalName.Equals("editId", StringComparison.OrdinalIgnoreCase) ||
-                                        attribute.LocalName.Equals("id", StringComparison.OrdinalIgnoreCase) &&
-                                        (element is Wpg.NonVisualDrawingProperties ||
-                                         element is Wps.NonVisualDrawingProperties))
-                    .ToList()) {
-                    element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
-                }
+        /// <summary>Shape markup without editing ids and the generated ids of shape and group drawing properties.</summary>
+        private sealed class GeneratedShapeAttributeRules : SignatureRules {
+            internal static readonly GeneratedShapeAttributeRules Instance = new();
+
+            internal override void Rewrite(OfficeXmlNode element, List<WordXmlAttribute> attributes) {
+                bool drawingProperties = element.Is(WordprocessingGroupUri, "cNvPr") || element.Is(WordprocessingShapeUri, "cNvPr");
+                RemoveAll(attributes, attribute =>
+                    attribute.LocalName.Equals("anchorId", StringComparison.OrdinalIgnoreCase) ||
+                    attribute.LocalName.Equals("editId", StringComparison.OrdinalIgnoreCase) ||
+                    attribute.LocalName.Equals("id", StringComparison.OrdinalIgnoreCase) && drawingProperties);
             }
         }
 

@@ -244,16 +244,24 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
   .imo-fmap--radial .imo-fmap__svg { max-width: 800px; margin-inline: auto; }
 }
 
-/* ---- Narrow screens: both views become the chip list with the panel below ---- */
+/* ---- Narrow screens: the circle stays as the overview, with the chip list below it to pick from (its dots are too small
+   to tap) and the panel under both. ---- */
 @media (max-width: 860px) {
   .imo-fmap--radial .imo-fmap__board, .imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
-  .imo-fmap--radial .imo-fmap__canvas, .imo-fmap--radial .imo-fmap__legend, .imo-fmap__wires, .imo-fmap__tourbtn { display: none; }
+  .imo-fmap--radial .imo-fmap__legend, .imo-fmap__wires { display: none; }
+  .imo-fmap--radial .imo-fmap__canvas { padding: 4px; border-bottom: 1px solid var(--imo-border); }
+  .imo-fmap--radial .imo-fmap__svg { max-width: 640px; margin-inline: auto; }
   .imo-fmap--radial .imo-fmap__formats { display: block; }
   .imo-fmap--radial .imo-fmap__side { border-left: 0; border-top: 1px solid var(--imo-border); }
   .imo-fmap--list .imo-fmap__side { border-top: 1px solid var(--imo-border); }
   .imo-fmap__formats, .imo-fmap__side { padding: 16px; }
 }
 @media (max-width: 520px) {
+  .imo-fmap__tourbtn { display: none; }
+  /* The tour caption covers only the bottom edge of the circle. */
+  .imo-fmap__caption { left: 6px; right: 6px; bottom: 4px; padding: 6px 10px 8px; gap: 0; }
+  .imo-fmap__captitle { font-size: 1rem; }
+  .imo-fmap__capnote { font-size: var(--imo-font-size-xs); }
   .imo-fmap__row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding: 7px 10px; }
   .imo-fmap__pkg { display: none; }
   .imo-fmap__try { grid-column: 2; grid-row: 1; }

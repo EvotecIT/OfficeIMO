@@ -24,6 +24,7 @@ $projects = @($ProjectsJson | ConvertFrom-Json | Where-Object {
 })
 $projects += @(
     'OfficeIMO.Provenance.C2pa.Tests/OfficeIMO.Provenance.C2pa.Tests.csproj'
+    'OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj'
     'OfficeIMO.Invoicing.Tests/OfficeIMO.Invoicing.Tests.csproj'
     'OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj'
 )

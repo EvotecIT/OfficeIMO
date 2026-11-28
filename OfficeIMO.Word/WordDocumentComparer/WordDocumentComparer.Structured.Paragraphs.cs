@@ -1,14 +1,11 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
-using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void AnalyzeParagraphs(
-            WordDocument source,
-            WordDocument target,
+            WordPackageView source,
+            WordPackageView target,
             WordComparisonResult result,
             WordComparisonOptions options,
             ComparisonWorkBudget comparisonWorkBudget) {
@@ -398,49 +395,48 @@ namespace OfficeIMO.Word {
                 sourceParagraphs[sourceIndex].DocumentOrder);
         }
 
-        private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document, WordComparisonOptions options) {
+        private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordPackageView document, WordComparisonOptions options) {
             var snapshots = new List<ParagraphSnapshot>();
-            MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddParagraphSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase, options);
+            WordPartView? mainPart = document.Main;
+            AddParagraphSnapshots(snapshots, mainPart, BodyOf(mainPart), BodyPartKey, BodyPartOrderBase, options);
 
             if (mainPart != null) {
                 int headerIndex = 0;
-                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                    AddParagraphSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
+                foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddParagraphSnapshots(snapshots, headerPartKey.Key, HeaderRoot(headerPartKey.Key), headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
-                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                    AddParagraphSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
+                foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddParagraphSnapshots(snapshots, footerPartKey.Key, FooterRoot(footerPartKey.Key), footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
                     footerIndex++;
                 }
 
-                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnotes[footnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
-                        footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
+                    string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
+                    AddParagraphSnapshots(snapshots, FootnotesPart(mainPart), footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
-                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnotes[endnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
-                        endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
+                    string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
+                    AddParagraphSnapshots(snapshots, EndnotesPart(mainPart), endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKind, int orderBase, WordComparisonOptions options) {
+        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, WordPartView? part, OfficeXmlNode container, string partKind, int orderBase, WordComparisonOptions options) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not Paragraph paragraph) {
+                OfficeXmlNode paragraph = ordered.Element;
+                if (!paragraph.Is(W, "p")) {
                     continue;
                 }
 
-                if (paragraph.Ancestors<TableCell>().Any()) {
+                if (HasAncestorW(paragraph, "tc")) {
                     continue;
                 }
 
@@ -462,110 +458,116 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static string GetParagraphStyleId(Paragraph paragraph) {
-            return paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? string.Empty;
+        private static string GetParagraphStyleId(OfficeXmlNode paragraph) {
+            return ChildVal(paragraph.Child(W, "pPr"), "pStyle") ?? string.Empty;
         }
 
-        private static string GetParagraphText(Paragraph paragraph) {
+        private static string GetParagraphText(OfficeXmlNode paragraph) {
             return GetParagraphTextSnapshot(paragraph, null).Text;
         }
 
-        private static string GetParagraphMatchText(Paragraph paragraph) {
+        private static string GetParagraphMatchText(OfficeXmlNode paragraph) {
             return GetParagraphTextSnapshot(paragraph, null).MatchText;
         }
 
-        private static string GetParagraphMatchText(Paragraph paragraph, OpenXmlPart? part) {
+        private static string GetParagraphMatchText(OfficeXmlNode paragraph, WordPartView? part) {
             return GetParagraphTextSnapshot(paragraph, part).MatchText;
         }
 
-        private static string GetParagraphMatchText(Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
+        private static string GetParagraphMatchText(OfficeXmlNode paragraph, WordPartView? part, WordComparisonOptions options) {
             return GetParagraphTextSnapshot(paragraph, part, options).MatchText;
         }
 
-        private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph, OpenXmlPart? part) {
+        private static ParagraphTextSnapshot GetParagraphTextSnapshot(OfficeXmlNode paragraph, WordPartView? part) {
             return GetParagraphTextSnapshot(paragraph, part, WordComparisonOptions.Default);
         }
 
-        private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
+        /// <summary>
+        /// The <c>w:type</c> of a break as the SDK path read it: "textWrapping" when absent, a format error for a value
+        /// the SDK doesn't parse.
+        /// </summary>
+        private static string GetBreakType(OfficeXmlNode breakNode) =>
+            EnumToken(breakNode.Attribute(W, "type"), "page", "column", "textWrapping") ?? "textWrapping";
+
+        private static ParagraphTextSnapshot GetParagraphTextSnapshot(OfficeXmlNode paragraph, WordPartView? part, WordComparisonOptions options) {
             var textBuilder = new StringBuilder();
             var matchBuilder = new StringBuilder();
             var pendingTextBuilder = new StringBuilder();
             AppendNumberingMatchToken(matchBuilder, paragraph, part, options);
-            foreach (OpenXmlElement element in EnumerateComparableDescendants(paragraph)) {
-                if (element.Ancestors<Paragraph>().FirstOrDefault() != paragraph) {
+            foreach (OfficeXmlNode element in EnumerateComparableDescendants(paragraph)) {
+                if (element.NamespaceId != W || AncestorW(element, "p") != paragraph) {
                     continue;
                 }
 
-                switch (element) {
-                    case Text text:
-                        textBuilder.Append(text.Text);
-                        pendingTextBuilder.Append(text.Text);
+                switch (element.LocalName) {
+                    case "t":
+                        string text = element.InnerText;
+                        textBuilder.Append(text);
+                        pendingTextBuilder.Append(text);
                         break;
-                    case DeletedText deletedText:
+                    case "delText":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        string deletedValue = deletedText.Text ?? string.Empty;
+                        string deletedValue = element.InnerText;
                         textBuilder.Append("[Deleted:");
                         textBuilder.Append(deletedValue);
                         textBuilder.Append(']');
                         AppendMatchToken(matchBuilder, "deletedText", NormalizeComparisonText(deletedValue, options));
                         break;
-                    case Hyperlink hyperlink:
+                    case "hyperlink":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        AppendMatchToken(matchBuilder, "hyperlink", NormalizeComparisonText(GetHyperlinkSignature(part, hyperlink), options));
+                        AppendMatchToken(matchBuilder, "hyperlink", NormalizeComparisonText(GetHyperlinkSignature(part, element), options));
                         break;
-                    case SimpleField simpleField:
+                    case "fldSimple":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        AppendMatchToken(matchBuilder, "simpleField", NormalizeComparisonText(simpleField.Instruction?.Value ?? string.Empty, options));
+                        AppendMatchToken(matchBuilder, "simpleField", NormalizeComparisonText(element.Attribute(W, "instr") ?? string.Empty, options));
                         break;
-                    case FieldCode fieldCode:
+                    case "instrText":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        AppendMatchToken(matchBuilder, "fieldCode", NormalizeComparisonText(fieldCode.Text ?? string.Empty, options));
+                        AppendMatchToken(matchBuilder, "fieldCode", NormalizeComparisonText(element.InnerText, options));
                         break;
-                    case TabChar:
+                    case "tab" when IsTabChar(element):
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('\t');
                         AppendMatchToken(matchBuilder, "tab", string.Empty);
                         break;
-                    case Break breakNode:
+                    case "br":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        if (breakNode.Type == null || breakNode.Type.Value == BreakValues.TextWrapping) {
-                            textBuilder.Append('\n');
-                            AppendMatchToken(matchBuilder, "break", "textWrapping");
-                        } else if (breakNode.Type.Value == BreakValues.Page) {
-                            textBuilder.Append("[PageBreak]");
-                            AppendMatchToken(matchBuilder, "break", "page");
-                        } else if (breakNode.Type.Value == BreakValues.Column) {
-                            textBuilder.Append("[ColumnBreak]");
-                            AppendMatchToken(matchBuilder, "break", "column");
-                        } else {
-                            string breakType = breakNode.Type.Value.ToString();
-                            textBuilder.Append("[Break:");
-                            textBuilder.Append(breakType);
-                            textBuilder.Append(']');
-                            AppendMatchToken(matchBuilder, "break", breakType);
+                        switch (GetBreakType(element)) {
+                            case "page":
+                                textBuilder.Append("[PageBreak]");
+                                AppendMatchToken(matchBuilder, "break", "page");
+                                break;
+                            case "column":
+                                textBuilder.Append("[ColumnBreak]");
+                                AppendMatchToken(matchBuilder, "break", "column");
+                                break;
+                            default:
+                                textBuilder.Append('\n');
+                                AppendMatchToken(matchBuilder, "break", "textWrapping");
+                                break;
                         }
 
                         break;
-                    case FootnoteReference footnoteReference:
+                    case "footnoteReference":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        string footnoteReferenceId = footnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+                        long? footnoteId = GetNoteId(element);
                         textBuilder.Append("[FootnoteReference:");
-                        textBuilder.Append(footnoteReferenceId);
+                        textBuilder.Append(footnoteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "footnoteReference", NormalizeComparisonText(GetFootnoteReferenceSignature(part, footnoteReference.Id?.Value, options), options));
+                        AppendMatchToken(matchBuilder, "footnoteReference", NormalizeComparisonText(GetFootnoteReferenceSignature(part, footnoteId, options), options));
                         break;
-                    case EndnoteReference endnoteReference:
+                    case "endnoteReference":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        string endnoteReferenceId = endnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+                        long? endnoteId = GetNoteId(element);
                         textBuilder.Append("[EndnoteReference:");
-                        textBuilder.Append(endnoteReferenceId);
+                        textBuilder.Append(endnoteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "endnoteReference", NormalizeComparisonText(GetEndnoteReferenceSignature(part, endnoteReference.Id?.Value, options), options));
+                        AppendMatchToken(matchBuilder, "endnoteReference", NormalizeComparisonText(GetEndnoteReferenceSignature(part, endnoteId, options), options));
                         break;
-                    case SymbolChar symbol:
+                    case "sym":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
-                        string symbolFont = symbol.Font?.Value ?? string.Empty;
-                        string symbolChar = symbol.Char?.Value ?? string.Empty;
+                        string symbolFont = element.Attribute(W, "font") ?? string.Empty;
+                        string symbolChar = element.Attribute(W, "char") ?? string.Empty;
                         textBuilder.Append("[Symbol:");
                         textBuilder.Append(symbolFont);
                         textBuilder.Append(':');
@@ -573,17 +575,17 @@ namespace OfficeIMO.Word {
                         textBuilder.Append(']');
                         AppendMatchToken(matchBuilder, "symbol", symbolFont + ":" + symbolChar);
                         break;
-                    case NoBreakHyphen:
+                    case "noBreakHyphen":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('-');
                         AppendMatchToken(matchBuilder, "noBreakHyphen", string.Empty);
                         break;
-                    case SoftHyphen:
+                    case "softHyphen":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append("[SoftHyphen]");
                         AppendMatchToken(matchBuilder, "softHyphen", string.Empty);
                         break;
-                    case CarriageReturn:
+                    case "cr":
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('\n');
                         AppendMatchToken(matchBuilder, "carriageReturn", string.Empty);
@@ -596,67 +598,24 @@ namespace OfficeIMO.Word {
             return new ParagraphTextSnapshot(paragraphText, NormalizeComparisonText(paragraphText, options), matchBuilder.ToString());
         }
 
-        private static void AppendNumberingMatchToken(StringBuilder builder, Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
-            NumberingProperties? numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
-            if (numberingProperties == null) {
+        private static void AppendNumberingMatchToken(StringBuilder builder, OfficeXmlNode paragraph, WordPartView? part, WordComparisonOptions options) {
+            OfficeXmlNode numberingProperties = paragraph.Child(W, "pPr").Child(W, "numPr");
+            if (numberingProperties.IsNone) {
                 return;
             }
 
-            string level = numberingProperties.NumberingLevelReference?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            int? numberingId = numberingProperties.NumberingId?.Val?.Value;
+            string level = Int32Text(ChildVal(numberingProperties, "ilvl")) ?? string.Empty;
+            int? numberingId = ParseInt32(ChildVal(numberingProperties, "numId"));
             AppendMatchToken(builder, "numbering", "level=" + level + ";definition=" + NormalizeComparisonText(GetNumberingDefinitionSignature(part, numberingId, level), options));
         }
 
-        private static string GetNumberingDefinitionSignature(OpenXmlPart? part, int? numberingId, string level) {
+        private static string GetNumberingDefinitionSignature(WordPartView? part, int? numberingId, string level) {
             if (numberingId == null) {
                 return string.Empty;
             }
 
-            MainDocumentPart? mainPart = GetMainDocumentPart(part);
-            Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
-            if (numbering == null) {
-                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            NumberingInstance? instance = numbering.Elements<NumberingInstance>()
-                .FirstOrDefault(item => item.NumberID?.Value == numberingId.Value);
-            if (instance == null) {
-                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            int? abstractNumberId = instance?.AbstractNumId?.Val?.Value;
-            if (abstractNumberId == null) {
-                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            AbstractNum? abstractNum = numbering.Elements<AbstractNum>()
-                .FirstOrDefault(item => item.AbstractNumberId?.Value == abstractNumberId.Value);
-            if (abstractNum == null) {
-                return abstractNumberId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            OpenXmlElement clone = abstractNum.CloneNode(true);
-            if (clone is AbstractNum clonedAbstract) {
-                clonedAbstract.AbstractNumberId = 0;
-            }
-
-            OpenXmlElement instanceClone = instance!.CloneNode(true);
-            if (instanceClone is NumberingInstance clonedInstance) {
-                clonedInstance.NumberID = 0;
-                if (clonedInstance.AbstractNumId != null) {
-                    clonedInstance.AbstractNumId.Val = 0;
-                }
-            }
-
-            return clone.OuterXml + "|instance:" + instanceClone.OuterXml + "|level:" + level;
-        }
-
-        private static MainDocumentPart? GetMainDocumentPart(OpenXmlPart? part) {
-            if (part is MainDocumentPart mainPart) {
-                return mainPart;
-            }
-
-            return (part?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
+            return WordPackageView.SdkNumberingDefinitionSignature(
+                GetMainDocumentPart(part)?.FirstPart(WordPackageView.NumberingRelationshipType), numberingId.Value, level);
         }
 
         private static void FlushPendingTextToken(StringBuilder builder, StringBuilder pendingTextBuilder, WordComparisonOptions options) {
@@ -677,24 +636,24 @@ namespace OfficeIMO.Word {
             builder.Append(';');
         }
 
-        private static string GetHyperlinkSignature(OpenXmlPart? part, Hyperlink hyperlink) {
+        private static string GetHyperlinkSignature(WordPartView? part, OfficeXmlNode hyperlink) {
             var builder = new StringBuilder();
-            if (hyperlink.Id?.Value is string relationshipId) {
+            if (hyperlink.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id") is string relationshipId) {
                 builder.Append("id:");
                 builder.Append(GetRelationshipTarget(part, relationshipId));
             }
 
-            if (hyperlink.Anchor?.Value is string anchor) {
+            if (hyperlink.Attribute(W, "anchor") is string anchor) {
                 builder.Append("#");
                 builder.Append(anchor);
             }
 
-            if (hyperlink.DocLocation?.Value is string docLocation) {
+            if (hyperlink.Attribute(W, "docLocation") is string docLocation) {
                 builder.Append("@");
                 builder.Append(docLocation);
             }
 
-            if (hyperlink.History?.Value is bool history) {
+            if (ParseOnOff(hyperlink.Attribute(W, "history")) is bool history) {
                 builder.Append("|history=");
                 builder.Append(history ? "true" : "false");
             }
@@ -702,67 +661,85 @@ namespace OfficeIMO.Word {
             return builder.ToString();
         }
 
-        private static string GetRelationshipTarget(OpenXmlPart? part, string relationshipId) {
+        private static string GetRelationshipTarget(WordPartView? part, string relationshipId) {
             if (part == null) {
                 return relationshipId;
             }
 
-            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(part, relationshipId);
-            if (hyperlinkRelationship != null) {
-                return hyperlinkRelationship.Uri.ToString();
+            string? hyperlinkTarget = part.HyperlinkTarget(relationshipId);
+            if (hyperlinkTarget != null) {
+                return hyperlinkTarget;
             }
 
-            ExternalRelationship? externalRelationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
-            if (externalRelationship != null) {
-                return externalRelationship.Uri.ToString();
+            if (part.TryGetExternalRelationship(relationshipId, out _, out string uri)) {
+                return uri;
             }
 
             return relationshipId;
         }
 
-        private static string GetFootnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+        private static string GetFootnoteReferenceSignature(WordPartView? part, long? noteId) {
             return GetFootnoteReferenceSignature(part, noteId, WordComparisonOptions.Default);
         }
 
-        private static string GetFootnoteReferenceSignature(OpenXmlPart? part, long? noteId, WordComparisonOptions options) {
-            if (part is not MainDocumentPart mainPart || noteId == null) {
+        private static string GetFootnoteReferenceSignature(WordPartView? part, long? noteId, WordComparisonOptions options) {
+            if (part == null || part != part.Package.Main || noteId == null) {
                 return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
             }
 
-            Footnote? footnote = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
-                .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
-            return footnote == null ? string.Empty : GetNoteContentSignature(mainPart.FootnotesPart, footnote, options);
+            WordPartView? notesPart = FootnotesPart(part);
+            OfficeXmlNode footnote = FindVisibleNote(FootnotesRoot(notesPart), "footnote", noteId.Value);
+            return footnote.IsNone ? string.Empty : GetNoteContentSignature(notesPart, footnote, options);
         }
 
-        private static string GetEndnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+        private static string GetEndnoteReferenceSignature(WordPartView? part, long? noteId) {
             return GetEndnoteReferenceSignature(part, noteId, WordComparisonOptions.Default);
         }
 
-        private static string GetEndnoteReferenceSignature(OpenXmlPart? part, long? noteId, WordComparisonOptions options) {
-            if (part is not MainDocumentPart mainPart || noteId == null) {
+        private static string GetEndnoteReferenceSignature(WordPartView? part, long? noteId, WordComparisonOptions options) {
+            if (part == null || part != part.Package.Main || noteId == null) {
                 return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
             }
 
-            Endnote? endnote = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
-                .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
-            return endnote == null ? string.Empty : GetNoteContentSignature(mainPart.EndnotesPart, endnote, options);
+            WordPartView? notesPart = EndnotesPart(part);
+            OfficeXmlNode endnote = FindVisibleNote(EndnotesRoot(notesPart), "endnote", noteId.Value);
+            return endnote.IsNone ? string.Empty : GetNoteContentSignature(notesPart, endnote, options);
         }
 
-        private static string GetNoteContentSignature(OpenXmlPart? notePart, OpenXmlElement note) {
+        private static OfficeXmlNode FindVisibleNote(OfficeXmlNode notesRoot, string noteName, long noteId) {
+            if (notesRoot.IsNone) {
+                return default;
+            }
+
+            foreach (OfficeXmlNode note in notesRoot.Children(W, noteName)) {
+                if (GetNoteId(note) == noteId && IsVisibleNote(note)) {
+                    return note;
+                }
+            }
+
+            return default;
+        }
+
+        private static string GetNoteContentSignature(WordPartView? notePart, OfficeXmlNode note) {
             return GetNoteContentSignature(notePart, note, WordComparisonOptions.Default);
         }
 
-        private static string GetNoteContentSignature(OpenXmlPart? notePart, OpenXmlElement note, WordComparisonOptions options) {
+        private static string GetNoteContentSignature(WordPartView? notePart, OfficeXmlNode note, WordComparisonOptions options) {
             return string.Join(
                 TableRowSeparator,
-                note.Elements<Paragraph>()
+                ChildrenW(note, "p")
                     .Select(paragraph => GetParagraphMatchText(paragraph, notePart, options))
                     .ToArray());
         }
 
-        private static bool HasImageContent(Paragraph paragraph) {
-            return paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
-                   paragraph.Descendants<V.ImageData>().Any();
+        private static bool HasImageContent(OfficeXmlNode paragraph) {
+            foreach (OfficeXmlNode element in TypedDescendants(paragraph)) {
+                if (element.Is(W, "drawing") || element.Is(Vml, "imagedata")) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string ParagraphLocation(int paragraphIndex) {
@@ -770,7 +747,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ParagraphSnapshot : IComparisonFingerprint {
-            internal ParagraphSnapshot(string partKind, OpenXmlPart? part, Paragraph paragraph, string text, string comparisonText, string matchText, string styleId, string formatSignature, int documentOrder) {
+            internal ParagraphSnapshot(string partKind, WordPartView? part, OfficeXmlNode paragraph, string text, string comparisonText, string matchText, string styleId, string formatSignature, int documentOrder) {
                 PartKind = partKind;
                 Part = part;
                 Paragraph = paragraph;
@@ -787,9 +764,9 @@ namespace OfficeIMO.Word {
 
             internal string PartKind { get; }
 
-            internal OpenXmlPart? Part { get; }
+            internal WordPartView? Part { get; }
 
-            internal Paragraph Paragraph { get; }
+            internal OfficeXmlNode Paragraph { get; }
 
             internal string Text { get; }
 

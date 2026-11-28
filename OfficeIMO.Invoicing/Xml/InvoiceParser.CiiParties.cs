@@ -53,7 +53,7 @@ public static partial class InvoiceParser {
             result.CardHolder = c.Text(card, Ram + "CardholderName");
             XElement? debtorAccount = c.Child(element, Ram + "PayerPartyDebtorFinancialAccount");
             result.DebitedAccount = c.Text(debtorAccount, Ram + "IBANID");
-            if (result.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(result.DebitedAccount))
+            if (result.DebitedAccount != null && !FinancialSchemes.Iban.IsValid(result.DebitedAccount))
                 c.Loss(debtorAccount!, "The source debtor account is explicitly identified as an IBAN but does not have a registered country format and valid checksum.");
             yield return result;
         }

@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>
@@ -20,24 +17,9 @@ namespace OfficeIMO.PowerPoint {
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
             ArgumentNullException.ThrowIfNull(text);
 
-            string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = shapeName },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties()),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType.ToOpenXml() }),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))));
-
-            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            return TrackShape(new PowerPointTextBox(shape, SlidePart));
+            string preset = shapeType.ToOpenXmlToken();
+            return BuildTextShape(text, preset, name ?? GenerateUniqueName(shapeType.ToString()),
+                nativeLeft, nativeTop, nativeWidth, nativeHeight);
         }
 
     }

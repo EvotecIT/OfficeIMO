@@ -35,7 +35,7 @@ document.Save("Contract-shared.docx");
 
 ## Provenance
 
-The report also answers what provenance leaves with the file. Content Credentials (C2PA manifests and references to them) and IPTC digital source type declarations, such as an image marked as AI-generated, appear as `Provenance` findings whose `Provenance` property carries the same evidence that `InspectProvenance` returns.
+The report also answers what provenance leaves with the file. Content Credentials (C2PA manifests and references to them), IPTC digital source type declarations, such as an image marked as AI-generated, and the generation settings AI image tools store in PNG text chunks appear as `Provenance` findings whose `Provenance` property carries the same evidence that `InspectProvenance` returns.
 
 Provenance is kept unless you add `OfficeHiddenDataKind.Provenance`. While it is kept, `ImageMetadata` cleanup reduces an image's XMP to its digital source type declaration instead of deleting it, and leaves images that carry Content Credentials untouched, because changing their bytes would invalidate the credential; those images are reported as `Retained`. Selecting `Provenance` removes the carriers through the same engine as `RemoveProvenance`, and then image metadata is stripped as usual. `OfficeHiddenDataOptions.Provenance` chooses the carriers with the same switches as `RemoveProvenance`: to keep Content Credentials but drop AI-generated declarations, set `RemoveC2paManifests` to false. Removing a declaration changes the image, so a kept credential is reported with a note that it no longer verifies. Each finding's `Scope` says whether it belongs to the document, one embedded image, or the whole file.
 
@@ -61,7 +61,7 @@ Each finding's `Outcome` is `Found` when inspecting, and `Removed`, `Anonymized`
 | `Thumbnail` | Package thumbnail removed | Same | Same |
 | `CustomXml` | Removed, except bibliography sources and parts bound to content controls | Removed | Removed |
 | `ImageMetadata` | Exif, GPS, XMP and IPTC removed from JPEG, PNG, WebP, TIFF, BMP and GIF images without re-encoding pixels; ICC colour, density and orientation are kept. Other image formats are retained. While provenance is kept, a digital source type declaration stays and images with Content Credentials are retained | Same | Same |
-| `Provenance` (opt-in) | C2PA manifests, external manifest references and IPTC digital source type declarations in JPEG, PNG, WebP, GIF, TIFF and SVG images, removed through the provenance engine. Package-level Content Credentials are always removed | Same | Same |
+| `Provenance` (opt-in) | C2PA manifests, external manifest references and IPTC digital source type declarations in JPEG, PNG, WebP, GIF, TIFF and SVG images, and AI image tool settings (prompts, seeds, workflows) in PNG text chunks named exactly `parameters`, `prompt`, `workflow`, `invokeai_metadata`, `invokeai_graph` or `sd-metadata`, removed through the provenance engine; malformed carriers are kept in strict mode. Package-level Content Credentials are always removed | Same | Same |
 | `PrinterSettings` | Printer settings parts and the elements that reference them | Same | Same |
 | `ExternalReferences` | Attached template removed. Other linked content, such as linked images and OLE links, is reported and retained | Cached values from external workbooks removed. External workbook paths and pivot cache source workbooks are reported and retained, because formulas and refreshes depend on them | Not applicable |
 | `DocumentVariables` | Removed | Not applicable | Not applicable |

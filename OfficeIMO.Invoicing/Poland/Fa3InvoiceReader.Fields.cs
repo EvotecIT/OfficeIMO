@@ -81,7 +81,7 @@ public static partial class Fa3InvoiceReader {
                 c.AddTo(invoice.Payments, new InvoicePayment {
                     MeansCode = commonMeans,
                     Account = new InvoiceBankAccount {
-                        Identifier = identifier, IsIban = InvoiceBankAccountIdentity.IsValidIban(identifier),
+                        Identifier = identifier, IsIban = FinancialSchemes.Iban.IsValid(identifier),
                         ProviderIdentifier = c.Text(account, Ns + "SWIFT")
                     }
                 });
