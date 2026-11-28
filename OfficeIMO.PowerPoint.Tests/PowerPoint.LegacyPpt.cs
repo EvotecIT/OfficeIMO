@@ -140,6 +140,39 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
         }
 
+        [Theory]
+        [InlineData("utf-32BE")]
+        [InlineData("utf-32")]
+        public void Preflight_CountsUtf32PartsByCharacter(string encodingName) {
+            // A slide stored as UTF-32 takes four bytes a character; its character count is what the limit applies to.
+            System.Text.Encoding encoding = System.Text.Encoding.GetEncoding(encodingName);
+            byte[] pptx;
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox(new string('x', 60_000));
+                pptx = created.ToBytes();
+            }
+            using (var stream = new MemoryStream()) {
+                stream.Write(pptx, 0, pptx.Length);
+                using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+                    DocumentFormat.OpenXml.Packaging.SlidePart slidePart = package.PresentationPart!.SlideParts.First();
+                    string xml;
+                    using (var reader = new StreamReader(slidePart.GetStream())) xml = reader.ReadToEnd();
+                    xml = System.Text.RegularExpressions.Regex.Replace(xml, "encoding=\"[^\"]*\"", "encoding=\"" + encodingName + "\"");
+                    byte[] encoded = encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray();
+                    using Stream target = slidePart.GetStream(FileMode.Create, FileAccess.Write);
+                    target.Write(encoded, 0, encoded.Length);
+                }
+                pptx = stream.ToArray();
+            }
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(pptx), new PowerPointLoadOptions {
+                OpenSettings = new OfficeIMO.OfficeOpenXmlLoadSettings { MaxCharactersInPart = 200_000 }
+            });
+
+            LegacyPptWritePreflightReport preflight = loaded.AnalyzeLegacyPptWrite();
+
+            Assert.DoesNotContain(preflight.Findings, finding => finding.Description.Contains("characters", StringComparison.Ordinal));
+        }
+
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);

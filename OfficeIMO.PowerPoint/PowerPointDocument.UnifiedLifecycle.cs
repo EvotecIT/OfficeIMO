@@ -94,12 +94,13 @@ public sealed partial class PowerPointDocument {
     /// </summary>
     internal byte[] CapturePackageBytes() {
         using var package = new MemoryStream();
-        CapturePackage(package);
+        CapturePackage(package, processMarkupCompatibility: true);
         return package.ToArray();
     }
 
-    private void CapturePackage(Stream package) {
+    private void CapturePackage(Stream package, bool processMarkupCompatibility = false) {
         ThrowIfDisposed();
+        long start = package.Position;
         if (_sdkDocument == null && _sdkDeferred && _pendingEdits && _pendingPackage != null) {
             // Edits made in the package without the SDK are part of the copy, as they would be through the SDK.
             _pendingPackage.Save(package);
@@ -110,11 +111,8 @@ public sealed partial class PowerPointDocument {
         } else if (SdkDocument.FileOpenAccess != FileAccess.ReadWrite) {
             // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
             // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
-            HashSet<string>? processed = LoadPartsForMarkupCompatibility(SdkDocument);
-            HashSet<string>? copied = processed == null ? _sdkEditedParts
-                : _sdkEditedParts == null ? processed : new HashSet<string>(processed.Concat(_sdkEditedParts), StringComparer.OrdinalIgnoreCase);
             using (var clone = (PresentationDocument)SdkDocument.Clone(package, true)) {
-                if (copied != null) CopyEditedParts(SdkDocument, clone, copied, new HashSet<OpenXmlPart>());
+                if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<OpenXmlPart>());
                 CopyPackageReferenceRelationships(SdkDocument, clone);
             }
         } else {
@@ -125,7 +123,6 @@ public sealed partial class PowerPointDocument {
             // on .NET Framework the packaging layer keeps core properties in memory, and the clone doesn't carry them.
             // The clone also leaves out the package's own external relationships, which the copy needs.
             PresentationDocument document = SdkDocument;
-            LoadPartsForMarkupCompatibility(document);
             CorePropertyValues properties = CorePropertyValues.Read(document);
             CoreFilePropertiesPart? corePart = document.CoreFilePropertiesPart;
             byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
@@ -140,6 +137,9 @@ public sealed partial class PowerPointDocument {
                 corePart.FeedData(original);
             }
             properties.Restore(document);
+        }
+        if (processMarkupCompatibility && _sdkDocument != null) {
+            ApplyMarkupCompatibility(package, start, _sdkDocument.MarkupCompatibilityProcessSettings);
         }
     }
 
@@ -209,26 +209,36 @@ public sealed partial class PowerPointDocument {
     private static bool SameDate(DateTime? left, DateTime? right) =>
         left.HasValue == right.HasValue && (!left.HasValue || left.Value.Ticks == right!.Value.Ticks && left.Value.Kind == right.Value.Kind);
 
-    // With markup compatibility processing, the SDK rewrites a part's markup when it loads the part. Loading every XML part
-    // before the copy makes the copy carry the markup a typed read sees, whether or not the part was read yet. Returns the
-    // names of the parts loaded, or null when the SDK doesn't process markup compatibility.
-    private static HashSet<string>? LoadPartsForMarkupCompatibility(PresentationDocument document) {
-        if (document.MarkupCompatibilityProcessSettings.ProcessMode == DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessMode.NoProcess) return null;
-        var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var seen = new HashSet<OpenXmlPart>();
-        var pending = new Stack<OpenXmlPartContainer>();
-        pending.Push(document);
-        while (pending.Count > 0) {
-            foreach (IdPartPair pair in pending.Pop().Parts) {
-                OpenXmlPart part = pair.OpenXmlPart;
-                if (!seen.Add(part)) continue;
-                if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase) && part.RootElement != null) {
-                    loaded.Add(part.Uri.OriginalString);
+    // With markup compatibility processing, the SDK rewrites a part's markup when it loads the part, so a typed read sees
+    // the selected branches whether or not the part was read before. The copy gets the same: it is opened with the
+    // document's processing settings and every XML part is loaded, which saves the processed markup into the copy only.
+    // The document and its own saves keep the markup as stored.
+    private static void ApplyMarkupCompatibility(Stream package, long start,
+        DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessSettings settings) {
+        if (settings.ProcessMode == DocumentFormat.OpenXml.Packaging.MarkupCompatibilityProcessMode.NoProcess) return;
+        package.Position = start;
+        var openSettings = new OpenSettings { MarkupCompatibilityProcessSettings = settings };
+        using (PresentationDocument copy = PresentationDocument.Open(package, true, openSettings)) {
+            // The save that writes the processed parts must not change the core properties part.
+            CoreFilePropertiesPart? corePart = copy.CoreFilePropertiesPart;
+            byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
+            var seen = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPartContainer>();
+            pending.Push(copy);
+            while (pending.Count > 0) {
+                foreach (IdPartPair pair in pending.Pop().Parts) {
+                    OpenXmlPart part = pair.OpenXmlPart;
+                    if (!seen.Add(part)) continue;
+                    if (part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) _ = part.RootElement;
+                    pending.Push(part);
                 }
-                pending.Push(part);
+            }
+            if (corePart != null && coreBytes != null) {
+                using var original = new MemoryStream(coreBytes, writable: false);
+                corePart.FeedData(original);
             }
         }
-        return loaded;
+        package.Position = start;
     }
 
     // Writes the content of each edited part into the same part of the copy.

@@ -179,11 +179,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         // counts it: the stored length decides only when no character count could fit in it.
         private void EnsureWithinCharacterLimit(string partName, long limit) {
             if (!_package.TryGetStoredLength(partName, out long storedLength) || storedLength <= limit) return;
-            if (storedLength <= OfficeXmlPullReader.MaximumBytesFor(limit)) {
+            // UTF-32 takes four bytes a character, the widest encoding an XML reader accepts.
+            if (storedLength <= (limit >= (long.MaxValue - 4) / 4 ? long.MaxValue : limit * 4 + 4)) {
                 byte[] bytes = _package.ReadPartBytes(partName);
-                if (OfficeXmlPullReader.CountCharacters(bytes, bytes.Length) <= limit) return;
+                if (CountCharacters(bytes) <= limit) return;
             }
             throw new InvalidDataException("The part '" + partName + "' exceeds the configured maximum of " + limit + " characters.");
+        }
+
+        // UTF-16 code units of a part's XML text, as XML readers count them against a character limit. UTF-32 (with or
+        // without a byte order mark) is counted here; UTF-8 and UTF-16 as the pull reader counts them.
+        private static long CountCharacters(byte[] data) {
+            int length = data.Length;
+            bool bigEndian = length >= 4 && data[0] == 0 && data[1] == 0 && (data[2] == 0xFE && data[3] == 0xFF || data[2] == 0 && data[3] == 0x3C);
+            bool littleEndian = length >= 4 && data[2] == 0 && data[3] == 0 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0x3C && data[1] == 0);
+            if (!bigEndian && !littleEndian) return OfficeXmlPullReader.CountCharacters(data, length);
+            int start = bigEndian && data[2] == 0xFE || littleEndian && data[0] == 0xFF ? 4 : 0;
+            long count = 0;
+            for (int index = start; index + 3 < length; index += 4) {
+                uint value = bigEndian
+                    ? (uint)(data[index] << 24 | data[index + 1] << 16 | data[index + 2] << 8 | data[index + 3])
+                    : (uint)(data[index + 3] << 24 | data[index + 2] << 16 | data[index + 1] << 8 | data[index]);
+                count += value > 0xFFFF ? 2 : 1;
+            }
+            return count;
         }
 
         internal string? ContentTypeOf(string partName) => _package.GetContentType(partName);
