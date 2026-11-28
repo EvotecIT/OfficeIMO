@@ -318,7 +318,7 @@ OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
 streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
 single-payload convenience API. Keep the workbook open while requesting reads;
 returned complete read-only streams are caller-owned and survive workbook
-disposal. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+disposal. The [Core payload contract](officeimo.core-guide.md#bounded-embedded-payload-reads)
 defines count, member, aggregate and cumulative work limits, unknown lengths and
 optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
 relationship without reading binary module content, with
@@ -998,7 +998,7 @@ take precedence. Type converters see the reader's original value before numeric
 mapping uses the serial.
 Explicit `RowMapper<T>` bindings also support aliases, optional source columns,
 per-column culture, date formats and converters through
-[`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
+[`RowMappingColumnOptions`](officeimo.core-guide.md#per-column-row-mapping).
 These controls apply to sequential, asynchronous and parallel projections.
 
 `ExcelReaderOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
@@ -1412,7 +1412,7 @@ save/reopen. A null style clears the point's fill and outline overrides.
 Snapshots, managed image export, and PDF export carry these styles through the shared
 renderer. Pie and doughnut legend swatches follow their slice appearance. Static area charts
 retain their series fill and report unsupported per-point appearance. See the
-[shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+[shared style example](officeimo.core-guide.md#style-individual-chart-points).
 
 ### Pie and doughnut geometry
 
@@ -2548,7 +2548,7 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 ## VBA source editing
 
 `ReadVbaProject()` and `SetVbaProject(OfficeVbaProject, ...)` use the
-[shared native VBA model](../OfficeIMO.Core/README.md#native-vba-projects).
+[shared native VBA model](officeimo.core-guide.md#native-vba-projects).
 They read/edit source without executing it or requiring Office, Python, or a new
 runtime dependency:
 

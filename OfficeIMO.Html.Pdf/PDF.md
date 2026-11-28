@@ -143,7 +143,7 @@ The result retains the selected HTML surfaces and combined conversion report.
 Archive images, CSS and fonts require `ResourcePolicy.AllowEmbeddedPackageResources`.
 Local files and remote resources remain governed by their separate PDF permissions
 and an explicitly supplied resolver; loading a ZIP does not enable either permission.
-The [bundle loader](../OfficeIMO.Html/README.md#load-a-zip-site-bundle) owns entry
+The [bundle loader](../Docs/officeimo.html-guide.md#load-a-zip-site-bundle) owns entry
 selection, input limits, integrity checks and archive resource identities.
 
 ## Review every rendered page
@@ -221,7 +221,7 @@ Tagged output retains source hierarchy for supported text, images and rendered f
 
 The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts. Presentation MathML keeps its vector paint and searchable logical text inside a tagged `Formula` container. Its description follows the shared accessible-name resolution, then `alttext`, then the logical expression. Tagged formulas carry UTF-8 `application/mathml+xml` associated-file supplements. Exact original standalone MathML survives document cloning and unrelated edits; changed or recovered formulas carry current namespace-aware MathML with a normalization diagnostic. Hidden formulas and untagged output do not emit formula attachments. These associations select PDF 2.0, or PDF 1.7 when configured PDF/A-3 groundwork permits them. Association metadata alone does not establish PDF/A or PDF/UA conformance.
 
-MathML operator spacing uses the [shared rendering contract](../OfficeIMO.Html/README.md#direct-html-rendering)
+MathML operator spacing uses the [shared rendering contract](../Docs/officeimo.html-guide.md#direct-html-rendering)
 for both PDF and paged image output. Supported form and side spacing affect the
 same retained drawing. Unsupported side syntax or detected authored operator presentation in unqualified
 embellished contexts retains approximation diagnostics; source attachments do not make those visual
